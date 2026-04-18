@@ -206,7 +206,7 @@ Exercise both marshal and unmarshal, including value-marshaled parent structs (p
 
 ### Schema-audit trigger
 
-Whenever a bug report shows `strconv.ParseInt`, `strconv.ParseBool`, or `strconv.Atoi` in the parser stack, treat it as a miscategorisation signal first. Confirm the field is genuinely numeric/strict before adding an escape hatch. OPNsense/pfSense fields whose PHP source uses `$config[...] == "1"` are booleans in disguise, not integers.
+Whenever a bug report shows `strconv.ParseInt`, `strconv.ParseBool`, or `strconv.Atoi` in the parser stack, treat it as a miscategorization signal first. Confirm the field is genuinely numeric/strict before adding an escape hatch. OPNsense/pfSense fields whose PHP source uses `$config[...] == "1"` are booleans in disguise, not integers.
 
 ### Receiver conventions for new liberal-parsing types
 

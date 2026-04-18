@@ -56,7 +56,7 @@ func (fi *FlexInt) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 }
 
 // UnmarshalJSON implements [json.Unmarshaler]. Accepts raw integers, bool
-// literals, and string forms recognised by [IsValueTrue] / [IsValueFalse].
+// literals, and string forms recognized by [IsValueTrue] / [IsValueFalse].
 func (fi *FlexInt) UnmarshalJSON(data []byte) error {
 	// Try native int first.
 	var n int
@@ -152,7 +152,7 @@ func (fi *FlexInt) parse(s string) error {
 		return nil
 	}
 
-	return fmt.Errorf("invalid FlexInt value %q: not numeric and not a recognised boolean", s)
+	return fmt.Errorf("invalid FlexInt value %q: not numeric and not a recognized boolean", s)
 }
 
 // Compile-time interface compliance checks.

@@ -9,7 +9,7 @@ import (
 )
 
 // FlexBool is a value-level liberal boolean for XML-encoded configuration
-// fields where the source device may emit any of the recognised truthy or
+// fields where the source device may emit any of the recognized truthy or
 // falsy strings ("1", "on", "yes", "true", etc. — see [IsValueTrue] for the
 // full vocabulary).
 //
@@ -72,7 +72,7 @@ func (fb *FlexBool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 //     this intentionally widens beyond the canonical {0,1} — a value of
 //     42 is treated as truthy.
 //   - Strings: decoded via encoding/json (so escapes are honored) and
-//     passed to [IsValueTrue]. Unrecognised strings (e.g., "banana") and
+//     passed to [IsValueTrue]. Unrecognized strings (e.g., "banana") and
 //     null unmarshal to false without error, consistent with the
 //     type-level "unknown → false" contract.
 //
@@ -119,7 +119,7 @@ func (fb *FlexBool) MarshalJSON() ([]byte, error) {
 // UnmarshalYAML implements the yaml.v3 Unmarshaler interface. Matches
 // UnmarshalJSON's behavior: native YAML booleans (`true`/`false`), integers
 // (0 → false, non-zero → true), and strings in the [IsValueTrue]
-// vocabulary all parse cleanly. Unrecognised scalars and null unmarshal
+// vocabulary all parse cleanly. Unrecognized scalars and null unmarshal
 // to false without error, consistent with the "unknown → false" contract.
 func (fb *FlexBool) UnmarshalYAML(node *yaml.Node) error {
 	// Native bool scalars: !!bool with value "true"/"false".
