@@ -307,7 +307,7 @@ func (o *OpnSenseDocument) NATSummary() NATSummary {
 	if o.System.DisableNATReflection == "yes" {
 		summary.ReflectionDisabled = true
 	}
-	if o.System.PfShareForward == 1 {
+	if bool(o.System.PfShareForward) {
 		summary.PfShareForward = true
 	}
 

@@ -38,7 +38,7 @@ When rules conflict, follow the higher precedence rule.
 2. **Always run tests** after changes (`just test`) and **linting** before committing (`just lint`)
 3. **Consult project documentation** before making changes
 4. Prefer structured config data + audit overlays over flat summary tables
-5. Validate markdown with `mdformat` and `markdownlint-cli2` — **never run `mdformat` directly**; use `pre-commit run -a` which loads the correct plugins
+5. Validate markdown with `mdformat` — **never run `mdformat` directly**; use `pre-commit run -a` which loads the correct plugins
 6. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
 
 ### Code Review Checklist
@@ -57,7 +57,6 @@ When rules conflict, follow the higher precedence rule.
 - **Focus on Value**: Enhance the project's unique value as an OPNsense auditing tool
 - **No Destructive Actions**: No major refactors without explicit permission
 - **Stay Focused**: Avoid scope creep
-- **Task Tracking**: Jira (NATS project) is the primary tracker for planned work — reference tickets by key (e.g., `NATS-33`) in plans, commits, and PR titles. GitHub issues are reserved for community-submitted bug reports/feature requests and for PRs. Do not open new GitHub issues for internal work; file in Jira instead.
 
 ### Issue Resolution
 

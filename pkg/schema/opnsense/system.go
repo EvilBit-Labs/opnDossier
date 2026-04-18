@@ -43,7 +43,7 @@ type System struct {
 	Optimization                  string       `xml:"optimization"                  json:"optimization,omitempty"                  yaml:"optimization,omitempty"                  validate:"omitempty,oneof=normal high-latency conservative aggressive"`
 	Hostname                      string       `xml:"hostname"                      json:"hostname"                                yaml:"hostname"                                validate:"required,hostname"`
 	Domain                        string       `xml:"domain"                        json:"domain"                                  yaml:"domain"                                  validate:"required,fqdn"`
-	DNSAllowOverride              int          `xml:"dnsallowoverride"              json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
+	DNSAllowOverride              BoolFlag     `xml:"dnsallowoverride"              json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
 	DNSServer                     string       `xml:"dnsserver"                     json:"dnsServer,omitempty"                     yaml:"dnsServer,omitempty"`
 	Language                      string       `xml:"language"                      json:"language,omitempty"                      yaml:"language,omitempty"`
 	Firmware                      Firmware     `xml:"firmware"                      json:"firmware"                                yaml:"firmware,omitempty"`
@@ -53,11 +53,11 @@ type System struct {
 	SSH                           SSHConfig    `xml:"ssh"                           json:"ssh"                                     yaml:"ssh,omitempty"`
 	Timezone                      string       `xml:"timezone"                      json:"timezone,omitempty"                      yaml:"timezone,omitempty"`
 	TimeServers                   string       `xml:"timeservers"                   json:"timeServers,omitempty"                   yaml:"timeServers,omitempty"`
-	UseVirtualTerminal            int          `xml:"usevirtualterminal"            json:"useVirtualTerminal,omitempty"            yaml:"useVirtualTerminal,omitempty"`
-	DisableVLANHWFilter           int          `xml:"disablevlanhwfilter"           json:"disableVlanHwFilter,omitempty"           yaml:"disableVlanHwFilter,omitempty"`
-	DisableChecksumOffloading     int          `xml:"disablechecksumoffloading"     json:"disableChecksumOffloading,omitempty"     yaml:"disableChecksumOffloading,omitempty"`
-	DisableSegmentationOffloading int          `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
-	DisableLargeReceiveOffloading int          `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	UseVirtualTerminal            BoolFlag     `xml:"usevirtualterminal"            json:"useVirtualTerminal,omitempty"            yaml:"useVirtualTerminal,omitempty"`
+	DisableVLANHWFilter           BoolFlag     `xml:"disablevlanhwfilter"           json:"disableVlanHwFilter,omitempty"           yaml:"disableVlanHwFilter,omitempty"`
+	DisableChecksumOffloading     BoolFlag     `xml:"disablechecksumoffloading"     json:"disableChecksumOffloading,omitempty"     yaml:"disableChecksumOffloading,omitempty"`
+	DisableSegmentationOffloading BoolFlag     `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	DisableLargeReceiveOffloading BoolFlag     `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
 	IPv6Allow                     string       `xml:"ipv6allow"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
 	DisableNATReflection          string       `xml:"disablenatreflection"          json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
 	DisableConsoleMenu            BoolFlag     `xml:"disableconsolemenu"            json:"disableConsoleMenu"                      yaml:"disableConsoleMenu,omitempty"`
@@ -69,10 +69,10 @@ type System struct {
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty" validate:"omitempty,oneof=monthly weekly daily never"`
 	} `xml:"bogons"                        json:"bogons"                                  yaml:"bogons,omitempty"`
-	PfShareForward int `xml:"pf_share_forward"              json:"pfShareForward,omitempty"                yaml:"pfShareForward,omitempty"`
-	LbUseSticky    int `xml:"lb_use_sticky"                 json:"lbUseSticky,omitempty"                   yaml:"lbUseSticky,omitempty"`
-	RrdBackup      int `xml:"rrdbackup"                     json:"rrdBackup,omitempty"                     yaml:"rrdBackup,omitempty"`
-	NetflowBackup  int `xml:"netflowbackup"                 json:"netflowBackup,omitempty"                 yaml:"netflowBackup,omitempty"`
+	PfShareForward BoolFlag `xml:"pf_share_forward"              json:"pfShareForward,omitempty"                yaml:"pfShareForward,omitempty"`
+	LbUseSticky    BoolFlag `xml:"lb_use_sticky"                 json:"lbUseSticky,omitempty"                   yaml:"lbUseSticky,omitempty"`
+	RrdBackup      BoolFlag `xml:"rrdbackup"                     json:"rrdBackup,omitempty"                     yaml:"rrdBackup,omitempty"`
+	NetflowBackup  BoolFlag `xml:"netflowbackup"                 json:"netflowBackup,omitempty"                 yaml:"netflowBackup,omitempty"`
 
 	// Missing service configurations
 	NTPD struct {

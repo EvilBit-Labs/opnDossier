@@ -126,9 +126,29 @@ func TestBoolFlag_UnmarshalXML(t *testing.T) {
 		xml  string
 		want bool
 	}{
-		{name: "empty element", xml: "<test><flag/></test>", want: true},
-		{name: "element with content", xml: "<test><flag>content</flag></test>", want: true},
+		// Presence semantics: empty body = true (flag is enabled by presence).
+		{name: "self-closing element", xml: "<test><flag/></test>", want: true},
+		{name: "explicit empty body", xml: "<test><flag></flag></test>", want: true},
+		// Absence = false.
 		{name: "no flag element", xml: "<test></test>", want: false},
+		// Liberal value parsing for non-empty bodies.
+		{name: "body=1", xml: "<test><flag>1</flag></test>", want: true},
+		{name: "body=on", xml: "<test><flag>on</flag></test>", want: true},
+		{name: "body=yes", xml: "<test><flag>yes</flag></test>", want: true},
+		{name: "body=true", xml: "<test><flag>true</flag></test>", want: true},
+		{name: "body=enabled", xml: "<test><flag>enabled</flag></test>", want: true},
+		{name: "body=ON uppercase", xml: "<test><flag>ON</flag></test>", want: true},
+		{name: "body=0", xml: "<test><flag>0</flag></test>", want: false},
+		{name: "body=off", xml: "<test><flag>off</flag></test>", want: false},
+		{name: "body=no", xml: "<test><flag>no</flag></test>", want: false},
+		{name: "body=disabled", xml: "<test><flag>disabled</flag></test>", want: false},
+		// Unknown value -> false. Note that FlexBool shares this behavior
+		// (both delegate to shared.IsValueTrue, which returns false for
+		// unknowns). Callers that need a strict parser — error on unknown —
+		// should use shared.FlexInt (which returns an error for unknown
+		// non-numeric strings) or validate explicitly with both
+		// shared.IsValueTrue AND shared.IsValueFalse at the call site.
+		{name: "unknown value", xml: "<test><flag>banana</flag></test>", want: false},
 	}
 
 	for _, tt := range tests {
