@@ -1,5 +1,46 @@
 // Package pfsense provides a pfSense-specific parser and converter that
-// transforms pfsense.Document into the platform-agnostic CommonDevice.
+// transforms pfsense.Document (pkg/schema/pfsense, imported without an alias
+// and therefore not usable as a doc-link target within this package) into the
+// platform-agnostic [common.CommonDevice] (pkg/model). The bracketed name
+// matches the import alias used in this file.
+//
+// # Registration
+//
+// This package self-registers its [Parser] with the global
+// [parser.DefaultRegistry] under the device type name "pfsense" from an
+// init() function. Consumers that want the pfSense parser available through
+// [parser.Factory] must add a blank import:
+//
+//	import _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"
+//
+// See [parser] for the full registration contract.
+//
+// # Self-managed XML decoding
+//
+// Unlike the OPNsense parser, this package does not use the injected
+// [parser.XMLDecoder] because that interface returns
+// *opnsense.OpnSenseDocument (pkg/schema/opnsense), which is incompatible
+// with pfsense.Document. The XMLDecoder parameter on [NewParser] is
+// accepted but ignored — it exists so that [NewParserFactory] (the function
+// registered with [parser.DefaultRegistry]) matches the
+// [parser.ConstructorFunc] signature. pfSense input is decoded internally
+// with the shared security-hardened decoder from [parser.NewSecureXMLDecoder].
+//
+// # Validation injection
+//
+// Semantic validation lives in internal/validator, which pkg/ cannot import
+// directly. [ValidateFunc] is the injection point: set it once at startup
+// from cmd/ (or an equivalent composition root) to wire validation into
+// [Parser.ParseAndValidate]. When [ValidateFunc] is nil, ParseAndValidate
+// falls back to structural parsing only, which is the safe default for
+// library consumers that do not want to couple to opnDossier's validator.
+//
+// # Dependencies
+//
+// This package has no internal/ dependencies in production code; it depends
+// only on other public pkg/ packages (pkg/model, pkg/parser, pkg/schema/pfsense,
+// and pkg/schema/opnsense — the latter supplies shared DHCP/Unbound types
+// reused by the converters) plus the standard library.
 package pfsense
 
 import (

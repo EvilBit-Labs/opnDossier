@@ -1,5 +1,3 @@
-// Package parser provides the factory for creating device-specific parsers that
-// transform vendor configuration files into the platform-agnostic CommonDevice model.
 package parser
 
 import (

@@ -1,5 +1,3 @@
-// Package pfsense provides a pfSense-specific parser and converter that
-// transforms pfsense.Document into the platform-agnostic CommonDevice.
 package pfsense
 
 import "strings"
