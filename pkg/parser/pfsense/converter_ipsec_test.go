@@ -1,6 +1,7 @@
 package pfsense_test
 
 import (
+	"fmt"
 	"testing"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -111,10 +112,16 @@ func TestConverter_IPsecEnabled_Gotchas16(t *testing.T) {
 					orphanP2 = true
 					assert.Contains(t, w.Message, "Phase 1")
 					assert.Equal(t, common.SeverityMedium, w.Severity)
+					// warnOrphanIPsecData formats the value as "<N> entries";
+					// lock that in so the message format can't drift silently.
+					assert.Contains(t, w.Value, "entries",
+						"Phase 2 orphan value should describe the orphan count")
 				case "IPsec.Client":
 					orphanMC = true
 					assert.Contains(t, w.Message, "Phase 1")
 					assert.Equal(t, common.SeverityMedium, w.Severity)
+					assert.Equal(t, "enabled", w.Value,
+						"mobile client orphan value should be literal 'enabled'")
 				}
 			}
 			assert.Equal(t, tt.wantOrphanP2, orphanP2, "Phase 2 orphan warning presence mismatch")
@@ -133,4 +140,137 @@ func TestConverter_IPsecEnabled_Gotchas16(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestConverter_IPsecPhase1FieldValidators locks in the Phase 1 field-level
+// enum-like validators (validateIPsecPhase1Fields): unrecognized non-empty
+// IKEType, Mode, or Protocol each emit a SeverityMedium warning.
+func TestConverter_IPsecPhase1FieldValidators(t *testing.T) {
+	t.Parallel()
+
+	doc := &pfsenseSchema.Document{
+		IPsec: pfsenseSchema.IPsec{
+			Phase1: []pfsenseSchema.IPsecPhase1{{
+				IKEId:    "1",
+				IKEType:  "ikev9",    // invalid
+				Mode:     "sideways", // invalid
+				Protocol: "inet999",  // invalid
+			}},
+		},
+	}
+
+	_, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	expected := []struct {
+		field   string
+		value   string
+		snippet string
+	}{
+		{"IPsec.Phase1[0].IKEType", "ikev9", "IKE version"},
+		{"IPsec.Phase1[0].Mode", "sideways", "negotiation mode"},
+		{"IPsec.Phase1[0].Protocol", "inet999", "address family"},
+	}
+
+	for _, exp := range expected {
+		found := false
+		for _, w := range warnings {
+			if w.Field == exp.field && w.Value == exp.value {
+				found = true
+				assert.Contains(t, w.Message, exp.snippet,
+					"message for %s should mention %q", exp.field, exp.snippet)
+				assert.Equal(t, common.SeverityMedium, w.Severity,
+					"severity for %s drifted", exp.field)
+			}
+		}
+		assert.True(t, found, "expected warning on %s=%q, got %+v",
+			exp.field, exp.value, warnings)
+	}
+}
+
+// TestConverter_IPsecPhase2FieldValidators locks in the Phase 2 field-level
+// validators (validateIPsecPhase2Fields). Phase 2 validators only run when a
+// Phase 1 also exists, so the fixture includes a minimal Phase 1.
+func TestConverter_IPsecPhase2FieldValidators(t *testing.T) {
+	t.Parallel()
+
+	doc := &pfsenseSchema.Document{
+		IPsec: pfsenseSchema.IPsec{
+			Phase1: []pfsenseSchema.IPsecPhase1{{IKEId: "1"}},
+			Phase2: []pfsenseSchema.IPsecPhase2{{
+				Mode:     "pigeon",   // invalid
+				Protocol: "rfc-9999", // invalid
+			}},
+		},
+	}
+
+	_, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	expected := []struct {
+		field   string
+		value   string
+		snippet string
+	}{
+		{"IPsec.Phase2[0].Mode", "pigeon", "tunnel mode"},
+		{"IPsec.Phase2[0].Protocol", "rfc-9999", "IPsec protocol"},
+	}
+
+	for _, exp := range expected {
+		found := false
+		for _, w := range warnings {
+			if w.Field == exp.field && w.Value == exp.value {
+				found = true
+				assert.Contains(t, w.Message, exp.snippet,
+					"message for %s should mention %q", exp.field, exp.snippet)
+				assert.Equal(t, common.SeverityMedium, w.Severity,
+					"severity for %s drifted", exp.field)
+			}
+		}
+		assert.True(t, found, "expected warning on %s=%q, got %+v",
+			exp.field, exp.value, warnings)
+	}
+}
+
+// TestConverter_IPsecPhase1_PreSharedKeyExclusion locks in the security
+// invariant that a present PreSharedKey emits a SeverityLow warning and is
+// deliberately NOT propagated into the exported IPsecPhase1Tunnel. Removing
+// the exclusion (and the warning) would silently leak pre-shared keys into
+// downstream exports.
+func TestConverter_IPsecPhase1_PreSharedKeyExclusion(t *testing.T) {
+	t.Parallel()
+
+	doc := &pfsenseSchema.Document{
+		IPsec: pfsenseSchema.IPsec{
+			Phase1: []pfsenseSchema.IPsecPhase1{{
+				IKEId:        "1",
+				PreSharedKey: "super-secret-psk-42",
+			}},
+		},
+	}
+
+	device, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.NotNil(t, device)
+
+	var pskWarning *common.ConversionWarning
+	for i := range warnings {
+		if warnings[i].Field == "IPsec.Phase1[0].PreSharedKey" {
+			pskWarning = &warnings[i]
+			break
+		}
+	}
+	require.NotNil(t, pskWarning, "expected PSK exclusion warning")
+	assert.Equal(t, "[present]", pskWarning.Value,
+		"PSK warning Value must be the [present] marker, not the raw key")
+	assert.Contains(t, pskWarning.Message, "security",
+		"PSK warning should explain the security reason for exclusion")
+	assert.Equal(t, common.SeverityLow, pskWarning.Severity)
+
+	// The converted Phase 1 tunnel must not carry the raw PSK anywhere in its
+	// exported fields.
+	require.Len(t, device.VPN.IPsec.Phase1Tunnels, 1)
+	tunnelJSON := fmt.Sprintf("%+v", device.VPN.IPsec.Phase1Tunnels[0])
+	assert.NotContains(t, tunnelJSON, "super-secret-psk-42",
+		"raw PSK must not appear in exported Phase1Tunnel")
 }

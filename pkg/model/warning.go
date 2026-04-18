@@ -98,6 +98,9 @@ type ConversionWarning struct {
 	// Value provides context to identify the affected config element (e.g., rule UUID,
 	// gateway name, or certificate description). When the warning is about a missing or
 	// empty field, this contains a sibling identifier rather than the empty field itself.
+	// A few warnings instead store the raw input that triggered them (for example, the
+	// multi-pool Kea warning stores the full newline-separated pool string), so
+	// consumers should not assume Value is always a short identifier.
 	Value string
 	// Message is a human-readable description of the issue.
 	Message string

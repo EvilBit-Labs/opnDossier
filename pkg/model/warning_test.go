@@ -90,6 +90,21 @@ func TestValidSeverities_ReturnsFreshCopy(t *testing.T) {
 	}
 }
 
+// TestIsValidSeverity_MatchesValidSeverities guards the dual-maintenance
+// boundary between `validSeverities` (the slice backing ValidSeverities()) and
+// the `IsValidSeverity` switch. A developer who adds a new Severity constant
+// must update both; this test catches the asymmetric case where only one was
+// updated.
+func TestIsValidSeverity_MatchesValidSeverities(t *testing.T) {
+	t.Parallel()
+
+	for _, s := range common.ValidSeverities() {
+		if !common.IsValidSeverity(s) {
+			t.Errorf("IsValidSeverity(%q) = false, but %q is in ValidSeverities()", s, s)
+		}
+	}
+}
+
 func TestValidSeverities_Coverage(t *testing.T) {
 	t.Parallel()
 
@@ -124,29 +139,30 @@ func TestValidSeverities_Coverage(t *testing.T) {
 
 // ExampleConversionWarning shows the producer/consumer pattern for
 // ConversionWarning: converters emit warnings; callers iterate the returned
-// slice to surface them.
+// slice to surface them. The warning shapes below mirror real converter
+// output — the field paths, severities, and messages match what
+// opnsense.ConvertDocument actually emits.
 func ExampleConversionWarning() {
-	// Typical converter output.
 	warnings := []common.ConversionWarning{
 		{
 			Field:    "FirewallRules[0].Type",
 			Value:    "match",
-			Message:  "unrecognized firewall rule type; rule will be skipped",
-			Severity: common.SeverityHigh,
+			Message:  "unrecognized firewall rule type",
+			Severity: common.SeverityLow,
 		},
 		{
-			Field:    "DHCP.Subnets[2].Pools",
-			Value:    "lan-subnet",
-			Message:  "multiple pools declared; only the first is represented in CommonDevice",
-			Severity: common.SeverityMedium,
+			Field:    "kea.dhcp4.subnets.subnet4.pools",
+			Value:    "10.20.0.100-10.20.0.150\n10.20.0.200-10.20.0.250",
+			Message:  "Kea subnet sub-1 has 2 pools; only the first is represented in the unified scope",
+			Severity: common.SeverityInfo,
 		},
 	}
 
 	for _, w := range warnings {
-		fmt.Printf("[%s] %s: %s (value=%q)\n", w.Severity, w.Field, w.Message, w.Value)
+		fmt.Printf("[%s] %s: %s\n", w.Severity, w.Field, w.Message)
 	}
 
 	// Output:
-	// [high] FirewallRules[0].Type: unrecognized firewall rule type; rule will be skipped (value="match")
-	// [medium] DHCP.Subnets[2].Pools: multiple pools declared; only the first is represented in CommonDevice (value="lan-subnet")
+	// [low] FirewallRules[0].Type: unrecognized firewall rule type
+	// [info] kea.dhcp4.subnets.subnet4.pools: Kea subnet sub-1 has 2 pools; only the first is represented in the unified scope
 }

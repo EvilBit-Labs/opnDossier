@@ -244,7 +244,7 @@ func TestConverter_EnumCast_MultipleInvalidsAccumulate(t *testing.T) {
 	}
 
 	for _, exp := range expected {
-		assert.NotNil(t, findPfSenseWarning(warnings, exp.field, exp.value),
+		require.NotNil(t, findPfSenseWarning(warnings, exp.field, exp.value),
 			"expected warning on %s=%q, got %+v", exp.field, exp.value, warnings)
 	}
 }

@@ -14,8 +14,11 @@ import (
 // every XML string that is cast to a typed enum is guarded by IsValid(), and
 // an unrecognized non-empty value produces exactly one ConversionWarning on
 // the offending field with the documented severity. This test is the
-// canonical regression for the pattern; future enum casts added to the
-// converter should either be covered here or by an equivalent per-case test.
+// canonical regression for the pattern for OPNsense enum casts; pfSense
+// enum casts are covered separately in
+// pkg/parser/pfsense/converter_enum_cast_test.go. Future enum casts added to
+// the OPNsense converter should be covered here; pfSense additions belong
+// in the sibling file.
 func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 	t.Parallel()
 
@@ -262,7 +265,7 @@ func TestConverter_EnumCast_MultipleInvalidsAccumulate(t *testing.T) {
 	}
 
 	for _, exp := range expected {
-		assert.NotNil(t, findWarning(warnings, exp.field, exp.value),
+		require.NotNil(t, findWarning(warnings, exp.field, exp.value),
 			"expected warning on %s=%q, got %+v", exp.field, exp.value, warnings)
 	}
 }

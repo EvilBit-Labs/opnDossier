@@ -108,6 +108,7 @@ func TestConverter_KeaDHCP4_Gotchas18_OrphanReservation(t *testing.T) {
 	orphanWarning := findWarning(warnings, "kea.dhcp4.reservations", "subnet-missing")
 	require.NotNil(t, orphanWarning, "expected orphan-reservation warning")
 	assert.Contains(t, orphanWarning.Message, "nonexistent subnet UUID")
+	assert.Equal(t, common.SeverityMedium, orphanWarning.Severity)
 
 	keaScope := findKeaScope(t, device.DHCP, "Real subnet")
 	require.Len(t, keaScope.StaticLeases, 1, "orphan reservation must not leak into any scope")
@@ -126,12 +127,18 @@ func TestConverter_KeaDHCP4_Gotchas18_SubnetMissingUUID(t *testing.T) {
 		{UUID: "", Subnet: "10.40.0.0/24", Description: "UUIDless subnet"},
 	}
 
-	_, warnings, err := opnsense.ConvertDocument(doc)
+	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
+
+	// The UUID-less subnet must still produce a scope — reservation matching
+	// is broken but the scope itself is valid config data. This lock matches
+	// the intent statement in the test godoc.
+	_ = findKeaScope(t, device.DHCP, "UUIDless subnet")
 
 	uuidWarning := findWarning(warnings, "kea.dhcp4.subnets.subnet4", "10.40.0.0/24")
 	require.NotNil(t, uuidWarning, "expected UUID-missing warning on subnet")
 	assert.Contains(t, uuidWarning.Message, "reservation matching")
+	assert.Equal(t, common.SeverityMedium, uuidWarning.Severity)
 }
 
 // TestConverter_KeaDHCP4_Gotchas18_ReservationMissingSubnet locks in the
@@ -158,4 +165,5 @@ func TestConverter_KeaDHCP4_Gotchas18_ReservationMissingSubnet(t *testing.T) {
 	floatWarning := findWarning(warnings, "kea.dhcp4.reservations.reservation.subnet", "res-floating")
 	require.NotNil(t, floatWarning, "expected warning for reservation with blank subnet reference")
 	assert.Contains(t, floatWarning.Message, "orphaned")
+	assert.Equal(t, common.SeverityMedium, floatWarning.Severity)
 }
