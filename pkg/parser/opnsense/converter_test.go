@@ -613,6 +613,244 @@ func TestConverter_DNS(t *testing.T) {
 	assert.True(t, device.DNS.DNSMasq.Enabled)
 	require.Len(t, device.DNS.DNSMasq.Hosts, 1)
 	assert.Equal(t, "server", device.DNS.DNSMasq.Hosts[0].Host)
+	// Advanced Unbound fields default to zero when <unboundplus> is empty.
+	// Assert `nil` (not just empty) because `splitPrivateAddress`'s documented
+	// contract returns nil on empty input — pinning that contract here prevents
+	// a silent switch to `[]string{}` that would change reflect-based diffs and
+	// any downstream consumer relying on the nil-vs-empty distinction.
+	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
+	assert.False(t, device.DNS.Unbound.HideIdentity)
+	assert.False(t, device.DNS.Unbound.Prefetch)
+}
+
+func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		rawAddresses string
+		want         []string
+	}{
+		{
+			"comma separated",
+			"10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12",
+			[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
+		},
+		{"newline separated", "10.0.0.0/8\n192.168.0.0/16", []string{"10.0.0.0/8", "192.168.0.0/16"}},
+		{
+			// NBSP (U+00A0) pins the unicode.IsSpace contract so a future
+			// simplification back to an ASCII-only predicate fails loudly.
+			"NBSP separated",
+			"10.0.0.0/8\u00a0192.168.0.0/16",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{
+			"mixed separators",
+			"10.0.0.0/8,\n 192.168.0.0/16\t172.16.0.0/12",
+			[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
+		},
+		{"whitespace only", "   \n  ", nil},
+		{"empty", "", nil},
+		{"single value", "10.0.0.0/8", []string{"10.0.0.0/8"}},
+		{
+			"CRLF separated (Windows-edited config)",
+			"10.0.0.0/8\r\n192.168.0.0/16",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{
+			"leading and trailing separators",
+			",10.0.0.0/8,192.168.0.0/16,",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{
+			"duplicate adjacent separators",
+			"10.0.0.0/8,,,192.168.0.0/16",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{"bare IPv4 address accepted", "127.0.0.1", []string{"127.0.0.1"}},
+		{"IPv6 CIDR accepted", "fd00::/8", []string{"fd00::/8"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			doc.Unbound.Enable = "1"
+			raw := tc.rawAddresses
+			doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &raw
+			doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Hideversion = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Logqueries = "0"
+			doc.OPNsense.UnboundPlus.Advanced.Logreplies = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Prefetch = "1"
+
+			device, warnings, err := opnsense.ConvertDocument(doc)
+			require.NoError(t, err)
+			assert.Empty(t, warnings)
+
+			assert.Equal(t, tc.want, device.DNS.Unbound.PrivateAddress)
+			// Privateaddress element was present in the document — configured.
+			assert.True(t, device.DNS.Unbound.PrivateAddressConfigured)
+			assert.True(t, device.DNS.Unbound.HideIdentity)
+			assert.True(t, device.DNS.Unbound.HideVersion)
+			assert.False(t, device.DNS.Unbound.LogQueries)
+			assert.True(t, device.DNS.Unbound.LogReplies)
+			assert.True(t, device.DNS.Unbound.Prefetch)
+			// Legacy <unbound> remains canonical for Enabled.
+			assert.True(t, device.DNS.Unbound.Enabled)
+		})
+	}
+}
+
+func TestConverter_DNS_PrivateAddressAbsent(t *testing.T) {
+	t.Parallel()
+
+	// When <privateaddress> is entirely absent from the MVC advanced block,
+	// the converter preserves that as PrivateAddressConfigured=false so
+	// downstream FIREWALL-007 can return Unknown instead of Fail.
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	// Leave doc.OPNsense.UnboundPlus.Advanced.Privateaddress at its zero value (nil).
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
+	assert.False(t, device.DNS.Unbound.PrivateAddressConfigured,
+		"absent <privateaddress> element must not be reported as configured")
+}
+
+func TestConverter_DNS_PrivateAddressPresentEmpty(t *testing.T) {
+	t.Parallel()
+
+	// When <privateaddress></privateaddress> is present but empty, the
+	// converter records PrivateAddressConfigured=true with an empty slice,
+	// so downstream FIREWALL-007 can return Fail (operator explicitly
+	// cleared the list).
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	empty := ""
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &empty
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
+	assert.True(t, device.DNS.Unbound.PrivateAddressConfigured,
+		"present-but-empty <privateaddress> must be reported as configured")
+}
+
+func TestConverter_DNS_LegacyAndMVCCoexist(t *testing.T) {
+	t.Parallel()
+
+	// Proves legacy <unbound> fields and MVC <unboundplus> fields populate
+	// independent slots on UnboundConfig — they do not clobber each other.
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	doc.Unbound.Dnssec = "1"
+	doc.Unbound.Dnssecstripped = "0"
+	single := "192.168.0.0/16"
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &single
+	doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "1"
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	assert.True(t, device.DNS.Unbound.Enabled)
+	assert.True(t, device.DNS.Unbound.DNSSEC)
+	assert.False(t, device.DNS.Unbound.DNSSECStripped)
+	assert.Equal(t, []string{"192.168.0.0/16"}, device.DNS.Unbound.PrivateAddress)
+	assert.True(t, device.DNS.Unbound.HideIdentity)
+}
+
+func TestConverter_DNS_PrivateAddressValidation(t *testing.T) {
+	t.Parallel()
+
+	// Invalid entries are dropped and emit a conversion warning; valid entries
+	// remain. Prevents silent pass-through of typos like "192.168/16".
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	mixed := "garbage, 192.168.0.0/16, 192.168/16, 10.0.0.0/8, not-a-cidr"
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = &mixed
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"192.168.0.0/16", "10.0.0.0/8"}, device.DNS.Unbound.PrivateAddress)
+
+	// Expect three warnings, one per invalid entry.
+	invalidCount := 0
+	for _, w := range warnings {
+		if w.Field == "DNS.Unbound.PrivateAddress" {
+			invalidCount++
+		}
+	}
+	assert.Equal(t, 3, invalidCount, "expected one warning per invalid private-address entry")
+}
+
+func TestConverter_DNS_UnboundPlusVersionDrift(t *testing.T) {
+	t.Parallel()
+
+	// Unrecognized MVC version attribute emits a conversion warning
+	// (parallel to Kea GOTCHAS 18.1). Empty version is accepted silently.
+	cases := []struct {
+		name        string
+		version     string
+		wantWarning bool
+	}{
+		{"empty version accepted silently", "", false},
+		{"known 1.0.0 accepted silently", "1.0.0", false},
+		{"unknown 2.0.0 emits warning", "2.0.0", true},
+		{"malformed version emits warning", "not-a-version", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			doc.OPNsense.UnboundPlus.Version = tc.version
+
+			_, warnings, err := opnsense.ConvertDocument(doc)
+			require.NoError(t, err)
+
+			found := false
+			for _, w := range warnings {
+				if w.Field == "DNS.Unbound.UnboundPlus.Version" {
+					found = true
+					assert.Equal(t, tc.version, w.Value)
+				}
+			}
+			assert.Equal(t, tc.wantWarning, found,
+				"version=%q wantWarning=%v got warnings=%v", tc.version, tc.wantWarning, warnings)
+		})
+	}
+}
+
+func TestConverter_DNS_UnboundBoolStrictMatch(t *testing.T) {
+	t.Parallel()
+
+	// xmlBoolTrue is strict exact-match against "1". Other truthy-looking
+	// values ("yes", "true", "2") are treated as false. This locks in the
+	// package-wide convention; see GOTCHAS 5.2 for the broader context.
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "on"
+	doc.OPNsense.UnboundPlus.Advanced.Hideversion = "true"
+	doc.OPNsense.UnboundPlus.Advanced.Prefetch = "2"
+	doc.OPNsense.UnboundPlus.Advanced.Logqueries = ""
+
+	device, _, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	assert.False(t, device.DNS.Unbound.HideIdentity)
+	assert.False(t, device.DNS.Unbound.HideVersion)
+	assert.False(t, device.DNS.Unbound.Prefetch)
+	assert.False(t, device.DNS.Unbound.LogQueries)
 }
 
 func TestConverter_VLANs(t *testing.T) {

@@ -230,14 +230,49 @@ type DNSConfig struct {
 	DNSMasq DNSMasqConfig `json:"dnsMasq" yaml:"dnsMasq,omitempty"`
 }
 
-// UnboundConfig contains Unbound DNS resolver configuration.
+// UnboundConfig contains Unbound DNS resolver configuration. The first three
+// fields (Enabled, DNSSEC, DNSSECStripped) are sourced from the legacy <unbound>
+// element. The remaining fields are sourced from the MVC <OPNsense><unboundplus>
+// element; the OPNsense-specific converter handles the split.
 type UnboundConfig struct {
+	// -- Legacy <unbound> (canonical) --
+
 	// Enabled indicates whether the Unbound resolver is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// DNSSEC enables DNSSEC validation.
 	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
 	// DNSSECStripped enables DNSSEC stripped mode.
 	DNSSECStripped bool `json:"dnssecStripped,omitempty" yaml:"dnssecStripped,omitempty"`
+
+	// -- MVC <OPNsense><unboundplus><advanced> --
+
+	// PrivateAddress lists CIDR prefixes or IPs supplied to Unbound's
+	// `private-address` directive. When populated, Unbound rejects DNS
+	// responses that resolve to these ranges for public domains — the DNS
+	// rebind protection mechanism. The converter validates each entry (drops
+	// and warns on unparseable values); consumers may still want to re-verify
+	// before acting on them.
+	PrivateAddress []string `json:"privateAddress,omitempty" yaml:"privateAddress,omitempty"`
+	// PrivateAddressConfigured distinguishes "the MVC <privateaddress> element
+	// was absent from config.xml" (false — rebind-protection status is Unknown,
+	// common on older installs or fresh setups) from "the element was present
+	// but empty, or filtered down to empty after validation" (true — rebind
+	// protection is explicitly not in force). Consumers evaluating rebind
+	// protection should gate on this before acting on PrivateAddress length.
+	PrivateAddressConfigured bool `json:"privateAddressConfigured,omitempty" yaml:"privateAddressConfigured,omitempty"`
+	// HideIdentity corresponds to Unbound's `hide-identity` directive.
+	// When true, Unbound does not reveal its server identity in responses.
+	HideIdentity bool `json:"hideIdentity,omitempty" yaml:"hideIdentity,omitempty"`
+	// HideVersion corresponds to Unbound's `hide-version` directive.
+	// When true, Unbound does not reveal its version string.
+	HideVersion bool `json:"hideVersion,omitempty" yaml:"hideVersion,omitempty"`
+	// LogQueries indicates whether Unbound logs each incoming query.
+	LogQueries bool `json:"logQueries,omitempty" yaml:"logQueries,omitempty"`
+	// LogReplies indicates whether Unbound logs each outgoing reply.
+	LogReplies bool `json:"logReplies,omitempty" yaml:"logReplies,omitempty"`
+	// Prefetch enables Unbound's prefetch behavior (cache warming for
+	// messages close to expiration).
+	Prefetch bool `json:"prefetch,omitempty" yaml:"prefetch,omitempty"`
 }
 
 // DNSMasqConfig contains dnsmasq forwarder configuration.
