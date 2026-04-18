@@ -24,7 +24,7 @@ Each firewall compliance check returns one of three states:
 | FIREWALL-004 | Hostname Configuration           | System Configuration  | Low      | Implemented |
 | FIREWALL-005 | DNS Server Configuration         | Network Configuration | Medium   | Implemented |
 | FIREWALL-006 | IPv6 Disablement                 | Network Configuration | Medium   | Implemented |
-| FIREWALL-007 | DNS Rebind Check                 | DNS Security          | Low      | Pass / Fail |
+| FIREWALL-007 | DNS Rebind Protection            | DNS Security          | Medium   | Implemented |
 | FIREWALL-008 | HTTPS Web Management             | Management Access     | High     | Implemented |
 
 ---
@@ -245,7 +245,7 @@ Disable IPv6 if not required:
 | **ID**       | FIREWALL-007                                  |
 | **Category** | DNS Security                                  |
 | **Severity** | Medium                                        |
-| **Status**   | Pass / Fail / Unknown                         |
+| **Status**   | Implemented                                   |
 | **Tags**     | `dns-rebind`, `security`, `firewall-controls` |
 
 ### Description

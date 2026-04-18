@@ -225,7 +225,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 	}
 
 	// FIREWALL-007: DNS Rebind Protection
-	if cr := fp.hasDNSRebindCheck(device); cr.Known && !cr.Result {
+	if cr := fp.hasDNSRebindProtection(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Severity:       fp.controlSeverity("FIREWALL-007"),
@@ -302,7 +302,7 @@ func (fp *Plugin) EvaluatedControlIDs(device *common.CommonDevice) []string {
 		"FIREWALL-004": fp.hasCustomHostname,
 		"FIREWALL-005": fp.hasDNSServers,
 		"FIREWALL-006": fp.hasIPv6Enabled,
-		"FIREWALL-007": fp.hasDNSRebindCheck,
+		"FIREWALL-007": fp.hasDNSRebindProtection,
 		"FIREWALL-008": fp.hasHTTPSManagement,
 		// Management Plane (009-021)
 		"FIREWALL-009": fp.checkNonDefaultWebGUIPort,
@@ -483,14 +483,14 @@ func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
 	return checkResult{Result: device.System.IPv6Allow, Known: true}
 }
 
-// hasDNSRebindCheck checks whether Unbound DNS rebind protection is configured.
-// Returns Known=true only when the Unbound resolver is active; otherwise returns
-// Unknown so the control is not evaluated against non-Unbound configurations
-// (for example, OPNsense installations using DNSMasq as the primary resolver).
-// When Unbound is active, Result=true iff its `private-address` list (sourced
-// from <OPNsense><unboundplus><advanced><privateaddress>) has at least one
-// entry. Callers interpret Result=false as "protection missing.".
-func (fp *Plugin) hasDNSRebindCheck(device *common.CommonDevice) checkResult {
+// hasDNSRebindProtection checks whether Unbound DNS rebind protection is
+// configured. Returns Known=true only when the Unbound resolver is active;
+// otherwise returns Unknown so the control is not evaluated against non-Unbound
+// configurations (for example, OPNsense installations using DNSMasq as the
+// primary resolver). When Unbound is active, Result=true iff its
+// `private-address` list (sourced from <OPNsense><unboundplus><advanced><privateaddress>)
+// has at least one entry; callers interpret Result=false as protection missing.
+func (fp *Plugin) hasDNSRebindProtection(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return unknown
 	}

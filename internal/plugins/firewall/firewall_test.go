@@ -1512,9 +1512,9 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 		name          string
 		config        *common.CommonDevice
 		expectFinding bool
-		description   string
 	}{
 		{
+			// Rebind protection configured → compliant, no finding.
 			name: "unbound enabled with private-address list - no finding",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
@@ -1525,9 +1525,9 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 				},
 			},
 			expectFinding: false,
-			description:   "Rebind protection configured → compliant, no finding",
 		},
 		{
+			// Unbound active but no private-address → protection missing.
 			name: "unbound enabled with empty private-address - finding expected",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
@@ -1535,9 +1535,9 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 				},
 			},
 			expectFinding: true,
-			description:   "Unbound active but no private-address → protection missing",
 		},
 		{
+			// Non-nil zero-length slice is treated identically to nil.
 			name: "unbound enabled with zero-length slice - finding expected",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
@@ -1545,9 +1545,9 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 				},
 			},
 			expectFinding: true,
-			description:   "Non-nil zero-length slice is treated identically to nil",
 		},
 		{
+			// Unbound off → check is Unknown (may be DNSMasq install).
 			name: "unbound disabled with private-address populated - no finding (unknown)",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
@@ -1558,7 +1558,6 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 				},
 			},
 			expectFinding: false,
-			description:   "Unbound off → check is Unknown (may be DNSMasq install)",
 		},
 	}
 
@@ -1572,7 +1571,7 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 func TestFirewallPlugin_DNSRebindCheck_NilDevice(t *testing.T) {
 	fp := firewall.NewPlugin()
 
-	// Nil device: hasDNSRebindCheck returns Unknown, so no FIREWALL-007 finding fires.
+	// Nil device: hasDNSRebindProtection returns Unknown, so no FIREWALL-007 finding fires.
 	assertFindingPresence(t, fp, nil, "FIREWALL-007", false)
 }
 

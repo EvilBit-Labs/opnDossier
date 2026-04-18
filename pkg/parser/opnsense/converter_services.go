@@ -6,6 +6,7 @@ import (
 	"net/netip"
 	"slices"
 	"strings"
+	"unicode"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
@@ -209,20 +210,16 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 }
 
 // splitPrivateAddress parses the <privateaddress> string into a normalized
-// slice of CIDR prefixes. Tokens are split on these separators only: commas,
-// ASCII spaces, tabs, LF, and CR (the separators OPNsense's webUI produces).
-// Other Unicode whitespace is intentionally not treated as a separator. Each
+// slice of CIDR prefixes. Tokens are split on commas and any Unicode whitespace
+// (via unicode.IsSpace), covering the separators OPNsense's webUI produces plus
+// NBSP and other Unicode whitespace that might survive copy/paste edits. Each
 // token must parse as a netip.Prefix or netip.Addr; invalid tokens are dropped
 // with a conversion warning (GOTCHAS 5.2 pattern). Returns nil when the
 // normalized slice is empty so downstream JSON/YAML `omitempty` keeps zero-
 // value output compact.
 func (c *converter) splitPrivateAddress(raw string) []string {
 	fields := strings.FieldsFunc(raw, func(r rune) bool {
-		switch r {
-		case ',', '\n', '\r', '\t', ' ':
-			return true
-		}
-		return false
+		return r == ',' || unicode.IsSpace(r)
 	})
 	if len(fields) == 0 {
 		return nil

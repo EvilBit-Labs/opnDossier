@@ -81,8 +81,12 @@ func TestUnboundPlus_RoundTrip(t *testing.T) {
 
 	// Populate every sub-struct so the round-trip exercises every field path.
 	// A future field whose type-promotion or tag silently breaks marshaling
-	// will fail the deep-equality check below.
+	// will fail the deep-equality check below. Declaring the *string values as
+	// locals (rather than a one-line helper) avoids the modernize analyzer's
+	// false-positive `new()` suggestion for value-to-pointer conversions.
+	dots, hosts, aliases, domains := "dot1", "host1", "alias1", "domain1"
 	original := UnboundPlus{
+		XMLName: xml.Name{Local: "unboundplus"},
 		Version: "1.0.0",
 		General: UnboundPlusGeneral{
 			Enabled:            "1",
@@ -108,10 +112,10 @@ func TestUnboundPlus_RoundTrip(t *testing.T) {
 		Acls:       UnboundPlusAcls{DefaultAction: "allow"},
 		Dnsbl:      UnboundPlusDnsbl{Enabled: "1", Type: "ads", Nxdomain: "0"},
 		Forwarding: UnboundPlusForwarding{Enabled: "0"},
-		Dots:       "dot1",
-		Hosts:      "host1",
-		Aliases:    "alias1",
-		Domains:    "domain1",
+		Dots:       &dots,
+		Hosts:      &hosts,
+		Aliases:    &aliases,
+		Domains:    &domains,
 	}
 
 	out, err := xml.Marshal(&original)

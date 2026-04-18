@@ -1,6 +1,8 @@
 // Package opnsense defines the data structures for OPNsense configurations.
 package opnsense
 
+import "encoding/xml"
+
 // UnboundPlus contains the full Unbound DNS resolver MVC configuration as stored
 // under <OPNsense><unboundplus> in config.xml. Element names are pinned to the
 // OPNsense Unbound MVC model (validated against version attributes listed in
@@ -13,13 +15,18 @@ package opnsense
 //
 // Fields are intentionally typed as `string` to preserve XML round-trip fidelity.
 // Truthy parsing (strict exact-match against "1") is performed by the converter,
-// not the schema.
+// not the schema. The top-level container fields (Dots, Hosts, Aliases, Domains)
+// use `*string` so "element absent" (nil) and "element present but empty" ("")
+// are distinguishable across a marshal/unmarshal round-trip (GOTCHAS 3.2).
 //
-// JSON tags are intentionally omitted on leaf fields so that JSON marshaling
-// uses Go field names (PascalCase), matching the pre-refactor inline-struct
-// serialization shape. Changing this would be a breaking JSON-export change
-// for downstream consumers of the OpnSenseDocument model.
+// JSON tags are omitted on the leaf *config* fields (Enabled, Port, Hideidentity,
+// Privateaddress, etc.) so JSON marshaling uses Go field names (PascalCase),
+// matching the pre-refactor inline-struct serialization shape. Fields that map
+// to XML text/attributes (Text, Version) retain their json tags. Changing the
+// leaf-config field tags would be a breaking JSON-export change for downstream
+// consumers of the OpnSenseDocument model.
 type UnboundPlus struct {
+	XMLName    xml.Name              `xml:"unboundplus"  json:"-"`
 	Text       string                `xml:",chardata"    json:"text,omitempty"`
 	Version    string                `xml:"version,attr" json:"version,omitempty"` // OPNsense MVC model version, e.g., "1.0.0"
 	General    UnboundPlusGeneral    `xml:"general"      json:"general"`
@@ -27,10 +34,12 @@ type UnboundPlus struct {
 	Acls       UnboundPlusAcls       `xml:"acls"         json:"acls"`
 	Dnsbl      UnboundPlusDnsbl      `xml:"dnsbl"        json:"dnsbl"`
 	Forwarding UnboundPlusForwarding `xml:"forwarding"   json:"forwarding"`
-	Dots       string                `xml:"dots"`    // DNS-over-TLS config reference
-	Hosts      string                `xml:"hosts"`   // host override references
-	Aliases    string                `xml:"aliases"` // host alias references
-	Domains    string                `xml:"domains"` // domain override references
+	// Dots, Hosts, Aliases, Domains are container references typed as *string
+	// so absent vs. present-but-empty elements survive XML round-trip.
+	Dots    *string `xml:"dots"`    // DNS-over-TLS config reference
+	Hosts   *string `xml:"hosts"`   // host override references
+	Aliases *string `xml:"aliases"` // host alias references
+	Domains *string `xml:"domains"` // domain override references
 }
 
 // UnboundPlusGeneral mirrors the <general> block under <unboundplus>.
