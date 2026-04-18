@@ -23,7 +23,7 @@
       "version": "3.0.1"
     },
     "JetBrains/go-modern-guidelines": {
-      "version": "3a7f3eecd29f45e341f4e258d38fe8548ca05050",
+      "version": "ebf0aa738bb6cc0a9127131e2ea7b24c660e1428",
       "source": "https://github.com/JetBrains/go-modern-guidelines",
       "include": {
         "skills": [
@@ -47,7 +47,7 @@
       "version": "0.1.1"
     },
     "mcollina/skills": {
-      "version": "3a5bd304cf5cdf75a997b03bb675121f4bbb365b",
+      "version": "5b2a81354b6d10325da0db9decc9ce5ecc714138",
       "source": "https://github.com/mcollina/skills",
       "include": {
         "skills": [
