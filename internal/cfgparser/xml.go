@@ -201,14 +201,21 @@ func handleStartElement(dec *xml.Decoder, doc *schema.OpnSenseDocument, se xml.S
 	}
 }
 
-// decodeElement decodes a simple element into the target.
+// decodeElement decodes a simple element into the target. Decode errors are
+// annotated via [parser.WrapDecodeError] with the enclosing section path
+// (e.g., "/opnsense/system") — not the leaf field that failed. Even so, the
+// message is far more useful than a bare "strconv.ParseInt" with no context:
+// the operator can narrow the offending field by grepping that section.
+// Deeper path accuracy requires section-by-section decoding; tracked for
+// follow-up.
 func decodeElement(dec *xml.Decoder, target any, se xml.StartElement) error {
-	return dec.DecodeElement(target, &se)
+	return parser.WrapDecodeError(dec.DecodeElement(target, &se), "/opnsense/"+se.Name.Local)
 }
 
-// decodeSection handles larger sections.
+// decodeSection handles larger sections. Like decodeElement, decode errors
+// are annotated with the enclosing section path (not the leaf element).
 func decodeSection(dec *xml.Decoder, target any, se xml.StartElement) error {
-	return dec.DecodeElement(target, &se)
+	return parser.WrapDecodeError(dec.DecodeElement(target, &se), "/opnsense/"+se.Name.Local)
 }
 
 // decodeSysctl handles the special sysctl section format.

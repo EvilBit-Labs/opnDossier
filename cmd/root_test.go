@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -245,6 +246,78 @@ func TestInitializeDefaultLoggerFallbackWritesToStderr(t *testing.T) {
 
 	assert.Contains(t, output, "unable to initialize logging")
 	// Fallback logger is created but unexported - verify it doesn't panic
+}
+
+// TestGetBuildDate verifies that getBuildDate returns the current buildDate value.
+func TestGetBuildDate(t *testing.T) {
+	origBuildDate := buildDate
+	t.Cleanup(func() { buildDate = origBuildDate })
+
+	buildDate = "2024-01-01"
+	assert.Equal(t, "2024-01-01", getBuildDate())
+
+	buildDate = "dev"
+	assert.Equal(t, "dev", getBuildDate())
+}
+
+// TestGetGitCommit verifies that getGitCommit returns the current gitCommit value.
+func TestGetGitCommit(t *testing.T) {
+	origGitCommit := gitCommit
+	t.Cleanup(func() { gitCommit = origGitCommit })
+
+	gitCommit = "abc123"
+	assert.Equal(t, "abc123", getGitCommit())
+
+	gitCommit = "none"
+	assert.Equal(t, "none", getGitCommit())
+}
+
+// TestSetupLightweightContext_DefaultInvocation_CreatesContextWithConfigAndLogger
+// verifies that setupLightweightContext creates a minimal command context with
+// default config and logger on a fresh cobra.Command.
+func TestSetupLightweightContext_DefaultInvocation_CreatesContextWithConfigAndLogger(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+
+	err := setupLightweightContext(cmd)
+	require.NoError(t, err)
+
+	// Verify context was set
+	cmdCtx := GetCommandContext(cmd)
+	require.NotNil(t, cmdCtx, "CommandContext should be set")
+	require.NotNil(t, cmdCtx.Config, "Config should be set")
+	require.NotNil(t, cmdCtx.Logger, "Logger should be set")
+
+	// Verify default config values
+	assert.Equal(t, "markdown", cmdCtx.Config.Format)
+
+	// Verify command has a context set
+	assert.NotNil(t, cmd.Context())
+}
+
+// TestSetupLightweightContext_WithPresetContext_PreservesCallerContext verifies
+// that setupLightweightContext does not replace a context that the caller has
+// already attached to the cobra.Command.
+func TestSetupLightweightContext_WithPresetContext_PreservesCallerContext(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+
+	// Pre-set a context with a distinguishing key so we can assert the
+	// same instance survives after setupLightweightContext runs.
+	type ctxKey struct{}
+
+	preset := context.WithValue(context.Background(), ctxKey{}, "preserved")
+	cmd.SetContext(preset)
+
+	err := setupLightweightContext(cmd)
+	require.NoError(t, err)
+
+	// The pre-set context value must still be reachable after setup.
+	assert.Equal(t, "preserved", cmd.Context().Value(ctxKey{}),
+		"setupLightweightContext must not replace an existing context")
+
+	// CommandContext should still have Config populated.
+	cmdCtx := GetCommandContext(cmd)
+	require.NotNil(t, cmdCtx)
+	assert.NotNil(t, cmdCtx.Config)
 }
 
 func TestRootCmdPersistentPreRunERecoversFromFallback(t *testing.T) {

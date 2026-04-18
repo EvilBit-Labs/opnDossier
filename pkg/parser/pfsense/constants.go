@@ -1,24 +1,15 @@
 package pfsense
 
-import "strings"
-
 // pfSense XML boolean constants.
-// Value-based booleans use isPfSenseValueTrue() which accepts "1", "on", "yes".
-// Presence-based booleans use BoolFlag instead (e.g., <disabled/>).
+//
+// Value-based booleans are parsed via [shared.IsValueTrue] (accepts "1",
+// "on", "yes", "true", "enable", "enabled" case-insensitively).
+// Presence-based booleans use [opnsense.BoolFlag] instead (e.g., <disabled/>).
 const (
-	// xmlBoolYes is the pfSense XML value for affirmative options (e.g., floating="yes").
+	// xmlBoolYes is the pfSense XML value for affirmative options
+	// encoded as an attribute (e.g., floating="yes"). Attribute
+	// comparisons do not flow through FlexBool/BoolFlag since attributes
+	// are decoded directly into string fields — use this constant for
+	// direct equality checks.
 	xmlBoolYes = "yes"
 )
-
-// isPfSenseValueTrue reports whether s is a truthy value in pfSense XML.
-// pfSense uses several encodings for value-based booleans: "1", "on", and "yes".
-// This helper handles all three case-insensitively. For presence-based booleans
-// (e.g., <disabled/>, <log/>), use opnsense.BoolFlag instead.
-func isPfSenseValueTrue(s string) bool {
-	switch strings.ToLower(s) {
-	case "1", "on", "yes":
-		return true
-	default:
-		return false
-	}
-}

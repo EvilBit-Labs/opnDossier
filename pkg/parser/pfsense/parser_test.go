@@ -65,14 +65,14 @@ func TestParser_Parse(t *testing.T) {
 			input:     "",
 			ctxFn:     context.Background,
 			wantErr:   true,
-			errSubstr: "XML decode",
+			errSubstr: `field "/pfsense"`,
 		},
 		{
 			name:      "malformed XML",
 			input:     "<<<not xml",
 			ctxFn:     context.Background,
 			wantErr:   true,
-			errSubstr: "XML decode",
+			errSubstr: `field "/pfsense"`,
 		},
 		{
 			name:  "context cancelled",
@@ -180,10 +180,10 @@ func TestConverter_System(t *testing.T) {
 	doc.System.Optimization = "normal"
 	doc.System.Language = "en_US"
 	doc.System.TimeServers = "0.pfsense.pool.ntp.org 1.pfsense.pool.ntp.org"
-	doc.System.DNSAllowOverride = 1
+	doc.System.DNSAllowOverride = true
 	doc.System.DisableNATReflection = "yes"
-	doc.System.DisableSegmentationOffloading = 1
-	doc.System.DisableLargeReceiveOffloading = 1
+	doc.System.DisableSegmentationOffloading = true
+	doc.System.DisableLargeReceiveOffloading = true
 	doc.System.IPv6Allow = "1"
 	doc.System.NextUID = 2000
 	doc.System.NextGID = 2000
