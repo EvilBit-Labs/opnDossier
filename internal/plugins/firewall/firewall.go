@@ -91,7 +91,7 @@ func NewPlugin() *Plugin {
 			Category:    "DNS Security",
 			Severity:    "medium",
 			Rationale:   "DNS rebind protection blocks responses that resolve public names to private IP ranges, mitigating DNS rebinding attacks against internal services.",
-			Remediation: "Populate Unbound's private-address list under System > Services > Unbound DNS > Advanced.",
+			Remediation: "Populate Unbound's private-address list under Services > Unbound DNS > Advanced.",
 			Tags:        []string{"dns-rebind", "security", "firewall-controls"},
 		},
 		{
@@ -231,7 +231,7 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 			Severity:       fp.controlSeverity("FIREWALL-007"),
 			Title:          "DNS Rebind Protection Missing",
 			Description:    "Unbound is active but has no private-address entries; DNS rebinding attacks are not mitigated.",
-			Recommendation: "Populate Unbound's private-address list under System > Services > Unbound DNS > Advanced.",
+			Recommendation: "Populate Unbound's private-address list under Services > Unbound DNS > Advanced.",
 			Component:      "dns-config",
 			Reference:      "FIREWALL-007",
 			References:     []string{"FIREWALL-007"},

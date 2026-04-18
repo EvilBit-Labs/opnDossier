@@ -209,14 +209,15 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	}
 }
 
-// splitPrivateAddress parses the <privateaddress> string into a normalized
-// slice of CIDR prefixes. Tokens are split on commas and any Unicode whitespace
-// (via unicode.IsSpace), covering the separators OPNsense's webUI produces plus
-// NBSP and other Unicode whitespace that might survive copy/paste edits. Each
-// token must parse as a netip.Prefix or netip.Addr; invalid tokens are dropped
-// with a conversion warning (GOTCHAS 5.2 pattern). Returns nil when the
-// normalized slice is empty so downstream JSON/YAML `omitempty` keeps zero-
-// value output compact.
+// splitPrivateAddress parses the <privateaddress> string into a validated
+// slice of CIDR / bare-IP tokens. Tokens are split on commas and any Unicode
+// whitespace (via unicode.IsSpace), covering the separators OPNsense's webUI
+// produces plus NBSP and other Unicode whitespace that might survive
+// copy/paste edits. Each token must parse as either a netip.Prefix (CIDR) or
+// a netip.Addr (bare IP); the original token text is preserved verbatim when
+// accepted. Invalid tokens are dropped with a conversion warning (GOTCHAS 5.2
+// pattern). Returns nil when the resulting slice is empty so downstream
+// JSON/YAML `omitempty` keeps zero-value output compact.
 func (c *converter) splitPrivateAddress(raw string) []string {
 	fields := strings.FieldsFunc(raw, func(r rune) bool {
 		return r == ',' || unicode.IsSpace(r)

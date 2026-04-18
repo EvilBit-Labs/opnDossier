@@ -272,7 +272,7 @@ A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal
 
 Enable DNS rebind protection:
 
-1. Navigate to **System > Services > Unbound DNS > Advanced**
+1. Navigate to **Services > Unbound DNS > Advanced**
 2. Populate the **Private networks** list with the CIDR ranges that should never appear in public DNS responses (commonly `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and any internal public allocations)
 3. Save and apply changes
 4. Verify the behaviour by resolving a test hostname that would rebind to a private address — Unbound should refuse to return it
