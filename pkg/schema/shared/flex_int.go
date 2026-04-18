@@ -26,8 +26,12 @@ import (
 type FlexInt int
 
 // Int returns the underlying int value for convenience at call sites.
-func (fi *FlexInt) Int() int {
-	return int(*fi)
+// Uses a value receiver so it can be called on non-addressable values
+// (e.g., `FlexInt(42).Int()`).
+//
+//nolint:recvcheck // Int is intentionally a value receiver for ergonomics; Marshal/Unmarshal must be pointer receivers.
+func (fi FlexInt) Int() int {
+	return int(fi)
 }
 
 // UnmarshalXML implements [xml.Unmarshaler] for FlexInt.
@@ -119,6 +123,10 @@ func (fi *FlexInt) parse(s string) error {
 
 // Compile-time interface compliance checks.
 var (
-	_ xml.Marshaler   = (*FlexInt)(nil)
-	_ xml.Unmarshaler = (*FlexInt)(nil)
+	_ xml.Marshaler    = (*FlexInt)(nil)
+	_ xml.Unmarshaler  = (*FlexInt)(nil)
+	_ json.Marshaler   = (*FlexInt)(nil)
+	_ json.Unmarshaler = (*FlexInt)(nil)
+	_ yaml.Marshaler   = (*FlexInt)(nil)
+	_ yaml.Unmarshaler = (*FlexInt)(nil)
 )

@@ -3,14 +3,11 @@ package opnsense_test
 import (
 	"bytes"
 	"context"
-	"io"
 	"os"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 )
-
-func bytesReader(b []byte) io.Reader { return bytes.NewReader(b) }
 
 // TestIssue558_LiberalBooleanParsing is the regression test for
 // https://github.com/EvilBit-Labs/opnDossier/issues/558 where OPNsense 26.1
@@ -27,7 +24,7 @@ func TestIssue558_LiberalBooleanParsing(t *testing.T) {
 	}
 
 	p := cfgparser.NewXMLParser()
-	doc, err := p.Parse(context.Background(), bytesReader(data))
+	doc, err := p.Parse(context.Background(), bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("parse failed: %v\n\n#558 regression: OPNsense 26.1 config with "+
 			"'on' in a toggle field should parse without error, but got: %v", err, err)

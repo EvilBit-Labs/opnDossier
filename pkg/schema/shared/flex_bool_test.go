@@ -75,15 +75,16 @@ func TestFlexBool_MarshalXML(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		name string
 		val  bool
 		want string
 	}{
-		{true, "<wrap><val>1</val></wrap>"},
-		{false, "<wrap><val>0</val></wrap>"},
+		{"true", true, "<wrap><val>1</val></wrap>"},
+		{"false", false, "<wrap><val>0</val></wrap>"},
 	}
 
 	for _, tc := range cases {
-		t.Run("", func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			// Marshal by pointer to satisfy pointer-receiver MarshalXML

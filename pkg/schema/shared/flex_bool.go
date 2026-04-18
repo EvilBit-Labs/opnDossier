@@ -27,9 +27,12 @@ import (
 type FlexBool bool
 
 // Bool returns the underlying boolean value for convenient comparison at
-// call sites that do not want to cast explicitly.
-func (fb *FlexBool) Bool() bool {
-	return bool(*fb)
+// call sites that do not want to cast explicitly. Uses a value receiver so
+// it can be called on non-addressable values (e.g., `FlexBool(true).Bool()`).
+//
+//nolint:recvcheck // Bool is intentionally a value receiver for ergonomics; Marshal/Unmarshal must be pointer receivers.
+func (fb FlexBool) Bool() bool {
+	return bool(fb)
 }
 
 // UnmarshalXML implements [xml.Unmarshaler] for FlexBool.
@@ -120,6 +123,10 @@ func (fb *FlexBool) MarshalYAML() (any, error) {
 
 // Compile-time interface compliance checks.
 var (
-	_ xml.Marshaler   = (*FlexBool)(nil)
-	_ xml.Unmarshaler = (*FlexBool)(nil)
+	_ xml.Marshaler    = (*FlexBool)(nil)
+	_ xml.Unmarshaler  = (*FlexBool)(nil)
+	_ json.Marshaler   = (*FlexBool)(nil)
+	_ json.Unmarshaler = (*FlexBool)(nil)
+	_ yaml.Marshaler   = (*FlexBool)(nil)
+	_ yaml.Unmarshaler = (*FlexBool)(nil)
 )

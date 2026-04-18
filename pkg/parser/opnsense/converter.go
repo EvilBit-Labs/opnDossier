@@ -9,6 +9,7 @@ import (
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
+	"github.com/EvilBit-Labs/opnDossier/pkg/schema/shared"
 )
 
 // ErrNilDocument is returned when ToCommonDevice receives a nil document.
@@ -114,7 +115,7 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		DNSServers:                    strings.Fields(sys.DNSServer),
 		TimeServers:                   strings.Fields(sys.TimeServers),
 		DNSAllowOverride:              bool(sys.DNSAllowOverride),
-		DisableNATReflection:          strings.EqualFold(sys.DisableNATReflection, xmlBoolYes),
+		DisableNATReflection:          shared.IsValueTrue(sys.DisableNATReflection),
 		DisableConsoleMenu:            bool(sys.DisableConsoleMenu),
 		DisableVLANHWFilter:           bool(sys.DisableVLANHWFilter),
 		DisableChecksumOffloading:     bool(sys.DisableChecksumOffloading),
@@ -340,7 +341,7 @@ func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 
 	nat := common.NATConfig{
 		OutboundMode:       outboundMode,
-		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
+		ReflectionDisabled: shared.IsValueTrue(doc.System.DisableNATReflection),
 		PfShareForward:     bool(doc.System.PfShareForward),
 		OutboundRules:      c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
 		InboundRules:       c.convertInboundNATRules(doc.Nat.Inbound),

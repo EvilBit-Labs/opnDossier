@@ -1,11 +1,13 @@
 package shared_test
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/pkg/schema/shared"
+	"gopkg.in/yaml.v3"
 )
 
 type flexIntWrap struct {
@@ -70,5 +72,87 @@ func TestFlexInt_MarshalXML(t *testing.T) {
 	want := "<wrap><val>42</val></wrap>"
 	if got := buf.String(); got != want {
 		t.Errorf("marshal = %q, want %q", got, want)
+	}
+}
+
+func TestFlexInt_JSON(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		data    string
+		want    int
+		wantErr bool
+	}{
+		{"native int positive", `42`, 42, false},
+		{"native int zero", `0`, 0, false},
+		{"native int negative", `-1`, -1, false},
+		{"native bool true", `true`, 1, false},
+		{"native bool false", `false`, 0, false},
+		{"string on", `"on"`, 1, false},
+		{"string off", `"off"`, 0, false},
+		{"string numeric", `"42"`, 42, false},
+		{"string unknown errors", `"banana"`, 0, true},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var fi shared.FlexInt
+			err := json.Unmarshal([]byte(tc.data), &fi)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for %s, got none", tc.data)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unmarshal %s: %v", tc.data, err)
+			}
+			if got := fi.Int(); got != tc.want {
+				t.Errorf("FlexInt(%s) = %d, want %d", tc.data, got, tc.want)
+			}
+		})
+	}
+
+	// MarshalJSON emits canonical integer.
+	out, err := json.Marshal(shared.FlexInt(42))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if string(out) != "42" {
+		t.Errorf("MarshalJSON(42) = %s, want 42", out)
+	}
+}
+
+func TestFlexInt_YAML(t *testing.T) {
+	t.Parallel()
+
+	// MarshalYAML emits native YAML integer.
+	out, err := yaml.Marshal(shared.FlexInt(42))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.TrimSpace(string(out)) != "42" {
+		t.Errorf("MarshalYAML(42) = %q, want 42", out)
+	}
+
+	// Unmarshal native integer node.
+	var fi shared.FlexInt
+	if err := yaml.Unmarshal([]byte("42\n"), &fi); err != nil {
+		t.Fatalf("unmarshal 42: %v", err)
+	}
+	if fi.Int() != 42 {
+		t.Errorf("unmarshal 42 = %d, want 42", fi.Int())
+	}
+
+	// Unmarshal truthy string.
+	if err := yaml.Unmarshal([]byte("\"on\"\n"), &fi); err != nil {
+		t.Fatalf("unmarshal \"on\": %v", err)
+	}
+	if fi.Int() != 1 {
+		t.Errorf("unmarshal \"on\" = %d, want 1", fi.Int())
 	}
 }
