@@ -24,13 +24,19 @@ import (
 // Unknown values unmarshal to false without error; callers that need to
 // flag unknown inputs should pre-validate with [IsValueTrue] and
 // [IsValueFalse].
+//
+// The Marshal/Unmarshal methods require pointer receivers to satisfy the
+// encoding interfaces, while the Bool accessor uses a value receiver for
+// ergonomics (so `FlexBool(true).Bool()` works on non-addressable
+// values). recvcheck is suppressed because the mixed-receiver convention
+// is intentional.
+//
+//nolint:recvcheck // Marshal/Unmarshal require pointer receivers; Bool() uses a value receiver for ergonomics.
 type FlexBool bool
 
 // Bool returns the underlying boolean value for convenient comparison at
 // call sites that do not want to cast explicitly. Uses a value receiver so
 // it can be called on non-addressable values (e.g., `FlexBool(true).Bool()`).
-//
-//nolint:recvcheck // Bool is intentionally a value receiver for ergonomics; Marshal/Unmarshal must be pointer receivers.
 func (fb FlexBool) Bool() bool {
 	return bool(fb)
 }
@@ -110,10 +116,34 @@ func (fb *FlexBool) MarshalJSON() ([]byte, error) {
 	return []byte("false"), nil
 }
 
-// UnmarshalYAML implements the yaml.v3 Unmarshaler interface. Accepts any
-// scalar form (bool, int, string) and delegates to [IsValueTrue] for
-// interpretation.
+// UnmarshalYAML implements the yaml.v3 Unmarshaler interface. Matches
+// UnmarshalJSON's behavior: native YAML booleans (`true`/`false`), integers
+// (0 → false, non-zero → true), and strings in the [IsValueTrue]
+// vocabulary all parse cleanly. Unrecognised scalars and null unmarshal
+// to false without error, consistent with the "unknown → false" contract.
 func (fb *FlexBool) UnmarshalYAML(node *yaml.Node) error {
+	// Native bool scalars: !!bool with value "true"/"false".
+	if node.Tag == "!!bool" {
+		var b bool
+		if err := node.Decode(&b); err == nil {
+			*fb = FlexBool(b)
+
+			return nil
+		}
+	}
+
+	// Native integer scalars: any non-zero integer → true.
+	if node.Tag == "!!int" {
+		var n int
+		if err := node.Decode(&n); err == nil {
+			*fb = FlexBool(n != 0)
+
+			return nil
+		}
+	}
+
+	// Fall back to string vocabulary (covers quoted strings and unknown
+	// scalars — the "unknown → false" contract).
 	*fb = FlexBool(IsValueTrue(node.Value))
 
 	return nil

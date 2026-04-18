@@ -124,7 +124,6 @@ func TestDeviceTypeUnknownReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported device type")
 }
 
-
 // TestBuildEffectiveFormatCoverage tests the format building logic.
 func TestBuildEffectiveFormatCoverage(t *testing.T) {
 	tests := []struct {

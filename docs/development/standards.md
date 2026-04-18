@@ -619,11 +619,11 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 **Type selection for boolean-like XML elements:**
 
-- **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`
-- **Value-based** (`== "1"` in PHP): `<enable>1</enable>`, `<blockpriv>1</blockpriv>` → use `string`
-- **Presence with value access needed**: `<any/>` in Source/Destination → use `*string`
+- **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`. Absent element means false; `<tag/>` means true. `BoolFlag` also handles `<tag>on</tag>`-style bodies via `shared.IsValueTrue`, so it works for fields where the XML is sometimes empty and sometimes carries a truthy value.
+- **Value-based, always emitted** (`== "1"` in PHP with the element always present): `<enable>1</enable>` → use `shared.FlexBool` (for bool semantics) or keep as `string` + call `shared.IsValueTrue()` at the converter. Do not use `BoolFlag` here: it marshals `false` as element absence, which drops explicit false values on round-trip.
+- **Presence with value access needed**: `<any/>` in Source/Destination → use `*string`.
 
-See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations.
+See `docs/development/xml-structure-research.md` for the complete field inventory with upstream source citations and [GOTCHAS.md §15](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#15-liberal-boolean-and-integer-parsing) for the full decision rubric.
 
 **BoolFlag in forked structs:** When a copy-on-write struct changes a field from `string` to `BoolFlag`, add a private type alias and a pointer-receiver `MarshalXML` that delegates via `e.EncodeElement((*alias)(ptr), start)`. See `pkg/schema/pfsense/interfaces.go` and [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#151-pointer-receiver-marshalxml-and-value-marshaling) §15.1.
 

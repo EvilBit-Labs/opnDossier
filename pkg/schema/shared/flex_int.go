@@ -23,13 +23,19 @@ import (
 //
 // FlexInt marshals as canonical decimal integer. JSON and YAML round-trip as
 // native integers.
+//
+// Marshal/Unmarshal methods require pointer receivers to satisfy the
+// encoding interfaces, while the Int accessor uses a value receiver for
+// ergonomics (so `FlexInt(42).Int()` works on non-addressable values).
+// recvcheck is suppressed because the mixed-receiver convention is
+// intentional.
+//
+//nolint:recvcheck // Marshal/Unmarshal require pointer receivers; Int() uses a value receiver for ergonomics.
 type FlexInt int
 
 // Int returns the underlying int value for convenience at call sites.
 // Uses a value receiver so it can be called on non-addressable values
 // (e.g., `FlexInt(42).Int()`).
-//
-//nolint:recvcheck // Int is intentionally a value receiver for ergonomics; Marshal/Unmarshal must be pointer receivers.
 func (fi FlexInt) Int() int {
 	return int(fi)
 }

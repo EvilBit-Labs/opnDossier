@@ -272,9 +272,10 @@ func TestGetGitCommit(t *testing.T) {
 	assert.Equal(t, "none", getGitCommit())
 }
 
-// TestSetupLightweightContext verifies that setupLightweightContext creates
-// a minimal command context with default config and logger.
-func TestSetupLightweightContext(t *testing.T) {
+// TestSetupLightweightContext_DefaultInvocation_CreatesContextWithConfigAndLogger
+// verifies that setupLightweightContext creates a minimal command context with
+// default config and logger on a fresh cobra.Command.
+func TestSetupLightweightContext_DefaultInvocation_CreatesContextWithConfigAndLogger(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 
 	err := setupLightweightContext(cmd)
@@ -293,23 +294,25 @@ func TestSetupLightweightContext(t *testing.T) {
 	assert.NotNil(t, cmd.Context())
 }
 
-// TestSetupLightweightContextPreservesExistingContext verifies that
-// setupLightweightContext does not overwrite an existing context.
-func TestSetupLightweightContextPreservesExistingContext(t *testing.T) {
+// TestSetupLightweightContext_WithPresetContext_PreservesCallerContext verifies
+// that setupLightweightContext does not replace a context that the caller has
+// already attached to the cobra.Command.
+func TestSetupLightweightContext_WithPresetContext_PreservesCallerContext(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 
-	// Pre-set a context
-	ctx := cmd.Context()
-	if ctx == nil {
-		cmd.SetContext(context.Background())
-		ctx = cmd.Context()
-	}
+	// Pre-set a context with a distinguishing key so we can assert the
+	// same instance survives after setupLightweightContext runs.
+	type ctxKey struct{}
+
+	preset := context.WithValue(context.Background(), ctxKey{}, "preserved")
+	cmd.SetContext(preset)
 
 	err := setupLightweightContext(cmd)
 	require.NoError(t, err)
 
-	// Context should still be set (either the original or a new one)
-	assert.NotNil(t, cmd.Context())
+	// The pre-set context value must still be reachable after setup.
+	assert.Equal(t, "preserved", cmd.Context().Value(ctxKey{}),
+		"setupLightweightContext must not replace an existing context")
 
 	// CommandContext should still have Config populated.
 	cmdCtx := GetCommandContext(cmd)

@@ -1,6 +1,7 @@
 package shared_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/pkg/schema/shared"
@@ -20,7 +21,9 @@ func TestIsValueTrue(t *testing.T) {
 	}
 
 	for _, s := range truthy {
-		t.Run("truthy/"+s, func(t *testing.T) {
+		// Use %q to render whitespace escapes so `go test` output stays
+		// on a single line per subtest.
+		t.Run("truthy/"+strconv.Quote(s), func(t *testing.T) {
 			t.Parallel()
 			if !shared.IsValueTrue(s) {
 				t.Errorf("IsValueTrue(%q) = false, want true", s)
@@ -47,7 +50,7 @@ func TestIsValueFalse(t *testing.T) {
 	}
 
 	for _, s := range falsy {
-		t.Run("falsy/"+s, func(t *testing.T) {
+		t.Run("falsy/"+strconv.Quote(s), func(t *testing.T) {
 			t.Parallel()
 			if !shared.IsValueFalse(s) {
 				t.Errorf("IsValueFalse(%q) = false, want true", s)
@@ -67,7 +70,7 @@ func TestIsValueTrue_Unknown(t *testing.T) {
 	unknown := []string{"banana", "2", "-1", "foo", "truthy", "yesiree"}
 
 	for _, s := range unknown {
-		t.Run("unknown/"+s, func(t *testing.T) {
+		t.Run("unknown/"+strconv.Quote(s), func(t *testing.T) {
 			t.Parallel()
 			if shared.IsValueTrue(s) {
 				t.Errorf("IsValueTrue(%q) = true, want false (unknown)", s)

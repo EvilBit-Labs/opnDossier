@@ -84,7 +84,14 @@ The distinction is not arbitrary:
 - **Presence-based** = flags typically absent (disabled, negation, special modes)
 - **Value-based** = feature toggles typically enabled (with explicit `1`)
 
-**Note:** As of PR #577, `BoolFlag` now delegates non-empty element bodies to `shared.IsValueTrue`, meaning fields previously typed as `int` or `string` can safely migrate to `BoolFlag` if they receive any of the recognized truthy/falsy vocabulary ("on", "off", "1", "0", etc.). This addresses issue #558 where OPNsense 26.1 emits `on` into fields previously typed as `int`, causing parse failures. The canonical truthy/falsy parsers are implemented in `pkg/schema/shared/` (see §8b).
+**Note:** As of PR #577, `BoolFlag` now delegates non-empty element bodies to `shared.IsValueTrue`, so `int` or `string` toggle fields can migrate to `BoolFlag` when the semantics allow. This addresses issue #558 where OPNsense 26.1 emits `on` into fields previously typed as `int`, causing parse failures. The canonical truthy/falsy parsers are implemented in `pkg/schema/shared/` (see §8b).
+
+**`BoolFlag` is NOT a drop-in for every value-based boolean.** `BoolFlag.MarshalXML` emits a self-closing element for `true` and emits nothing at all for `false`. That means a field whose on-wire representation is always `<tag>0</tag>` or `<tag>1</tag>` (and must remain so on round-trip) cannot migrate to `BoolFlag` — the `false` case would disappear from the output. Criteria for safe migration:
+
+1. Absence of the element must be semantically equivalent to `false` in the target device's behavior (OPNsense/pfSense treat most toggles this way — absent = disabled).
+2. No round-trip consumer must depend on the literal `<tag>0</tag>` form when the underlying value is false.
+
+If either criterion fails, prefer `shared.FlexBool` (always emits `<tag>0</tag>` or `<tag>1</tag>`) or keep the field as `string` and call `shared.IsValueTrue` at the converter.
 
 ---
 

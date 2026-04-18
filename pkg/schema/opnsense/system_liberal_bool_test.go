@@ -9,13 +9,13 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 )
 
-// TestIssue558_LiberalBooleanParsing is the regression test for
+// TestSystem_LiberalBoolean_Issue558 is the regression test for
 // https://github.com/EvilBit-Labs/opnDossier/issues/558 where OPNsense 26.1
 // emitted <dnsallowoverride>on</dnsallowoverride> into a schema field
 // previously typed as Go int, causing strconv.ParseInt to abort the whole
 // parse. After migrating toggle-int fields to BoolFlag with liberal-body
 // parsing via shared.IsValueTrue, the scenario parses cleanly.
-func TestIssue558_LiberalBooleanParsing(t *testing.T) {
+func TestSystem_LiberalBoolean_Issue558(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile("testdata/system_liberal_bool.xml")
@@ -23,43 +23,44 @@ func TestIssue558_LiberalBooleanParsing(t *testing.T) {
 		t.Fatalf("read fixture: %v", err)
 	}
 
-	p := cfgparser.NewXMLParser()
-	doc, err := p.Parse(context.Background(), bytes.NewReader(data))
+	doc, err := cfgparser.NewXMLParser().Parse(context.Background(), bytes.NewReader(data))
 	if err != nil {
-		t.Fatalf("parse failed: %v\n\n#558 regression: OPNsense 26.1 config with "+
-			"'on' in a toggle field should parse without error, but got: %v", err, err)
+		t.Fatalf("#558 regression: OPNsense config with 'on' in a toggle "+
+			"field should parse without error, got: %v", err)
 	}
 
-	// Truthy string values → true.
-	if !bool(doc.System.DNSAllowOverride) {
-		t.Errorf("DNSAllowOverride: want true (body=on), got false")
-	}
-	if !bool(doc.System.UseVirtualTerminal) {
-		t.Errorf("UseVirtualTerminal: want true (body=yes), got false")
-	}
-	if !bool(doc.System.DisableVLANHWFilter) {
-		t.Errorf("DisableVLANHWFilter: want true (body=1), got false")
-	}
-	if !bool(doc.System.DisableChecksumOffloading) {
-		t.Errorf("DisableChecksumOffloading: want true (body=true), got false")
-	}
-	if !bool(doc.System.DisableSegmentationOffloading) {
-		t.Errorf("DisableSegmentationOffloading: want true (body=ENABLED, case-insensitive), got false")
-	}
-
-	// Falsy string values → false.
-	if bool(doc.System.PfShareForward) {
-		t.Errorf("PfShareForward: want false (body=0), got true")
-	}
-	if bool(doc.System.LbUseSticky) {
-		t.Errorf("LbUseSticky: want false (body=off), got true")
-	}
-	if bool(doc.System.RrdBackup) {
-		t.Errorf("RrdBackup: want false (body=no), got true")
+	cases := []struct {
+		name  string
+		field func() bool
+		want  bool
+		body  string
+	}{
+		// Truthy string values → true.
+		{"DNSAllowOverride", func() bool { return bool(doc.System.DNSAllowOverride) }, true, "on"},
+		{"UseVirtualTerminal", func() bool { return bool(doc.System.UseVirtualTerminal) }, true, "yes"},
+		{"DisableVLANHWFilter", func() bool { return bool(doc.System.DisableVLANHWFilter) }, true, "1"},
+		{"DisableChecksumOffloading", func() bool { return bool(doc.System.DisableChecksumOffloading) }, true, "true"},
+		{
+			"DisableSegmentationOffloading",
+			func() bool { return bool(doc.System.DisableSegmentationOffloading) },
+			true,
+			"ENABLED (case-insensitive)",
+		},
+		// Falsy string values → false.
+		{"PfShareForward", func() bool { return bool(doc.System.PfShareForward) }, false, "0"},
+		{"LbUseSticky", func() bool { return bool(doc.System.LbUseSticky) }, false, "off"},
+		{"RrdBackup", func() bool { return bool(doc.System.RrdBackup) }, false, "no"},
+		// Absent element → false (Go zero value).
+		{"NetflowBackup", func() bool { return bool(doc.System.NetflowBackup) }, false, "absent"},
 	}
 
-	// Absent field → false (Go zero value).
-	if bool(doc.System.NetflowBackup) {
-		t.Errorf("NetflowBackup: want false (absent), got true")
+	for _, tc := range cases {
+		if got := tc.field(); got != tc.want {
+			t.Errorf("%s: want %v (body=%q), got %v", tc.name, tc.want, tc.body, got)
+		}
 	}
+
+	// Belt-and-suspenders: the schema must still be addressable as a pointer
+	// so future changes don't silently regress the migrated field types.
+	_ = &doc.System
 }
