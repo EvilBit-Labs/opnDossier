@@ -67,11 +67,11 @@
       "file": "pkg/parser/factory_test.go",
       "line": 190,
       "title": "The Regression Test That Locks the Hint",
-      "description": "Situation: TestFactory_EmptyRegistry_HintSurfaced pins the stable 'ensure parser packages are imported' substring on both the auto-detect and the override error paths. Mechanism: It builds a Factory with an isolated empty DeviceParserRegistry, so neither path can find a match — guaranteed to surface the hint. Implication: If someone refactors factory.go and accidentally drops SupportedDevices() from the error message, this test fires. Gotcha: The FULL wording '(none registered -- ...)' is locked at the registry unit level (TestSupportedDevices in registry_test.go:294); the factory test only locks the trailing substring. Both are needed."
+      "description": "Situation: TestFactory_EmptyRegistry_HintSurfaced pins the stable 'ensure parser packages are imported' substring on both the auto-detect and the override error paths. Mechanism: It builds a Factory with an isolated empty DeviceParserRegistry, so neither path can find a match — guaranteed to surface the hint. Implication: If someone refactors factory.go and accidentally drops SupportedDevices() from the error message, this test fires. Gotcha: The FULL wording '(none registered -- ...)' is locked at the registry unit level by TestSupportedDevices in registry_test.go; the factory test only locks the trailing substring. Both are needed."
     },
     {
       "title": "Next Moves",
-      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an XMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and docs/plans/2026-04-18-001-feat-audit-harden-parser-registry-plan.md for the audit that produced this public surface."
+      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an XMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
     }
   ]
 }
