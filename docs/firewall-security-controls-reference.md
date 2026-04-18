@@ -24,7 +24,7 @@ Each firewall compliance check returns one of three states:
 | FIREWALL-004 | Hostname Configuration           | System Configuration  | Low      | Implemented |
 | FIREWALL-005 | DNS Server Configuration         | Network Configuration | Medium   | Implemented |
 | FIREWALL-006 | IPv6 Disablement                 | Network Configuration | Medium   | Implemented |
-| FIREWALL-007 | DNS Rebind Check                 | DNS Security          | Low      | Unknown     |
+| FIREWALL-007 | DNS Rebind Check                 | DNS Security          | Low      | Pass / Fail |
 | FIREWALL-008 | HTTPS Web Management             | Management Access     | High     | Implemented |
 
 ---
@@ -245,7 +245,7 @@ Disable IPv6 if not required:
 | **ID**       | FIREWALL-007                                  |
 | **Category** | DNS Security                                  |
 | **Severity** | Low                                           |
-| **Status**   | Unknown (model gap)                           |
+| **Status**   | Pass / Fail                                   |
 | **Tags**     | `dns-rebind`, `security`, `firewall-controls` |
 
 ### Description
@@ -258,7 +258,13 @@ DNS rebind checks can interfere with legitimate DNS resolution in environments t
 
 ### What opnDossier Checks
 
-**Always returns Unknown.** The CommonDevice model does not yet expose the DNS rebind check setting. This is tracked in [#296](https://github.com/EvilBit-Labs/opnDossier/issues/296). Once the field is added, the check will evaluate whether the setting matches the expected configuration.
+opnDossier parses the OPNsense Unbound MVC configuration from `<OPNsense><unboundplus><advanced>` and extracts the `<privateaddress>` field, which contains DNS rebinding protection zones (CIDR ranges). 
+
+The check evaluates whether DNS rebind protection is active:
+- **Pass**: The Unbound resolver is enabled AND the `privateaddress` field contains at least one CIDR range
+- **Fail**: The resolver is disabled OR the `privateaddress` field is empty/absent
+
+A finding is emitted when the check passes (rebind protection is active), since the control policy recommends disabling the check in certain environments.
 
 ### Recommended Action
 
