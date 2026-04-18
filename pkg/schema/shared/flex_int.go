@@ -90,8 +90,36 @@ func (fi *FlexInt) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.Itoa(int(*fi))), nil
 }
 
-// UnmarshalYAML implements the yaml.v3 Unmarshaler interface.
+// UnmarshalYAML implements the yaml.v3 Unmarshaler interface. Matches
+// FlexBool.UnmarshalYAML's branching: native !!int scalars are decoded by
+// yaml.v3 (so non-decimal forms like 0x10 and underscored 1_000 work
+// correctly), native !!bool scalars coerce to 0/1, and string-tagged
+// scalars fall through to parse(). This mirrors the FlexBool contract so
+// callers see consistent behavior across both types.
 func (fi *FlexInt) UnmarshalYAML(node *yaml.Node) error {
+	switch node.Tag {
+	case "!!int":
+		var n int
+		if err := node.Decode(&n); err == nil {
+			*fi = FlexInt(n)
+
+			return nil
+		}
+	case "!!bool":
+		var b bool
+		if err := node.Decode(&b); err == nil {
+			if b {
+				*fi = 1
+			} else {
+				*fi = 0
+			}
+
+			return nil
+		}
+	}
+
+	// Fall back to string vocabulary (covers quoted strings, tagged
+	// strings, and anything else that didn't decode cleanly above).
 	return fi.parse(node.Value)
 }
 

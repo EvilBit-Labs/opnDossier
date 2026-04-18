@@ -154,4 +154,38 @@ func TestFlexInt_YAML(t *testing.T) {
 	if fi.Int() != 1 {
 		t.Errorf("unmarshal \"on\" = %d, want 1", fi.Int())
 	}
+
+	// Native YAML integer forms that strconv.Atoi can't parse directly.
+	// yaml.v3 decodes these natively via node.Decode(&int) — the branch on
+	// node.Tag == "!!int" must be in place to preserve them.
+	nativeForms := []struct {
+		name string
+		yaml string
+		want int
+	}{
+		{"hex 0x10", "0x10\n", 16},
+		{"octal 0o20", "0o20\n", 16},
+		{"underscored 1_000", "1_000\n", 1000},
+		{"negative -5", "-5\n", -5},
+	}
+	for _, tc := range nativeForms {
+		var nfi shared.FlexInt
+		if err := yaml.Unmarshal([]byte(tc.yaml), &nfi); err != nil {
+			t.Errorf("unmarshal %s: %v", tc.name, err)
+
+			continue
+		}
+		if nfi.Int() != tc.want {
+			t.Errorf("unmarshal %s = %d, want %d", tc.name, nfi.Int(), tc.want)
+		}
+	}
+
+	// Native YAML bool coerces to 0/1.
+	var tfi shared.FlexInt
+	if err := yaml.Unmarshal([]byte("true\n"), &tfi); err != nil {
+		t.Fatalf("unmarshal native bool true: %v", err)
+	}
+	if tfi.Int() != 1 {
+		t.Errorf("unmarshal true = %d, want 1", tfi.Int())
+	}
 }
