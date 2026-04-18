@@ -33,31 +33,30 @@ func TestSeverity_String(t *testing.T) {
 	}
 }
 
+// TestIsValidSeverity exercises the negative cases for IsValidSeverity. The
+// positive cases (every value returned by ValidSeverities must satisfy
+// IsValidSeverity) are already covered by TestValidSeverities_Coverage
+// given that IsValidSeverity now shares a single source of truth with
+// ValidSeverities via slices.Contains.
 func TestIsValidSeverity(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name  string
-		sev   common.Severity
-		valid bool
+		name string
+		sev  common.Severity
 	}{
-		{"critical", common.SeverityCritical, true},
-		{"high", common.SeverityHigh, true},
-		{"medium", common.SeverityMedium, true},
-		{"low", common.SeverityLow, true},
-		{"info", common.SeverityInfo, true},
-		{"empty string", common.Severity(""), false},
-		{"uppercase critical", common.Severity("CRITICAL"), false},
-		{"mixed case", common.Severity("Info"), false},
-		{"unknown value", common.Severity("fatal"), false},
-		{"whitespace", common.Severity(" info"), false},
+		{"empty string", common.Severity("")},
+		{"uppercase critical", common.Severity("CRITICAL")},
+		{"mixed case", common.Severity("Info")},
+		{"unknown value", common.Severity("fatal")},
+		{"whitespace", common.Severity(" info")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := common.IsValidSeverity(tt.sev); got != tt.valid {
-				t.Errorf("IsValidSeverity(%q) = %v, want %v", tt.sev, got, tt.valid)
+			if got := common.IsValidSeverity(tt.sev); got {
+				t.Errorf("IsValidSeverity(%q) = true, want false", tt.sev)
 			}
 		})
 	}
@@ -86,21 +85,6 @@ func TestValidSeverities_ReturnsFreshCopy(t *testing.T) {
 	for _, s := range second {
 		if !common.IsValidSeverity(s) {
 			t.Errorf("ValidSeverities returned unrecognized value %q", s)
-		}
-	}
-}
-
-// TestIsValidSeverity_MatchesValidSeverities guards the dual-maintenance
-// boundary between `validSeverities` (the slice backing ValidSeverities()) and
-// the `IsValidSeverity` switch. A developer who adds a new Severity constant
-// must update both; this test catches the asymmetric case where only one was
-// updated.
-func TestIsValidSeverity_MatchesValidSeverities(t *testing.T) {
-	t.Parallel()
-
-	for _, s := range common.ValidSeverities() {
-		if !common.IsValidSeverity(s) {
-			t.Errorf("IsValidSeverity(%q) = false, but %q is in ValidSeverities()", s, s)
 		}
 	}
 }

@@ -53,10 +53,11 @@ When rules conflict, follow the higher precedence rule.
 ### Rules of Engagement
 
 - **TERM=dumb Support**: Ensure terminal output respects `TERM="dumb"` for CI/automation
-- **No Auto-commits**: Never commit without explicit permission
+- **No Merging**: Never merge without a passing CI check and code review approval on a PR. This must be performed by a human maintainer, not an AI assistant.
+- **Security-First**: All changes must maintain least privilege and undergo security review.
 - **Focus on Value**: Enhance the project's unique value as an OPNsense auditing tool
-- **No Destructive Actions**: No major refactors without explicit permission
 - **Stay Focused**: Avoid scope creep
+- **AI Disclosure**: Always disclose AI usage in PR descriptions, following the AI Usage Policy [AI Usage Policy](AI_POLICY.md). Be transparent, but brief — no need to list every prompt, just the tools used (e.g., "Used Claude Code (`Claude Opus 4.7 (1M Context)`) for initial draft of detection engine refactor. All code reviewed and tested.").
 
 ### Issue Resolution
 

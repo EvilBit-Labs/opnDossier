@@ -129,10 +129,10 @@ func TestConverter_KeaDHCP4_Gotchas18_SubnetMissingUUID(t *testing.T) {
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
-
 	// The UUID-less subnet must still produce a scope — reservation matching
-	// is broken but the scope itself is valid config data. This lock matches
-	// the intent statement in the test godoc.
+	// is broken but the scope itself is valid config data. findKeaScope calls
+	// t.Fatalf when the named scope is absent, so the return value is
+	// deliberately discarded; we only need the side effect.
 	_ = findKeaScope(t, device.DHCP, "UUIDless subnet")
 
 	uuidWarning := findWarning(warnings, "kea.dhcp4.subnets.subnet4", "10.40.0.0/24")

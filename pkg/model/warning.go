@@ -1,5 +1,7 @@
 package model
 
+import "slices"
+
 // Severity represents the severity level of a conversion warning. Severity is
 // a triage signal, not a compliance verdict: consumers use it to decide
 // presentation order and filtering, but a warning at any severity still
@@ -61,14 +63,13 @@ func (s Severity) String() string {
 
 // IsValidSeverity reports whether s is one of the recognized [Severity] values.
 // Comparison is case-sensitive: "critical" is valid; "CRITICAL" is not.
-// Uses a switch statement to avoid allocating a slice on every call.
+//
+// Implementation: delegates to [slices.Contains] against the package-level
+// validSeverities slice so that both [ValidSeverities] and IsValidSeverity
+// share a single source of truth. Adding a new [Severity] constant requires
+// appending to validSeverities exactly once.
 func IsValidSeverity(s Severity) bool {
-	switch s {
-	case SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow, SeverityInfo:
-		return true
-	default:
-		return false
-	}
+	return slices.Contains(validSeverities, s)
 }
 
 // ConversionWarning represents a non-fatal issue encountered while converting

@@ -1,7 +1,7 @@
 package pfsense_test
 
 import (
-	"fmt"
+	"encoding/json"
 	"testing"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -173,18 +173,13 @@ func TestConverter_IPsecPhase1FieldValidators(t *testing.T) {
 	}
 
 	for _, exp := range expected {
-		found := false
-		for _, w := range warnings {
-			if w.Field == exp.field && w.Value == exp.value {
-				found = true
-				assert.Contains(t, w.Message, exp.snippet,
-					"message for %s should mention %q", exp.field, exp.snippet)
-				assert.Equal(t, common.SeverityMedium, w.Severity,
-					"severity for %s drifted", exp.field)
-			}
-		}
-		assert.True(t, found, "expected warning on %s=%q, got %+v",
+		w := findPfSenseWarning(warnings, exp.field, exp.value)
+		require.NotNil(t, w, "expected warning on %s=%q, got %+v",
 			exp.field, exp.value, warnings)
+		assert.Contains(t, w.Message, exp.snippet,
+			"message for %s should mention %q", exp.field, exp.snippet)
+		assert.Equal(t, common.SeverityMedium, w.Severity,
+			"severity for %s drifted", exp.field)
 	}
 }
 
@@ -217,18 +212,40 @@ func TestConverter_IPsecPhase2FieldValidators(t *testing.T) {
 	}
 
 	for _, exp := range expected {
-		found := false
-		for _, w := range warnings {
-			if w.Field == exp.field && w.Value == exp.value {
-				found = true
-				assert.Contains(t, w.Message, exp.snippet,
-					"message for %s should mention %q", exp.field, exp.snippet)
-				assert.Equal(t, common.SeverityMedium, w.Severity,
-					"severity for %s drifted", exp.field)
-			}
-		}
-		assert.True(t, found, "expected warning on %s=%q, got %+v",
+		w := findPfSenseWarning(warnings, exp.field, exp.value)
+		require.NotNil(t, w, "expected warning on %s=%q, got %+v",
 			exp.field, exp.value, warnings)
+		assert.Contains(t, w.Message, exp.snippet,
+			"message for %s should mention %q", exp.field, exp.snippet)
+		assert.Equal(t, common.SeverityMedium, w.Severity,
+			"severity for %s drifted", exp.field)
+	}
+}
+
+// TestConverter_IPsecPhase2FieldValidators_EmptyDoesNotWarn protects the
+// empty-string exemption (`if p2.Mode != ""`) on Phase 2 field validators.
+// Parallels the Phase 1 empty-string coverage in converter_enum_cast_test.go.
+func TestConverter_IPsecPhase2FieldValidators_EmptyDoesNotWarn(t *testing.T) {
+	t.Parallel()
+
+	doc := &pfsenseSchema.Document{
+		IPsec: pfsenseSchema.IPsec{
+			Phase1: []pfsenseSchema.IPsecPhase1{{IKEId: "1"}},
+			Phase2: []pfsenseSchema.IPsecPhase2{{
+				Mode:     "", // empty -- must not warn
+				Protocol: "", // empty -- must not warn
+			}},
+		},
+	}
+
+	_, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	for _, w := range warnings {
+		assert.NotEqual(t, "IPsec.Phase2[0].Mode", w.Field,
+			"empty Phase 2 Mode must not warn, got %+v", w)
+		assert.NotEqual(t, "IPsec.Phase2[0].Protocol", w.Field,
+			"empty Phase 2 Protocol must not warn, got %+v", w)
 	}
 }
 
@@ -253,24 +270,20 @@ func TestConverter_IPsecPhase1_PreSharedKeyExclusion(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, device)
 
-	var pskWarning *common.ConversionWarning
-	for i := range warnings {
-		if warnings[i].Field == "IPsec.Phase1[0].PreSharedKey" {
-			pskWarning = &warnings[i]
-			break
-		}
-	}
+	pskWarning := findPfSenseWarning(warnings, "IPsec.Phase1[0].PreSharedKey", "[present]")
 	require.NotNil(t, pskWarning, "expected PSK exclusion warning")
-	assert.Equal(t, "[present]", pskWarning.Value,
-		"PSK warning Value must be the [present] marker, not the raw key")
 	assert.Contains(t, pskWarning.Message, "security",
 		"PSK warning should explain the security reason for exclusion")
 	assert.Equal(t, common.SeverityLow, pskWarning.Severity)
 
-	// The converted Phase 1 tunnel must not carry the raw PSK anywhere in its
-	// exported fields.
+	// The converted Phase 1 tunnel must not carry the raw PSK anywhere that
+	// would round-trip through the canonical export format. Marshal to JSON
+	// (the primary export format) and assert the raw key is absent — this
+	// catches accidental exposure through any exported field, including
+	// pointer fields that %+v would stringify without dereferencing.
 	require.Len(t, device.VPN.IPsec.Phase1Tunnels, 1)
-	tunnelJSON := fmt.Sprintf("%+v", device.VPN.IPsec.Phase1Tunnels[0])
-	assert.NotContains(t, tunnelJSON, "super-secret-psk-42",
-		"raw PSK must not appear in exported Phase1Tunnel")
+	tunnelJSON, err := json.Marshal(device.VPN.IPsec.Phase1Tunnels[0])
+	require.NoError(t, err, "Phase1Tunnel must be JSON-marshalable")
+	assert.NotContains(t, string(tunnelJSON), "super-secret-psk-42",
+		"raw PSK must not appear in JSON-exported Phase1Tunnel")
 }
