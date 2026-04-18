@@ -1,6 +1,8 @@
 // Package pfsense provides a pfSense-specific parser and converter that
-// transforms pfsense.Document (pkg/schema/pfsense) into the platform-agnostic
-// [model.CommonDevice] (pkg/model).
+// transforms pfsense.Document (pkg/schema/pfsense, imported without an alias
+// and therefore not usable as a doc-link target within this package) into the
+// platform-agnostic [common.CommonDevice] (pkg/model). The bracketed name
+// matches the import alias used in this file.
 //
 // # Registration
 //
@@ -35,8 +37,10 @@
 //
 // # Dependencies
 //
-// This package depends only on pkg/model, pkg/parser, and
-// pkg/schema/pfsense; it has no internal/ dependencies in production code.
+// This package has no internal/ dependencies in production code; it depends
+// only on other public pkg/ packages (pkg/model, pkg/parser, pkg/schema/pfsense,
+// and pkg/schema/opnsense — the latter supplies shared DHCP/Unbound types
+// reused by the converters) plus the standard library.
 package pfsense
 
 import (

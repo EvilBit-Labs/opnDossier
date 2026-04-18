@@ -4,10 +4,8 @@
 //
 // # Public API Surface
 //
-// This package is part of opnDossier's public API, intended for consumption by
-// other Go modules. It depends only on pkg/model, pkg/schema/opnsense, and the
-// golang.org/x/text charset helpers (used by [NewSecureXMLDecoder]); it has no
-// internal/ dependencies in production code.
+// This package is part of opnDossier's public API, intended for consumption
+// by other Go modules. It has no internal/ dependencies in production code.
 //
 // Top-level types a consumer interacts with:
 //

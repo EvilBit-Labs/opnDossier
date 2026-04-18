@@ -1,6 +1,7 @@
 // Package opnsense provides an OPNsense-specific parser and converter that
-// transforms [opnsense.OpnSenseDocument] (pkg/schema/opnsense) into the
-// platform-agnostic [model.CommonDevice] (pkg/model).
+// transforms [schema.OpnSenseDocument] (pkg/schema/opnsense) into the
+// platform-agnostic [common.CommonDevice] (pkg/model). The bracketed names
+// match the import aliases used in this file.
 //
 // # Registration
 //
@@ -15,10 +16,10 @@
 //
 // # Dependencies
 //
-// This package depends only on pkg/model, pkg/parser, and
-// pkg/schema/opnsense; it has no internal/ dependencies in production code.
-// The [parser.XMLDecoder] is injected at construction so this package can
-// stay on the public pkg/ side of the import boundary while still using the
+// This package has no internal/ dependencies in production code; it depends
+// only on other public pkg/ packages plus the standard library. The
+// [parser.XMLDecoder] is injected at construction so this package can stay
+// on the public pkg/ side of the import boundary while still using the
 // internal/cfgparser decoder when wired from the CLI layer.
 package opnsense
 
