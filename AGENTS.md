@@ -57,7 +57,7 @@ When rules conflict, follow the higher precedence rule.
 - **Security-First**: All changes must maintain least privilege and undergo security review.
 - **Focus on Value**: Enhance the project's unique value as an OPNsense auditing tool
 - **Stay Focused**: Avoid scope creep
-- **AI Disclosure**: Always disclose AI usage in PR descriptions, following the AI Usage Policy [AI Usage Policy](AI_POLICY.md). Be transparent, but brief — no need to list every prompt, just the tools used (e.g., "Used Claude Code (`Claude Opus 4.7 (1M Context)`) for initial draft of detection engine refactor. All code reviewed and tested.").
+- **AI Disclosure**: Always disclose AI usage in PR descriptions, following the [AI Usage Policy](AI_POLICY.md). Be transparent, but brief — no need to list every prompt, just the tools used (e.g., "Used Claude Code (`Claude Opus 4.7 (1M Context)`) for initial draft of detection engine refactor. All code reviewed and tested.").
 
 ### Issue Resolution
 
