@@ -614,7 +614,9 @@ func TestConverter_DNS(t *testing.T) {
 	require.Len(t, device.DNS.DNSMasq.Hosts, 1)
 	assert.Equal(t, "server", device.DNS.DNSMasq.Hosts[0].Host)
 	// Advanced Unbound fields default to zero when <unboundplus> is empty.
-	assert.Empty(t, device.DNS.Unbound.PrivateAddress)
+	// PrivateAddress must be nil (not a zero-length slice) so JSON/YAML
+	// `omitempty` produces compact output.
+	assert.Nil(t, device.DNS.Unbound.PrivateAddress)
 	assert.False(t, device.DNS.Unbound.HideIdentity)
 	assert.False(t, device.DNS.Unbound.Prefetch)
 }
@@ -641,6 +643,23 @@ func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
 		{"whitespace only", "   \n  ", nil},
 		{"empty", "", nil},
 		{"single value", "10.0.0.0/8", []string{"10.0.0.0/8"}},
+		{
+			"CRLF separated (Windows-edited config)",
+			"10.0.0.0/8\r\n192.168.0.0/16",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{
+			"leading and trailing separators",
+			",10.0.0.0/8,192.168.0.0/16,",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{
+			"duplicate adjacent separators",
+			"10.0.0.0/8,,,192.168.0.0/16",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{"bare IPv4 address accepted", "127.0.0.1", []string{"127.0.0.1"}},
+		{"IPv6 CIDR accepted", "fd00::/8", []string{"fd00::/8"}},
 	}
 
 	for _, tc := range cases {
@@ -693,6 +712,91 @@ func TestConverter_DNS_LegacyAndMVCCoexist(t *testing.T) {
 	assert.False(t, device.DNS.Unbound.DNSSECStripped)
 	assert.Equal(t, []string{"192.168.0.0/16"}, device.DNS.Unbound.PrivateAddress)
 	assert.True(t, device.DNS.Unbound.HideIdentity)
+}
+
+func TestConverter_DNS_PrivateAddressValidation(t *testing.T) {
+	t.Parallel()
+
+	// Invalid entries are dropped and emit a conversion warning; valid entries
+	// remain. Prevents silent pass-through of typos like "192.168/16".
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = "garbage, 192.168.0.0/16, 192.168/16, 10.0.0.0/8, not-a-cidr"
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"192.168.0.0/16", "10.0.0.0/8"}, device.DNS.Unbound.PrivateAddress)
+
+	// Expect three warnings, one per invalid entry.
+	invalidCount := 0
+	for _, w := range warnings {
+		if w.Field == "DNS.Unbound.PrivateAddress" {
+			invalidCount++
+		}
+	}
+	assert.Equal(t, 3, invalidCount, "expected one warning per invalid private-address entry")
+}
+
+func TestConverter_DNS_UnboundPlusVersionDrift(t *testing.T) {
+	t.Parallel()
+
+	// Unrecognized MVC version attribute emits a conversion warning
+	// (parallel to Kea GOTCHAS 18.1). Empty version is accepted silently.
+	cases := []struct {
+		name        string
+		version     string
+		wantWarning bool
+	}{
+		{"empty version accepted silently", "", false},
+		{"known 1.0.0 accepted silently", "1.0.0", false},
+		{"unknown 2.0.0 emits warning", "2.0.0", true},
+		{"malformed version emits warning", "not-a-version", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			doc.OPNsense.UnboundPlus.Version = tc.version
+
+			_, warnings, err := opnsense.ConvertDocument(doc)
+			require.NoError(t, err)
+
+			found := false
+			for _, w := range warnings {
+				if w.Field == "DNS.Unbound.UnboundPlus.Version" {
+					found = true
+					assert.Equal(t, tc.version, w.Value)
+				}
+			}
+			assert.Equal(t, tc.wantWarning, found,
+				"version=%q wantWarning=%v got warnings=%v", tc.version, tc.wantWarning, warnings)
+		})
+	}
+}
+
+func TestConverter_DNS_UnboundBoolStrictMatch(t *testing.T) {
+	t.Parallel()
+
+	// xmlBoolTrue is strict exact-match against "1". Other truthy-looking
+	// values ("yes", "true", "2") are treated as false. This locks in the
+	// package-wide convention; see GOTCHAS 5.2 for the broader context.
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "on"
+	doc.OPNsense.UnboundPlus.Advanced.Hideversion = "true"
+	doc.OPNsense.UnboundPlus.Advanced.Prefetch = "2"
+	doc.OPNsense.UnboundPlus.Advanced.Logqueries = ""
+
+	device, _, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	assert.False(t, device.DNS.Unbound.HideIdentity)
+	assert.False(t, device.DNS.Unbound.HideVersion)
+	assert.False(t, device.DNS.Unbound.Prefetch)
+	assert.False(t, device.DNS.Unbound.LogQueries)
 }
 
 func TestConverter_VLANs(t *testing.T) {

@@ -83,7 +83,11 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 					OutboundMode:       common.OutboundHybrid,
 				},
 				DNS: common.DNSConfig{
-					Unbound: common.UnboundConfig{Enabled: true, DNSSEC: true},
+					Unbound: common.UnboundConfig{
+						Enabled:        true,
+						DNSSEC:         true,
+						PrivateAddress: []string{"192.168.0.0/16", "10.0.0.0/8"},
+					},
 				},
 			},
 			expectedFindingIDs: []string{
@@ -1511,7 +1515,7 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 		description   string
 	}{
 		{
-			name: "unbound enabled with private-address list - finding expected",
+			name: "unbound enabled with private-address list - no finding",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
 					Unbound: common.UnboundConfig{
@@ -1520,21 +1524,31 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 					},
 				},
 			},
-			expectFinding: true,
-			description:   "DNS rebind check active → finding fires per control policy",
+			expectFinding: false,
+			description:   "Rebind protection configured → compliant, no finding",
 		},
 		{
-			name: "unbound enabled with empty private-address - no finding",
+			name: "unbound enabled with empty private-address - finding expected",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
 					Unbound: common.UnboundConfig{Enabled: true, PrivateAddress: nil},
 				},
 			},
-			expectFinding: false,
-			description:   "No private-address means rebind protection not in force",
+			expectFinding: true,
+			description:   "Unbound active but no private-address → protection missing",
 		},
 		{
-			name: "unbound disabled - no finding regardless of private-address",
+			name: "unbound enabled with zero-length slice - finding expected",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{Enabled: true, PrivateAddress: []string{}},
+				},
+			},
+			expectFinding: true,
+			description:   "Non-nil zero-length slice is treated identically to nil",
+		},
+		{
+			name: "unbound disabled with private-address populated - no finding (unknown)",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
 					Unbound: common.UnboundConfig{
@@ -1544,7 +1558,7 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 				},
 			},
 			expectFinding: false,
-			description:   "Disabled resolver means rebind protection is inactive",
+			description:   "Unbound off → check is Unknown (may be DNSMasq install)",
 		},
 	}
 
@@ -1558,9 +1572,22 @@ func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
 func TestFirewallPlugin_DNSRebindCheck_NilDevice(t *testing.T) {
 	fp := firewall.NewPlugin()
 
-	// Nil device: RunChecks returns a result but no FIREWALL-007 finding fires
-	// (hasDNSRebindCheck returns {Result: false, Known: true}).
+	// Nil device: hasDNSRebindCheck returns Unknown, so no FIREWALL-007 finding fires.
 	assertFindingPresence(t, fp, nil, "FIREWALL-007", false)
+}
+
+func TestFirewallPlugin_DNSRebindCheck_EvaluableWhenUnboundEnabled(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	// When Unbound is enabled, FIREWALL-007 is evaluable regardless of the
+	// private-address list content — this is the positive counterpart to the
+	// EvaluatedControlIDs test whose device has Unbound disabled.
+	device := &common.CommonDevice{
+		DNS: common.DNSConfig{
+			Unbound: common.UnboundConfig{Enabled: true},
+		},
+	}
+	assert.Contains(t, fp.EvaluatedControlIDs(device), "FIREWALL-007")
 }
 
 func TestFirewallPlugin_HAConfiguration(t *testing.T) {
@@ -1674,7 +1701,7 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 	// Verify some known evaluable controls are present.
 	for _, id := range []string{
 		"FIREWALL-002", "FIREWALL-004", "FIREWALL-005",
-		"FIREWALL-006", "FIREWALL-007", "FIREWALL-008",
+		"FIREWALL-006", "FIREWALL-008",
 		"FIREWALL-014", "FIREWALL-016",
 		"FIREWALL-022", "FIREWALL-029", "FIREWALL-030",
 		"FIREWALL-033", "FIREWALL-034",
@@ -1683,9 +1710,10 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 		assert.Contains(t, evaluated, id, "Expected %s to be evaluable", id)
 	}
 
-	// Verify unknown controls are NOT present.
+	// Verify unknown controls are NOT present. FIREWALL-007 is Unknown here
+	// because the test device has Unbound disabled.
 	for _, id := range []string{
-		"FIREWALL-001", "FIREWALL-003",
+		"FIREWALL-001", "FIREWALL-003", "FIREWALL-007",
 		"FIREWALL-009", "FIREWALL-010", "FIREWALL-011",
 		"FIREWALL-012", "FIREWALL-013", "FIREWALL-015",
 		"FIREWALL-019", "FIREWALL-035",

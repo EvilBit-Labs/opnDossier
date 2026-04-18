@@ -86,12 +86,12 @@ func NewPlugin() *Plugin {
 		},
 		{
 			ID:          "FIREWALL-007",
-			Title:       "DNS Rebind Check",
-			Description: "DNS rebind check should be disabled",
+			Title:       "DNS Rebind Protection",
+			Description: "Unbound DNS resolver should have rebind protection configured via a non-empty private-address list",
 			Category:    "DNS Security",
-			Severity:    "low",
-			Rationale:   "DNS rebind checks can interfere with legitimate DNS resolution",
-			Remediation: "Disable DNS rebind check in System > Advanced",
+			Severity:    "medium",
+			Rationale:   "DNS rebind protection blocks responses that resolve public names to private IP ranges, mitigating DNS rebinding attacks against internal services.",
+			Remediation: "Populate Unbound's private-address list under System > Services > Unbound DNS > Advanced.",
 			Tags:        []string{"dns-rebind", "security", "firewall-controls"},
 		},
 		{
@@ -224,14 +224,14 @@ func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 		})
 	}
 
-	// FIREWALL-007: DNS Rebind Check
-	if cr := fp.hasDNSRebindCheck(device); cr.Known && cr.Result {
+	// FIREWALL-007: DNS Rebind Protection
+	if cr := fp.hasDNSRebindCheck(device); cr.Known && !cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
 			Severity:       fp.controlSeverity("FIREWALL-007"),
-			Title:          "DNS Rebind Check Enabled",
-			Description:    "DNS rebind check is enabled and should be disabled",
-			Recommendation: "Disable DNS rebind check in System > Advanced",
+			Title:          "DNS Rebind Protection Missing",
+			Description:    "Unbound is active but has no private-address entries; DNS rebinding attacks are not mitigated.",
+			Recommendation: "Populate Unbound's private-address list under System > Services > Unbound DNS > Advanced.",
 			Component:      "dns-config",
 			Reference:      "FIREWALL-007",
 			References:     []string{"FIREWALL-007"},
@@ -483,18 +483,20 @@ func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
 	return checkResult{Result: device.System.IPv6Allow, Known: true}
 }
 
-// hasDNSRebindCheck checks whether DNS rebind protection is in force.
-// The check is satisfied when the Unbound resolver is enabled AND has at least
-// one CIDR range configured in its `private-address` list (sourced from
-// <OPNsense><unboundplus><advanced><privateaddress>). A disabled resolver means
-// rebind protection is not active regardless of the private-address value.
+// hasDNSRebindCheck checks whether Unbound DNS rebind protection is configured.
+// Returns Known=true only when the Unbound resolver is active; otherwise returns
+// Unknown so the control is not evaluated against non-Unbound configurations
+// (for example, OPNsense installations using DNSMasq as the primary resolver).
+// When Unbound is active, Result=true iff its `private-address` list (sourced
+// from <OPNsense><unboundplus><advanced><privateaddress>) has at least one
+// entry. Callers interpret Result=false as "protection missing.".
 func (fp *Plugin) hasDNSRebindCheck(device *common.CommonDevice) checkResult {
 	if device == nil {
-		return checkResult{Result: false, Known: true}
+		return unknown
 	}
 
 	if !device.DNS.Unbound.Enabled {
-		return checkResult{Result: false, Known: true}
+		return unknown
 	}
 
 	return checkResult{

@@ -3,13 +3,18 @@ package opnsense
 
 // UnboundPlus contains the full Unbound DNS resolver MVC configuration as stored
 // under <OPNsense><unboundplus> in config.xml. Element names are pinned to the
-// OPNsense Unbound MVC model (validated against v1.0.x as of 2026-04). If a future
-// OPNsense release renames any of these elements (for example, <privateaddress>),
-// the Go XML decoder will silently produce empty values — no error, no warning.
-// See GOTCHAS 18.1 for the analogous Kea MVC version-pinning concern.
+// OPNsense Unbound MVC model (validated against version attributes listed in
+// `knownUnboundPlusVersions` in the OPNsense converter). If a future OPNsense
+// release renames any of these elements (for example, <privateaddress>), the
+// Go XML decoder will silently produce empty values — no error, no warning.
+// The converter emits a drift warning when the <unboundplus version="..."> attr
+// falls outside the known-good set. See GOTCHAS 18.1 for the analogous Kea MVC
+// version-pinning concern.
 //
 // Fields are intentionally typed as `string` to preserve XML round-trip fidelity.
-// Truthy parsing (e.g., "0"/"1") is performed by the converter, not the schema.
+// Truthy parsing (strict exact-match against "1") is performed by the converter,
+// not the schema.
+//
 // JSON tags are intentionally omitted on leaf fields so that JSON marshaling
 // uses Go field names (PascalCase), matching the pre-refactor inline-struct
 // serialization shape. Changing this would be a breaking JSON-export change
@@ -99,13 +104,13 @@ type UnboundPlusAdvanced struct {
 
 // UnboundPlusAcls mirrors the <acls> block under <unboundplus>.
 type UnboundPlusAcls struct {
-	Text          string `xml:",chardata" json:"text,omitempty"`
+	Text          string `xml:",chardata"      json:"text,omitempty"`
 	DefaultAction string `xml:"default_action"`
 }
 
 // UnboundPlusDnsbl mirrors the <dnsbl> block under <unboundplus>.
 type UnboundPlusDnsbl struct {
-	Text       string `xml:",chardata" json:"text,omitempty"`
+	Text       string `xml:",chardata"  json:"text,omitempty"`
 	Enabled    string `xml:"enabled"`
 	Safesearch string `xml:"safesearch"`
 	Type       string `xml:"type"`

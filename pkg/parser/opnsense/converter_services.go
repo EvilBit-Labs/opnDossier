@@ -3,12 +3,24 @@ package opnsense
 import (
 	"fmt"
 	"maps"
+	"net/netip"
 	"slices"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
+
+// knownUnboundPlusVersions enumerates the OPNsense <unboundplus version="...">
+// attribute values this converter has been validated against. When the
+// attribute is present but outside this set, convertDNS emits a warning —
+// the same class of silent-drift risk documented for Kea DHCP (GOTCHAS 18.1).
+var knownUnboundPlusVersions = map[string]struct{}{
+	"":      {}, // empty/unset is accepted
+	"1.0.0": {},
+	"1.0.1": {},
+	"1.0.2": {},
+}
 
 // convertDHCP maps doc.Dhcpd.Items to []common.DHCPScope.
 func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
@@ -163,14 +175,24 @@ func (c *converter) buildDHCPAdvancedV6(d schema.DhcpdInterface) *common.DHCPAdv
 // section <OPNsense><unboundplus><advanced>. Legacy <unbound> remains canonical
 // for Enabled/DNSSEC/DNSSECStripped to preserve backward compatibility.
 func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
-	advanced := doc.OPNsense.UnboundPlus.Advanced
+	unboundPlus := doc.OPNsense.UnboundPlus
+	if _, ok := knownUnboundPlusVersions[unboundPlus.Version]; !ok {
+		c.addWarning(
+			"DNS.Unbound.UnboundPlus.Version",
+			unboundPlus.Version,
+			"unrecognized OPNsense Unbound MVC model version; element mapping may be stale",
+			common.SeverityMedium,
+		)
+	}
+
+	advanced := unboundPlus.Advanced
 	return common.DNSConfig{
 		Servers: strings.Fields(doc.System.DNSServer),
 		Unbound: common.UnboundConfig{
 			Enabled:        doc.Unbound.Enable == xmlBoolTrue,
 			DNSSEC:         doc.Unbound.Dnssec == xmlBoolTrue,
 			DNSSECStripped: doc.Unbound.Dnssecstripped == xmlBoolTrue,
-			PrivateAddress: splitPrivateAddress(advanced.Privateaddress),
+			PrivateAddress: c.splitPrivateAddress(advanced.Privateaddress),
 			HideIdentity:   advanced.Hideidentity == xmlBoolTrue,
 			HideVersion:    advanced.Hideversion == xmlBoolTrue,
 			LogQueries:     advanced.Logqueries == xmlBoolTrue,
@@ -186,12 +208,15 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	}
 }
 
-// splitPrivateAddress parses the <privateaddress> string (comma-, newline-, or
-// whitespace-separated CIDR list) into a normalized slice. Returns nil when the
-// input has no entries so downstream JSON/YAML `omitempty` keeps zero-value
-// output compact. strings.FieldsFunc already drops empty fields, so no
-// post-filtering is required.
-func splitPrivateAddress(raw string) []string {
+// splitPrivateAddress parses the <privateaddress> string into a normalized
+// slice of CIDR prefixes. Tokens are split on these separators only: commas,
+// ASCII spaces, tabs, LF, and CR (the separators OPNsense's webUI produces).
+// Other Unicode whitespace is intentionally not treated as a separator. Each
+// token must parse as a netip.Prefix or netip.Addr; invalid tokens are dropped
+// with a conversion warning (GOTCHAS 5.2 pattern). Returns nil when the
+// normalized slice is empty so downstream JSON/YAML `omitempty` keeps zero-
+// value output compact.
+func (c *converter) splitPrivateAddress(raw string) []string {
 	fields := strings.FieldsFunc(raw, func(r rune) bool {
 		switch r {
 		case ',', '\n', '\r', '\t', ' ':
@@ -202,7 +227,28 @@ func splitPrivateAddress(raw string) []string {
 	if len(fields) == 0 {
 		return nil
 	}
-	return fields
+
+	result := make([]string, 0, len(fields))
+	for _, entry := range fields {
+		if _, err := netip.ParsePrefix(entry); err == nil {
+			result = append(result, entry)
+			continue
+		}
+		if _, err := netip.ParseAddr(entry); err == nil {
+			result = append(result, entry)
+			continue
+		}
+		c.addWarning(
+			"DNS.Unbound.PrivateAddress",
+			entry,
+			"invalid CIDR or IP in Unbound private-address list; entry dropped",
+			common.SeverityMedium,
+		)
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
 
 // convertDNSMasqHosts maps []schema.DNSMasqHost to []common.DNSMasqHost.

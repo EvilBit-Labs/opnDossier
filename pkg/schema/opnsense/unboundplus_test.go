@@ -79,34 +79,49 @@ func TestUnboundPlus_EmptyElement(t *testing.T) {
 func TestUnboundPlus_RoundTrip(t *testing.T) {
 	t.Parallel()
 
+	// Populate every sub-struct so the round-trip exercises every field path.
+	// A future field whose type-promotion or tag silently breaks marshaling
+	// will fail the deep-equality check below.
 	original := UnboundPlus{
 		Version: "1.0.0",
 		General: UnboundPlusGeneral{
-			Enabled: "1",
-			Port:    "53",
-			Dnssec:  "1",
+			Enabled:            "1",
+			Port:               "53",
+			Stats:              "1",
+			ActiveInterface:    "lan",
+			Dnssec:             "1",
+			DNS64:              "0",
+			RegisterDHCP:       "1",
+			RegisterDHCPDomain: "1",
+			LocalZoneType:      "transparent",
 		},
 		Advanced: UnboundPlusAdvanced{
 			Hideidentity:   "1",
-			Privateaddress: "192.168.0.0/16",
+			Hideversion:    "1",
+			Prefetch:       "1",
+			Logqueries:     "0",
+			Logreplies:     "0",
+			Privatedomain:  "corp.example.com",
+			Privateaddress: "192.168.0.0/16,10.0.0.0/8",
+			Dnssecstripped: "0",
 		},
+		Acls:       UnboundPlusAcls{DefaultAction: "allow"},
+		Dnsbl:      UnboundPlusDnsbl{Enabled: "1", Type: "ads", Nxdomain: "0"},
+		Forwarding: UnboundPlusForwarding{Enabled: "0"},
+		Dots:       "dot1",
+		Hosts:      "host1",
+		Aliases:    "alias1",
+		Domains:    "domain1",
 	}
 
 	out, err := xml.Marshal(&original)
 	require.NoError(t, err)
 
-	xmlStr := string(out)
-	assert.Contains(t, xmlStr, `version="1.0.0"`)
-	assert.Contains(t, xmlStr, "<enabled>1</enabled>")
-	assert.Contains(t, xmlStr, "<privateaddress>192.168.0.0/16</privateaddress>")
-	assert.Contains(t, xmlStr, "<hideidentity>1</hideidentity>")
-
 	var round UnboundPlus
 	require.NoError(t, xml.Unmarshal(out, &round))
-	assert.Equal(t, original.Version, round.Version)
-	assert.Equal(t, original.General.Enabled, round.General.Enabled)
-	assert.Equal(t, original.Advanced.Privateaddress, round.Advanced.Privateaddress)
-	assert.Equal(t, original.Advanced.Hideidentity, round.Advanced.Hideidentity)
+	// Full-struct deep equality locks in the round-trip contract so any
+	// future field added without a proper tag is caught immediately.
+	assert.Equal(t, original, round)
 }
 
 func TestUnboundPlus_UnmarshalsWithinOPNsenseDocument(t *testing.T) {

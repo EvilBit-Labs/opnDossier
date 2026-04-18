@@ -230,18 +230,28 @@ type DNSConfig struct {
 	DNSMasq DNSMasqConfig `json:"dnsMasq" yaml:"dnsMasq,omitempty"`
 }
 
-// UnboundConfig contains Unbound DNS resolver configuration.
+// UnboundConfig contains Unbound DNS resolver configuration. The first three
+// fields (Enabled, DNSSEC, DNSSECStripped) are sourced from the legacy <unbound>
+// element. The remaining fields are sourced from the MVC <OPNsense><unboundplus>
+// element; the OPNsense-specific converter handles the split.
 type UnboundConfig struct {
+	// -- Legacy <unbound> (canonical) --
+
 	// Enabled indicates whether the Unbound resolver is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// DNSSEC enables DNSSEC validation.
 	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
 	// DNSSECStripped enables DNSSEC stripped mode.
 	DNSSECStripped bool `json:"dnssecStripped,omitempty" yaml:"dnssecStripped,omitempty"`
-	// PrivateAddress lists CIDR ranges supplied to Unbound's `private-address`
-	// directive. When populated, Unbound rejects DNS responses that resolve to
-	// these ranges for public domains — the DNS rebind protection mechanism.
-	// Sourced from <OPNsense><unboundplus><advanced><privateaddress>.
+
+	// -- MVC <OPNsense><unboundplus><advanced> --
+
+	// PrivateAddress lists CIDR prefixes or IPs supplied to Unbound's
+	// `private-address` directive. When populated, Unbound rejects DNS
+	// responses that resolve to these ranges for public domains — the DNS
+	// rebind protection mechanism. The converter validates each entry (drops
+	// and warns on unparseable values); consumers may still want to re-verify
+	// before acting on them.
 	PrivateAddress []string `json:"privateAddress,omitempty" yaml:"privateAddress,omitempty"`
 	// HideIdentity corresponds to Unbound's `hide-identity` directive.
 	// When true, Unbound does not reveal its server identity in responses.
