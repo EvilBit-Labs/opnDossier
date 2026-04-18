@@ -638,6 +638,13 @@ func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
 		},
 		{"newline separated", "10.0.0.0/8\n192.168.0.0/16", []string{"10.0.0.0/8", "192.168.0.0/16"}},
 		{
+			// NBSP (U+00A0) pins the unicode.IsSpace contract so a future
+			// simplification back to an ASCII-only predicate fails loudly.
+			"NBSP separated",
+			"10.0.0.0/8\u00a0192.168.0.0/16",
+			[]string{"10.0.0.0/8", "192.168.0.0/16"},
+		},
+		{
 			"mixed separators",
 			"10.0.0.0/8,\n 192.168.0.0/16\t172.16.0.0/12",
 			[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
