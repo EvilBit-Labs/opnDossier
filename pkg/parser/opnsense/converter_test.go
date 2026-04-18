@@ -613,6 +613,86 @@ func TestConverter_DNS(t *testing.T) {
 	assert.True(t, device.DNS.DNSMasq.Enabled)
 	require.Len(t, device.DNS.DNSMasq.Hosts, 1)
 	assert.Equal(t, "server", device.DNS.DNSMasq.Hosts[0].Host)
+	// Advanced Unbound fields default to zero when <unboundplus> is empty.
+	assert.Empty(t, device.DNS.Unbound.PrivateAddress)
+	assert.False(t, device.DNS.Unbound.HideIdentity)
+	assert.False(t, device.DNS.Unbound.Prefetch)
+}
+
+func TestConverter_DNS_UnboundPlusAdvanced(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		rawAddresses string
+		want         []string
+	}{
+		{
+			"comma separated",
+			"10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12",
+			[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
+		},
+		{"newline separated", "10.0.0.0/8\n192.168.0.0/16", []string{"10.0.0.0/8", "192.168.0.0/16"}},
+		{
+			"mixed separators",
+			"10.0.0.0/8,\n 192.168.0.0/16\t172.16.0.0/12",
+			[]string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"},
+		},
+		{"whitespace only", "   \n  ", nil},
+		{"empty", "", nil},
+		{"single value", "10.0.0.0/8", []string{"10.0.0.0/8"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := schema.NewOpnSenseDocument()
+			doc.Unbound.Enable = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Privateaddress = tc.rawAddresses
+			doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Hideversion = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Logqueries = "0"
+			doc.OPNsense.UnboundPlus.Advanced.Logreplies = "1"
+			doc.OPNsense.UnboundPlus.Advanced.Prefetch = "1"
+
+			device, warnings, err := opnsense.ConvertDocument(doc)
+			require.NoError(t, err)
+			assert.Empty(t, warnings)
+
+			assert.Equal(t, tc.want, device.DNS.Unbound.PrivateAddress)
+			assert.True(t, device.DNS.Unbound.HideIdentity)
+			assert.True(t, device.DNS.Unbound.HideVersion)
+			assert.False(t, device.DNS.Unbound.LogQueries)
+			assert.True(t, device.DNS.Unbound.LogReplies)
+			assert.True(t, device.DNS.Unbound.Prefetch)
+			// Legacy <unbound> remains canonical for Enabled.
+			assert.True(t, device.DNS.Unbound.Enabled)
+		})
+	}
+}
+
+func TestConverter_DNS_LegacyAndMVCCoexist(t *testing.T) {
+	t.Parallel()
+
+	// Proves legacy <unbound> fields and MVC <unboundplus> fields populate
+	// independent slots on UnboundConfig — they do not clobber each other.
+	doc := schema.NewOpnSenseDocument()
+	doc.Unbound.Enable = "1"
+	doc.Unbound.Dnssec = "1"
+	doc.Unbound.Dnssecstripped = "0"
+	doc.OPNsense.UnboundPlus.Advanced.Privateaddress = "192.168.0.0/16"
+	doc.OPNsense.UnboundPlus.Advanced.Hideidentity = "1"
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	assert.True(t, device.DNS.Unbound.Enabled)
+	assert.True(t, device.DNS.Unbound.DNSSEC)
+	assert.False(t, device.DNS.Unbound.DNSSECStripped)
+	assert.Equal(t, []string{"192.168.0.0/16"}, device.DNS.Unbound.PrivateAddress)
+	assert.True(t, device.DNS.Unbound.HideIdentity)
 }
 
 func TestConverter_VLANs(t *testing.T) {

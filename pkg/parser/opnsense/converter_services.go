@@ -157,14 +157,25 @@ func (c *converter) buildDHCPAdvancedV6(d schema.DhcpdInterface) *common.DHCPAdv
 	return &v6
 }
 
-// convertDNS maps doc.Unbound, doc.DNSMasquerade, and system DNS to common.DNSConfig.
+// convertDNS maps doc.Unbound, doc.DNSMasquerade, doc.OPNsense.UnboundPlus, and
+// system DNS to common.DNSConfig. Advanced Unbound fields (private-address list,
+// hide-identity/version, query/reply logging, prefetch) come from the MVC model
+// section <OPNsense><unboundplus><advanced>. Legacy <unbound> remains canonical
+// for Enabled/DNSSEC/DNSSECStripped to preserve backward compatibility.
 func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
+	advanced := doc.OPNsense.UnboundPlus.Advanced
 	return common.DNSConfig{
 		Servers: strings.Fields(doc.System.DNSServer),
 		Unbound: common.UnboundConfig{
 			Enabled:        doc.Unbound.Enable == xmlBoolTrue,
 			DNSSEC:         doc.Unbound.Dnssec == xmlBoolTrue,
 			DNSSECStripped: doc.Unbound.Dnssecstripped == xmlBoolTrue,
+			PrivateAddress: splitPrivateAddress(advanced.Privateaddress),
+			HideIdentity:   advanced.Hideidentity == xmlBoolTrue,
+			HideVersion:    advanced.Hideversion == xmlBoolTrue,
+			LogQueries:     advanced.Logqueries == xmlBoolTrue,
+			LogReplies:     advanced.Logreplies == xmlBoolTrue,
+			Prefetch:       advanced.Prefetch == xmlBoolTrue,
 		},
 		DNSMasq: common.DNSMasqConfig{
 			Enabled:         bool(doc.DNSMasquerade.Enable),
@@ -173,6 +184,25 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 			Forwarders:      c.convertForwarders(doc.DNSMasquerade.Forwarders),
 		},
 	}
+}
+
+// splitPrivateAddress parses the <privateaddress> string (comma-, newline-, or
+// whitespace-separated CIDR list) into a normalized slice. Returns nil when the
+// input has no entries so downstream JSON/YAML `omitempty` keeps zero-value
+// output compact. strings.FieldsFunc already drops empty fields, so no
+// post-filtering is required.
+func splitPrivateAddress(raw string) []string {
+	fields := strings.FieldsFunc(raw, func(r rune) bool {
+		switch r {
+		case ',', '\n', '\r', '\t', ' ':
+			return true
+		}
+		return false
+	})
+	if len(fields) == 0 {
+		return nil
+	}
+	return fields
 }
 
 // convertDNSMasqHosts maps []schema.DNSMasqHost to []common.DNSMasqHost.

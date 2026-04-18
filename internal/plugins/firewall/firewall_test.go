@@ -1501,6 +1501,68 @@ func TestFirewallPlugin_DNSSECValidation(t *testing.T) {
 	}
 }
 
+func TestFirewallPlugin_DNSRebindCheck(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	tests := []struct {
+		name          string
+		config        *common.CommonDevice
+		expectFinding bool
+		description   string
+	}{
+		{
+			name: "unbound enabled with private-address list - finding expected",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:        true,
+						PrivateAddress: []string{"192.168.0.0/16", "10.0.0.0/8"},
+					},
+				},
+			},
+			expectFinding: true,
+			description:   "DNS rebind check active → finding fires per control policy",
+		},
+		{
+			name: "unbound enabled with empty private-address - no finding",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{Enabled: true, PrivateAddress: nil},
+				},
+			},
+			expectFinding: false,
+			description:   "No private-address means rebind protection not in force",
+		},
+		{
+			name: "unbound disabled - no finding regardless of private-address",
+			config: &common.CommonDevice{
+				DNS: common.DNSConfig{
+					Unbound: common.UnboundConfig{
+						Enabled:        false,
+						PrivateAddress: []string{"192.168.0.0/16"},
+					},
+				},
+			},
+			expectFinding: false,
+			description:   "Disabled resolver means rebind protection is inactive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertFindingPresence(t, fp, tt.config, "FIREWALL-007", tt.expectFinding)
+		})
+	}
+}
+
+func TestFirewallPlugin_DNSRebindCheck_NilDevice(t *testing.T) {
+	fp := firewall.NewPlugin()
+
+	// Nil device: RunChecks returns a result but no FIREWALL-007 finding fires
+	// (hasDNSRebindCheck returns {Result: false, Known: true}).
+	assertFindingPresence(t, fp, nil, "FIREWALL-007", false)
+}
+
 func TestFirewallPlugin_HAConfiguration(t *testing.T) {
 	fp := firewall.NewPlugin()
 
@@ -1612,7 +1674,7 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 	// Verify some known evaluable controls are present.
 	for _, id := range []string{
 		"FIREWALL-002", "FIREWALL-004", "FIREWALL-005",
-		"FIREWALL-006", "FIREWALL-008",
+		"FIREWALL-006", "FIREWALL-007", "FIREWALL-008",
 		"FIREWALL-014", "FIREWALL-016",
 		"FIREWALL-022", "FIREWALL-029", "FIREWALL-030",
 		"FIREWALL-033", "FIREWALL-034",
@@ -1623,7 +1685,7 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 
 	// Verify unknown controls are NOT present.
 	for _, id := range []string{
-		"FIREWALL-001", "FIREWALL-003", "FIREWALL-007",
+		"FIREWALL-001", "FIREWALL-003",
 		"FIREWALL-009", "FIREWALL-010", "FIREWALL-011",
 		"FIREWALL-012", "FIREWALL-013", "FIREWALL-015",
 		"FIREWALL-019", "FIREWALL-035",

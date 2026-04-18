@@ -483,11 +483,24 @@ func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
 	return checkResult{Result: device.System.IPv6Allow, Known: true}
 }
 
-// hasDNSRebindCheck checks whether the DNS rebind check is enabled.
-// The CommonDevice model does not yet expose this setting.
-// TODO(#296): Implement once DNS rebind check field is added to CommonDevice.
-func (fp *Plugin) hasDNSRebindCheck(_ *common.CommonDevice) checkResult {
-	return unknown
+// hasDNSRebindCheck checks whether DNS rebind protection is in force.
+// The check is satisfied when the Unbound resolver is enabled AND has at least
+// one CIDR range configured in its `private-address` list (sourced from
+// <OPNsense><unboundplus><advanced><privateaddress>). A disabled resolver means
+// rebind protection is not active regardless of the private-address value.
+func (fp *Plugin) hasDNSRebindCheck(device *common.CommonDevice) checkResult {
+	if device == nil {
+		return checkResult{Result: false, Known: true}
+	}
+
+	if !device.DNS.Unbound.Enabled {
+		return checkResult{Result: false, Known: true}
+	}
+
+	return checkResult{
+		Result: len(device.DNS.Unbound.PrivateAddress) > 0,
+		Known:  true,
+	}
 }
 
 // hasHTTPSManagement checks whether the web management interface uses HTTPS.

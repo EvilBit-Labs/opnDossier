@@ -238,6 +238,24 @@ type UnboundConfig struct {
 	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
 	// DNSSECStripped enables DNSSEC stripped mode.
 	DNSSECStripped bool `json:"dnssecStripped,omitempty" yaml:"dnssecStripped,omitempty"`
+	// PrivateAddress lists CIDR ranges supplied to Unbound's `private-address`
+	// directive. When populated, Unbound rejects DNS responses that resolve to
+	// these ranges for public domains — the DNS rebind protection mechanism.
+	// Sourced from <OPNsense><unboundplus><advanced><privateaddress>.
+	PrivateAddress []string `json:"privateAddress,omitempty" yaml:"privateAddress,omitempty"`
+	// HideIdentity corresponds to Unbound's `hide-identity` directive.
+	// When true, Unbound does not reveal its server identity in responses.
+	HideIdentity bool `json:"hideIdentity,omitempty" yaml:"hideIdentity,omitempty"`
+	// HideVersion corresponds to Unbound's `hide-version` directive.
+	// When true, Unbound does not reveal its version string.
+	HideVersion bool `json:"hideVersion,omitempty" yaml:"hideVersion,omitempty"`
+	// LogQueries indicates whether Unbound logs each incoming query.
+	LogQueries bool `json:"logQueries,omitempty" yaml:"logQueries,omitempty"`
+	// LogReplies indicates whether Unbound logs each outgoing reply.
+	LogReplies bool `json:"logReplies,omitempty" yaml:"logReplies,omitempty"`
+	// Prefetch enables Unbound's prefetch behavior (cache warming for
+	// messages close to expiration).
+	Prefetch bool `json:"prefetch,omitempty" yaml:"prefetch,omitempty"`
 }
 
 // DNSMasqConfig contains dnsmasq forwarder configuration.
