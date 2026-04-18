@@ -726,9 +726,11 @@ func TestConverter_DNS_PrivateAddressPresentEmpty(t *testing.T) {
 	t.Parallel()
 
 	// When <privateaddress></privateaddress> is present but empty, the
-	// converter records PrivateAddressConfigured=true with an empty slice,
-	// so downstream FIREWALL-007 can return Fail (operator explicitly
-	// cleared the list).
+	// converter records PrivateAddressConfigured=true while `PrivateAddress`
+	// itself stays nil (splitPrivateAddress returns nil on empty input).
+	// Downstream FIREWALL-007 uses the Configured flag to distinguish this
+	// "operator explicitly cleared" case (Fail) from the absent-element case
+	// (Unknown).
 	doc := schema.NewOpnSenseDocument()
 	doc.Unbound.Enable = "1"
 	empty := ""

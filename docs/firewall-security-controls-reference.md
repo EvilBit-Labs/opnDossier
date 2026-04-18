@@ -262,11 +262,11 @@ opnDossier parses the OPNsense Unbound MVC configuration from `<OPNsense><unboun
 
 The check evaluates whether DNS rebind protection is configured:
 
-- **Pass**: Unbound is enabled AND the `privateaddress` list contains at least one valid entry
-- **Fail**: Unbound is enabled but `privateaddress` is empty or absent
-- **Unknown**: Unbound is disabled (the install may be using DNSMasq, which has its own rebind-protection mechanism)
+- **Pass**: Unbound is enabled AND the MVC `<privateaddress>` element was configured AND the list contains at least one valid entry.
+- **Fail**: Unbound is enabled AND the MVC `<privateaddress>` element was configured, but the list is empty (operator explicitly cleared it, or every entry failed CIDR/IP validation).
+- **Unknown**: Any of (a) Unbound is disabled — the install may be using DNSMasq, which has its own rebind-protection mechanism; (b) the MVC `<privateaddress>` element was never configured — common on older installs or minimal setups that have not touched the Unbound advanced block.
 
-A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal/plugins/firewall/firewall.go`) — i.e. when Unbound is active but rebind protection is missing.
+A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal/plugins/firewall/firewall.go`) — i.e., when Unbound is active AND the element was configured AND the resulting list is empty.
 
 ### Recommended Action
 
