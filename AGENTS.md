@@ -78,6 +78,6 @@ When documenting interfaces in prose, Mermaid diagrams, or code examples:
 - Update docs in the same commit as interface changes, not in follow-up PRs
 - See `docs/solutions/logic-errors/documentation-code-drift-interface-refactoring.md`
 
-# Agent Rules <!-- tessl-managed -->
+## Agent Rules <!-- tessl-managed -->
 
 @.tessl/RULES.md follow the [instructions](.tessl/RULES.md)

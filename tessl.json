@@ -86,9 +86,6 @@
     },
     "cisco/software-security": {
       "version": "1.2.5"
-    },
-    "tessl-labs/good-oss-citizen": {
-      "version": "1.0.1"
     }
   }
 }
