@@ -421,7 +421,7 @@ Correctly implements presence-based boolean semantics: absent element → false,
 - `FlexBool` — value-level liberal boolean for fields where element presence is not the signal (always emitted, content carries the boolean value)
 - `FlexInt` — liberal int parser sibling (delegates to `IsValueTrue` for non-numeric content)
 
-`BoolFlag.UnmarshalXML` layers presence semantics over `FlexBool`; pfSense converters use `shared.IsValueTrue` directly (retired `pfsense.isPfSenseValueTrue`).
+`BoolFlag.UnmarshalXML` layers presence semantics over `shared.IsValueTrue` — absent → false, `<tag/>` → true, `<tag>body</tag>` → `IsValueTrue(body)`. `FlexBool` delegates to the same `IsValueTrue` helper for its body parsing, so the two types share the liberal vocabulary without one depending on the other. pfSense converters use `shared.IsValueTrue` directly (retired `pfsense.isPfSenseValueTrue`).
 
 ### 8c. `InterfaceList` Custom Type
 

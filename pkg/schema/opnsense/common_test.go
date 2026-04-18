@@ -142,7 +142,12 @@ func TestBoolFlag_UnmarshalXML(t *testing.T) {
 		{name: "body=off", xml: "<test><flag>off</flag></test>", want: false},
 		{name: "body=no", xml: "<test><flag>no</flag></test>", want: false},
 		{name: "body=disabled", xml: "<test><flag>disabled</flag></test>", want: false},
-		// Unknown value -> false (callers requiring strict parsing can use FlexBool or FlexInt).
+		// Unknown value -> false. Note that FlexBool shares this behavior
+		// (both delegate to shared.IsValueTrue, which returns false for
+		// unknowns). Callers that need a strict parser — error on unknown —
+		// should use shared.FlexInt (which returns an error for unknown
+		// non-numeric strings) or validate explicitly with both
+		// shared.IsValueTrue AND shared.IsValueFalse at the call site.
 		{name: "unknown value", xml: "<test><flag>banana</flag></test>", want: false},
 	}
 

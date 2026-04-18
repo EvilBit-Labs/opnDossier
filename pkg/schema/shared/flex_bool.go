@@ -60,14 +60,18 @@ func (fb *FlexBool) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(value, start)
 }
 
-// UnmarshalJSON implements [json.Unmarshaler]. Accepts native booleans,
-// native integers (0/1), and strings in the [IsValueTrue] vocabulary. Any
-// other JSON value — including numeric values outside {0,1}, null, and
-// unrecognised strings — unmarshals to false without error, consistent
-// with the type-level "unknown → false" contract.
+// UnmarshalJSON implements [json.Unmarshaler]. Accepts:
+//   - Native booleans: true → true, false → false.
+//   - Native integers: any non-zero integer → true, 0 → false. Note that
+//     this intentionally widens beyond the canonical {0,1} — a value of
+//     42 is treated as truthy.
+//   - Strings: decoded via encoding/json (so escapes are honored) and
+//     passed to [IsValueTrue]. Unrecognised strings (e.g., "banana") and
+//     null unmarshal to false without error, consistent with the
+//     type-level "unknown → false" contract.
 //
-// Delegates string decoding to encoding/json so escape sequences (e.g.
-// "\u006fn") are decoded before being compared against the truthy vocabulary.
+// Fully malformed JSON (bytes that are neither a bool, number, nor
+// string) returns a wrapped error.
 func (fb *FlexBool) UnmarshalJSON(data []byte) error {
 	// Native bool: true/false.
 	var b bool
