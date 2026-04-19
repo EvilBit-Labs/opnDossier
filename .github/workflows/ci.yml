@@ -61,13 +61,20 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache: true
 
+      # NOTE: Invoke `go` directly rather than `just test` / `just ci-smoke`.
+      # The justfile recipes shell out via `mise exec -- go`, which would pin
+      # the toolchain to the mise-managed version and defeat the N/N-1 matrix.
+      # Running `go` directly lets `actions/setup-go` (which runs after
+      # mise-action and therefore wins PATH order) drive the toolchain.
       - name: Run tests (Unix)
         if: runner.os != 'Windows'
-        run: just test
+        run: go test ./...
 
       - name: Run tests (Windows) # I don't remember why this is necessary, but I believe it was due to the speed of tests on the Windows runners
         if: runner.os == 'Windows'
-        run: just ci-smoke
+        run: |
+          go build -trimpath -ldflags="-s -w -X main.version=dev" -v ./...
+          go test -count=1 -failfast -short -timeout 5m ./cmd/... ./internal/config/...
 
   # ─────────────────────────────────────────────────────────────────────────
   # Integration Tests - E2E testing with real config files

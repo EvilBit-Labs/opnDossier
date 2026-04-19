@@ -123,18 +123,18 @@ Most OWASP Top 10 categories target web applications and are not applicable to a
 
 ## 6. Supply Chain Security
 
-| Measure             | Implementation                                                            |
-| ------------------- | ------------------------------------------------------------------------- |
+| Measure             | Implementation                                                                                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dependency auditing | govulncheck (Go vulnerability database), CodeQL (semantic analysis), and Trivy (filesystem scan + misconfiguration detection) run in CI via `.github/workflows/security.yml` on push/PR and weekly |
-| Dependency updates  | Dependabot configured for automated PRs                                   |
-| Pinned toolchain    | Go version pinned via `mise` and `go.mod`                                 |
-| Reproducible builds | `go.sum` committed; `CGO_ENABLED=0` static builds                         |
-| Build provenance    | Sigstore attestations via `actions/attest-build-provenance`               |
-| Artifact signing    | Cosign keyless signing (Sigstore) + GPG signing via GoReleaser            |
-| SBOM generation     | CycloneDX SBOM generated per release via `cyclonedx-gomod`                |
-| CI integrity        | All GitHub Actions pinned to SHA hashes                                   |
-| Code review         | Required on all PRs; automated by CodeRabbit with security-focused checks |
-| License compliance  | FOSSA scanning for Apache-2.0 compatible dependencies                     |
+| Dependency updates  | Dependabot configured for automated PRs                                                                                                                                                            |
+| Pinned toolchain    | Go version pinned via `mise` and `go.mod`                                                                                                                                                          |
+| Reproducible builds | `go.sum` committed; `CGO_ENABLED=0` static builds                                                                                                                                                  |
+| Build provenance    | Sigstore attestations via `actions/attest-build-provenance`                                                                                                                                        |
+| Artifact signing    | Cosign keyless signing (Sigstore) + GPG signing via GoReleaser                                                                                                                                     |
+| SBOM generation     | CycloneDX SBOM generated per release via `cyclonedx-gomod`                                                                                                                                         |
+| CI integrity        | All GitHub Actions pinned to SHA hashes                                                                                                                                                            |
+| Code review         | Required on all PRs; automated by CodeRabbit with security-focused checks                                                                                                                          |
+| License compliance  | FOSSA scanning for Apache-2.0 compatible dependencies                                                                                                                                              |
 
 ## 7. Ongoing Assurance
 
