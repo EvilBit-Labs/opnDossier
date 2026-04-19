@@ -28,7 +28,8 @@ opnDossier follows strict coding standards and development practices:
 git clone https://github.com/EvilBit-Labs/opnDossier.git
 cd opnDossier
 
-# Install development dependencies
+# Install development dependencies (this also installs the pre-commit,
+# commit-msg, and pre-push git hooks via `pre-commit install`)
 just install
 
 # Verify setup
@@ -37,6 +38,29 @@ just check
 # Run tests
 just test
 ```
+
+If you need to install the hooks manually (e.g., after cloning into a worktree or when `just install` was not run), use:
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+```
+
+### Git Hooks: Commit vs Push
+
+Two tiers of automated checks run locally before anything reaches GitHub:
+
+- **`pre-commit` hooks** (fast, every commit) — formatters, lint config verification, `golangci-lint fmt`, and `golangci-lint run --fix`. These must be quick enough to run on every commit.
+- **`pre-push` hook** (slow, once per push) — runs the full `just ci-check` suite: `check`, `format-check`, `lint`, `test`, `test-integration`, and `test-race`. This fires once before `git push` completes.
+
+**Why a pre-push hook for `ci-check`?** The full suite is too slow to run on every commit, and `test-race` (the Go race detector) cannot be hosted reliably on GitHub Actions runners. The pre-push hook is therefore the enforcement point for the race detector and the rest of the full quality bar — catching issues on the developer's machine before they ever reach CI.
+
+**Escape hatch.** If you need to bypass the pre-push hook in a genuine emergency (for example, a hotfix where the full suite is known to be orthogonal to the change), use:
+
+```bash
+git push --no-verify
+```
+
+`--no-verify` is for emergencies only, not routine use. Any failure that prompts you to reach for it should be filed as a bug or a todo afterwards. CI does not mirror `test-race`, so bypassing the pre-push hook means no one else will catch the regression before merge.
 
 ### Known Gotchas
 

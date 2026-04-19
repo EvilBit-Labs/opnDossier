@@ -77,3 +77,25 @@ repos:
         types: [go]
         require_serial: true
         pass_filenames: false
+
+  # Pre-push gate — runs the full local quality bar once before a push reaches
+  # GitHub. CI cannot host the race detector reliably on GitHub runners, so
+  # `just ci-check` (which includes `test-race`) is the enforcement point here.
+  # This hook fires only on `git push`, not on every commit (it is too slow for
+  # that). Install with:
+  #   pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+  # Escape hatch for emergencies: `git push --no-verify` (not for routine use).
+  - repo: local
+    hooks:
+      - id: ci-check-full
+        name: just ci-check (full local quality bar)
+        description: >-
+          Run the full `just ci-check` suite (check, format-check, lint, test,
+          test-integration, test-race) before allowing a push. This is the
+          local backstop for the race detector, which CI cannot host reliably.
+        entry: just ci-check
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+        verbose: true

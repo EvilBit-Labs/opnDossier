@@ -411,24 +411,55 @@ goreleaser release --clean
 goreleaser release --clean --skip=sign
 ```
 
-## macOS Code Signing (Optional)
+## macOS Signing (Quill)
 
-macOS binaries can be signed and notarized using [Quill](https://github.com/anchore/quill), an open-source alternative to `gon` that works cross-platform.
+macOS binaries are signed and notarized using [Quill](https://github.com/anchore/quill), an open-source alternative to `gon` that works cross-platform. The post-build hook lives in `.goreleaser.yaml` (search for `quill sign-and-notarize`) and is invoked from `.github/workflows/release.yml` (see lines 97–102, where the `QUILL_*` env vars are wired in from repository secrets).
 
-### Setup
+All `QUILL_*` inputs are **optional**. If `QUILL_SIGN_P12` is unset the entire hook is a no-op — the universal binary ships unsigned and nothing downstream fails. Set every variable in the table below (as repository secrets for CI, or exported locally for manual builds) if you want a fully signed and notarized macOS release.
 
-1. Obtain an Apple Developer certificate and API key from [App Store Connect](https://appstoreconnect.apple.com/access/api)
-2. Export the certificate as a P12 file
-3. Set the environment variables listed in [Environment Variables](#environment-variables-optional)
+### Required variables (all or none)
 
-### How It Works
+Either configure the full set or leave them all unset. Partial configuration will fail at notarization time.
 
-The goreleaser configuration includes a post-build hook for macOS:
+| Variable              | Purpose                                                                                                                         | Source                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QUILL_SIGN_P12`      | Developer ID Application certificate (P12 file path or base64-encoded contents). Acts as the on/off toggle for the entire hook. | Export from Keychain Access after enrolling in the [Apple Developer Program](https://developer.apple.com/programs/).                            |
+| `QUILL_SIGN_PASSWORD` | Passphrase that unlocks the P12.                                                                                                | Set when exporting the P12.                                                                                                                     |
+| `QUILL_NOTARY_KEY`    | App Store Connect API key (path to `AuthKey_XXXXX.p8` or base64-encoded contents).                                              | Download once from [App Store Connect → Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/api). |
+| `QUILL_NOTARY_KEY_ID` | 10-character Key ID for the API key above.                                                                                      | Shown next to the key in App Store Connect.                                                                                                     |
+| `QUILL_NOTARY_ISSUER` | UUID of the issuer that owns the API key.                                                                                       | Shown at the top of the API keys page in App Store Connect.                                                                                     |
 
-- **Snapshot builds**: Ad-hoc signing only (no notarization)
-- **Release builds**: Full signing and notarization with Apple
+### Optional variables
 
-If `QUILL_SIGN_P12` is not set, macOS signing is skipped entirely.
+| Variable         | Default                                                | Effect if unset                                                                    |
+| ---------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `QUILL_LOG_FILE` | `/tmp/quill-universal.log` (set in `.goreleaser.yaml`) | Quill logs to stderr only; the release workflow keeps the goreleaser default path. |
+
+### How the hook behaves
+
+- **Snapshot builds** (`workflow_dispatch` or `--snapshot`): ad-hoc signing only, notarization skipped (`--dry-run=true --ad-hoc=true`). Useful for smoke-testing without consuming Apple notarization quota.
+- **Release builds** (tag push): full sign + notarize against Apple (`--dry-run=false --ad-hoc=false`).
+- The hook runs on the lipo'd universal binary, not per-arch, so the signed artifact is what ends up in the tarball.
+- If `QUILL_SIGN_P12` is empty the templated `quill sign-and-notarize` command is not emitted at all — nothing to debug when signing is intentionally off.
+
+### Verify a signed macOS binary
+
+After downloading the release tarball:
+
+```bash
+tar -xzf opnDossier_Darwin_arm64.tar.gz
+codesign -dv --verbose=4 ./opndossier      # Shows Authority, TeamIdentifier, Timestamp
+codesign --verify --strict --verbose=2 ./opndossier
+spctl -a -vv -t exec ./opndossier          # Gatekeeper check; should say "accepted" + "notarized"
+```
+
+`quill` itself can also round-trip the check:
+
+```bash
+quill extract signature ./opndossier       # Inspects the embedded signature
+```
+
+See the [Quill README](https://github.com/anchore/quill#readme) for the full command surface and troubleshooting tips.
 
 ## Release Artifacts
 
