@@ -27,14 +27,20 @@ type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks (panic-safe)
+    RunChecks(device *common.CommonDevice) (findings []compliance.Finding, evaluated []string, err error) // Execute compliance checks (panic-safe)
     GetControls() []compliance.Control   // Return all controls
     GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
 }
 ```
 
-**Note:** The audit engine wraps `RunChecks()` calls in panic recovery, so a panicking plugin will not crash the audit process. However, plugins should still handle errors properly and return findings or empty slices rather than panicking, as panic recovery is a safety mechanism, not a substitute for good error handling.
+**Note:** The audit engine wraps `RunChecks()` calls in panic recovery, so a panicking plugin will not crash the audit process. However, plugins should still handle errors properly and return appropriate values (findings slice, evaluated control IDs, and error) rather than panicking, as panic recovery is a safety mechanism, not a substitute for good error handling.
+
+`RunChecks` returns three values:
+
+- **findings**: The slice of compliance findings produced by the evaluation
+- **evaluated**: IDs of controls this plugin evaluated against the provided device (controls returned by `GetControls()` but NOT in this list are reported as UNKNOWN in the audit report)
+- **err**: A non-nil error aborts the audit for this plugin; use only for unrecoverable conditions (typically return nil on the happy path)
 
 The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields:
 
@@ -138,10 +144,12 @@ func (cp *CustomPlugin) controlSeverity(id string) common.Severity {
     }
     return ""
 }
-func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
+func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) ([]compliance.Finding, []string, error) {
     var findings []compliance.Finding
+    var evaluated []string
     // Implement your compliance checks here
     // Example:
+    evaluated = append(evaluated, "CUSTOM-001")
     findings = append(findings, compliance.Finding{
         Type:           "compliance",
         Severity:       cp.controlSeverity("CUSTOM-001"),
@@ -153,7 +161,7 @@ func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Find
         References:     []string{"CUSTOM-001"},
         Tags:           []string{"custom", "security", "compliance"},
     })
-    return findings
+    return findings, evaluated, nil
 }
 ```
 
@@ -170,7 +178,7 @@ import (
 type MyDynamicPlugin struct{}
 
 // Implement compliance.Plugin methods...
-// RunChecks(device *common.CommonDevice) []compliance.Finding
+// RunChecks(device *common.CommonDevice) (findings []compliance.Finding, evaluated []string, err error)
 
 var Plugin compliance.Plugin = &MyDynamicPlugin{}
 ```
@@ -294,9 +302,10 @@ The audit engine wraps each `RunChecks()` call in panic recovery to protect the 
 
 **Best practices:**
 
-- Plugins should handle errors gracefully by returning appropriate findings rather than panicking
+- Plugins should handle errors gracefully by returning appropriate findings and evaluated control IDs rather than panicking
 - Use proper error checking and validation in your compliance checks
-- Return empty findings slices (`[]compliance.Finding`) for plugins that find no issues, rather than panicking
+- Return empty findings slices (`[]compliance.Finding`) and empty evaluated slices (`[]string`) for plugins that find no issues, rather than panicking
+- Populate the evaluated slice with all control IDs that were actually checked (whether they passed or failed)
 - The panic recovery is a safety net for unexpected failures, not a substitute for proper error handling
 - For better diagnostics, log errors within your plugin and return descriptive findings instead of relying on panic recovery
 
@@ -424,47 +433,6 @@ for _, rule := range device.FirewallRules {
 ## Device Parser Development
 
 opnDossier ships with built-in parsers for **OPNsense** and **pfSense** devices. Additional device types (e.g., Fortinet, MikroTik, Cisco ASA) can be added through a compile-time parser registry. Device parsers are separate from compliance plugins -- they transform vendor-specific configuration files into the platform-agnostic `CommonDevice` model.
-
-### Handling pfSense Coverage Gaps
-
-The pfSense converter currently does not populate 18 `CommonDevice` subsystems that OPNsense populates (Theme, Bridges, GIFs, GREs, LAGGs, VirtualIPs, InterfaceGroups, NTP, HighAvailability, IDS, Sysctl, Packages, Monit, Netflow, TrafficShaper, CaptivePortal, Trust, KeaDHCP). To prevent false-PASS compliance verdicts on pfSense inputs, the converter emits a `ConversionWarning` at `SeverityMedium` with the stable message `"not yet implemented in pfSense converter"` for each unimplemented subsystem.
-
-**Compliance plugin developers** working with pfSense inputs should use the public API to avoid treating known gaps as "feature absent":
-
-- **Check for known gaps** before interpreting empty values:
-
-  ```go
-  import "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"
-
-  if device.HighAvailability == nil {
-      if pfsense.IsKnownGap("HighAvailability") {
-          // Skip control or emit "unverifiable on pfSense" finding
-          return
-      }
-      // Feature genuinely absent — emit compliance finding
-  }
-  ```
-
-- **Filter ConversionWarnings** to identify gap warnings programmatically:
-
-  ```go
-  for _, w := range warnings {
-      if w.Message == pfsense.PfsenseKnownGapMessage {
-          // This warning indicates a known pfSense gap, not a config issue
-      }
-  }
-  ```
-
-- **Iterate all gaps** for bulk control filtering:
-
-  ```go
-  gaps := pfsense.KnownGaps()
-  for _, gap := range gaps {
-      // Skip controls that query the subsystem named in 'gap'
-  }
-  ```
-
-Refer to the [device support matrix](../user-guide/device-support-matrix.md) for the complete coverage table and details on the parity test that keeps the gap list in sync with converter behavior.
 
 ### Architecture
 
