@@ -268,8 +268,9 @@ func runConvert(cmd *cobra.Command, args []string) error {
 // inside the worker (unlike audit, which defers emission to the parent).
 //
 // A context timeout or cancellation before the semaphore is acquired returns
-// the ctx error immediately. All subsequent failures are wrapped with the
-// input file path so aggregated errors identify the offending file.
+// the ctx error wrapped with the input file path. All subsequent failures are
+// wrapped with the input file path so aggregated errors identify the offending
+// file.
 func processConvertFile(
 	ctx context.Context,
 	fp string,
@@ -283,7 +284,7 @@ func processConvertFile(
 	case sem <- struct{}{}:
 		defer func() { <-sem }()
 	case <-ctx.Done():
-		return convertResult{err: ctx.Err()}
+		return convertResult{err: fmt.Errorf("%s: %w", fp, ctx.Err())}
 	}
 
 	// Create logger for this goroutine with input file field

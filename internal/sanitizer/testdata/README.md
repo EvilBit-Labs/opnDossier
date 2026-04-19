@@ -2,7 +2,7 @@
 
 ## `benchmark-10mb.xml`
 
-A ~10MB synthetic OPNsense config fixture used by `BenchmarkSanitizeXML_10MB` in `sanitizer_test.go`. The fixture is generated deterministically at benchmark time (see `generateBenchmark10MBFixture` in `fixture_bench_test.go`) and cached on disk so subsequent benchmark runs skip regeneration.
+A ~10MB synthetic OPNsense config fixture used by `BenchmarkSanitizeXML_10MB` in `fixture_bench_test.go`. The fixture is generated deterministically at benchmark time (see `ensureBenchmark10MBFixture` in `fixture_bench_test.go`) and cached on disk so subsequent benchmark runs skip regeneration.
 
 The file is excluded from version control via `.gitignore` to keep the repository small. If the file is missing or smaller than the target size, the benchmark helper rebuilds it on the next invocation.
 
