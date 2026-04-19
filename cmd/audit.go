@@ -308,12 +308,24 @@ func runAudit(cmd *cobra.Command, args []string) error {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
-					cmdLogger.WithContext(timeoutCtx).Error(
-						"goroutine panicked during audit processing",
-						"input_file", fp,
-						"panic", r,
-						"stack", string(debug.Stack()),
-					)
+					// Gate stack dumps behind verbose logging — function names
+					// in stack traces can leak internal plugin paths into
+					// centralized logs, revealing compliance posture.
+					ctxLogger := cmdLogger.WithContext(timeoutCtx)
+					if ctxLogger.IsVerbose() {
+						ctxLogger.Error(
+							"goroutine panicked during audit processing",
+							"input_file", fp,
+							"panic", r,
+							"stack", string(debug.Stack()),
+						)
+					} else {
+						ctxLogger.Error(
+							"goroutine panicked during audit processing",
+							"input_file", fp,
+							"panic", r,
+						)
+					}
 					results[idx] = resultOrError{
 						err: fmt.Errorf("panic processing %s: %v", fp, r),
 					}

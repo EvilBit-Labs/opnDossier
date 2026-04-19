@@ -291,6 +291,15 @@ When tagging a release after a squash-merge PR, always tag the resulting commit 
 
 A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are deterministic (e.g., first private IP maps to `10.0.0.1`, first hostname to `host-001.example.com`). Always assert exact expected values, not just inequality.
 
+### 14.4 `SanitizeStruct` Skips Struct/Pointer-Valued Maps
+
+`sanitizeReflect` in `internal/sanitizer/sanitizer.go` cannot recurse into `map[K]struct{...}` or `map[K]*struct{...}` values. Map values are not addressable in Go, so `reflect.Value.SetMapIndex` is the only way to write back — and that requires a fully reconstructed element, which the current walker does not perform. The guard at the top of the `reflect.Map` case detects this and logs a warning via the optional logger injected through `Sanitizer.SetLogger`. When no logger is set, the gap is silent.
+
+- **Current scope:** This gap is reachable ONLY through `SanitizeStruct`, which is an opt-in consumer flow. The default `opnDossier sanitize` CLI uses `SanitizeXML` (raw element walk) and is not affected — element names like `<password>` and `<bcrypt-hash>` are still redacted regardless of the Go model shape.
+- **Known current paths:** OPNsense `KeaDhcp4` already uses map-style subnet containers, but those maps hold config metadata, not credentials. No currently-shipped schema path puts a secret behind a struct-valued map.
+- **Why warn instead of fix:** Supporting struct-valued maps via reflection requires reconstructing each element in place (read → recurse into a copy → `SetMapIndex` with the mutated copy). That work is scheduled under todo #151 (tag-based redaction) which will subsume this gap by annotating sensitive fields directly and driving redaction from tags instead of field-name heuristics. The warning is the bridge until #151 lands.
+- **Regression tests:** `TestSanitizeStruct_MapStructValues_WarnsAndSkips` and `TestSanitizeStruct_MapStructValues_NilLoggerNoPanic` in `internal/sanitizer/sanitizer_reflect_test.go` pin both the warning path and the nil-logger nil-safety invariant. If a future enhancement starts handling struct-valued maps, those tests must be updated (or replaced) to reflect the new behavior — do not delete them blind.
+
 ## 15. Liberal Boolean and Integer Parsing
 
 ### 15.0 `BoolFlag` vs `FlexBool` vs `FlexInt` vs strict `int`/`bool`

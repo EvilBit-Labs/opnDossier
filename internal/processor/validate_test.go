@@ -317,40 +317,81 @@ func TestValidateCommonDevice(t *testing.T) {
 }
 
 func TestCoreProcessor_PanicRecovery(t *testing.T) {
-	var buf bytes.Buffer
-	logger, err := logging.New(logging.Config{Output: &buf, Level: "error"})
-	require.NoError(t, err)
-
-	processor, err := NewCoreProcessor(logger)
-	require.NoError(t, err)
-
-	processor.validateFn = func(_ *common.CommonDevice) []ValidationError {
-		panic("injected test panic")
-	}
-
-	cfg := &common.CommonDevice{
-		System: common.System{Hostname: "fw", Domain: "example.com"},
-		Interfaces: []common.Interface{
-			{Name: "wan", IPAddress: "192.168.1.1", Subnet: "24"},
-			{Name: "lan", IPAddress: "10.0.0.1", Subnet: "24"},
+	// Covers both the panic-recovery behavior and the verbose-gated stack
+	// dump added for todo #139 (SEC-M5/QUAL-M8). Stack dumps leak internal
+	// function names into centralized logs, so they must only appear when
+	// the logger is at debug level or more verbose.
+	tests := []struct {
+		name          string
+		logLevel      string
+		wantStackDump bool
+	}{
+		{
+			name:          "default error level omits stack dump",
+			logLevel:      "error",
+			wantStackDump: false,
+		},
+		{
+			name:          "debug level includes stack dump",
+			logLevel:      "debug",
+			wantStackDump: true,
 		},
 	}
 
-	report, err := processor.Process(context.Background(), cfg)
-	require.NoError(t, err)
-	require.NotNil(t, report)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			logger, err := logging.New(logging.Config{Output: &buf, Level: tt.logLevel})
+			require.NoError(t, err)
 
-	assert.GreaterOrEqual(t, len(report.Findings.Critical), 1)
+			processor, err := NewCoreProcessor(logger)
+			require.NoError(t, err)
 
-	foundValidation := false
-	for _, finding := range report.Findings.Critical {
-		if finding.Type == validationFindingType && strings.Contains(finding.Description, "panicked:") {
-			foundValidation = true
-			break
-		}
+			processor.validateFn = func(_ *common.CommonDevice) []ValidationError {
+				panic("injected test panic")
+			}
+
+			cfg := &common.CommonDevice{
+				System: common.System{Hostname: "fw", Domain: "example.com"},
+				Interfaces: []common.Interface{
+					{Name: "wan", IPAddress: "192.168.1.1", Subnet: "24"},
+					{Name: "lan", IPAddress: "10.0.0.1", Subnet: "24"},
+				},
+			}
+
+			report, err := processor.Process(context.Background(), cfg)
+			require.NoError(t, err)
+			require.NotNil(t, report)
+
+			assert.GreaterOrEqual(t, len(report.Findings.Critical), 1)
+
+			foundValidation := false
+			for _, finding := range report.Findings.Critical {
+				if finding.Type == validationFindingType && strings.Contains(finding.Description, "panicked:") {
+					foundValidation = true
+					break
+				}
+			}
+			assert.True(t, foundValidation, "expected critical validation finding with panic description")
+
+			output := buf.String()
+			assert.Contains(t, output, "validation panic recovered")
+
+			// The stack key is emitted by debug.Stack() gating. It must
+			// appear at debug level and be suppressed at default levels.
+			if tt.wantStackDump {
+				assert.Contains(t, output, "stack=",
+					"stack dump should be present when logger is verbose")
+				assert.Contains(t, output, "goroutine",
+					"runtime stack trace should include 'goroutine' marker")
+			} else {
+				assert.NotContains(t, output, "stack=",
+					"stack dump must NOT leak at default log level (SEC-M5)")
+				assert.NotContains(t, output, "goroutine",
+					"runtime stack marker must NOT leak at default log level")
+			}
+		})
 	}
-	assert.True(t, foundValidation, "expected critical validation finding with panic description")
-	assert.Contains(t, buf.String(), "validation panic recovered")
 }
 
 func TestCoreProcessor_ValidationSeverity(t *testing.T) {
