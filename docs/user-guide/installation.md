@@ -158,7 +158,7 @@ If you have [Cosign](https://docs.sigstore.dev/cosign/system_config/installation
 # Download the signature bundle
 curl -LO https://github.com/EvilBit-Labs/opnDossier/releases/latest/download/opnDossier_checksums.txt.sigstore.json
 
-# Verify (replace TAG with the release tag, e.g. v0.9.0)
+# Verify (replace TAG with the release tag, e.g. v1.4.0)
 cosign verify-blob \
   --certificate-identity "https://github.com/EvilBit-Labs/opnDossier/.github/workflows/release.yml@refs/tags/TAG" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \

@@ -523,6 +523,14 @@ The secret-bearing fields are:
 | `model.SNMPConfig`           | `ROCommunity`                    |
 | `model.DHCPAdvancedV6`       | `AdvDHCP6KeyInfoStatementSecret` |
 
+If you add a new secret-bearing field to `CommonDevice`, update this table in the same PR.
+
+Notes on fields that are **not** in this table:
+
+- OpenVPN TLS auth / static-key material (raw XML fields on the OPNsense/pfSense schema types) is dropped by the converter and never appears on `CommonDevice` — it can only leak via the raw-XML sanitize path (see `internal/sanitizer` rules, which the CLI applies). Library consumers that work exclusively with `CommonDevice` cannot accidentally emit OpenVPN TLS key material.
+- `model.IPsecConfig.KeyPairs` and `model.IPsecConfig.PreSharedKeys` currently carry UUID references to the OPNsense `Ipsec/KeyPairs` and `Ipsec/PreSharedKey` MVC models, not raw key material. They are intentionally omitted from the table above. If a future OPNsense schema revision ever stores raw key bytes in these fields, they must be added here and to the CLI redaction logic in the same PR.
+- pfSense `IPsecPhase1.PreSharedKey` (a scalar raw key on the pfSense XML schema) is intentionally not mapped into `model.IPsecPhase1Tunnel`; see `pkg/parser/pfsense/converter_services.go` and the `TestConverter_IPsecPhase1_PreSharedKeyExclusion` regression test.
+
 Recommended approaches, in order of preference:
 
 1. **Invoke the opnDossier CLI as a subprocess.** `opnDossier convert --format json` and `opnDossier sanitize` apply the full redaction pipeline, including the field-pattern-based sanitizer. Safest for operators who need a hardened output.

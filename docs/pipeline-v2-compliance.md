@@ -45,47 +45,44 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 ### Cross-Cutting Tools (Section 4)
 
-| Tool                       | Implementation                                   | Status   |
-| -------------------------- | ------------------------------------------------ | -------- |
-| **Commit Discipline**      | Conventional Commits via pre-commit + CodeRabbit | Complete |
-| **Security Analysis**      | GitHub CodeQL                                    | Complete |
-| **SBOM Generation**        | CycloneDX-gomod via GoReleaser                   | Complete |
-| **Vulnerability Scanning** | Grype via GitHub Actions                         | Complete |
-| **License Scanning**       | FOSSA integration (GitHub App)                   | Complete |
-| **Signing & Attestation**  | Cosign + SLSA Level 3                            | Complete |
-| **Coverage Reporting**     | Codecov integration                              | Complete |
-| **AI-Assisted Review**     | CodeRabbit.ai                                    | Complete |
+| Tool                      | Implementation                                                       | Status   |
+| ------------------------- | -------------------------------------------------------------------- | -------- |
+| **Commit Discipline**     | Conventional Commits via pre-commit + CodeRabbit                     | Complete |
+| **Static Analysis**       | GitHub CodeQL (Go)                                                   | Complete |
+| **Go Vulnerability Scan** | `govulncheck` against the Go vulnerability database                  | Complete |
+| **Dependency Scan**       | Trivy filesystem scan (CRITICAL/HIGH/MEDIUM, `ignore-unfixed: true`) | Complete |
+| **SBOM Generation**       | CycloneDX-gomod via GoReleaser + dedicated SBOM workflow             | Complete |
+| **License Scanning**      | FOSSA integration (GitHub App)                                       | Complete |
+| **Signing & Attestation** | Cosign (keyless OIDC) + SLSA Level 3 build provenance                | Complete |
+| **Coverage Reporting**    | Codecov integration                                                  | Complete |
+| **AI-Assisted Review**    | CodeRabbit.ai                                                        | Complete |
 
 **Files:**
 
-- [`.github/workflows/ci-check.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/ci-check.yml) - Grype vulnerability scanning
-- [`.github/workflows/codeql.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/codeql.yml) - GitHub CodeQL
+- [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) - `govulncheck`, CodeQL, Trivy filesystem scan
+- [`.github/workflows/sbom.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/sbom.yml) - Repository SBOM generation
 - FOSSA license scanning (GitHub App integration)
-- [`.github/workflows/release.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/release.yml) - SLSA + Cosign signing
+- [`.github/workflows/release.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/release.yml) - SLSA provenance + Cosign signing
 - [`.coderabbit.yaml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.coderabbit.yaml) - CodeRabbit configuration
 
-### ✅ **Enhanced SaaS Tools**
+### Repository Hygiene & Dependency Management
 
-| Tool               | Implementation                                                         | Status      |
-| ------------------ | ---------------------------------------------------------------------- | ----------- |
-| **OSSF Scorecard** | Weekly repository hygiene scoring                                      | ✅ Complete |
-| **Snyk**           | Additional dependency + code vulnerability scanning (GitHub App + CLI) | ✅ Complete |
-| **Dependabot**     | Automated dependency updates                                           | ✅ Complete |
-
-**Files:**
-
-- [`.github/workflows/scorecard.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/scorecard.yml) - OSSF Scorecard
-- Snyk scanning (GitHub App integration + local CLI)
-- [`.github/dependabot.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/dependabot.yml) - Dependabot configuration
+| Tool               | Implementation                                                                                                                                                  | Status   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **OSSF Scorecard** | Weekly repository hygiene scoring via [`.github/workflows/scorecard.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/scorecard.yml) | Complete |
+| **Dependabot**     | Automated dependency update PRs via [`.github/dependabot.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/dependabot.yml)                     | Complete |
 
 ### Local CLI Tools
 
-Both Snyk and FOSSA provide local CLI tools for development:
+The project provides the following local security and compliance tooling:
 
-- **Snyk CLI**: Run `snyk test` and `snyk monitor` locally (requires `SNYK_TOKEN`)
-- **FOSSA CLI**: Run `fossa analyze` and `fossa test` locally (requires `FOSSA_API_KEY`)
+- **`just scan`** — run `gosec` source-code security analysis
+- **`just sbom`** — generate a CycloneDX SBOM via `cyclonedx-gomod`
+- **`just security-all`** — run `gosec` and SBOM generation together
+- **`govulncheck`** — install via `go install golang.org/x/vuln/cmd/govulncheck@latest`, then run `govulncheck ./...` to reproduce the CI check locally
+- **FOSSA CLI** — run `fossa analyze` and `fossa test` locally (requires `FOSSA_API_KEY`)
 
-These CLI tools complement the GitHub App integrations. For local security scanning, use `just scan` (gosec) and `just security-all` (SBOM + gosec).
+Trivy and CodeQL are executed only in CI. To reproduce a Trivy finding locally, install the CLI from the upstream project and run `trivy fs --severity CRITICAL,HIGH,MEDIUM --ignore-unfixed .`.
 
 ## Local Development Workflow
 
@@ -99,9 +96,9 @@ just check             # Run pre-commit checks
 just ci-check          # Full CI validation locally
 
 # Security scanning
-just scan                  # Run gosec security scanner
+just scan                  # Run gosec source-code security scanner
 just sbom                  # Generate SBOM with cyclonedx-gomod
-just security-all          # Run all security checks (SBOM + scan)
+just security-all          # Run gosec + SBOM generation
 
 # Release workflow
 just build-release         # Build optimized release binary
@@ -115,35 +112,34 @@ just release-snapshot      # Test release build (snapshot)
 
 Every PR must:
 
-1. ✅ Pass all linters (`golangci-lint`)
-2. ✅ Pass format checks (`gofumpt`, `goimports`)
-3. ✅ Pass all tests with race detection (`-race` flag) and minimum 85% coverage
-4. ✅ Upload coverage to Codecov
-5. ✅ Pass security gates (CodeQL, Grype)
-6. ✅ Pass license compliance (FOSSA GitHub App)
-7. ✅ Use valid Conventional Commits
-8. ✅ Acknowledge CodeRabbit.ai findings
+1. Pass all linters (`golangci-lint`)
+2. Pass format checks (`gofumpt`, `goimports`)
+3. Pass all tests with race detection (`-race` flag) and minimum 85% coverage
+4. Upload coverage to Codecov
+5. Pass security gates (`govulncheck`, CodeQL, Trivy filesystem scan)
+6. Pass license compliance (FOSSA GitHub App)
+7. Use valid Conventional Commits
+8. Acknowledge CodeRabbit.ai findings
 
 ### Release Criteria (Section 5.2)
 
 Every release must:
 
-1. ✅ Be created via automated GoReleaser flow
-2. ✅ Include signed artifacts with checksums
-3. ✅ Include SBOM (CycloneDX-gomod)
-4. ✅ Include vulnerability scan reports
-5. ✅ Include SLSA Level 3 provenance attestation
-6. ✅ Include Cosign signatures
-7. ✅ Pass all PR criteria above
+1. Be created via the automated GoReleaser flow
+2. Include signed artifacts with SHA256 checksums
+3. Include SBOM (CycloneDX-gomod)
+4. Include SLSA Level 3 provenance attestation
+5. Include Cosign signatures (keyless OIDC, `.sigstore.json` bundle)
+6. Pass all PR criteria above
 
 ## Security Features
 
 ### Supply Chain Security
 
-- **SLSA Level 3 Provenance**: Every release includes cryptographic proof of build integrity
-- **Cosign Signatures**: All artifacts signed using keyless OIDC signing
-- **SBOM Generation**: Complete software bill of materials in SPDX format
-- **Vulnerability Scanning**: Comprehensive scanning with Grype and Snyk (GitHub App)
+- **SLSA Level 3 Provenance**: Every release includes cryptographic proof of build integrity.
+- **Cosign Signatures**: All release artifacts are signed using keyless OIDC signing; Cosign v3 produces `.sigstore.json` bundles.
+- **SBOM Generation**: Complete software bill of materials in CycloneDX format, attached to every release.
+- **Vulnerability Scanning**: `govulncheck` (Go-specific), CodeQL (semantic analysis), and Trivy (filesystem SCA + misconfiguration) run on every PR, push to `main`, and on a weekly schedule.
 
 ### Verification
 
@@ -159,9 +155,11 @@ slsa-verifier verify-artifact \
   --source-uri github.com/EvilBit-Labs/opnDossier \
   opnDossier_checksums.txt
 
-# Verify Cosign signatures (requires cosign)
+# Verify Cosign v3 signature bundle
 cosign verify-blob \
-  --bundle cosign.bundle \
+  --certificate-identity "https://github.com/EvilBit-Labs/opnDossier/.github/workflows/release.yml@refs/tags/v1.0.0" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  --bundle opnDossier_checksums.txt.sigstore.json \
   opnDossier_checksums.txt
 ```
 
@@ -170,13 +168,12 @@ cosign verify-blob \
 ### Scheduled Scans
 
 - **OSSF Scorecard**: Weekly repository hygiene assessment
-- **Snyk Vulnerability Scan**: Weekly dependency vulnerability scanning (GitHub App)
-- **CodeQL Analysis**: Weekly code security analysis
-- **Dependabot Updates**: Weekly dependency updates
+- **Security workflow**: Weekly run of `govulncheck`, CodeQL, and Trivy (Mondays at 06:00 UTC)
+- **Dependabot**: Weekly dependency update PRs
 
 ### Real-time Monitoring
 
-- **Pull Request Gates**: All security and quality checks on every PR
+- **Pull Request Gates**: All security and quality checks run on every PR
 - **Commit Validation**: Conventional commits enforced
 - **License Policy**: FOSSA license policy enforcement (GitHub App)
 - **Code Review**: CodeRabbit.ai advisory feedback
@@ -191,12 +188,13 @@ Per Pipeline v2 specification, any deviations must be documented in the README u
 
 Required secrets for full functionality:
 
-| Secret            | Purpose                             | Required For |
-| ----------------- | ----------------------------------- | ------------ |
-| `CODECOV_TOKEN`   | Coverage reporting                  | CI           |
-| `FOSSA_API_KEY`   | License scanning (GitHub App)       | CI + Local   |
-| `SNYK_TOKEN`      | Vulnerability scanning (GitHub App) | N/A          |
-| `SCORECARD_TOKEN` | OSSF Scorecard (optional)           | CI           |
+| Secret            | Purpose                       | Required For |
+| ----------------- | ----------------------------- | ------------ |
+| `CODECOV_TOKEN`   | Coverage reporting            | CI           |
+| `FOSSA_API_KEY`   | License scanning (GitHub App) | CI + Local   |
+| `SCORECARD_TOKEN` | OSSF Scorecard (optional)     | CI           |
+
+`govulncheck`, CodeQL, and Trivy require no additional secrets — they run against public data sources and upload SARIF using the default `GITHUB_TOKEN`.
 
 ## Compliance Verification
 
@@ -208,7 +206,7 @@ just ci-full
 
 # Check individual components
 just ci-check          # Core quality gates
-just security-all      # Security compliance
+just security-all      # Security compliance (gosec + SBOM)
 just release-check     # Release compliance
 ```
 
@@ -218,4 +216,7 @@ just release-check     # Release compliance
 - [SLSA Framework](https://slsa.dev/)
 - [OpenSSF Scorecard](https://securityscorecards.dev/)
 - [Sigstore Cosign](https://docs.sigstore.dev/cosign/overview/)
-- [SPDX SBOM Standard](https://spdx.dev/)
+- [CycloneDX SBOM Standard](https://cyclonedx.org/)
+- [Go vulnerability database (`govulncheck`)](https://go.dev/security/vuln/)
+- [Trivy](https://github.com/aquasecurity/trivy)
+- [CodeQL](https://codeql.github.com/)

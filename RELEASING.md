@@ -154,6 +154,10 @@ ls -la dist/
 > [!NOTE]
 > The release workflow automatically generates `THIRD_PARTY_NOTICES` via the `just notices` command as a GoReleaser before-hook. This file provides human-readable license attribution for all dependencies and is included in all distribution archives and packages. The formatting is controlled by the template at `packaging/notices.tpl`.
 
+### RELEASE_NOTES.md convention
+
+`RELEASE_NOTES.md` in the repo root holds only the **most recent release's** notes. Overwrite it on each release — the GitHub Release body is populated from this file via `gh release create --notes-file RELEASE_NOTES.md` (see [Step 4](#step-4-create-github-release) below). Historical per-release entries live in `CHANGELOG.md`, which follows the [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/) workflow described in [Step 2](#step-2-generate-changelog-preview) below; never accumulate past releases inside `RELEASE_NOTES.md`.
+
 ### Step 2: Generate Changelog Preview
 
 `CHANGELOG.md` follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). During development, commits flow into `## [Unreleased]` at the top of `CHANGELOG.md`. On release, git-cliff promotes the Unreleased section to `## [vX.Y.Z] - YYYY-MM-DD` and seeds a new empty Unreleased section for the next cycle.
@@ -520,6 +524,7 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Write or update `RELEASE_NOTES.md`
 - [ ] Bump `action.yml` default `version:` input to the new tag (e.g. `vX.Y.Z`)
 - [ ] Sweep README GitHub Action examples (`uses: EvilBit-Labs/opnDossier@vX.Y.Z` lines) to the new tag — grep for the previous tag to catch every callsite
+- [ ] Sweep user-guide docs for stale version examples — `grep -rn "vPREV\.Y\.Z" docs/user-guide/` and update all matches to the new tag (covers `getting-started.md` version-output example, `installation.md` cosign TAG example, and any future callsites)
 - [ ] Update the SHA-pin example in the README "Pinning" section to the new release commit SHA (`git rev-parse vX.Y.Z` after the tag is pushed, or the commit you intend to tag)
 - [ ] Commit `RELEASE_NOTES.md`, `CHANGELOG.md`, `action.yml`, and `README.md` to `main`
 - [ ] Push to `main`
