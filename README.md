@@ -427,7 +427,7 @@ opnDossier's `pkg/` packages are importable by other Go modules. The typical con
 
 Module path: `github.com/EvilBit-Labs/opnDossier`
 
-Go version: 1.26+ (opnDossier supports the current and previous stable Go releases — N and N-1 — matching Go's upstream policy).
+Go version support: current and previous stable Go releases (N and N-1), matching Go's upstream policy. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the authoritative matrix.
 
 See [docs/development/public-api.md](docs/development/public-api.md) for the full public API classification, stability policy, and semver rules.
 
@@ -598,7 +598,7 @@ Built for network operators and security professionals.
 [docs]: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md
 [docs-badge]: https://img.shields.io/badge/docs-mkdocs-blue.svg
 [go]: https://golang.org
-[go-badge]: https://img.shields.io/badge/go-1.26+-blue.svg
+[go-badge]: https://img.shields.io/github/go-mod/go-version/EvilBit-Labs/opnDossier?label=go&color=blue
 [goreportcard]: https://goreportcard.com/report/github.com/EvilBit-Labs/opnDossier
 [goreportcard-badge]: https://goreportcard.com/badge/github.com/EvilBit-Labs/opnDossier
 [license]: LICENSE
