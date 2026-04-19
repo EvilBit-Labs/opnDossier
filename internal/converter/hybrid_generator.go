@@ -131,8 +131,21 @@ func handlerForFormat(format string) (FormatHandler, error) {
 // Generate creates documentation in the specified format from the provided OPNsense configuration.
 // Supported formats: markdown (default), json, yaml, text, and html.
 //
-// For memory-efficient streaming output, use GenerateToWriter instead.
-// Generate is preferred when you need the output as a string for further processing.
+// Memory tradeoff (JSON/YAML): Generate pays roughly 2x peak memory for JSON and
+// YAML output because the marshaled byte slice and its string(...) conversion both
+// live on the heap simultaneously. For markdown, text, and HTML the builder
+// already accumulates a string, so there is no additional penalty versus
+// GenerateToWriter. Prefer GenerateToWriter once output approaches ~5MB.
+//
+// Use Generate when:
+//   - You need the result as an in-memory string (to embed in another structure,
+//     pass to a templating system, return from an API handler, or display in a TUI).
+//   - The caller does not have an io.Writer to hand off (no file handle, no
+//     http.ResponseWriter, no buffer already in scope).
+//   - Output is small and the ergonomics of a return value matter more than peak memory.
+//
+// For streaming output, writing directly to a file/socket/HTTP response, or
+// composing with io.Copy / io.MultiWriter, see GenerateToWriter.
 func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice, opts Options) (string, error) {
 	if data == nil {
 		return "", ErrNilDevice
@@ -151,15 +164,24 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 }
 
 // GenerateToWriter writes documentation directly to the provided io.Writer.
-// This is more memory-efficient than Generate() as it streams output section-by-section
-// without accumulating the entire output in memory first.
 //
 // Supported formats: markdown (default), json, yaml, text, and html.
-// For markdown format, sections are written incrementally as they are generated.
-// For JSON, YAML, text, and HTML formats, the full output is generated then written
-// (these formats require complete document serialization or post-processing).
+// For markdown, sections are written incrementally as they are generated.
+// For JSON and YAML, an encoder writes directly to w — this avoids the 2x
+// peak-memory hit that Generate incurs (marshaled bytes plus their string(...)
+// conversion both resident at once). For text and HTML, the full output is
+// produced then written because those formats require complete document
+// serialization or post-processing.
 //
-// Use Generate() instead when you need the output as a string for further processing.
+// Use GenerateToWriter when:
+//   - You are writing directly to a file, socket, or HTTP response.
+//   - Output may be large (>5MB for JSON/YAML) and peak memory matters.
+//   - You want partial-output-on-error semantics: bytes already flushed to w
+//     remain visible if encoding fails partway through.
+//   - You are composing with io.Copy, io.MultiWriter, or other writer patterns.
+//
+// For an in-memory string — for example to embed in another structure, feed a
+// templating system, or return from an API handler — see Generate.
 func (g *HybridGenerator) GenerateToWriter(
 	_ context.Context,
 	w io.Writer,

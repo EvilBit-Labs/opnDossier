@@ -182,7 +182,7 @@ git commit -s -m "feat(parser): add support for new XML element"
 3. **Review process**:
 
    - All PRs require at least one review (human or CodeRabbit)
-   - CI must pass (golangci-lint, gofumpt, tests, CodeQL, Grype)
+   - CI must pass (golangci-lint, gofumpt, tests, govulncheck, CodeQL, Trivy)
    - Documentation updates may be requested
 
 ## Coding Standards
