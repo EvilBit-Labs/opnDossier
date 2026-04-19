@@ -52,7 +52,7 @@ Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") pa
 `PluginRegistry.LoadDynamicPlugins` uses `plugin.Open()` to load `.so` files from a directory. Loaded plugins execute with full process privileges — there is no signature verification, checksum validation, or sandboxing.
 
 - **Gotcha:** Any `.so` file in the plugin directory will be loaded and executed. A malicious or compromised plugin has the same access as the opnDossier process itself.
-- **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched remotely.
+- **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag (or the equivalent config key). There is no `./plugins` auto-discovery fallback — `PluginManager.InitializePlugins` only calls `LoadDynamicPlugins` when `pluginDir != ""`. Plugins are never fetched remotely.
 - **Prevention:** Restrict filesystem permissions on the plugin directory. Only load plugins built from reviewed source code. In shared or CI environments, avoid pointing `--plugin-dir` at world-writable directories.
 
 **See also:** [docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md](docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md) — fault-isolation pattern that contains panics from the untrusted plugins described here.

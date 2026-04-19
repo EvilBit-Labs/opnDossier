@@ -223,7 +223,7 @@ func init() {
 
 	// Parsing control flags
 	rootCmd.PersistentFlags().
-		StringVar(&sharedDeviceType, "device-type", "", "Force device type (supported: opnsense). Bypasses auto-detection.")
+		StringVar(&sharedDeviceType, "device-type", "", "Force device type (supported: opnsense, pfsense). Bypasses auto-detection.")
 	setFlagAnnotation(rootCmd.PersistentFlags(), "device-type", []string{"parsing"})
 
 	// Flag groups for better organization
