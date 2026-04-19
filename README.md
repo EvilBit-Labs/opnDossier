@@ -184,15 +184,15 @@ go build -o opnDossier main.go
 
 For development builds with additional tooling, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-If you plan to contribute, also install the pre-commit, commit-msg, and pre-push git hooks so local checks run automatically. The `pre-push` hook runs the full `just ci-check` (including the race detector, which CI cannot host reliably) before anything is pushed to GitHub:
+If you plan to contribute, also install the configured git hooks so local checks run automatically. `just install` installs the `pre-commit` and `commit-msg` hooks:
 
 ```bash
-just install   # runs mise install, installs all hook types, tidies modules
+just install   # runs mise install, installs pre-commit + commit-msg hooks, tidies modules
 # or, manually:
-pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
-See [CONTRIBUTING.md §Development Setup](CONTRIBUTING.md#development-setup) for details and the `--no-verify` escape hatch.
+There is intentionally no `pre-push` hook — heavy pre-push hooks break non-interactive push clients (Copilot, bot agents). Run `just ci-check` manually before pushing substantive changes. See [CONTRIBUTING.md §Git Hooks](CONTRIBUTING.md#git-hooks) for the rationale and the `--no-verify` emergency escape hatch.
 
 ## Usage Examples
 
