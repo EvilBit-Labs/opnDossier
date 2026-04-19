@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **sanitizer**: `Sanitizer.SetLogger` plus a reflection-path warning when `SanitizeStruct` encounters a `map[K]struct{...}` or `map[K]*struct{...}` value. Go does not allow in-place mutation of such map values, so the walker has always skipped them silently — the warning surfaces the gap so a future schema that routes secrets through a struct-valued map is detected at runtime rather than shipped as cleartext. The raw-XML `SanitizeXML` path is unaffected. Full redaction of struct-valued maps is scheduled under tag-based redaction (todo #151).
+- **sanitizer**: `Sanitizer.SetLogger` plus a reflection-path warning when `SanitizeStruct` encounters a `map[K]struct{...}` or `map[K]*struct{...}` value. Go does not allow in-place mutation of such map values, so the walker has always skipped them silently — the warning surfaces the gap so a future schema that routes secrets through a struct-valued map is detected at runtime rather than shipped as cleartext. The raw-XML `SanitizeXML` path is unaffected. Full redaction of struct-valued maps is scheduled under tag-based redaction.
 - **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
 
 - **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
