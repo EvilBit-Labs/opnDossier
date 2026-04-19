@@ -104,7 +104,7 @@ This allows `pkg/parser` to use XML parsing functionality from `internal/cfgpars
 
 ### Structural Typing for Sub-Packages
 
-Go's structural typing allows `pkg/` sub-packages to define their own interface that `internal/` types satisfy without importing them. In **PR #437**, the OPNsense parser was refactored to use the exported `parser.OPNsenseXMLDecoder` interface directly instead of a local `xmlDecoder` interface. This change was made because:
+Go's structural typing allows `pkg/` sub-packages to define their own interface that `internal/` types satisfy without importing them. In **PR #437**, the OPNsense parser was refactored to use the exported parser-package decoder interface directly instead of a local `xmlDecoder` interface. (At the time the exported interface was named `parser.XMLDecoder`; it was renamed to `parser.OPNsenseXMLDecoder` in v1.5 to reflect that it is typed to `*schema.OpnSenseDocument` and does not serve pfSense.) This change was made because:
 
 1. The `parser.OPNsenseXMLDecoder` interface is already exported in the public API
 2. The local interface was redundant and added unnecessary indirection
