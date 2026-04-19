@@ -560,9 +560,10 @@ func TestConverter_Users(t *testing.T) {
 	assert.Equal(t, "admins", device.Users[0].GroupName)
 
 	// Empty name user should generate a warning.
-	require.Len(t, nonGapWarnings(warnings), 1)
-	assert.Contains(t, nonGapWarnings(warnings)[0].Field, "Users[1].Name")
-	assert.Equal(t, common.SeverityHigh, nonGapWarnings(warnings)[0].Severity)
+	filtered := nonGapWarnings(warnings)
+	require.Len(t, filtered, 1)
+	assert.Contains(t, filtered[0].Field, "Users[1].Name")
+	assert.Equal(t, common.SeverityHigh, filtered[0].Severity)
 }
 
 func TestConverter_Groups(t *testing.T) {
@@ -617,9 +618,10 @@ func TestConverter_Certificates_Warnings(t *testing.T) {
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.Len(t, device.Certificates, 1)
-	require.Len(t, nonGapWarnings(warnings), 1)
-	assert.Equal(t, "Certificates[0].Certificate", nonGapWarnings(warnings)[0].Field)
-	assert.Equal(t, common.SeverityHigh, nonGapWarnings(warnings)[0].Severity)
+	filtered := nonGapWarnings(warnings)
+	require.Len(t, filtered, 1)
+	assert.Equal(t, "Certificates[0].Certificate", filtered[0].Field)
+	assert.Equal(t, common.SeverityHigh, filtered[0].Severity)
 }
 
 func TestConverter_Certificates(t *testing.T) {
@@ -813,11 +815,12 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 
 			_, warnings, err := pfsense.ConvertDocument(doc)
 			require.NoError(t, err)
-			assert.Len(t, nonGapWarnings(warnings), tc.wantWarnings)
+			filtered := nonGapWarnings(warnings)
+			require.Len(t, filtered, tc.wantWarnings)
 
-			if tc.wantField != "" && len(warnings) > 0 {
-				assert.Equal(t, tc.wantField, nonGapWarnings(warnings)[0].Field)
-				assert.Equal(t, tc.wantSeverity, nonGapWarnings(warnings)[0].Severity)
+			if tc.wantField != "" {
+				assert.Equal(t, tc.wantField, filtered[0].Field)
+				assert.Equal(t, tc.wantSeverity, filtered[0].Severity)
 			}
 		})
 	}
@@ -890,11 +893,12 @@ func TestConverter_NAT_Warnings(t *testing.T) {
 
 			_, warnings, err := pfsense.ConvertDocument(doc)
 			require.NoError(t, err)
-			assert.Len(t, nonGapWarnings(warnings), tc.wantWarnings)
+			filtered := nonGapWarnings(warnings)
+			require.Len(t, filtered, tc.wantWarnings)
 
-			if tc.wantField != "" && len(warnings) > 0 {
-				assert.Equal(t, tc.wantField, nonGapWarnings(warnings)[0].Field)
-				assert.Equal(t, tc.wantSeverity, nonGapWarnings(warnings)[0].Severity)
+			if tc.wantField != "" {
+				assert.Equal(t, tc.wantField, filtered[0].Field)
+				assert.Equal(t, tc.wantSeverity, filtered[0].Severity)
 			}
 		})
 	}

@@ -34,9 +34,32 @@ func TestCommonDeviceSubsystemParity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opnsense.ConvertDocument: %v", err)
 	}
-	pfsDev, _, err := pfsense.ConvertDocument(pfsDoc)
+	pfsDev, pfsWarnings, err := pfsense.ConvertDocument(pfsDoc)
 	if err != nil {
 		t.Fatalf("pfsense.ConvertDocument: %v", err)
+	}
+
+	// Release-gate invariant: for every subsystem declared in pfsense.KnownGaps(),
+	// the pfSense converter MUST emit a matching ConversionWarning. If someone
+	// deletes or rewords the warning-emission code without also removing the
+	// subsystem from pfsenseKnownGaps, this assertion fails loudly. Without it,
+	// the parity test above passes vacuously — the IsKnownGap() escape hatch
+	// would short-circuit the loop without verifying the warning contract.
+	for _, gap := range pfsense.KnownGaps() {
+		found := false
+		for _, w := range pfsWarnings {
+			if w.Field == gap && w.Message == pfsense.PfsenseKnownGapMessage {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf(
+				"pfSense converter did not emit a ConversionWarning for known-gap subsystem %q; "+
+					"expected Field=%q and Message=%q. Either remove %q from pfsenseKnownGaps "+
+					"or restore the warning emission in emitKnownGapWarnings().",
+				gap, gap, pfsense.PfsenseKnownGapMessage, gap)
+		}
 	}
 
 	opnVal := reflect.ValueOf(*opnDev)
@@ -87,6 +110,11 @@ func isFieldPopulated(v reflect.Value) bool {
 	case reflect.Ptr, reflect.Interface:
 		return !v.IsNil()
 	case reflect.Struct:
+		// reflect.Value.Fields() returns iter.Seq2[reflect.StructField, reflect.Value]
+		// (Go 1.26+), so the two-value range form is required. This differs from
+		// reflect.Type.Fields() (iter.Seq[reflect.StructField]) used elsewhere in
+		// the repo — do not reduce to a single range variable or the file will not
+		// compile.
 		for _, fv := range v.Fields() {
 			if isFieldPopulated(fv) {
 				return true
