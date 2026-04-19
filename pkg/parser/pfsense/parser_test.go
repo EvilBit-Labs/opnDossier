@@ -25,6 +25,21 @@ const xmlRootPfSense = "pfsense"
 // ifaceLAN is the standard LAN interface name used in pfSense fixture assertions.
 const ifaceLAN = "lan"
 
+// nonGapWarnings filters out the always-emitted pfSense known-gap warnings
+// (one SeverityMedium entry per pfsense.KnownGaps() subsystem) so existing
+// assertions on per-test warnings remain readable. See
+// docs/user-guide/device-support-matrix.md for the gap list.
+func nonGapWarnings(ws []common.ConversionWarning) []common.ConversionWarning {
+	out := make([]common.ConversionWarning, 0, len(ws))
+	for _, w := range ws {
+		if w.Message == pfsense.PfsenseKnownGapMessage {
+			continue
+		}
+		out = append(out, w)
+	}
+	return out
+}
+
 // --- Parser.Parse tests ---
 
 func TestParser_Parse(t *testing.T) {
@@ -207,7 +222,7 @@ func TestConverter_System(t *testing.T) {
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.NotNil(t, device)
-	assert.Empty(t, warnings)
+	assert.Empty(t, nonGapWarnings(warnings))
 
 	sys := device.System
 	assert.Equal(t, "fw-test", sys.Hostname)
@@ -545,9 +560,9 @@ func TestConverter_Users(t *testing.T) {
 	assert.Equal(t, "admins", device.Users[0].GroupName)
 
 	// Empty name user should generate a warning.
-	require.Len(t, warnings, 1)
-	assert.Contains(t, warnings[0].Field, "Users[1].Name")
-	assert.Equal(t, common.SeverityHigh, warnings[0].Severity)
+	require.Len(t, nonGapWarnings(warnings), 1)
+	assert.Contains(t, nonGapWarnings(warnings)[0].Field, "Users[1].Name")
+	assert.Equal(t, common.SeverityHigh, nonGapWarnings(warnings)[0].Severity)
 }
 
 func TestConverter_Groups(t *testing.T) {
@@ -602,9 +617,9 @@ func TestConverter_Certificates_Warnings(t *testing.T) {
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.Len(t, device.Certificates, 1)
-	require.Len(t, warnings, 1)
-	assert.Equal(t, "Certificates[0].Certificate", warnings[0].Field)
-	assert.Equal(t, common.SeverityHigh, warnings[0].Severity)
+	require.Len(t, nonGapWarnings(warnings), 1)
+	assert.Equal(t, "Certificates[0].Certificate", nonGapWarnings(warnings)[0].Field)
+	assert.Equal(t, common.SeverityHigh, nonGapWarnings(warnings)[0].Severity)
 }
 
 func TestConverter_Certificates(t *testing.T) {
@@ -798,11 +813,11 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 
 			_, warnings, err := pfsense.ConvertDocument(doc)
 			require.NoError(t, err)
-			assert.Len(t, warnings, tc.wantWarnings)
+			assert.Len(t, nonGapWarnings(warnings), tc.wantWarnings)
 
 			if tc.wantField != "" && len(warnings) > 0 {
-				assert.Equal(t, tc.wantField, warnings[0].Field)
-				assert.Equal(t, tc.wantSeverity, warnings[0].Severity)
+				assert.Equal(t, tc.wantField, nonGapWarnings(warnings)[0].Field)
+				assert.Equal(t, tc.wantSeverity, nonGapWarnings(warnings)[0].Severity)
 			}
 		})
 	}
@@ -875,11 +890,11 @@ func TestConverter_NAT_Warnings(t *testing.T) {
 
 			_, warnings, err := pfsense.ConvertDocument(doc)
 			require.NoError(t, err)
-			assert.Len(t, warnings, tc.wantWarnings)
+			assert.Len(t, nonGapWarnings(warnings), tc.wantWarnings)
 
 			if tc.wantField != "" && len(warnings) > 0 {
-				assert.Equal(t, tc.wantField, warnings[0].Field)
-				assert.Equal(t, tc.wantSeverity, warnings[0].Severity)
+				assert.Equal(t, tc.wantField, nonGapWarnings(warnings)[0].Field)
+				assert.Equal(t, tc.wantSeverity, nonGapWarnings(warnings)[0].Severity)
 			}
 		})
 	}
@@ -897,7 +912,7 @@ func TestConverter_Gateways_Warnings(t *testing.T) {
 
 	_, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Len(t, warnings, 2)
+	assert.Len(t, nonGapWarnings(warnings), 2)
 
 	fields := make([]string, len(warnings))
 	for i, w := range warnings {
@@ -917,7 +932,7 @@ func TestConverter_Users_Warnings(t *testing.T) {
 
 	_, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Len(t, warnings, 2)
+	assert.Len(t, nonGapWarnings(warnings), 2)
 
 	fields := make([]string, len(warnings))
 	for i, w := range warnings {

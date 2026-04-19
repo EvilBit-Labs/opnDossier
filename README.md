@@ -16,6 +16,8 @@ Built for offline operation in secure environments - no external dependencies, n
 - **Multi-Format Export** - Convert to markdown documentation, JSON, or YAML for integration
 - **Offline Operation** - Works completely offline, perfect for airgapped networks
 
+> pfSense coverage of the `CommonDevice` model is partial at v1.5. See the [device support matrix](docs/user-guide/device-support-matrix.md) for per-subsystem coverage; the pfSense converter emits a `ConversionWarning` for every subsystem it does not yet populate so compliance consumers can detect the gap programmatically.
+
 ## Quick Start
 
 ### Installation
