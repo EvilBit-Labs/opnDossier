@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to reflect that the interface is typed to `*schema.OpnSenseDocument` and
   cannot be used for pfSense parsing. Affects `pkg/parser` public API from
   v1.5; pre-v1.5 consumers had no semver commitment.
+- **[breaking]** Removed deprecated type alias `pkg/model.FindingSeverity`;
+  use `pkg/model.Severity` directly. The alias had no remaining call sites
+  and is being removed in the pre-v1.5 free-change window.
 - **mergify**: Upgrade configuration to current format ([#543](https://github.com/EvilBit-Labs/opnDossier/pull/543))
 - Update labeling instructions and configuration settings in `.coderabbit.yaml`
 - Add OPNsense/pfSense XML data structure research ([#547](https://github.com/EvilBit-Labs/opnDossier/pull/547))
