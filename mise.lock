@@ -318,6 +318,10 @@ backend = "go:github.com/google/go-licenses"
 version = "2.25.0"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
+[[tools."go:github.com/spf13/cobra-cli"]]
+version = "1.3.0"
+backend = "go:github.com/spf13/cobra-cli"
+
 [[tools."go:golang.org/x/perf/cmd/benchstat"]]
 version = "0.0.0-20260409210113-8e83ce0f7b1c"
 backend = "go:golang.org/x/perf/cmd/benchstat"

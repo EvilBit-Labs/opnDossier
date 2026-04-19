@@ -101,7 +101,7 @@ See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTC
 `PluginRegistry.LoadDynamicPlugins` uses Go's `plugin.Open()` to load `.so` files from a directory at runtime. Two ordering and trust invariants must be preserved:
 
 1. **`SetPluginDir` must precede `InitializePlugins`.** `PluginManager.SetPluginDir(dir, explicit)` mutates a field that `InitializePlugins` reads only during its execution. Setting the directory afterward has no observable effect. See [GOTCHAS.md §2.3](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#23-setplugindir-must-precede-initializeplugins).
-2. **Loading is opt-in.** Dynamic plugin loading requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched from the network.
+2. **Loading is opt-in.** Dynamic plugin loading runs only when the plugin directory is explicitly configured — currently via the `--plugin-dir` CLI flag (or the equivalent shared option for `convert`). If no directory is configured, `InitializePlugins` skips `LoadDynamicPlugins` entirely; there is no implicit `./plugins` auto-discovery. Plugins are never fetched from the network.
 
 ### Trust Model
 

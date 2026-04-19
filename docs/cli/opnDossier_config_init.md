@@ -52,7 +52,7 @@ opnDossier config init [flags]
       --color string         Color output mode (auto, always, never) (default "auto")
       --config string        Configuration file path (default: $HOME/.opnDossier.yaml)
       --debug                Enable debug-level logging (all messages, for troubleshooting)
-      --device-type string   Force device type (supported: opnsense). Bypasses auto-detection.
+      --device-type string   Force device type (supported: opnsense, pfsense). Bypasses auto-detection.
       --minimal              Minimal output mode (suppresses progress and verbose messages)
       --no-progress          Disable progress indicators
   -q, --quiet                Suppress all output except errors and critical messages
