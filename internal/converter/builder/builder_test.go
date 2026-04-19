@@ -974,15 +974,15 @@ func TestBuildAuditSection_NilData(t *testing.T) {
 	}
 }
 
-func TestBuildAuditSection_NilComplianceChecks(t *testing.T) {
+func TestBuildAuditSection_NilComplianceResults(t *testing.T) {
 	t.Parallel()
 
 	b := NewMarkdownBuilder()
-	data := &common.CommonDevice{ComplianceChecks: nil}
+	data := &common.CommonDevice{ComplianceResults: nil}
 
 	result := b.BuildAuditSection(data)
 	if result != "" {
-		t.Errorf("BuildAuditSection with nil ComplianceChecks should return empty string, got: %s", result)
+		t.Errorf("BuildAuditSection with nil ComplianceResults should return empty string, got: %s", result)
 	}
 }
 
@@ -991,7 +991,7 @@ func TestBuildAuditSection_EmptyComplianceResults(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{Mode: "blue"},
+		ComplianceResults: &common.ComplianceResults{Mode: "blue"},
 	}
 
 	result := b.BuildAuditSection(data)
@@ -1014,7 +1014,7 @@ func TestBuildAuditSection_WithFindings(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Findings: []common.ComplianceFinding{
 				{Severity: "high", Component: "firewall", Title: "Open Port", Recommendation: "Close unused ports"},
@@ -1053,7 +1053,7 @@ func TestBuildAuditSection_WithPluginResults(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			PluginResults: map[string]common.PluginComplianceResult{
 				"firewall": {
@@ -1115,7 +1115,7 @@ func TestBuildAuditSection_WithMetadata(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Metadata: map[string]any{
 				"scan_time": "2024-01-15",
@@ -1146,7 +1146,7 @@ func TestBuildAuditSection_PipeEscaping(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Findings: []common.ComplianceFinding{
 				{
@@ -1178,7 +1178,7 @@ func TestBuildAuditSection_MetadataValuePipeEscaping(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Metadata: map[string]any{
 				"tool":    "scanner|v2",
@@ -1208,7 +1208,7 @@ func TestBuildAuditSection_DescriptionTruncation(t *testing.T) {
 	longDescription := strings.Repeat("a", 100)
 
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			PluginResults: map[string]common.PluginComplianceResult{
 				"test": {
@@ -1237,7 +1237,7 @@ func TestBuildAuditSection_NilPluginSummary(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			PluginResults: map[string]common.PluginComplianceResult{
 				"nil_summary": {
@@ -1260,7 +1260,7 @@ func TestBuildAuditSection_FallbackTotalCountsFindings(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Findings: []common.ComplianceFinding{
 				{Title: "Direct finding 1", Severity: "high"},
@@ -1293,7 +1293,7 @@ func TestBuildAuditSection_ControlsTableAllStatuses(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				TotalFindings: 1,
@@ -1358,7 +1358,7 @@ func TestBuildAuditSection_ControlsTableFailuresOnly(t *testing.T) {
 	b.SetFailuresOnly(true)
 
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				TotalFindings: 1,
@@ -1431,7 +1431,7 @@ func TestBuildAuditSection_ControlsTableFailuresOnlyAllPass(t *testing.T) {
 	b.SetFailuresOnly(true)
 
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				Compliant:    3,
@@ -1503,7 +1503,7 @@ func TestBuildAuditSection_SummaryCompliantCounts(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				TotalFindings: 2,
@@ -1530,7 +1530,7 @@ func TestBuildAuditSection_ControlsFallbackToFindings(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			PluginResults: map[string]common.PluginComplianceResult{
 				"legacy-plugin": {
@@ -1574,7 +1574,7 @@ func TestBuildAuditSection_ZeroCompliantCountsStillRendered(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				TotalFindings: 0,
@@ -1619,7 +1619,7 @@ func TestBuildAuditSection_EmptyStatusDefaultsToUnknown(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Summary: &common.ComplianceResultSummary{
 				TotalFindings: 0,
@@ -1665,7 +1665,7 @@ func TestBuildAuditSection_ConfigurationNotes(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			PluginResults: map[string]common.PluginComplianceResult{
 				"firewall": {
@@ -1734,7 +1734,7 @@ func TestBuildAuditSection_NoConfigurationNotesWhenNoInventory(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			PluginResults: map[string]common.PluginComplianceResult{
 				"firewall": {
@@ -1768,7 +1768,7 @@ func TestBuildAuditSection_InventoryExcludedFromSecurityFindings(t *testing.T) {
 
 	b := NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Findings: []common.ComplianceFinding{
 				{

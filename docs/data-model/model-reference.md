@@ -66,7 +66,7 @@ The root export object representing a normalized device configuration.
 | `Analysis`           | `*Analysis`           | `analysis`           | Analysis findings and insights                    |
 | `SecurityAssessment` | `*SecurityAssessment` | `securityAssessment` | Security scores and recommendations               |
 | `PerformanceMetrics` | `*PerformanceMetrics` | `performanceMetrics` | Performance-related metrics                       |
-| `ComplianceChecks`   | `*ComplianceResults`  | `complianceChecks`   | Compliance audit results from plugin-based checks |
+| `ComplianceResults`  | `*ComplianceResults`  | `complianceResults`  | Compliance audit results from plugin-based checks |
 
 ---
 

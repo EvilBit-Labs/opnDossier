@@ -36,16 +36,16 @@ Defined `const NetworkAny = "any"` locally in `pkg/schema/opnsense/constants.go`
 
 ### 2. Interface injection for XML parser (cfgparser.XMLParser)
 
-Instead of moving `cfgparser` to `pkg/` (which would cascade into `validator` and `constants`), defined an `XMLDecoder` interface in `pkg/parser/`:
+Instead of moving `cfgparser` to `pkg/` (which would cascade into `validator` and `constants`), defined an `OPNsenseXMLDecoder` interface (originally named `XMLDecoder`; renamed in v1.5 for honesty — the return type is OPNsense-specific) in `pkg/parser/`:
 
 ```go
 // pkg/parser/factory.go
-type XMLDecoder interface {
+type OPNsenseXMLDecoder interface {
     Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
     ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
 }
 
-func NewFactory(decoder XMLDecoder) *Factory {
+func NewFactory(decoder OPNsenseXMLDecoder) *Factory {
     return &Factory{xmlDecoder: decoder}
 }
 ```

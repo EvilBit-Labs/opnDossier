@@ -18,9 +18,9 @@
 // # Self-managed XML decoding
 //
 // Unlike the OPNsense parser, this package does not use the injected
-// [parser.XMLDecoder] because that interface returns
+// [parser.OPNsenseXMLDecoder] because that interface returns
 // *opnsense.OpnSenseDocument (pkg/schema/opnsense), which is incompatible
-// with pfsense.Document. The XMLDecoder parameter on [NewParser] is
+// with pfsense.Document. The OPNsenseXMLDecoder parameter on [NewParser] is
 // accepted but ignored — it exists so that [NewParserFactory] (the function
 // registered with [parser.DefaultRegistry]) matches the
 // [parser.ConstructorFunc] signature. pfSense input is decoded internally
@@ -66,7 +66,7 @@ var errMissingRoot = errors.New("invalid XML: missing pfsense root element")
 var ValidateFunc func(doc *pfsense.Document) error
 
 // Parser implements the DeviceParser interface for pfSense configuration files.
-// It manages its own XML decoding because the shared XMLDecoder returns
+// It manages its own XML decoding because the shared OPNsenseXMLDecoder returns
 // *schema.OpnSenseDocument which is incompatible with pfsense.Document.
 type Parser struct {
 	maxInputSize int64
@@ -75,7 +75,7 @@ type Parser struct {
 // NewParser returns a new pfSense Parser. The decoder parameter is accepted
 // for compatibility with the ConstructorFunc signature but is not used because
 // pfSense requires its own XML decoding pipeline.
-func NewParser(_ parser.XMLDecoder) *Parser {
+func NewParser(_ parser.OPNsenseXMLDecoder) *Parser {
 	return &Parser{maxInputSize: parser.DefaultMaxInputSize}
 }
 
@@ -156,7 +156,7 @@ func toCommonDevice(doc *pfsense.Document) (*common.CommonDevice, []common.Conve
 
 // NewParserFactory returns a new DeviceParser configured for pfSense devices.
 // It satisfies the factory function signature required by DeviceParserRegistry.
-func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+func NewParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
 	return NewParser(decoder)
 }
 

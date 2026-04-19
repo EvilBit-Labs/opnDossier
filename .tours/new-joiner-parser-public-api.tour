@@ -18,8 +18,8 @@
     {
       "file": "pkg/parser/factory.go",
       "line": 25,
-      "title": "XMLDecoder — The Injection Boundary",
-      "description": "Situation: The Factory does not know how to decode XML on its own. Mechanism: XMLDecoder is a narrow interface consumers inject. opnDossier's CLI wires internal/cfgparser.NewXMLParser, but any consumer can supply their own — there is no internal/ dependency leaking out of pkg/parser. Implication: This is the reason pkg/parser is safe to consume cross-repo. Gotcha: The decoder is only used by the OPNsense path; pfSense manages its own decoder (see later step)."
+      "title": "OPNsenseXMLDecoder — The Injection Boundary",
+      "description": "Situation: The Factory does not know how to decode XML on its own. Mechanism: OPNsenseXMLDecoder is a narrow interface consumers inject. opnDossier's CLI wires internal/cfgparser.NewXMLParser, but any consumer can supply their own — there is no internal/ dependency leaking out of pkg/parser. Implication: This is the reason pkg/parser is safe to consume cross-repo. Gotcha: The decoder is named OPNsense-specific because it returns *schema.OpnSenseDocument — only the OPNsense path consumes it; pfSense manages its own decoder (see later step)."
     },
     {
       "file": "pkg/parser/factory.go",
@@ -48,8 +48,8 @@
         "start": { "line": 1, "character": 0 },
         "end": { "line": 44, "character": 0 }
       },
-      "title": "pfSense: Why the XMLDecoder Is Ignored",
-      "description": "Situation: pfsense.NewParser accepts a parser.XMLDecoder but never uses it. Mechanism: The shared XMLDecoder interface returns *schema.OpnSenseDocument, which is incompatible with pfsense.Document. pfSense uses parser.NewSecureXMLDecoder directly against its own types. The parameter exists solely so NewParserFactory satisfies parser.ConstructorFunc. Implication: Consumers wiring an alternative decoder for pfSense will find it has no effect — this is deliberate. Gotcha: The package doc spells this out explicitly because it's a common confusion."
+      "title": "pfSense: Why the OPNsenseXMLDecoder Is Ignored",
+      "description": "Situation: pfsense.NewParser accepts a parser.OPNsenseXMLDecoder but never uses it. Mechanism: The shared OPNsenseXMLDecoder interface returns *schema.OpnSenseDocument, which is incompatible with pfsense.Document. pfSense uses parser.NewSecureXMLDecoder directly against its own types. The parameter exists solely so NewParserFactory satisfies parser.ConstructorFunc. Implication: Consumers wiring an alternative decoder for pfSense will find it has no effect — this is deliberate. Gotcha: The package doc spells this out explicitly because it's a common confusion."
     },
     {
       "file": "pkg/parser/pfsense/parser.go",
@@ -71,7 +71,7 @@
     },
     {
       "title": "Next Moves",
-      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an XMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
+      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an OPNsenseXMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
     }
   ]
 }

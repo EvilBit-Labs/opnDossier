@@ -50,7 +50,7 @@ The registry is a flat map of normalized device type names to constructor functi
 // pkg/parser/registry.go
 
 // ConstructorFunc is the factory function signature for creating DeviceParser instances.
-type ConstructorFunc = func(XMLDecoder) DeviceParser
+type ConstructorFunc = func(OPNsenseXMLDecoder) DeviceParser
 
 type DeviceParserRegistry struct {
     mu      sync.RWMutex
@@ -103,7 +103,7 @@ Each parser package registers itself during initialization:
 // pkg/parser/opnsense/parser.go
 
 // NewParserFactory returns a new DeviceParser configured for OPNsense devices.
-func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+func NewParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
     return NewParser(decoder)
 }
 
@@ -126,15 +126,15 @@ The Factory consults the registry via `(fn, ok)` lookups:
 
 ```go
 type Factory struct {
-    xmlDecoder XMLDecoder
+    xmlDecoder OPNsenseXMLDecoder
     registry   *DeviceParserRegistry
 }
 
-func NewFactory(decoder XMLDecoder) *Factory {
+func NewFactory(decoder OPNsenseXMLDecoder) *Factory {
     return &Factory{xmlDecoder: decoder, registry: DefaultRegistry()}
 }
 
-func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Factory {
+func NewFactoryWithRegistry(decoder OPNsenseXMLDecoder, reg *DeviceParserRegistry) *Factory {
     return &Factory{xmlDecoder: decoder, registry: reg}
 }
 
@@ -218,7 +218,7 @@ To add support for a new device type (e.g., "fortios"):
 2. **Export factory function**:
 
    ```go
-   func NewFortIOSParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+   func NewFortIOSParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
        return &FortIOSParser{decoder: decoder}
    }
    ```

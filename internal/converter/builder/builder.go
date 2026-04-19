@@ -40,7 +40,7 @@ type SectionBuilder interface {
 	BuildHASection(data *common.CommonDevice) string
 	// BuildIDSSection builds the IDS/Suricata configuration section.
 	BuildIDSSection(data *common.CommonDevice) string
-	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+	// BuildAuditSection builds the compliance audit section from the device's ComplianceResults.
 	BuildAuditSection(data *common.CommonDevice) string
 }
 
