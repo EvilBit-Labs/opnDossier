@@ -28,9 +28,16 @@ inputs:
     required: false
     default: ""
   version:
-    description: "Image tag to pull from ghcr.io/evilbit-labs/opndossier (e.g. v1.2.0 or latest)"
+    description: |
+      Image tag to pull from ghcr.io/evilbit-labs/opndossier.
+      RECOMMENDED for production CI: pin the action itself to a full commit SHA
+      (e.g. `uses: EvilBit-Labs/opnDossier@<40-char-sha>  # v1.4.0`) and leave this
+      input at the default release tag. A version tag (e.g. `v1.4.0`) is an
+      acceptable middle ground. `latest` is accepted but unpinned and moving —
+      not supported for production use. See the README "Pinning" section for the
+      full guidance: https://github.com/EvilBit-Labs/opnDossier#pinning
     required: false
-    default: "latest"
+    default: "v1.4.0"
 
 runs:
   using: "composite"

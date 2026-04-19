@@ -110,6 +110,9 @@ Before creating a release, verify:
 - [ ] All issues/PRs for the milestone are closed
 - [ ] `CHANGELOG.md` is up to date (or will be auto-generated)
 - [ ] Version references in code are correct (if any hardcoded)
+- [ ] `action.yml` default `version:` input is bumped to the new tag
+- [ ] README GitHub Action examples (`uses:` lines) are swept to the new tag
+- [ ] README "Pinning" section SHA-pin example is updated to the new release commit SHA
 - [ ] Documentation reflects new features/changes
 - [ ] Breaking changes are documented
 
@@ -495,7 +498,10 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Generate changelog — `just changelog-version vX.Y.Z`
 - [ ] Review `CHANGELOG.md` — verify entries are correct and complete
 - [ ] Write or update `RELEASE_NOTES.md`
-- [ ] Commit `RELEASE_NOTES.md` and `CHANGELOG.md` to `main`
+- [ ] Bump `action.yml` default `version:` input to the new tag (e.g. `vX.Y.Z`)
+- [ ] Sweep README GitHub Action examples (`uses: EvilBit-Labs/opnDossier@vX.Y.Z` lines) to the new tag — grep for the previous tag to catch every callsite
+- [ ] Update the SHA-pin example in the README "Pinning" section to the new release commit SHA (`git rev-parse vX.Y.Z` after the tag is pushed, or the commit you intend to tag)
+- [ ] Commit `RELEASE_NOTES.md`, `CHANGELOG.md`, `action.yml`, and `README.md` to `main`
 - [ ] Push to `main`
 
 ### Tag and Release

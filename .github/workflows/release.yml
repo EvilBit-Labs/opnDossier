@@ -85,11 +85,17 @@ jobs:
 
       - name: Run GoReleaser
         id: goreleaser
+        # --snapshot prevents registry pushes per GoReleaser docs
+        # (https://goreleaser.com/customization/publish/snapshots/);
+        # no --skip=docker is needed, and exercising the Docker build on
+        # snapshot gives us pre-release signal on `dockers_v2` config changes.
+        # Under --snapshot, dockers_v2 emits per-platform tags (e.g.
+        # `:VERSION-amd64`, `:VERSION-arm64`) locally without pushing.
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: ${{ github.event_name == 'workflow_dispatch' && 'release --clean --snapshot --skip=docker' || 'release --clean' }}
+          args: ${{ github.event_name == 'workflow_dispatch' && 'release --clean --snapshot' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -109,7 +115,9 @@ jobs:
             echo "## ⚠️ Snapshot Build"
             echo ""
             echo "This was a **snapshot** build triggered via workflow_dispatch."
-            echo "No artifacts were published. Docker images were skipped."
+            echo "No artifacts were published. Docker images were built locally"
+            echo "with platform-suffixed tags (e.g. \`:VERSION-amd64\`,"
+            echo "\`:VERSION-arm64\`) per dockers_v2 snapshot behaviour; not pushed."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload dist artifacts

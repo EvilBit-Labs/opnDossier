@@ -2,12 +2,20 @@ coverage:
   status:
     project:
       default:
-        target: 70%
-        threshold: 2%
+        target: 80%
+        threshold: 1%
     patch:
       default:
-        target: 60%
-        threshold: 5%
+        target: 80%
+        threshold: 0%
+
+# Exclude non-source artifacts from coverage calculations.
+# Keep this list conservative — only paths that are either build output,
+# test fixtures, or pure test support code belong here.
+ignore:
+  - "testdata/**"
+  - "**/testdata/**"
+  - "dist/**"
 
 comment:
   layout: "condensed_header, condensed_files, condensed_footer"

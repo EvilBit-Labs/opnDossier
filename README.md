@@ -331,30 +331,30 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Audit OPNsense config
-        # No release tags exist yet — use @main until v1 is tagged
-        uses: EvilBit-Labs/opnDossier@main
+        uses: EvilBit-Labs/opnDossier@v1.4.0
         with:
           command: audit
           config-file: config.xml
 ```
 
+See [Pinning](#pinning) for the recommended way to lock this reference in production CI.
+
 ### Inputs
 
-| Input         | Required | Default  | Description                                                                              |
-| ------------- | -------- | -------- | ---------------------------------------------------------------------------------------- |
-| `command`     | No       | `audit`  | Sub-command: `audit`, `convert`, `diff`, `display`, `sanitize`, `validate`, or `version` |
-| `config-file` | **Yes**  | —        | Path to OPNsense or pfSense `config.xml` relative to the workspace root                  |
-| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, `yaml`, `text`, or `html`       |
-| `output`      | No       | —        | Path to write the output file, relative to the workspace root                            |
-| `args`        | No       | —        | Additional arguments split on whitespace (quoted strings with spaces are not preserved)  |
-| `version`     | No       | `latest` | Image tag to pull (e.g. `v1.2.0`); defaults to the latest release                        |
+| Input         | Required | Default  | Description                                                                                                                          |
+| ------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `command`     | No       | `audit`  | Sub-command: `audit`, `convert`, `diff`, `display`, `sanitize`, `validate`, or `version`                                             |
+| `config-file` | **Yes**  | —        | Path to OPNsense or pfSense `config.xml` relative to the workspace root                                                              |
+| `format`      | No       | —        | Output format for `convert`/`audit`: `markdown`, `json`, `yaml`, `text`, or `html`                                                   |
+| `output`      | No       | —        | Path to write the output file, relative to the workspace root                                                                        |
+| `args`        | No       | —        | Additional arguments split on whitespace (quoted strings with spaces are not preserved)                                              |
+| `version`     | No       | `v1.4.0` | Image tag to pull (e.g. `v1.4.0`); defaults to the current release tag. `latest` is accepted but unpinned (see [Pinning](#pinning)). |
 
 ### Export findings to JSON
 
 ```yaml
   - name: Export audit findings
-  # No release tags exist yet — use @main until v1 is tagged
-    uses: EvilBit-Labs/opnDossier@main
+    uses: EvilBit-Labs/opnDossier@v1.4.0
     with:
       command: audit
       config-file: firewall/config.xml
@@ -372,14 +372,38 @@ jobs:
 
 ```yaml
   - name: Generate firewall documentation
-  # No release tags exist yet — use @main until v1 is tagged
-    uses: EvilBit-Labs/opnDossier@main
+    uses: EvilBit-Labs/opnDossier@v1.4.0
     with:
       command: convert
       config-file: config.xml
       format: markdown
       output: docs/firewall.md
 ```
+
+### Pinning
+
+GitHub Action references should be pinned with intention. The three options, in order of preference for production CI:
+
+**Recommended (production CI): pin to a full commit SHA.** A SHA is immutable — tags can, in theory, be force-pushed; commit SHAs cannot. Include the matching version tag as a trailing comment so humans can still tell what they are running.
+
+```yaml
+  - name: Audit OPNsense config
+  # v1.4.0 — verify SHA against the release at https://github.com/EvilBit-Labs/opnDossier/releases/tag/v1.4.0
+    uses: EvilBit-Labs/opnDossier@0ac538c64c8170f56dc9c1353ee5d71b532d303f
+    with:
+      command: audit
+      config-file: config.xml
+```
+
+**Acceptable (most users): pin to a version tag.** This is what the Quick Start snippet above uses. You trust that the maintainers will not move published tags (we don't), and in exchange you get a readable reference and automatic patch-level fixes when you bump.
+
+```yaml
+  - uses: EvilBit-Labs/opnDossier@v1.4.0
+```
+
+**Not recommended for production: `@main` or `@latest`.** Both are moving targets: `@main` follows the default branch (may contain unreleased changes); `@latest` is only meaningful as an image tag on `ghcr.io/evilbit-labs/opndossier` and will pull whatever the registry currently points `latest` at. Use these only in throwaway sandboxes, never in CI that protects production configuration.
+
+The `version:` input of the action follows the same three levels and defaults to the current release tag (`v1.4.0`). Override it only if you understand the tradeoff.
 
 ### Using the Docker image directly
 
@@ -403,7 +427,7 @@ opnDossier's `pkg/` packages are importable by other Go modules. The typical con
 
 Module path: `github.com/EvilBit-Labs/opnDossier`
 
-Go version: 1.26+
+Go version: 1.26+ (opnDossier supports the current and previous stable Go releases — N and N-1 — matching Go's upstream policy).
 
 See [docs/development/public-api.md](docs/development/public-api.md) for the full public API classification, stability policy, and semver rules.
 
