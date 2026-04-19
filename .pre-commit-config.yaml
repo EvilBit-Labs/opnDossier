@@ -6,18 +6,18 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
-        args: ["--maxkb=1024"]
+        args: [ "--maxkb=1024" ]
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-illegal-windows-names
       - id: check-json
       - id: check-toml
       - id: check-yaml
-        args: [--unsafe]
+        args: [ --unsafe ]
       - id: check-xml
         exclude: ^internal/cfgparser/testdata/
       - id: mixed-line-ending
-        args: [--fix=auto]
+        args: [ --fix=auto ]
       - id: check-docstring-first
       - id: check-vcs-permalinks
 
@@ -42,7 +42,7 @@ repos:
           - mdformat-gfm-alerts
           - mdformat-toc
           - mdformat-front-matters
-        types: [markdown]
+        types: [ markdown ]
         # Exclude:
         # - *.golden.md: golden test fixtures must match Cobra output byte-for-byte
         # - docs/cli/: Cobra-generated CLI reference — mdformat would collapse the
@@ -71,7 +71,7 @@ repos:
         description: Apply golangci-lint formatters (gofumpt, goimports, gci, golines).
         entry: mise exec -- golangci-lint fmt
         language: system
-        types: [go]
+        types: [ go ]
         require_serial: true
         pass_filenames: false
       - id: golangci-lint-full
@@ -79,13 +79,6 @@ repos:
         description: Run all configured linters against the full module.
         entry: mise exec -- golangci-lint run --fix
         language: system
-        types: [go]
+        types: [ go ]
         require_serial: true
         pass_filenames: false
-
-# NOTE: a prior iteration added a pre-push hook that ran `just ci-check`
-# as the race-detector enforcement point (CI cannot host test-race reliably
-# on GitHub runners). That hook broke non-interactive push clients — Copilot
-# in particular cannot recover from a failing pre-push hook and discards
-# the session. Developers who want the full local quality bar run
-# `just ci-check` manually before pushing; it is no longer wired to git.
