@@ -225,7 +225,8 @@ IPv6 introduces additional complexity and potential attack vectors (e.g., router
 
 Reads `System.IPv6Allow` from the CommonDevice. A finding is emitted when IPv6 **is enabled** (`IPv6Allow == true`), since the control recommends disabling it when not required.
 
-> **Note:** This is an advisory check. If your environment requires IPv6, this finding can be accepted as a risk.
+> [!NOTE]
+> This is an advisory check. If your environment requires IPv6, this finding can be accepted as a risk.
 
 ### Recommended Action
 
