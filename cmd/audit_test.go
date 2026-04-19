@@ -493,3 +493,65 @@ func TestAuditCmdPreRunEFailuresOnlyRequiresBlueMode(t *testing.T) {
 		})
 	}
 }
+
+// TestAuditCmdPreRunEPluginDirTrustModelWarning verifies that PreRunE emits a
+// stderr warning disclosing the dynamic-plugin trust model when --plugin-dir
+// is supplied. The warning mirrors the red-mode precedent and pins the key
+// risk phrases ("full process privileges", "no signature verification") so
+// accidental regressions in the warning text fail the build.
+//
+// See todos #106 and #123 and GOTCHAS §2.5.
+func TestAuditCmdPreRunEPluginDirTrustModelWarning(t *testing.T) {
+	tests := []struct {
+		name      string
+		pluginDir string
+		wantWarn  bool
+	}{
+		{"empty plugin-dir emits no warning", "", false},
+		{"non-empty plugin-dir emits warning", "/tmp/plugins", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			auditSnap := captureAuditFlags()
+			sharedSnap := captureSharedFlags()
+			t.Cleanup(func() {
+				auditSnap.restore()
+				sharedSnap.restore()
+			})
+
+			tempCmd := &cobra.Command{}
+			tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
+			tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
+			tempCmd.Flags().StringVar(&auditPluginDir, "plugin-dir", "", "")
+			tempCmd.Flags().StringVar(&outputFile, "output", "", "")
+			tempCmd.Flags().StringVar(&format, "format", "markdown", "")
+			tempCmd.Flags().Bool("no-wrap", false, "")
+			tempCmd.Flags().Int("wrap", -1, "")
+
+			require.NoError(t, tempCmd.Flags().Set("mode", "blue"))
+			if tt.pluginDir != "" {
+				require.NoError(t, tempCmd.Flags().Set("plugin-dir", tt.pluginDir))
+			}
+
+			stderr := captureStderr(t, func() {
+				err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
+				require.NoError(t, err)
+			})
+
+			if tt.wantWarn {
+				assert.Contains(t, stderr, "full process privileges",
+					"stderr should disclose plugin privileges when --plugin-dir is set")
+				assert.Contains(t, stderr, "no signature verification",
+					"stderr should disclose absent signature checks when --plugin-dir is set")
+				assert.Contains(t, stderr, "GOTCHAS §2.5",
+					"stderr should cross-reference GOTCHAS §2.5 for the full threat model")
+			} else {
+				assert.NotContains(t, stderr, "full process privileges",
+					"stderr must not warn when --plugin-dir is empty")
+				assert.NotContains(t, stderr, "no signature verification",
+					"stderr must not warn when --plugin-dir is empty")
+			}
+		})
+	}
+}

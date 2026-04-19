@@ -169,6 +169,20 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 
 		path := filepath.Join(dir, entry.Name())
 
+		// Preflight hardening (see GOTCHAS §2.5 — Phase A): reject
+		// symlinks, group/world-writable plugin files, group/world-writable
+		// container directories, and non-absolute paths before plugin.Open
+		// is ever called. A structured audit-log entry is emitted for every
+		// attempt, accepted or rejected.
+		preflight := runPluginPreflight(path)
+		logPreflight(ctxLogger, preflight)
+
+		if preflight.verdict != pluginVerdictAccepted {
+			failures = append(failures, PluginLoadError{Name: entry.Name(), Err: preflight.err})
+
+			continue
+		}
+
 		compliancePlugin, err := pr.pluginLoader(path)
 		if err != nil {
 			ctxLogger.Error("Failed to load plugin", "file", path, "error", err)

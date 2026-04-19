@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[breaking]** `pkg/parser/pfsense.ValidateFunc` (public var) removed; use
+  `pkg/parser/pfsense.SetValidator` instead. Free pre-v1.5 per Current Regime.
 - **mergify**: Upgrade configuration to current format ([#543](https://github.com/EvilBit-Labs/opnDossier/pull/543))
 
 - Update labeling instructions and configuration settings in .coderabbit.yaml
@@ -125,7 +127,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **parser**: Liberal boolean parsing for OPNsense config.xml ([#558](https://github.com/EvilBit-Labs/opnDossier/pull/558)) ([#577](https://github.com/EvilBit-Labs/opnDossier/pull/577))
 
+<<<<<<< HEAD
 
+||||||| parent of 8d91140 (feat(security): Phase 5 round 1 — sanitizer OpenVPN gap, pfSense validator hardening, plugin-dir trust model, plugin loader Phase A)
+=======
+### Security
+
+- Sanitizer now redacts OpenVPN `<tls>` and `<StaticKeys>` XML elements
+  and detects the OpenVPN static-key PEM envelope. Previously, operators
+  running `opnDossier sanitize` on configs containing OpenVPN TLS-auth
+  material leaked the raw HMAC keys (SEC-H1 from comprehensive review).
+- pfSense validator protected against stomp by malicious dynamic plugin
+  `init()` code. `pfsense.ValidateFunc` renamed to unexported
+  `validateFunc`; new `pfsense.SetValidator` guarded by `sync.Once`.
+  Matches OPNsense's `XMLDecoder.ParseAndValidate` DI pattern. Fixes
+  SEC-H2 from comprehensive review.
+- Plugin loader preflight now rejects symlinks, group/world-writable
+  plugin files, group/world-writable container directories, and
+  relative plugin paths. Emits structured audit log per load attempt
+  (path, SHA-256, mode, owner UID, verdict). Addresses SEC-M1 / CWE-732
+  footguns from the comprehensive review. Phase B hardening (owner
+  verification, size cap, path denylist, filename allowlist, optional
+  SHA-256 manifest) is tracked for v1.6.
+
+>>>>>>> 8d91140 (feat(security): Phase 5 round 1 — sanitizer OpenVPN gap, pfSense validator hardening, plugin-dir trust model, plugin loader Phase A)
 ## [1.4.0] - 2026-04-03
 
 ### Added
