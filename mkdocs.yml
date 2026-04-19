@@ -51,6 +51,7 @@ nav:
           - config: user-guide/commands/config.md
       - Common Workflows: user-guide/workflows.md
       - Configuration Reference: user-guide/configuration-reference.md
+      - Device Support Matrix: user-guide/device-support-matrix.md
       - Security Scoring: user-guide/security-scoring.md
 
   - Examples:

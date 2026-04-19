@@ -32,8 +32,8 @@ opnDossier supports the current and previous stable Go releases (N and N-1), mat
 git clone https://github.com/EvilBit-Labs/opnDossier.git
 cd opnDossier
 
-# Install development dependencies (this also installs the pre-commit,
-# commit-msg, and pre-push git hooks via `pre-commit install`)
+# Install development dependencies (this also installs the pre-commit and
+# commit-msg git hooks via `pre-commit install`)
 just install
 
 # Verify setup
@@ -46,25 +46,22 @@ just test
 If you need to install the hooks manually (e.g., after cloning into a worktree or when `just install` was not run), use:
 
 ```bash
-pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
-### Git Hooks: Commit vs Push
+### Git Hooks
 
-Two tiers of automated checks run locally before anything reaches GitHub:
+The `pre-commit` framework runs fast formatters and linters (mdformat, actionlint, `golangci-lint fmt`, `golangci-lint run --fix`) on every commit. These must be quick enough to never get in the way.
 
-- **`pre-commit` hooks** (fast, every commit) — formatters, lint config verification, `golangci-lint fmt`, and `golangci-lint run --fix`. These must be quick enough to run on every commit.
-- **`pre-push` hook** (slow, once per push) — runs the full `just ci-check` suite: `check`, `format-check`, `lint`, `test`, `test-integration`, and `test-race`. This fires once before `git push` completes.
-
-**Why a pre-push hook for `ci-check`?** The full suite is too slow to run on every commit, and `test-race` (the Go race detector) cannot be hosted reliably on GitHub Actions runners. The pre-push hook is therefore the enforcement point for the race detector and the rest of the full quality bar — catching issues on the developer's machine before they ever reach CI.
-
-**Escape hatch.** If you need to bypass the pre-push hook in a genuine emergency (for example, a hotfix where the full suite is known to be orthogonal to the change), use:
+**Full quality bar before pushing.** The `just ci-check` recipe runs the complete suite — `check`, `format-check`, `lint`, `test`, `test-integration`, and `test-race`. Run it manually before pushing when you want the full signal locally:
 
 ```bash
-git push --no-verify
+just ci-check
 ```
 
-`--no-verify` is for emergencies only, not routine use. Any failure that prompts you to reach for it should be filed as a bug or a todo afterwards. CI does not mirror `test-race`, so bypassing the pre-push hook means no one else will catch the regression before merge.
+It is intentionally **not** wired to a git hook. A prior iteration added a pre-push `just ci-check` hook, but non-interactive push clients (including Copilot agents) could not recover when the hook failed and discarded the session. Developer discipline replaces automation here — CI runs the subset it can host, and `just ci-check` remains the locally-runnable gate.
+
+**Race detector note.** `test-race` (the Go race detector) cannot be hosted reliably on GitHub Actions runners, so it runs only via `just ci-check` locally. If you're touching `cmd/` global-flag tests (GOTCHAS §1.1) or anything concurrency-sensitive, run `just test-race` before pushing.
 
 ### Known Gotchas
 

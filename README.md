@@ -16,6 +16,9 @@ Built for offline operation in secure environments - no external dependencies, n
 - **Multi-Format Export** - Convert to markdown documentation, JSON, or YAML for integration
 - **Offline Operation** - Works completely offline, perfect for airgapped networks
 
+> [!NOTE]
+> pfSense support is strong for core firewall and service areas, but some report and audit sections are still in progress. If you work with pfSense, see the [device support matrix](docs/user-guide/device-support-matrix.md) for current feature-by-feature coverage. When a pfSense area is not yet supported, opnDossier warns during processing so you can tell the difference between a product gap and a missing configuration.
+
 ## Quick Start
 
 ### Installation
@@ -184,15 +187,15 @@ go build -o opnDossier main.go
 
 For development builds with additional tooling, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-If you plan to contribute, also install the pre-commit, commit-msg, and pre-push git hooks so local checks run automatically. The `pre-push` hook runs the full `just ci-check` (including the race detector, which CI cannot host reliably) before anything is pushed to GitHub:
+If you plan to contribute, install the pre-commit and commit-msg git hooks so fast local checks run automatically:
 
 ```bash
-just install   # runs mise install, installs all hook types, tidies modules
+just install   # runs mise install, installs hook types, tidies modules
 # or, manually:
-pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
-See [CONTRIBUTING.md §Development Setup](CONTRIBUTING.md#development-setup) for details and the `--no-verify` escape hatch.
+Run `just ci-check` manually before pushing for the full quality bar (lint, tests, race detector). See [CONTRIBUTING.md §Development Setup](CONTRIBUTING.md#development-setup) for details.
 
 ## Usage Examples
 

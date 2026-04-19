@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **pfSense converter**: emits a `ConversionWarning` at `SeverityMedium`
+  with stable message `"not yet implemented in pfSense converter"` for
+  every CommonDevice subsystem it does not yet populate (Theme, Bridges,
+  GIFs, GREs, LAGGs, VirtualIPs, InterfaceGroups, NTP, HighAvailability,
+  IDS, Sysctl, Packages, Monit, Netflow, TrafficShaper, CaptivePortal,
+  Trust, KeaDHCP — 18 entries). Compliance plugins can filter on this
+  message substring to avoid false-PASS on pfSense inputs.
+  `pkg/parser/pfsense.IsKnownGap(field)` and
+  `pkg/parser/pfsense.KnownGaps()` expose the SSOT. (#107)
+- **parser**: `pkg/parser/parity_test.go` asserts every CommonDevice
+  subsystem OPNsense populates from a representative fixture is either
+  populated by pfSense or listed in `pfsense.KnownGaps()`. Runs in
+  default CI (no build tag). Fails loudly if pfSense silently drops a
+  subsystem. (#129)
+- **docs**: `docs/user-guide/device-support-matrix.md` user-facing
+  CommonDevice coverage table with OPNsense / pfSense status per
+  subsystem. README + mkdocs nav cross-links. (#124)
 - docs/development/cli-output-policy.md documents the CLI output
   policy across six purposes (user-facing structured, diagnostic,
   interactive prompts, machine-readable, progress, pre-logger).
