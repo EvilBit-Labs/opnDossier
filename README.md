@@ -387,11 +387,124 @@ docker run --rm \
   audit config.xml
 ```
 
+## Using as a Go Library
+
+opnDossier's `pkg/` packages are importable by other Go modules. The typical consumer flow is: parse an OPNsense or pfSense `config.xml` into a vendor-specific document, convert it to the platform-agnostic `CommonDevice` model, and work with that.
+
+Module path: `github.com/EvilBit-Labs/opnDossier`
+
+Go version: 1.26+
+
+See [docs/development/public-api.md](docs/development/public-api.md) for the full public API classification, stability policy, and semver rules.
+
+### Quick Start
+
+For consumers that already have a parsed schema document (for example, configuration generators that build one in-memory), call `ConvertDocument` directly. No blank imports, no factory wiring.
+
+```go
+package main
+
+import (
+    "encoding/xml"
+    "fmt"
+    "os"
+
+    opnsenseparser "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
+    opnschema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
+)
+
+func main() {
+    data, err := os.ReadFile("config.xml")
+    if err != nil {
+        panic(err)
+    }
+
+    var doc opnschema.OpnSenseDocument
+    if err := xml.Unmarshal(data, &doc); err != nil {
+        panic(err)
+    }
+
+    device, warnings, err := opnsenseparser.ConvertDocument(&doc)
+    if err != nil {
+        panic(err)
+    }
+    for _, w := range warnings {
+        fmt.Printf("[%s] %s: %s (value=%q)\n", w.Severity, w.Field, w.Message, w.Value)
+    }
+
+    fmt.Printf("device type:  %s\n", device.DeviceType)
+    fmt.Printf("hostname:     %s.%s\n", device.System.Hostname, device.System.Domain)
+    fmt.Printf("rules:        %d\n", len(device.FirewallRules))
+}
+```
+
+Use `pkg/parser/pfsense` and `pkg/schema/pfsense` for pfSense configurations.
+
+### Auto-Detection via the Factory
+
+When you have raw XML bytes of unknown provenance, use `pkg/parser.Factory`. The factory reads the root element and dispatches to the correct device parser. This path requires two blank imports — device parsers self-register from their `init()` functions, and Go only runs `init()` for imported packages:
+
+```go
+import (
+    "github.com/EvilBit-Labs/opnDossier/pkg/model"
+    "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // registers "opnsense"
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"  // registers "pfsense"
+)
+
+factory := parser.NewFactory(myXMLDecoder)
+device, warnings, err := factory.CreateDevice(ctx, reader, model.DeviceTypeUnknown, false)
+```
+
+`myXMLDecoder` must satisfy `parser.XMLDecoder`. Consumers typically wrap `encoding/xml` themselves using `parser.NewSecureXMLDecoder`, which applies opnDossier's XML-bomb and XXE hardening. If no parser packages are imported, `CreateDevice` returns an error containing the substring `"ensure parser packages are imported"` — that hint is covered by a regression test and safe for tooling to match on.
+
+### Handling `ConversionWarning`
+
+Every converter returns a `[]model.ConversionWarning` alongside the device. Warnings are non-fatal — they flag fields that did not round-trip perfectly (unrecognized enum values, truncated collections, orphan cross-references). Severity is a triage signal, not a compliance verdict:
+
+| Severity   | Meaning                                                  |
+| ---------- | -------------------------------------------------------- |
+| `critical` | Data loss or corruption in the converted output.         |
+| `high`     | Material gap or silently altered behavior.               |
+| `medium`   | Partial data preservation (e.g., truncated collections). |
+| `low`      | Cosmetic or best-effort conversion gap.                  |
+| `info`     | Normal observation about the conversion.                 |
+
+Log all warnings; treat `high` and above as signals to investigate the source config before trusting the output.
+
+### Handling Secrets When Exporting `CommonDevice`
+
+`CommonDevice` carries plaintext secrets sourced from the firewall configuration. If you serialize a `CommonDevice` to JSON, YAML, or any other format, **these secrets will appear in cleartext unless you redact them yourself.** opnDossier's CLI has redaction logic for its own `convert` and `sanitize` commands, but that code lives in `internal/` and is not exposed as a public API.
+
+The secret-bearing fields are:
+
+| Struct                       | Field                            |
+| ---------------------------- | -------------------------------- |
+| `model.Certificate`          | `PrivateKey`                     |
+| `model.CertificateAuthority` | `PrivateKey`                     |
+| `model.WireGuardClient`      | `PSK`                            |
+| `model.APIKey`               | `Secret`                         |
+| `model.HighAvailability`     | `Password`                       |
+| `model.SNMPConfig`           | `ROCommunity`                    |
+| `model.DHCPAdvancedV6`       | `AdvDHCP6KeyInfoStatementSecret` |
+
+Recommended approaches, in order of preference:
+
+1. **Invoke the opnDossier CLI as a subprocess.** `opnDossier convert --format json` and `opnDossier sanitize` apply the full redaction pipeline, including the field-pattern-based sanitizer. Safest for operators who need a hardened output.
+2. **Redact in-place before serializing.** Walk the `CommonDevice` and set each secret field to `""` (or a marker like `"[REDACTED]"`) before passing it to `json.Marshal` or `yaml.Marshal`. Straightforward for known consumers that own the export path.
+3. **Implement a custom `json.Marshaler`.** Define a wrapper type that shallow-copies `CommonDevice`, zeros the secret fields on the copy, then delegates to `json.Marshal`. Useful when the export is deep inside a library you control.
+
+Do not rely on struct tags for redaction — `json:"privateKey,omitempty"` controls field names and omit-empty behavior, not whether the field is serialized at all.
+
+If you add a new field to `CommonDevice` that carries a secret, update this table and update the CLI's redaction logic in the same change. See [GOTCHAS § 13.1](GOTCHAS.md) for the testing pitfall with multiline secrets (JSON escapes newlines, so raw-string `NotContains` assertions pass vacuously — always unmarshal and assert on field values).
+
 ## Documentation
 
 - **[User Guide](docs/user-guide/)** - Installation, usage, and configuration
 - **[Security Documentation](docs/security/)** - Vulnerability scanning and security features
 - **[API Reference](docs/api.md)** - Detailed API documentation
+- **[Public Go API](docs/development/public-api.md)** - Stability policy and semver rules for library consumers
 - **[Examples](docs/examples/)** - Real-world usage examples
 
 For developers:
