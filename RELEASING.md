@@ -361,7 +361,14 @@ gh release create v1.2.0 --title "v1.2.0" --generate-notes
 
 ## Hotfix Process
 
-For urgent fixes to a released version:
+For urgent fixes to a released version — including **security patches** tracked via [SECURITY.md](SECURITY.md). When a confirmed vulnerability requires a release outside the normal cadence, use the procedure below.
+
+**When to hotfix vs wait for the next release:**
+
+- Hotfix: confirmed security vulnerability (any severity), data-loss bug, or critical regression blocking a large share of users.
+- Wait: cosmetic or low-impact fixes that can ride the next scheduled release.
+
+Hotfixes are **patch-version bumps only** (vX.Y.Z → vX.Y.Z+1). Feature additions must wait for a minor release. Changelog entries for hotfixes go under the `### Security` bucket (if applicable) or `### Fixed`; breaking changes are never allowed in a hotfix.
 
 ### Step 1: Create Hotfix Branch
 
