@@ -80,8 +80,12 @@ opnDossier includes several security-focused features:
 - **XXE-safe parsing**: Go's `encoding/xml` does not support external entities or DTD processing
 - **Offline-first design**: No network access at runtime; built for airgapped environments
 - **Typed data handling**: All XML elements map to strictly typed Go structs with validation
-- **Dependency auditing**: Grype, Snyk, and CodeQL run in CI
-- **Automated dependency updates**: Via Dependabot
+- **Continuous vulnerability scanning** (`.github/workflows/security.yml`, on push/PR and weekly):
+  - `govulncheck` against the Go vulnerability database
+  - CodeQL semantic analysis for Go
+  - Trivy filesystem scan (dependencies + misconfiguration), results uploaded to GitHub code scanning
+- **Supply-chain posture**: OSSF Scorecard analysis (`.github/workflows/scorecard.yml`)
+- **Automated dependency updates**: Dependabot (`.github/dependabot.yml`)
 - **Supply chain transparency**: CycloneDX SBOMs and Sigstore attestations per release
 
 For a full security assurance case, see [docs/security/security-assurance.md](docs/security/security-assurance.md).
