@@ -1,0 +1,199 @@
+package parser // import "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+
+Package parser provides the factory for creating device-specific parsers that
+transform vendor configuration files into the platform-agnostic CommonDevice
+model (pkg/model.CommonDevice).
+
+# Public API Surface
+
+This package is part of opnDossier's public API, intended for consumption by
+other Go modules. It has no internal/ dependencies in production code.
+
+Top-level types a consumer interacts with:
+
+  - Factory and its constructors NewFactory / NewFactoryWithRegistry
+  - OPNsenseXMLDecoder (dependency injected at construction; opnDossier's CLI
+    wires internal/cfgparser.NewXMLParser, external consumers provide their own)
+  - DeviceParser (the device-specific parser contract)
+  - DeviceParserRegistry and the package-level Register / DefaultRegistry
+
+# Registration Contract (blank imports)
+
+Device-specific parsers register themselves with DefaultRegistry from an init()
+function. Because Go only runs init() when a package is imported, consumers MUST
+add a blank import for each parser they want available:
+
+    import (
+        "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+
+        _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // registers "opnsense"
+        _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"  // registers "pfsense"
+    )
+
+This follows the database/sql driver registration pattern. If no parser packages
+are imported, Factory.CreateDevice returns an error whose "supported:" section
+shows the actionable hint "(none registered -- ensure parser packages are
+imported)". The trailing substring "ensure parser packages are imported" is
+considered a stable signal — it is covered by a regression test and safe for
+tooling to detect, though the full wording may be refined.
+
+External consumers who implement a parser for a new device type can register it
+the same way by calling Register from their own package's init().
+
+CONSTANTS
+
+const DefaultMaxInputSize = 10 * 1024 * 1024 // 10MB
+    DefaultMaxInputSize is the default maximum size in bytes for XML input.
+    This prevents XML bomb attacks by limiting how much data is read during
+    root-element detection and parsing.
+
+
+FUNCTIONS
+
+func CharsetReader(charset string, input io.Reader) (io.Reader, error)
+    CharsetReader creates a reader for the specified XML charset declaration.
+    Supported encodings: UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252.
+    Only charsets whose ASCII subset matches UTF-8 are accepted, which is
+    sufficient because XML element names use only ASCII-range characters.
+
+func NewSecureXMLDecoder(r io.Reader, maxSize int64) *xml.Decoder
+    NewSecureXMLDecoder returns an *xml.Decoder configured with security
+    hardening:
+      - Input size limited to maxSize bytes (prevents XML bomb attacks)
+      - Entity expansion disabled (prevents XXE attacks)
+      - Charset reader for UTF-8, US-ASCII, ISO-8859-1, and Windows-1252
+
+    Both the OPNsense and pfSense parsers delegate to this function to avoid
+    duplicating security hardening logic.
+
+func Register(deviceType string, fn ConstructorFunc)
+    Register is a package-level convenience wrapper around
+    DefaultRegistry().Register(). It follows the database/sql.Register() pattern
+    for use in init() functions.
+
+func WrapDecodeError(err error, elementPath string) error
+    WrapDecodeError annotates an encoding/xml decode error with the element path
+    of the failing node so operators can identify the exact field that failed to
+    parse. The path is caller-supplied (e.g., "/opnsense/system" or "/pfsense")
+    because XML decoding does not expose the full element stack once control is
+    inside encoding/xml. Callers that decode section-by-section can build deep
+    paths; callers that decode the entire document at once can at least supply
+    the root name.
+
+    Returns nil when err is nil so it is safe to call unconditionally.
+
+    Both the OPNsense and pfSense parsers delegate to this function to avoid
+    duplicating error-wrapping logic. Future device parsers registered with
+    Register should do the same.
+
+
+TYPES
+
+type ConstructorFunc = func(OPNsenseXMLDecoder) DeviceParser
+    ConstructorFunc is the factory function signature for creating DeviceParser
+    instances. The OPNsenseXMLDecoder parameter allows injection of the XML
+    parsing backend. The parameter is consumed by the OPNsense parser; non-
+    OPNsense parsers accept it for signature compatibility but must manage their
+    own XML decoding.
+
+type DeviceParser interface {
+	// Parse reads and converts the configuration, returning non-fatal conversion warnings.
+	Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+	// ParseAndValidate reads, converts, and validates the configuration, returning non-fatal conversion warnings.
+	ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error)
+}
+    DeviceParser is the interface for device-specific parsers. Implementations
+    return non-fatal conversion warnings alongside the parsed device model.
+    Callers should log or surface these warnings without treating them as
+    errors.
+
+type DeviceParserRegistry struct {
+	// Has unexported fields.
+}
+    DeviceParserRegistry manages registered DeviceParser constructors,
+    keyed by the lowercase XML root element name of the device type they handle.
+    It is safe for concurrent use.
+
+func DefaultRegistry() *DeviceParserRegistry
+    DefaultRegistry returns the package-level DeviceParserRegistry singleton.
+    External parsers call Register() on this instance from init().
+
+func NewDeviceParserRegistry() *DeviceParserRegistry
+    NewDeviceParserRegistry returns a new, empty DeviceParserRegistry. Use this
+    constructor in tests to create isolated registry instances that do not
+    pollute the global singleton.
+
+func (r *DeviceParserRegistry) Get(deviceType string) (ConstructorFunc, bool)
+    Get returns the constructor for the given device type, or (nil, false) if
+    no parser is registered for it. deviceType is normalized to lowercase with
+    whitespace trimmed, matching the normalization applied by Register.
+
+func (r *DeviceParserRegistry) List() []string
+    List returns a sorted slice of all registered device type names. The
+    returned slice is a copy and safe to modify.
+
+func (r *DeviceParserRegistry) Register(deviceType string, fn ConstructorFunc)
+    Register adds a constructor for the given device type name. deviceType
+    is normalized to lowercase with whitespace trimmed. Panics on duplicate
+    registration, nil factory, or empty device type to surface wiring conflicts
+    at startup (mirrors FormatRegistry and database/sql.Register contracts).
+    Should only be called from init().
+
+func (r *DeviceParserRegistry) SupportedDevices() string
+    SupportedDevices returns a formatted string listing all registered device
+    type names, suitable for error messages. When the registry is empty, it
+    returns an actionable hint about missing blank imports. This is the single
+    source of truth for supported-device messaging across factory errors and CLI
+    validation.
+
+type Factory struct {
+	// Has unexported fields.
+}
+    Factory detects device type and delegates to the appropriate DeviceParser.
+    The OPNsenseXMLDecoder is injected at construction to keep pkg/ free
+    of internal/ imports. The registry defaults to DefaultRegistry() unless
+    overridden via NewFactoryWithRegistry (e.g., for isolated tests).
+
+    Note: The injected decoder is only consumed by parsers whose output is
+    schema.OpnSenseDocument (i.e., the OPNsense parser). Non-OPNsense parsers
+    registered via Register accept the decoder for signature compatibility but
+    must manage their own XML decoding.
+
+func NewFactory(decoder OPNsenseXMLDecoder) *Factory
+    NewFactory returns a new Factory that uses the given OPNsenseXMLDecoder
+    for parsing and the global DefaultRegistry() for parser lookup. Pass
+    cfgparser.NewXMLParser() from internal/cfgparser at the call site.
+
+func NewFactoryWithRegistry(decoder OPNsenseXMLDecoder, reg *DeviceParserRegistry) *Factory
+    NewFactoryWithRegistry returns a Factory that uses a custom registry instead
+    of the global singleton. This is primarily useful for tests that need
+    isolated registry state without polluting the global registry.
+
+func (f *Factory) CreateDevice(
+	ctx context.Context,
+	r io.Reader,
+	deviceTypeOverride common.DeviceType,
+	validateMode bool,
+) (*common.CommonDevice, []common.ConversionWarning, error)
+    CreateDevice reads from r, detects (or uses the override) device type, and
+    returns a fully converted CommonDevice along with any non-fatal conversion
+    warnings. When validateMode is true, semantic validation is applied in
+    addition to structural parsing.
+
+type OPNsenseXMLDecoder interface {
+	// Parse reads XML from r and returns a parsed OpnSenseDocument.
+	Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+	// ParseAndValidate reads XML from r, parses it, and applies semantic validation.
+	ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
+}
+    OPNsenseXMLDecoder parses raw XML input into an OPNsense
+    schema.OpnSenseDocument. The name is OPNsense-specific because the return
+    type is bound to the OPNsense schema — pfSense and other device parsers
+    cannot use this interface directly and must manage their own XML decoding
+    (see github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense for the canonical
+    example).
+
+    Implementations must handle charset detection, entity expansion protection,
+    and input size limits. The cfgparser.XMLParser in internal/cfgparser
+    provides the default implementation used by the CLI.
+

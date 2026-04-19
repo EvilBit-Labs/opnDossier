@@ -1,0 +1,2518 @@
+package model // import "github.com/EvilBit-Labs/opnDossier/pkg/model"
+
+Package model provides platform-agnostic domain structs for representing
+firewall device configurations. These types normalize XML-specific quirks
+(presence-based booleans, *string pointers, map-keyed collections) into clean Go
+types suitable for analysis, reporting, and multi-device support.
+
+CONSTANTS
+
+const (
+	// DeadRuleKindUnreachable indicates the rule is unreachable due to a preceding block-all.
+	DeadRuleKindUnreachable = "unreachable"
+	// DeadRuleKindDuplicate indicates the rule is a duplicate of another rule.
+	DeadRuleKindDuplicate = "duplicate"
+)
+    Dead rule kind constants classify the reason a rule is considered dead.
+
+const (
+	// ControlStatusPass indicates a control is compliant.
+	ControlStatusPass = "PASS"
+	// ControlStatusFail indicates a control is non-compliant.
+	ControlStatusFail = "FAIL"
+	// ControlStatusUnknown indicates a control could not be evaluated
+	// from the available configuration data.
+	ControlStatusUnknown = "UNKNOWN"
+)
+    Control compliance status values used in audit report output (markdown
+    tables, JSON/YAML exports).
+
+
+FUNCTIONS
+
+func IsValidSeverity(s Severity) bool
+    IsValidSeverity reports whether s is one of the recognized Severity values.
+    Comparison is case-sensitive: "critical" is valid; "CRITICAL" is not.
+
+    Implementation: delegates to slices.Contains against the package-level
+    validSeverities slice so that both ValidSeverities and IsValidSeverity share
+    a single source of truth. Adding a new Severity constant requires appending
+    to validSeverities exactly once.
+
+
+TYPES
+
+type APIKey struct {
+	// Key is the API key identifier.
+	Key string `json:"key,omitempty" yaml:"key,omitempty"`
+
+	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
+	// Privileges is a comma-separated list of privileges for this key.
+	Privileges string `json:"privileges,omitempty" yaml:"privileges,omitempty"`
+	// Scope is the API key scope.
+	Scope string `json:"scope,omitempty" yaml:"scope,omitempty"`
+	// UID is the numeric user identifier that owns this key.
+	UID int `json:"uid,omitempty" yaml:"uid,omitempty"`
+	// GID is the numeric group identifier for this key.
+	GID int `json:"gid,omitempty" yaml:"gid,omitempty"`
+	// Description is a human-readable description of the API key.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    APIKey represents an API key credential.
+
+type Analysis struct {
+	// DeadRules contains firewall rules that are unreachable or redundant.
+	DeadRules []DeadRuleFinding `json:"deadRules,omitempty" yaml:"deadRules,omitempty"`
+	// UnusedInterfaces contains interfaces with no associated rules or services.
+	UnusedInterfaces []UnusedInterfaceFinding `json:"unusedInterfaces,omitempty" yaml:"unusedInterfaces,omitempty"`
+	// SecurityIssues contains detected security configuration issues.
+	SecurityIssues []SecurityFinding `json:"securityIssues,omitempty" yaml:"securityIssues,omitempty"`
+	// PerformanceIssues contains detected performance configuration issues.
+	PerformanceIssues []PerformanceFinding `json:"performanceIssues,omitempty" yaml:"performanceIssues,omitempty"`
+	// ConsistencyIssues contains detected configuration consistency issues.
+	ConsistencyIssues []ConsistencyFinding `json:"consistencyIssues,omitempty" yaml:"consistencyIssues,omitempty"`
+}
+    Analysis contains analysis findings and insights.
+
+type Bogons struct {
+	// Interval is the bogon list update frequency (e.g., "monthly", "weekly").
+	Interval string `json:"interval,omitempty" yaml:"interval,omitempty"`
+}
+    Bogons contains bogon update configuration.
+
+type Bridge struct {
+	// Members contains the member interface names belonging to this bridge.
+	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
+	// Description is a human-readable description of the bridge.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// BridgeIf is the bridge interface name (e.g., "bridge0").
+	BridgeIf string `json:"bridgeIf,omitempty" yaml:"bridgeIf,omitempty"`
+	// STP indicates whether Spanning Tree Protocol is enabled.
+	STP bool `json:"stp,omitempty" yaml:"stp,omitempty"`
+	// Created is the timestamp when the bridge was created.
+	Created string `json:"created,omitempty" yaml:"created,omitempty"`
+	// Updated is the timestamp when the bridge was last modified.
+	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
+}
+    Bridge represents a network bridge configuration.
+
+type CaptivePortalConfig struct {
+	// Zones contains captive portal zone identifiers.
+	Zones string `json:"zones,omitempty" yaml:"zones,omitempty"`
+	// Templates contains captive portal template identifiers.
+	Templates string `json:"templates,omitempty" yaml:"templates,omitempty"`
+}
+    CaptivePortalConfig contains captive portal configuration.
+
+type Certificate struct {
+	// RefID is the unique reference identifier for the certificate.
+	RefID string `json:"refId,omitempty" yaml:"refId,omitempty"`
+	// Description is a human-readable description of the certificate.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Type is the certificate type (e.g., "server", "user").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// CARef is the reference ID of the issuing certificate authority.
+	CARef string `json:"caRef,omitempty" yaml:"caRef,omitempty"`
+	// Certificate is the PEM-encoded certificate data.
+	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+
+	PrivateKey string `json:"privateKey,omitempty" yaml:"privateKey,omitempty"`
+}
+    Certificate represents a TLS/SSL certificate.
+
+type CertificateAuthority struct {
+	// RefID is the unique reference identifier for the CA.
+	RefID string `json:"refId,omitempty" yaml:"refId,omitempty"`
+	// Description is a human-readable description of the CA.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Certificate is the PEM-encoded CA certificate data.
+	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+
+	PrivateKey string `json:"privateKey,omitempty" yaml:"privateKey,omitempty"`
+	// Serial is the next serial number to use when issuing certificates.
+	Serial string `json:"serial,omitempty" yaml:"serial,omitempty"`
+}
+    CertificateAuthority represents a certificate authority.
+
+type CommonDevice struct {
+	// DeviceType identifies the platform (OPNsense, pfSense, etc.) that produced this configuration.
+	DeviceType DeviceType `json:"device_type" yaml:"device_type"`
+	// Version is the firmware or configuration version string.
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	// Theme is the web GUI theme name.
+	Theme string `json:"theme,omitempty" yaml:"theme,omitempty"`
+
+	// System contains system-level settings such as hostname, DNS, and web GUI configuration.
+	System System `json:"system" yaml:"system,omitempty"`
+	// Interfaces contains all configured network interfaces.
+	Interfaces []Interface `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// VLANs contains VLAN configurations.
+	VLANs []VLAN `json:"vlans,omitempty" yaml:"vlans,omitempty"`
+	// Bridges contains network bridge configurations.
+	Bridges []Bridge `json:"bridges,omitempty" yaml:"bridges,omitempty"`
+	// PPPs contains point-to-point protocol connection configurations.
+	PPPs []PPP `json:"ppps,omitempty" yaml:"ppps,omitempty"`
+	// GIFs contains gif (generic tunnel interface) configurations.
+	GIFs []GIF `json:"gifs,omitempty" yaml:"gifs,omitempty"`
+	// GREs contains GRE (Generic Routing Encapsulation) tunnel configurations.
+	GREs []GRE `json:"gres,omitempty" yaml:"gres,omitempty"`
+	// LAGGs contains link aggregation (LACP/failover) configurations.
+	LAGGs []LAGG `json:"laggs,omitempty" yaml:"laggs,omitempty"`
+	// VirtualIPs contains CARP, IP alias, and other virtual IP configurations.
+	VirtualIPs []VirtualIP `json:"virtualIps,omitempty" yaml:"virtualIps,omitempty"`
+	// InterfaceGroups contains logical groupings of interfaces.
+	InterfaceGroups []InterfaceGroup `json:"interfaceGroups,omitempty" yaml:"interfaceGroups,omitempty"`
+	// FirewallRules contains normalized firewall filter rules.
+	FirewallRules []FirewallRule `json:"firewallRules,omitempty" yaml:"firewallRules,omitempty"`
+	// NAT contains all NAT-related configuration including inbound and outbound rules.
+	NAT NATConfig `json:"nat" yaml:"nat,omitempty"`
+	// DHCP contains DHCP server scopes, one per interface.
+	DHCP []DHCPScope `json:"dhcp,omitempty" yaml:"dhcp,omitempty"`
+	// DNS contains aggregated DNS resolver and forwarder configuration.
+	DNS DNSConfig `json:"dns" yaml:"dns,omitempty"`
+	// NTP contains NTP time synchronization settings.
+	NTP NTPConfig `json:"ntp" yaml:"ntp,omitempty"`
+	// SNMP contains SNMP service configuration.
+	SNMP SNMPConfig `json:"snmp" yaml:"snmp,omitempty"`
+	// LoadBalancer contains load balancer and health monitor configuration.
+	LoadBalancer LoadBalancerConfig `json:"loadBalancer" yaml:"loadBalancer,omitempty"`
+	// VPN contains all VPN subsystem configurations (OpenVPN, WireGuard, IPsec).
+	VPN VPN `json:"vpn" yaml:"vpn,omitempty"`
+	// Routing contains gateways, gateway groups, and static routes.
+	Routing Routing `json:"routing" yaml:"routing,omitempty"`
+	// Certificates contains TLS/SSL certificates.
+	Certificates []Certificate `json:"certificates,omitempty" yaml:"certificates,omitempty"`
+	// CAs contains certificate authorities.
+	CAs []CertificateAuthority `json:"cas,omitempty" yaml:"cas,omitempty"`
+	// HighAvailability contains CARP/pfsync high-availability settings.
+	HighAvailability HighAvailability `json:"highAvailability" yaml:"highAvailability,omitempty"`
+	// IDS contains intrusion detection/prevention (Suricata) configuration.
+	IDS *IDSConfig `json:"ids,omitempty" yaml:"ids,omitempty"`
+	// Syslog contains remote syslog forwarding configuration.
+	Syslog SyslogConfig `json:"syslog" yaml:"syslog,omitempty"`
+	// Users contains system user accounts.
+	Users []User `json:"users,omitempty" yaml:"users,omitempty"`
+	// Groups contains system groups.
+	Groups []Group `json:"groups,omitempty" yaml:"groups,omitempty"`
+	// Sysctl contains kernel tunable parameters.
+	Sysctl []SysctlItem `json:"sysctl,omitempty" yaml:"sysctl,omitempty"`
+	// Packages contains installed or available software packages.
+	Packages []Package `json:"packages,omitempty" yaml:"packages,omitempty"`
+	// Monit contains process monitoring (Monit) configuration.
+	Monit *MonitConfig `json:"monit,omitempty" yaml:"monit,omitempty"`
+	// Netflow contains NetFlow/IPFIX traffic accounting configuration.
+	Netflow *NetflowConfig `json:"netflow,omitempty" yaml:"netflow,omitempty"`
+	// TrafficShaper contains QoS/traffic shaping configuration.
+	TrafficShaper *TrafficShaperConfig `json:"trafficShaper,omitempty" yaml:"trafficShaper,omitempty"`
+	// CaptivePortal contains captive portal configuration.
+	CaptivePortal *CaptivePortalConfig `json:"captivePortal,omitempty" yaml:"captivePortal,omitempty"`
+	// Cron contains scheduled task configuration.
+	Cron *CronConfig `json:"cron,omitempty" yaml:"cron,omitempty"`
+	// Trust contains system-wide TLS and certificate trust settings.
+	Trust *TrustConfig `json:"trust,omitempty" yaml:"trust,omitempty"`
+	// KeaDHCP contains Kea DHCP server configuration (modern DHCP replacement).
+	KeaDHCP *KeaDHCPConfig `json:"keaDhcp,omitempty" yaml:"keaDhcp,omitempty"`
+	// Revision contains configuration revision metadata.
+	Revision Revision `json:"revision" yaml:"revision,omitempty"`
+
+	// Statistics contains calculated statistics about the device configuration.
+	Statistics *Statistics `json:"statistics,omitempty" yaml:"statistics,omitempty"`
+	// Analysis contains analysis findings and insights.
+	Analysis *Analysis `json:"analysis,omitempty" yaml:"analysis,omitempty"`
+	// SecurityAssessment contains security assessment scores and recommendations.
+	SecurityAssessment *SecurityAssessment `json:"securityAssessment,omitempty" yaml:"securityAssessment,omitempty"`
+	// PerformanceMetrics contains performance-related metrics.
+	PerformanceMetrics *PerformanceMetrics `json:"performanceMetrics,omitempty" yaml:"performanceMetrics,omitempty"`
+	// ComplianceResults contains compliance audit results from plugin-based checks.
+	ComplianceResults *ComplianceResults `json:"complianceResults,omitempty" yaml:"complianceResults,omitempty"`
+}
+    CommonDevice is the platform-agnostic device model. It flows through the
+    following pipeline stages:
+
+        device config file (XML) -> xml.Unmarshal -> vendor DTO
+          -> parser / converter -> CommonDevice
+          -> enrichment (statistics, compliance results, etc.)
+          -> redact / sanitize
+          -> reporting (JSON / YAML / markdown / etc.)
+
+    Fields are partitioned into two groups:
+
+      - Parser-populated: set by the parser/converter stage from the vendor DTO.
+        These reflect the original configuration.
+      - Enrichment-populated: set by a later pipeline stage (currently
+        prepareForExport) for JSON/YAML exports. Not set by the parser or
+        converter.
+
+    Parsers produce CommonDevice values by converting platform-specific XML
+    schemas (OPNsense, pfSense) into this normalized form. All downstream
+    consumers (processor, builder, plugins, diff engine, JSON/YAML exporters)
+    operate against this type rather than XML-shaped DTOs.
+
+    Has* methods report whether specific configuration sections are populated,
+    and NATSummary returns a convenience snapshot of NAT configuration with
+    cloned slices to prevent mutation of the original device.
+
+func (d *CommonDevice) HasDHCP() bool
+    HasDHCP reports whether the device has any DHCP configuration. Both ISC and
+    Kea DHCP scopes are normalized into the unified DHCP slice. Returns false if
+    d is nil.
+
+func (d *CommonDevice) HasInterfaces() bool
+    HasInterfaces reports whether the device has any interface configuration.
+    Returns false if d is nil.
+
+func (d *CommonDevice) HasNATConfig() bool
+    HasNATConfig reports whether the device has meaningful NAT configuration
+    (any non-zero fields in the NAT struct). Returns false if d is nil.
+
+func (d *CommonDevice) HasRoutes() bool
+    HasRoutes reports whether the device has any routing configuration (static
+    routes, gateways, or gateway groups). Returns false if d is nil.
+
+func (d *CommonDevice) HasVLANs() bool
+    HasVLANs reports whether the device has any VLAN configuration. Returns
+    false if d is nil.
+
+func (d *CommonDevice) NATSummary() NATSummary
+    NATSummary returns a convenience view of the device's NAT configuration.
+    Slice fields are cloned to prevent callers from mutating the original
+    device. Returns a zero-value NATSummary if d is nil.
+
+type ComplianceAttackSurface struct {
+	// Type is the attack surface type classification.
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Ports lists the network ports involved in the attack surface.
+	Ports []int `json:"ports,omitempty" yaml:"ports,omitempty"`
+	// Services lists the services involved in the attack surface.
+	Services []string `json:"services,omitempty" yaml:"services,omitempty"`
+	// Vulnerabilities lists the vulnerabilities associated with the attack surface.
+	Vulnerabilities []string `json:"vulnerabilities,omitempty" yaml:"vulnerabilities,omitempty"`
+}
+    ComplianceAttackSurface represents attack surface information for red team
+    findings.
+
+type ComplianceControl struct {
+	// ID is the unique control identifier (e.g., "STIG-V-123456", "SANS-001").
+	ID string `json:"id,omitempty" yaml:"id,omitempty"`
+	// Status is the compliance evaluation result ("PASS", "FAIL", or "UNKNOWN").
+	// Derived from the Compliance map during export mapping.
+	Status string `json:"status" yaml:"status"`
+	// Title is the control title.
+	Title string `json:"title,omitempty" yaml:"title,omitempty"`
+	// Description is a detailed explanation of the control.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Category is the control's category classification.
+	Category string `json:"category,omitempty" yaml:"category,omitempty"`
+	// Severity is the severity level for violations of this control.
+	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Rationale explains why this control is important.
+	Rationale string `json:"rationale,omitempty" yaml:"rationale,omitempty"`
+	// Remediation describes how to achieve compliance with this control.
+	Remediation string `json:"remediation,omitempty" yaml:"remediation,omitempty"`
+	// References lists related documentation links (e.g., NIST, CIS URLs).
+	References []string `json:"references,omitempty" yaml:"references,omitempty"`
+	// Tags lists classification tags for the control.
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	// Metadata contains arbitrary key-value metadata about the control.
+	Metadata map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+    ComplianceControl represents a single compliance control definition from a
+    plugin.
+
+type ComplianceFinding struct {
+	// Type is the finding category (e.g., "compliance").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Title is a brief description of the finding.
+	Title string `json:"title,omitempty" yaml:"title,omitempty"`
+	// Description is a detailed explanation of the finding.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+	// Component is the affected configuration component.
+	Component string `json:"component,omitempty" yaml:"component,omitempty"`
+	// References lists related control IDs (e.g., "STIG-V-123456").
+	References []string `json:"references,omitempty" yaml:"references,omitempty"`
+	// Reference provides additional information or documentation links.
+	Reference string `json:"reference,omitempty" yaml:"reference,omitempty"`
+	// Tags contains classification labels for the finding.
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	// Metadata contains arbitrary key-value pairs for additional context.
+	Metadata map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	// AttackSurface contains attack surface information for red team findings.
+	AttackSurface *ComplianceAttackSurface `json:"attackSurface,omitempty" yaml:"attackSurface,omitempty"`
+	// ExploitNotes contains exploitation notes for red team findings.
+	ExploitNotes string `json:"exploitNotes,omitempty" yaml:"exploitNotes,omitempty"`
+	// Control identifies the compliance control this finding relates to.
+	Control string `json:"control,omitempty" yaml:"control,omitempty"`
+}
+    ComplianceFinding represents an individual compliance finding from an audit
+    plugin.
+
+type CompliancePluginInfo struct {
+	// Name is the plugin name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Version is the plugin version string.
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	// Description is a brief description of the plugin's purpose.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    CompliancePluginInfo contains metadata about an audit plugin.
+
+type ComplianceResultSummary struct {
+	// TotalFindings is the total number of findings.
+	TotalFindings int `json:"totalFindings" yaml:"totalFindings,omitempty"`
+	// CriticalFindings is the number of critical-severity findings.
+	CriticalFindings int `json:"criticalFindings" yaml:"criticalFindings,omitempty"`
+	// HighFindings is the number of high-severity findings.
+	HighFindings int `json:"highFindings" yaml:"highFindings,omitempty"`
+	// MediumFindings is the number of medium-severity findings.
+	MediumFindings int `json:"mediumFindings" yaml:"mediumFindings,omitempty"`
+	// LowFindings is the number of low-severity findings.
+	LowFindings int `json:"lowFindings" yaml:"lowFindings,omitempty"`
+	// InfoFindings is the number of informational findings.
+	InfoFindings int `json:"infoFindings" yaml:"infoFindings,omitempty"`
+	// PluginCount is the number of plugins that contributed results.
+	PluginCount int `json:"pluginCount" yaml:"pluginCount,omitempty"`
+	// Compliant is the number of controls that passed.
+	Compliant int `json:"compliant" yaml:"compliant,omitempty"`
+	// NonCompliant is the number of controls that failed.
+	NonCompliant int `json:"nonCompliant" yaml:"nonCompliant,omitempty"`
+}
+    ComplianceResultSummary contains aggregate counts for compliance audit
+    results.
+
+type ComplianceResults struct {
+	// Mode is the audit report mode (e.g., "blue", "red").
+	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Findings contains top-level security analysis findings (distinct from per-plugin findings in PluginResults).
+	Findings []ComplianceFinding `json:"findings,omitempty" yaml:"findings,omitempty"`
+	// PluginResults contains per-plugin compliance results keyed by plugin name.
+	PluginResults map[string]PluginComplianceResult `json:"pluginResults,omitempty" yaml:"pluginResults,omitempty"`
+	// Summary contains the top-level aggregate summary across all plugins.
+	Summary *ComplianceResultSummary `json:"summary,omitempty" yaml:"summary,omitempty"`
+	// Metadata contains arbitrary audit metadata.
+	Metadata map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+    ComplianceResults contains the full results of a compliance audit run,
+    including per-plugin findings, controls, and summary statistics.
+
+func (r ComplianceResults) HasData() bool
+    HasData reports whether the compliance results contain meaningful data.
+
+type ConsistencyFinding struct {
+	// Component is the configuration component affected by the finding.
+	Component string `json:"component,omitempty" yaml:"component,omitempty"`
+	// Issue is a brief summary of the finding.
+	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Description is a detailed explanation of the finding.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    ConsistencyFinding represents a consistency finding.
+
+type ConversionWarning struct {
+	// Field is the dot-path of the problematic field (e.g., "FirewallRules[0].Type").
+	Field string
+	// Value provides context to identify the affected config element (e.g., rule UUID,
+	// gateway name, or certificate description). When the warning is about a missing or
+	// empty field, this contains a sibling identifier rather than the empty field itself.
+	// A few warnings instead store the raw input that triggered them (for example, the
+	// multi-pool Kea warning stores the full newline-separated pool string), so
+	// consumers should not assume Value is always a short identifier.
+	Value string
+	// Message is a human-readable description of the issue.
+	Message string
+	// Severity indicates the importance of the warning. See the Severity
+	// constants for guidance on when to use each level.
+	Severity Severity
+}
+    ConversionWarning represents a non-fatal issue encountered while
+    converting a platform-specific configuration (OPNsense, pfSense) into the
+    platform-agnostic CommonDevice model. Warnings never prevent conversion
+    from completing; they signal data-quality issues (unrecognized enum values,
+    truncated collections, orphan references, missing optional fields) that
+    consumers may want to surface in reports, logs, or UI.
+
+    Consumers receive warnings as a slice alongside the converted device:
+
+        device, warnings, err := opnsense.ConvertDocument(doc)
+        if err != nil {
+            return err
+        }
+        for _, w := range warnings {
+            log.Printf("[%s] %s: %s (value=%q)", w.Severity, w.Field, w.Message, w.Value)
+        }
+
+    The order of warnings reflects the order in which the converter encountered
+    them and is stable across runs for a given input, but is otherwise
+    unspecified. Consumers should not rely on warnings being grouped by field or
+    severity.
+
+type CronConfig struct {
+	// Jobs contains cron job identifiers.
+	Jobs string `json:"jobs,omitempty" yaml:"jobs,omitempty"`
+}
+    CronConfig contains scheduled task (cron) configuration.
+
+type DHCPAdvancedV4 struct {
+
+	// AliasAddress is an additional IP alias for the DHCP server interface.
+	AliasAddress string `json:"aliasAddress,omitempty" yaml:"aliasAddress,omitempty"`
+	// AliasSubnet is the subnet mask for the alias address.
+	AliasSubnet string `json:"aliasSubnet,omitempty" yaml:"aliasSubnet,omitempty"`
+	// DHCPRejectFrom is a comma-separated list of MAC addresses to reject.
+	DHCPRejectFrom string `json:"dhcpRejectFrom,omitempty" yaml:"dhcpRejectFrom,omitempty"`
+
+	// AdvDHCPPTTimeout is the protocol timeout for DHCP client requests.
+	AdvDHCPPTTimeout string `json:"advDhcpPtTimeout,omitempty" yaml:"advDhcpPtTimeout,omitempty"`
+	// AdvDHCPPTRetry is the retry interval for DHCP client requests.
+	AdvDHCPPTRetry string `json:"advDhcpPtRetry,omitempty" yaml:"advDhcpPtRetry,omitempty"`
+	// AdvDHCPPTSelectTimeout is the timeout for selecting a DHCP offer.
+	AdvDHCPPTSelectTimeout string `json:"advDhcpPtSelectTimeout,omitempty" yaml:"advDhcpPtSelectTimeout,omitempty"`
+	// AdvDHCPPTReboot is the time to wait before rebooting the DHCP client.
+	AdvDHCPPTReboot string `json:"advDhcpPtReboot,omitempty" yaml:"advDhcpPtReboot,omitempty"`
+	// AdvDHCPPTBackoffCutoff is the maximum backoff time for DHCP retries.
+	AdvDHCPPTBackoffCutoff string `json:"advDhcpPtBackoffCutoff,omitempty" yaml:"advDhcpPtBackoffCutoff,omitempty"`
+	// AdvDHCPPTInitialInterval is the initial retry interval for DHCP requests.
+	AdvDHCPPTInitialInterval string `json:"advDhcpPtInitialInterval,omitempty" yaml:"advDhcpPtInitialInterval,omitempty"`
+	// AdvDHCPPTValues contains additional protocol timing values.
+	AdvDHCPPTValues string `json:"advDhcpPtValues,omitempty" yaml:"advDhcpPtValues,omitempty"`
+
+	// AdvDHCPSendOptions specifies additional DHCP options to send.
+	AdvDHCPSendOptions string `json:"advDhcpSendOptions,omitempty" yaml:"advDhcpSendOptions,omitempty"`
+	// AdvDHCPRequestOptions specifies additional DHCP options to request.
+	AdvDHCPRequestOptions string `json:"advDhcpRequestOptions,omitempty" yaml:"advDhcpRequestOptions,omitempty"`
+	// AdvDHCPRequiredOptions specifies DHCP options that must be present.
+	AdvDHCPRequiredOptions string `json:"advDhcpRequiredOptions,omitempty" yaml:"advDhcpRequiredOptions,omitempty"`
+	// AdvDHCPOptionModifiers contains DHCP option modifier expressions.
+	AdvDHCPOptionModifiers string `json:"advDhcpOptionModifiers,omitempty" yaml:"advDhcpOptionModifiers,omitempty"`
+
+	// AdvDHCPConfigAdvanced contains raw advanced DHCP configuration text.
+	AdvDHCPConfigAdvanced string `json:"advDhcpConfigAdvanced,omitempty" yaml:"advDhcpConfigAdvanced,omitempty"`
+	// AdvDHCPConfigFileOverride enables overriding the DHCP config file.
+	AdvDHCPConfigFileOverride string `json:"advDhcpConfigFileOverride,omitempty" yaml:"advDhcpConfigFileOverride,omitempty"`
+	// AdvDHCPConfigFileOverridePath is the filesystem path for the DHCP config override file.
+	AdvDHCPConfigFileOverridePath string `json:"advDhcpConfigFileOverridePath,omitempty" yaml:"advDhcpConfigFileOverridePath,omitempty"`
+}
+    DHCPAdvancedV4 contains advanced DHCPv4 configuration fields including
+    alias/reject, DNS overrides, protocol timing, send/request/required options,
+    and config overrides.
+
+type DHCPAdvancedV6 struct {
+
+	// Track6Interface is the upstream interface used for IPv6 prefix tracking.
+	Track6Interface string `json:"track6Interface,omitempty" yaml:"track6Interface,omitempty"`
+	// Track6PrefixID is the prefix delegation ID for IPv6 tracking.
+	Track6PrefixID string `json:"track6PrefixId,omitempty" yaml:"track6PrefixId,omitempty"`
+
+	// AdvDHCP6InterfaceStatementSendOptions specifies DHCPv6 options to send.
+	AdvDHCP6InterfaceStatementSendOptions string `json:"advDhcp6InterfaceStatementSendOptions,omitempty" yaml:"advDhcp6InterfaceStatementSendOptions,omitempty"`
+	// AdvDHCP6InterfaceStatementRequestOptions specifies DHCPv6 options to request.
+	AdvDHCP6InterfaceStatementRequestOptions string `json:"advDhcp6InterfaceStatementRequestOptions,omitempty" yaml:"advDhcp6InterfaceStatementRequestOptions,omitempty"`
+	// AdvDHCP6InterfaceStatementInformationOnlyEnable enables information-only mode.
+	AdvDHCP6InterfaceStatementInformationOnlyEnable string `json:"advDhcp6InterfaceStatementInformationOnlyEnable,omitempty" yaml:"advDhcp6InterfaceStatementInformationOnlyEnable,omitempty"`
+	// AdvDHCP6InterfaceStatementScript is the script path for DHCPv6 events.
+	AdvDHCP6InterfaceStatementScript string `json:"advDhcp6InterfaceStatementScript,omitempty" yaml:"advDhcp6InterfaceStatementScript,omitempty"`
+
+	// AdvDHCP6IDAssocStatementAddressEnable enables IA_NA address assignment.
+	AdvDHCP6IDAssocStatementAddressEnable string `json:"advDhcp6IdAssocStatementAddressEnable,omitempty" yaml:"advDhcp6IdAssocStatementAddressEnable,omitempty"`
+	// AdvDHCP6IDAssocStatementAddress is the requested IA_NA address.
+	AdvDHCP6IDAssocStatementAddress string `json:"advDhcp6IdAssocStatementAddress,omitempty" yaml:"advDhcp6IdAssocStatementAddress,omitempty"`
+	// AdvDHCP6IDAssocStatementAddressID is the identity association ID for addresses.
+	AdvDHCP6IDAssocStatementAddressID string `json:"advDhcp6IdAssocStatementAddressId,omitempty" yaml:"advDhcp6IdAssocStatementAddressId,omitempty"`
+	// AdvDHCP6IDAssocStatementAddressPLTime is the preferred lifetime for IA_NA addresses.
+	AdvDHCP6IDAssocStatementAddressPLTime string `json:"advDhcp6IdAssocStatementAddressPlTime,omitempty" yaml:"advDhcp6IdAssocStatementAddressPlTime,omitempty"`
+	// AdvDHCP6IDAssocStatementAddressVLTime is the valid lifetime for IA_NA addresses.
+	AdvDHCP6IDAssocStatementAddressVLTime string `json:"advDhcp6IdAssocStatementAddressVlTime,omitempty" yaml:"advDhcp6IdAssocStatementAddressVlTime,omitempty"`
+
+	// AdvDHCP6IDAssocStatementPrefixEnable enables IA_PD prefix delegation.
+	AdvDHCP6IDAssocStatementPrefixEnable string `json:"advDhcp6IdAssocStatementPrefixEnable,omitempty" yaml:"advDhcp6IdAssocStatementPrefixEnable,omitempty"`
+	// AdvDHCP6IDAssocStatementPrefix is the requested IA_PD prefix.
+	AdvDHCP6IDAssocStatementPrefix string `json:"advDhcp6IdAssocStatementPrefix,omitempty" yaml:"advDhcp6IdAssocStatementPrefix,omitempty"`
+	// AdvDHCP6IDAssocStatementPrefixID is the identity association ID for prefixes.
+	AdvDHCP6IDAssocStatementPrefixID string `json:"advDhcp6IdAssocStatementPrefixId,omitempty" yaml:"advDhcp6IdAssocStatementPrefixId,omitempty"`
+	// AdvDHCP6IDAssocStatementPrefixPLTime is the preferred lifetime for IA_PD prefixes.
+	AdvDHCP6IDAssocStatementPrefixPLTime string `json:"advDhcp6IdAssocStatementPrefixPlTime,omitempty" yaml:"advDhcp6IdAssocStatementPrefixPlTime,omitempty"`
+	// AdvDHCP6IDAssocStatementPrefixVLTime is the valid lifetime for IA_PD prefixes.
+	AdvDHCP6IDAssocStatementPrefixVLTime string `json:"advDhcp6IdAssocStatementPrefixVlTime,omitempty" yaml:"advDhcp6IdAssocStatementPrefixVlTime,omitempty"`
+
+	// AdvDHCP6PrefixInterfaceStatementSLALen is the SLA prefix length for interface delegation.
+	AdvDHCP6PrefixInterfaceStatementSLALen string `json:"advDhcp6PrefixInterfaceStatementSlaLen,omitempty" yaml:"advDhcp6PrefixInterfaceStatementSlaLen,omitempty"`
+
+	// AdvDHCP6AuthenticationStatementAuthName is the authentication profile name.
+	AdvDHCP6AuthenticationStatementAuthName string `json:"advDhcp6AuthenticationStatementAuthName,omitempty" yaml:"advDhcp6AuthenticationStatementAuthName,omitempty"`
+	// AdvDHCP6AuthenticationStatementProtocol is the authentication protocol.
+	AdvDHCP6AuthenticationStatementProtocol string `json:"advDhcp6AuthenticationStatementProtocol,omitempty" yaml:"advDhcp6AuthenticationStatementProtocol,omitempty"`
+	// AdvDHCP6AuthenticationStatementAlgorithm is the authentication algorithm.
+	AdvDHCP6AuthenticationStatementAlgorithm string `json:"advDhcp6AuthenticationStatementAlgorithm,omitempty" yaml:"advDhcp6AuthenticationStatementAlgorithm,omitempty"`
+	// AdvDHCP6AuthenticationStatementRDM is the replay detection method.
+	AdvDHCP6AuthenticationStatementRDM string `json:"advDhcp6AuthenticationStatementRdm,omitempty" yaml:"advDhcp6AuthenticationStatementRdm,omitempty"`
+
+	// AdvDHCP6KeyInfoStatementKeyName is the key name for DHCPv6 authentication.
+	AdvDHCP6KeyInfoStatementKeyName string `json:"advDhcp6KeyInfoStatementKeyName,omitempty" yaml:"advDhcp6KeyInfoStatementKeyName,omitempty"`
+	// AdvDHCP6KeyInfoStatementRealm is the authentication realm.
+	AdvDHCP6KeyInfoStatementRealm string `json:"advDhcp6KeyInfoStatementRealm,omitempty" yaml:"advDhcp6KeyInfoStatementRealm,omitempty"`
+	// AdvDHCP6KeyInfoStatementKeyID is the key identifier.
+	AdvDHCP6KeyInfoStatementKeyID string `json:"advDhcp6KeyInfoStatementKeyId,omitempty" yaml:"advDhcp6KeyInfoStatementKeyId,omitempty"`
+	// AdvDHCP6KeyInfoStatementSecret is the shared secret for DHCPv6 authentication.
+	AdvDHCP6KeyInfoStatementSecret string `json:"advDhcp6KeyInfoStatementSecret,omitempty" yaml:"advDhcp6KeyInfoStatementSecret,omitempty"`
+	// AdvDHCP6KeyInfoStatementExpire is the key expiration time.
+	AdvDHCP6KeyInfoStatementExpire string `json:"advDhcp6KeyInfoStatementExpire,omitempty" yaml:"advDhcp6KeyInfoStatementExpire,omitempty"`
+
+	// AdvDHCP6ConfigAdvanced contains raw advanced DHCPv6 configuration text.
+	AdvDHCP6ConfigAdvanced string `json:"advDhcp6ConfigAdvanced,omitempty" yaml:"advDhcp6ConfigAdvanced,omitempty"`
+	// AdvDHCP6ConfigFileOverride enables overriding the DHCPv6 config file.
+	AdvDHCP6ConfigFileOverride string `json:"advDhcp6ConfigFileOverride,omitempty" yaml:"advDhcp6ConfigFileOverride,omitempty"`
+	// AdvDHCP6ConfigFileOverridePath is the filesystem path for the DHCPv6 config override file.
+	AdvDHCP6ConfigFileOverridePath string `json:"advDhcp6ConfigFileOverridePath,omitempty" yaml:"advDhcp6ConfigFileOverridePath,omitempty"`
+}
+    DHCPAdvancedV6 contains advanced DHCPv6 configuration fields including
+    tracking, interface statement, identity association, authentication,
+    key info, and config overrides.
+
+type DHCPNumberOption struct {
+	// Number is the DHCP option number.
+	Number string `json:"number,omitempty" yaml:"number,omitempty"`
+	// Type is the option value type (e.g., "text", "string", "boolean").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Value is the option value.
+	Value string `json:"value,omitempty" yaml:"value,omitempty"`
+}
+    DHCPNumberOption represents a custom DHCP number option.
+
+type DHCPRange struct {
+	// From is the first IP address in the DHCP pool.
+	From string `json:"from,omitempty" yaml:"from,omitempty"`
+	// To is the last IP address in the DHCP pool.
+	To string `json:"to,omitempty" yaml:"to,omitempty"`
+}
+    DHCPRange represents the start and end of a DHCP address range.
+
+type DHCPScope struct {
+	// Interface is the logical interface name this DHCP scope is bound to.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Source identifies which DHCP server produced this scope ("isc" or "kea").
+	// Empty string is treated as "isc" for backward compatibility.
+	Source DHCPSource `json:"source,omitempty" yaml:"source,omitempty"`
+	// Description is a human-readable label for the scope (Kea subnets have descriptions; ISC scopes use the interface name).
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Enabled indicates whether the DHCP server is active on this interface.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Range defines the start and end of the DHCP address pool.
+	Range DHCPRange `json:"range" yaml:"range,omitempty"`
+	// Gateway is the default gateway advertised to DHCP clients.
+	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
+	// DNSServer is the DNS server advertised to DHCP clients.
+	DNSServer string `json:"dnsServer,omitempty" yaml:"dnsServer,omitempty"`
+	// NTPServer is the NTP server advertised to DHCP clients.
+	NTPServer string `json:"ntpServer,omitempty" yaml:"ntpServer,omitempty"`
+	// WINSServer is the WINS/NetBIOS name server advertised to DHCP clients.
+	WINSServer string `json:"winsServer,omitempty" yaml:"winsServer,omitempty"`
+	// StaticLeases contains fixed MAC-to-IP address mappings.
+	StaticLeases []DHCPStaticLease `json:"staticLeases,omitempty" yaml:"staticLeases,omitempty"`
+	// NumberOptions contains custom DHCP number options.
+	NumberOptions []DHCPNumberOption `json:"numberOptions,omitempty" yaml:"numberOptions,omitempty"`
+
+	// AdvancedV4 contains advanced DHCPv4 configuration (alias, timing, options, overrides).
+	// Nil when no advanced DHCPv4 config is present.
+	AdvancedV4 *DHCPAdvancedV4 `json:"advancedV4,omitempty" yaml:"advancedV4,omitempty"`
+	// AdvancedV6 contains advanced DHCPv6 configuration (tracking, identity association, auth, overrides).
+	// Nil when no advanced DHCPv6 config is present.
+	AdvancedV6 *DHCPAdvancedV6 `json:"advancedV6,omitempty" yaml:"advancedV6,omitempty"`
+}
+    DHCPScope represents DHCP server configuration for a single interface or
+    subnet.
+
+type DHCPScopeStatistics struct {
+	// Interface is the interface this DHCP scope is bound to.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Enabled indicates the DHCP scope is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// From is the start of the DHCP address range.
+	From string `json:"from,omitempty" yaml:"from,omitempty"`
+	// To is the end of the DHCP address range.
+	To string `json:"to,omitempty" yaml:"to,omitempty"`
+}
+    DHCPScopeStatistics contains statistics for a DHCP scope.
+
+type DHCPSource string
+    DHCPSource identifies the DHCP server that produced a scope.
+
+const (
+	// DHCPSourceISC indicates an ISC DHCP scope.
+	DHCPSourceISC DHCPSource = "isc"
+	// DHCPSourceKea indicates a Kea DHCP4 scope.
+	DHCPSourceKea DHCPSource = "kea"
+)
+type DHCPStaticLease struct {
+	// MAC is the hardware MAC address for the static lease.
+	MAC string `json:"mac,omitempty" yaml:"mac,omitempty"`
+	// CID is the DHCP client identifier.
+	CID string `json:"cid,omitempty" yaml:"cid,omitempty"`
+	// IPAddress is the fixed IP address assigned to the client.
+	IPAddress string `json:"ipAddress,omitempty" yaml:"ipAddress,omitempty"`
+	// Hostname is the hostname assigned to the client.
+	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
+	// Description is a human-readable description of the static lease.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Filename is the TFTP boot filename for network boot clients.
+	Filename string `json:"filename,omitempty" yaml:"filename,omitempty"`
+	// Rootpath is the NFS root path for network boot clients.
+	Rootpath string `json:"rootpath,omitempty" yaml:"rootpath,omitempty"`
+	// DefaultLeaseTime is the default lease duration in seconds.
+	DefaultLeaseTime string `json:"defaultLeaseTime,omitempty" yaml:"defaultLeaseTime,omitempty"`
+	// MaxLeaseTime is the maximum lease duration in seconds.
+	MaxLeaseTime string `json:"maxLeaseTime,omitempty" yaml:"maxLeaseTime,omitempty"`
+}
+    DHCPStaticLease represents a static DHCP lease mapping.
+
+type DNSConfig struct {
+	// Servers contains DNS server addresses.
+	Servers []string `json:"servers,omitempty" yaml:"servers,omitempty"`
+	// Unbound contains Unbound DNS resolver configuration.
+	Unbound UnboundConfig `json:"unbound" yaml:"unbound,omitempty"`
+	// DNSMasq contains dnsmasq forwarder configuration.
+	DNSMasq DNSMasqConfig `json:"dnsMasq" yaml:"dnsMasq,omitempty"`
+}
+    DNSConfig contains aggregated DNS configuration.
+
+type DNSMasqConfig struct {
+	// Enabled indicates whether the dnsmasq forwarder is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Hosts contains static DNS host entries.
+	Hosts []DNSMasqHost `json:"hosts,omitempty" yaml:"hosts,omitempty"`
+	// DomainOverrides contains DNS domain override entries.
+	DomainOverrides []DomainOverride `json:"domainOverrides,omitempty" yaml:"domainOverrides,omitempty"`
+	// Forwarders contains DNS forwarding server configurations.
+	Forwarders []ForwarderGroup `json:"forwarders,omitempty" yaml:"forwarders,omitempty"`
+}
+    DNSMasqConfig contains dnsmasq forwarder configuration.
+
+type DNSMasqHost struct {
+	// Host is the hostname for the DNS entry.
+	Host string `json:"host,omitempty" yaml:"host,omitempty"`
+	// Domain is the domain name for the DNS entry.
+	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
+	// IP is the IP address the hostname resolves to.
+	IP string `json:"ip,omitempty" yaml:"ip,omitempty"`
+	// Description is a human-readable description of the host entry.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Aliases contains additional hostnames that resolve to the same IP.
+	Aliases []string `json:"aliases,omitempty" yaml:"aliases,omitempty"`
+}
+    DNSMasqHost represents a static DNS host entry.
+
+type DeadRuleFinding struct {
+	// Kind classifies the dead rule reason (e.g., "unreachable", "duplicate").
+	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
+	// RuleIndex is the position of the dead rule in the filter rule list.
+	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`
+	// Interface is the interface the dead rule is bound to.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Description is a summary of why the rule is considered dead.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    DeadRuleFinding represents a dead rule finding.
+
+type DeviceType string
+    DeviceType identifies the platform that produced a configuration.
+
+const (
+	// DeviceTypeOPNsense represents an OPNsense device.
+	DeviceTypeOPNsense DeviceType = "opnsense"
+	// DeviceTypePfSense represents a pfSense device.
+	DeviceTypePfSense DeviceType = "pfsense"
+	// DeviceTypeUnknown represents an unrecognized device type.
+	DeviceTypeUnknown DeviceType = ""
+)
+    Recognized device type constants used to identify the platform that produced
+    a configuration.
+
+func ParseDeviceType(s string) DeviceType
+    ParseDeviceType normalizes a raw string into a recognized DeviceType.
+    Unrecognized values return DeviceTypeUnknown.
+
+func (d DeviceType) DisplayName() string
+    DisplayName returns the human-readable, properly-cased platform name for use
+    in report titles and UI labels (e.g. "OPNsense", "pfSense"). Unrecognized or
+    empty values return "Device" as a generic fallback.
+
+func (d DeviceType) IsValid() bool
+    IsValid reports whether d is a recognized, non-empty device type.
+
+func (d DeviceType) String() string
+    String returns the string representation of the DeviceType.
+
+type DomainOverride struct {
+	// Domain is the domain name to override.
+	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
+	// IP is the DNS server address for the overridden domain.
+	IP string `json:"ip,omitempty" yaml:"ip,omitempty"`
+	// Description is a human-readable description of the override.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    DomainOverride represents a DNS domain override entry.
+
+type FindingSeverity = Severity
+    FindingSeverity is an alias for Severity, kept for backward compatibility in
+    tests.
+
+    Deprecated: Use Severity directly.
+
+type FirewallDirection string
+    FirewallDirection represents the traffic direction a firewall rule applies
+    to.
+
+const (
+	// DirectionIn matches inbound traffic.
+	DirectionIn FirewallDirection = "in"
+	// DirectionOut matches outbound traffic.
+	DirectionOut FirewallDirection = "out"
+	// DirectionAny matches traffic in either direction.
+	DirectionAny FirewallDirection = "any"
+)
+func (d FirewallDirection) IsValid() bool
+    IsValid reports whether d is a recognized firewall direction.
+
+type FirewallRule struct {
+	// UUID is the unique identifier for the rule.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Type is the rule action (pass, block, or reject).
+	Type FirewallRuleType `json:"type,omitempty" yaml:"type,omitempty"`
+	// Description is a human-readable description of the rule.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Interfaces lists the interface names this rule applies to.
+	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// IPProtocol is the IP address family (inet or inet6).
+	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// StateType is the state tracking type (e.g., "keep state", "sloppy state").
+	StateType string `json:"stateType,omitempty" yaml:"stateType,omitempty"`
+	// Direction is the traffic direction (in, out, or any).
+	Direction FirewallDirection `json:"direction,omitempty" yaml:"direction,omitempty"`
+	// Floating indicates this is a floating rule not bound to a specific interface.
+	Floating bool `json:"floating,omitempty" yaml:"floating,omitempty"`
+	// Quick indicates the rule uses quick matching (first match wins).
+	Quick bool `json:"quick,omitempty" yaml:"quick,omitempty"`
+	// Protocol is the layer-4 protocol (e.g., "tcp", "udp", "icmp").
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+
+	// Source is the normalized source endpoint for the rule.
+	Source RuleEndpoint `json:"source" yaml:"source,omitempty"`
+	// Destination is the normalized destination endpoint for the rule.
+	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
+
+	// Target is the redirect target for NAT-associated rules.
+	Target string `json:"target,omitempty" yaml:"target,omitempty"`
+	// Gateway is the policy-based routing gateway for the rule.
+	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
+
+	// Log indicates whether matched packets are logged.
+	Log bool `json:"log,omitempty" yaml:"log,omitempty"`
+	// Disabled indicates the rule is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+
+	// Tracker is the unique tracking identifier assigned by the firewall.
+	Tracker string `json:"tracker,omitempty" yaml:"tracker,omitempty"`
+	// MaxSrcNodes is the maximum number of source hosts allowed per rule.
+	MaxSrcNodes string `json:"maxSrcNodes,omitempty" yaml:"maxSrcNodes,omitempty"`
+	// MaxSrcConn is the maximum number of simultaneous connections per source.
+	MaxSrcConn string `json:"maxSrcConn,omitempty" yaml:"maxSrcConn,omitempty"`
+	// MaxSrcConnRate is the maximum new connection rate per source (e.g., "15/5").
+	MaxSrcConnRate string `json:"maxSrcConnRate,omitempty" yaml:"maxSrcConnRate,omitempty"`
+	// MaxSrcConnRates is the rate-limit action interval.
+	MaxSrcConnRates string `json:"maxSrcConnRates,omitempty" yaml:"maxSrcConnRates,omitempty"`
+	// TCPFlags1 is the first set of TCP flags to match.
+	TCPFlags1 string `json:"tcpFlags1,omitempty" yaml:"tcpFlags1,omitempty"`
+	// TCPFlags2 is the second set of TCP flags to match (out-of mask).
+	TCPFlags2 string `json:"tcpFlags2,omitempty" yaml:"tcpFlags2,omitempty"`
+	// TCPFlagsAny enables matching any TCP flag combination.
+	TCPFlagsAny bool `json:"tcpFlagsAny,omitempty" yaml:"tcpFlagsAny,omitempty"`
+	// ICMPType is the ICMP type to match for IPv4 rules.
+	ICMPType string `json:"icmpType,omitempty" yaml:"icmpType,omitempty"`
+	// ICMP6Type is the ICMPv6 type to match for IPv6 rules.
+	ICMP6Type string `json:"icmp6Type,omitempty" yaml:"icmp6Type,omitempty"`
+	// StateTimeout is the custom state timeout in seconds.
+	StateTimeout string `json:"stateTimeout,omitempty" yaml:"stateTimeout,omitempty"`
+	// AllowOpts permits IP options to pass through the rule.
+	AllowOpts bool `json:"allowOpts,omitempty" yaml:"allowOpts,omitempty"`
+	// DisableReplyTo disables automatic reply-to routing for the rule.
+	DisableReplyTo bool `json:"disableReplyTo,omitempty" yaml:"disableReplyTo,omitempty"`
+	// NoPfSync excludes this rule's states from pfsync replication.
+	NoPfSync bool `json:"noPfSync,omitempty" yaml:"noPfSync,omitempty"`
+	// NoSync excludes the rule from XMLRPC config synchronization.
+	NoSync bool `json:"noSync,omitempty" yaml:"noSync,omitempty"`
+	// AssociatedRuleID links this rule to an automatically generated companion rule.
+	AssociatedRuleID string `json:"associatedRuleId,omitempty" yaml:"associatedRuleId,omitempty"`
+}
+    FirewallRule represents a normalized firewall filter rule.
+
+type FirewallRuleType string
+    FirewallRuleType represents the action taken by a firewall rule.
+
+const (
+	// RuleTypePass allows matching traffic to pass through.
+	RuleTypePass FirewallRuleType = "pass"
+	// RuleTypeBlock silently drops matching traffic.
+	RuleTypeBlock FirewallRuleType = "block"
+	// RuleTypeReject drops matching traffic and sends a rejection response.
+	RuleTypeReject FirewallRuleType = "reject"
+)
+func (t FirewallRuleType) IsValid() bool
+    IsValid reports whether t is a recognized firewall rule type.
+
+type Firmware struct {
+	// Version is the firmware version string.
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	// Mirror is the firmware update mirror URL.
+	Mirror string `json:"mirror,omitempty" yaml:"mirror,omitempty"`
+	// Flavour is the firmware flavour (e.g., "OpenSSL", "LibreSSL").
+	Flavour string `json:"flavour,omitempty" yaml:"flavour,omitempty"`
+	// Plugins is a comma-separated list of installed firmware plugins.
+	Plugins string `json:"plugins,omitempty" yaml:"plugins,omitempty"`
+}
+    Firmware contains firmware and update configuration.
+
+type ForwarderGroup struct {
+	// IP is the forwarder server IP address.
+	IP string `json:"ip,omitempty" yaml:"ip,omitempty"`
+	// Port is the forwarder server port.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// Description is a human-readable description of the forwarder.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    ForwarderGroup represents a DNS forwarding server.
+
+type GIF struct {
+	// Interface is the GIF tunnel interface name (e.g., "gif0").
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Local is the parent physical interface name (e.g., "wan").
+	Local string `json:"local,omitempty" yaml:"local,omitempty"`
+	// Remote is the remote outer endpoint address for the tunnel.
+	Remote string `json:"remote,omitempty" yaml:"remote,omitempty"`
+	// TunnelLocalAddress is the local inner tunnel address.
+	TunnelLocalAddress string `json:"tunnelLocalAddress,omitempty" yaml:"tunnelLocalAddress,omitempty"`
+	// TunnelRemoteAddress is the remote inner tunnel address.
+	TunnelRemoteAddress string `json:"tunnelRemoteAddress,omitempty" yaml:"tunnelRemoteAddress,omitempty"`
+	// TunnelSubnetBits is the tunnel subnet mask prefix length.
+	TunnelSubnetBits string `json:"tunnelSubnetBits,omitempty" yaml:"tunnelSubnetBits,omitempty"`
+	// Description is a human-readable description of the GIF tunnel.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Created is the timestamp when the GIF tunnel was created.
+	Created string `json:"created,omitempty" yaml:"created,omitempty"`
+	// Updated is the timestamp when the GIF tunnel was last modified.
+	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
+}
+    GIF represents a GIF (generic tunnel interface) tunnel configuration.
+
+type GRE struct {
+	// Interface is the GRE tunnel interface name (e.g., "gre0").
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Local is the parent physical interface name (e.g., "wan").
+	Local string `json:"local,omitempty" yaml:"local,omitempty"`
+	// Remote is the remote outer endpoint address for the tunnel.
+	Remote string `json:"remote,omitempty" yaml:"remote,omitempty"`
+	// TunnelLocalAddress is the local inner tunnel address.
+	TunnelLocalAddress string `json:"tunnelLocalAddress,omitempty" yaml:"tunnelLocalAddress,omitempty"`
+	// TunnelRemoteAddress is the remote inner tunnel address.
+	TunnelRemoteAddress string `json:"tunnelRemoteAddress,omitempty" yaml:"tunnelRemoteAddress,omitempty"`
+	// TunnelSubnetBits is the tunnel subnet mask prefix length.
+	TunnelSubnetBits string `json:"tunnelSubnetBits,omitempty" yaml:"tunnelSubnetBits,omitempty"`
+	// Description is a human-readable description of the GRE tunnel.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Created is the timestamp when the GRE tunnel was created.
+	Created string `json:"created,omitempty" yaml:"created,omitempty"`
+	// Updated is the timestamp when the GRE tunnel was last modified.
+	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
+}
+    GRE represents a GRE (Generic Routing Encapsulation) tunnel configuration.
+
+type Gateway struct {
+	// Interface is the interface the gateway is reachable through.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Address is the gateway IP address.
+	Address string `json:"address,omitempty" yaml:"address,omitempty"`
+	// Name is the gateway name used for reference in rules and routes.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Weight is the gateway priority weight for multi-WAN balancing.
+	Weight string `json:"weight,omitempty" yaml:"weight,omitempty"`
+	// IPProtocol is the IP address family (e.g., "inet", "inet6").
+	IPProtocol string `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// Interval is the monitoring probe interval in milliseconds.
+	Interval string `json:"interval,omitempty" yaml:"interval,omitempty"`
+	// Description is a human-readable description of the gateway.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Monitor is the IP address used for gateway health monitoring.
+	Monitor string `json:"monitor,omitempty" yaml:"monitor,omitempty"`
+	// Disabled indicates the gateway is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// DefaultGW marks this gateway as the default route.
+	DefaultGW string `json:"defaultGw,omitempty" yaml:"defaultGw,omitempty"`
+	// MonitorDisable disables gateway health monitoring.
+	MonitorDisable string `json:"monitorDisable,omitempty" yaml:"monitorDisable,omitempty"`
+	// FarGW indicates the gateway is on a different subnet than the interface.
+	FarGW bool `json:"farGw,omitempty" yaml:"farGw,omitempty"`
+}
+    Gateway represents a network gateway.
+
+type GatewayGroup struct {
+	// Name is the gateway group name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Items contains the member gateway entries with tier assignments.
+	Items []string `json:"items,omitempty" yaml:"items,omitempty"`
+	// Trigger is the condition that causes failover (e.g., "down", "highloss").
+	Trigger string `json:"trigger,omitempty" yaml:"trigger,omitempty"`
+	// Description is a human-readable description of the gateway group.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    GatewayGroup represents a group of gateways for failover or load balancing.
+
+type Group struct {
+	// Name is the group name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Description is a human-readable description of the group.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Scope is the group scope (e.g., "system", "local").
+	Scope string `json:"scope,omitempty" yaml:"scope,omitempty"`
+	// GID is the numeric group identifier.
+	GID string `json:"gid,omitempty" yaml:"gid,omitempty"`
+	// Member is a comma-separated list of user UIDs belonging to this group.
+	Member string `json:"member,omitempty" yaml:"member,omitempty"`
+	// Privileges is a comma-separated list of privileges assigned to the group.
+	Privileges string `json:"privileges,omitempty" yaml:"privileges,omitempty"`
+}
+    Group represents a system group.
+
+type HighAvailability struct {
+	// DisablePreempt disables CARP preemption (higher-priority node reclaiming master role).
+	DisablePreempt bool `json:"disablePreempt,omitempty" yaml:"disablePreempt,omitempty"`
+	// DisconnectPPPs disconnects PPP connections on CARP failover.
+	DisconnectPPPs bool `json:"disconnectPpps,omitempty" yaml:"disconnectPpps,omitempty"`
+	// PfsyncInterface is the interface used for pfsync state synchronization.
+	PfsyncInterface string `json:"pfsyncInterface,omitempty" yaml:"pfsyncInterface,omitempty"`
+	// PfsyncPeerIP is the IP address of the pfsync peer for state replication.
+	PfsyncPeerIP string `json:"pfsyncPeerIp,omitempty" yaml:"pfsyncPeerIp,omitempty"`
+	// PfsyncVersion is the pfsync protocol version.
+	PfsyncVersion string `json:"pfsyncVersion,omitempty" yaml:"pfsyncVersion,omitempty"`
+	// SynchronizeToIP is the IP address of the peer to synchronize configuration to.
+	SynchronizeToIP string `json:"synchronizeToIp,omitempty" yaml:"synchronizeToIp,omitempty"`
+	// Username is the username for XMLRPC configuration synchronization.
+	Username string `json:"username,omitempty" yaml:"username,omitempty"`
+
+	Password string `json:"password,omitempty" yaml:"password,omitempty"`
+	// SyncItems contains the configuration sections to synchronize.
+	SyncItems []string `json:"syncItems,omitempty" yaml:"syncItems,omitempty"`
+}
+    HighAvailability contains CARP/pfsync high-availability configuration.
+
+type IDSConfig struct {
+	// Enabled indicates whether the IDS/IPS engine is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// IPSMode indicates inline IPS (prevention) mode is active rather than passive IDS.
+	IPSMode bool `json:"ipsMode,omitempty" yaml:"ipsMode,omitempty"`
+	// Promiscuous enables promiscuous mode on monitored interfaces.
+	Promiscuous bool `json:"promiscuous,omitempty" yaml:"promiscuous,omitempty"`
+	// Interfaces lists the interface names being monitored.
+	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// HomeNetworks contains CIDR ranges defining the protected network.
+	HomeNetworks []string `json:"homeNetworks,omitempty" yaml:"homeNetworks,omitempty"`
+	// Detect contains detection profile settings.
+	Detect IDSDetect `json:"detect" yaml:"detect,omitempty"`
+	// MPMAlgo is the multi-pattern matching algorithm (e.g., "auto", "hs", "ac").
+	MPMAlgo string `json:"mpmAlgo,omitempty" yaml:"mpmAlgo,omitempty"`
+	// DefaultPacketSize is the default packet size for stream reassembly.
+	DefaultPacketSize string `json:"defaultPacketSize,omitempty" yaml:"defaultPacketSize,omitempty"`
+	// SyslogEnabled enables logging to syslog.
+	SyslogEnabled bool `json:"syslogEnabled,omitempty" yaml:"syslogEnabled,omitempty"`
+	// SyslogEveEnabled enables EVE JSON logging to syslog.
+	SyslogEveEnabled bool `json:"syslogEveEnabled,omitempty" yaml:"syslogEveEnabled,omitempty"`
+	// LogPayload enables logging of packet payload data.
+	LogPayload string `json:"logPayload,omitempty" yaml:"logPayload,omitempty"`
+	// Verbosity is the engine logging verbosity level.
+	Verbosity string `json:"verbosity,omitempty" yaml:"verbosity,omitempty"`
+	// AlertLogrotate is the number of alert log files to keep.
+	AlertLogrotate string `json:"alertLogrotate,omitempty" yaml:"alertLogrotate,omitempty"`
+	// AlertSaveLogs is the number of days to retain alert logs.
+	AlertSaveLogs string `json:"alertSaveLogs,omitempty" yaml:"alertSaveLogs,omitempty"`
+	// UpdateCron is the cron expression for automatic rule updates.
+	UpdateCron string `json:"updateCron,omitempty" yaml:"updateCron,omitempty"`
+}
+    IDSConfig contains intrusion detection/prevention (Suricata) configuration.
+
+type IDSDetect struct {
+	// Profile is the detection profile (e.g., "medium", "high", "custom").
+	Profile string `json:"profile,omitempty" yaml:"profile,omitempty"`
+	// ToclientGroups contains rule groups applied to client-bound traffic.
+	ToclientGroups string `json:"toclientGroups,omitempty" yaml:"toclientGroups,omitempty"`
+	// ToserverGroups contains rule groups applied to server-bound traffic.
+	ToserverGroups string `json:"toserverGroups,omitempty" yaml:"toserverGroups,omitempty"`
+}
+    IDSDetect contains IDS detection profile settings.
+
+type IPProtocol string
+    IPProtocol is the shared firewall-rule IP-protocol enum across device types.
+
+    Consumers writing switch statements on IPProtocol for OPNsense-only contexts
+    should be aware that IPProtocolInet46 is pfSense-specific (a single rule
+    that matches both IPv4 and IPv6). OPNsense does not emit this value — if
+    it appears on an OPNsense device, it is a bug upstream in the parser or
+    converter.
+
+    Recommended switch pattern for consumers that need to handle every value:
+
+        switch p {
+        case model.IPProtocolInet:
+            // IPv4
+        case model.IPProtocolInet6:
+            // IPv6
+        case model.IPProtocolInet46:
+            // pfSense dual-stack rule (IPv4 + IPv6)
+        default:
+            // unknown / unset
+        }
+
+const (
+	// IPProtocolInet represents the IPv4 address family.
+	IPProtocolInet IPProtocol = "inet"
+	// IPProtocolInet6 represents the IPv6 address family.
+	IPProtocolInet6 IPProtocol = "inet6"
+	// IPProtocolInet46 is pfSense-specific: a single firewall rule that matches
+	// both IPv4 and IPv6 traffic (dual-stack). OPNsense does not emit this value;
+	// seeing it on an OPNsense device indicates an upstream parser or converter
+	// bug. Consumers writing OPNsense-only switch statements can safely treat
+	// this case as unreachable, but should still handle it defensively (e.g., log
+	// and fall through to a default) rather than panic.
+	IPProtocolInet46 IPProtocol = "inet46"
+)
+func (p IPProtocol) IsValid() bool
+    IsValid reports whether p is a recognized IP protocol family.
+
+type IPsecCharon struct {
+	// Threads is the number of worker threads for the charon daemon.
+	Threads string `json:"threads,omitempty" yaml:"threads,omitempty"`
+	// IKEsaTableSize is the IKE SA hash table size.
+	IKEsaTableSize string `json:"ikesaTableSize,omitempty" yaml:"ikesaTableSize,omitempty"`
+	// IKEsaTableSegments is the number of IKE SA hash table segments.
+	IKEsaTableSegments string `json:"ikesaTableSegments,omitempty" yaml:"ikesaTableSegments,omitempty"`
+	// MaxIKEv1Exchanges is the maximum number of IKEv1 exchanges before giving up.
+	MaxIKEv1Exchanges string `json:"maxIkev1Exchanges,omitempty" yaml:"maxIkev1Exchanges,omitempty"`
+	// InitLimitHalfOpen is the limit of half-open IKE_SA during initialization.
+	InitLimitHalfOpen string `json:"initLimitHalfOpen,omitempty" yaml:"initLimitHalfOpen,omitempty"`
+	// IgnoreAcquireTS ignores traffic selector proposals from kernel acquire events.
+	IgnoreAcquireTS bool `json:"ignoreAcquireTs,omitempty" yaml:"ignoreAcquireTs,omitempty"`
+	// MakeBeforeBreak enables make-before-break for IKEv2 reauthentication.
+	MakeBeforeBreak bool `json:"makeBeforeBreak,omitempty" yaml:"makeBeforeBreak,omitempty"`
+	// RetransmitTries is the number of retransmit attempts before giving up.
+	RetransmitTries string `json:"retransmitTries,omitempty" yaml:"retransmitTries,omitempty"`
+	// RetransmitTimeout is the initial retransmission timeout in seconds.
+	RetransmitTimeout string `json:"retransmitTimeout,omitempty" yaml:"retransmitTimeout,omitempty"`
+	// RetransmitBase is the base for exponential backoff of retransmissions.
+	RetransmitBase string `json:"retransmitBase,omitempty" yaml:"retransmitBase,omitempty"`
+	// RetransmitJitter is the jitter percentage for retransmit intervals.
+	RetransmitJitter string `json:"retransmitJitter,omitempty" yaml:"retransmitJitter,omitempty"`
+	// RetransmitLimit is the upper limit in seconds for retransmission timeout.
+	RetransmitLimit string `json:"retransmitLimit,omitempty" yaml:"retransmitLimit,omitempty"`
+}
+    IPsecCharon contains strongSwan charon daemon configuration.
+
+type IPsecConfig struct {
+	// Enabled indicates whether the IPsec subsystem is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// PreferredOldSA prefers old security associations over new ones.
+	PreferredOldSA bool `json:"preferredOldSa,omitempty" yaml:"preferredOldSa,omitempty"`
+	// DisableVPNRules disables automatic firewall rule generation for IPsec.
+	DisableVPNRules bool `json:"disableVpnRules,omitempty" yaml:"disableVpnRules,omitempty"`
+	// PassthroughNetworks contains networks that bypass IPsec processing.
+	PassthroughNetworks string `json:"passthroughNetworks,omitempty" yaml:"passthroughNetworks,omitempty"`
+	// KeyPairs contains IPsec key pair identifiers.
+	KeyPairs string `json:"keyPairs,omitempty" yaml:"keyPairs,omitempty"`
+	// PreSharedKeys contains IPsec pre-shared key identifiers.
+	PreSharedKeys string `json:"preSharedKeys,omitempty" yaml:"preSharedKeys,omitempty"`
+	// Charon contains strongSwan charon daemon settings.
+	Charon IPsecCharon `json:"charon" yaml:"charon,omitempty"`
+	// Phase1Tunnels contains IKE Phase 1 (SA) tunnel configurations.
+	Phase1Tunnels []IPsecPhase1Tunnel `json:"phase1Tunnels,omitempty" yaml:"phase1Tunnels,omitempty"`
+	// Phase2Tunnels contains IPsec Phase 2 (child SA) tunnel configurations.
+	Phase2Tunnels []IPsecPhase2Tunnel `json:"phase2Tunnels,omitempty" yaml:"phase2Tunnels,omitempty"`
+	// MobileClient contains mobile/road-warrior IPsec client pool configuration.
+	MobileClient IPsecMobileClient `json:"mobileClient" yaml:"mobileClient,omitempty"`
+}
+    IPsecConfig contains IPsec VPN configuration.
+
+func (c IPsecConfig) HasData() bool
+    HasData reports whether the IPsecConfig contains meaningful data.
+
+type IPsecMobileClient struct {
+	// Enabled indicates whether the mobile client pool is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// UserSource is the authentication source for mobile users (e.g., "local", "radius").
+	UserSource string `json:"userSource,omitempty" yaml:"userSource,omitempty"`
+	// GroupSource is the group-based access source for mobile users.
+	GroupSource string `json:"groupSource,omitempty" yaml:"groupSource,omitempty"`
+	// PoolAddress is the IPv4 virtual address pool network address.
+	PoolAddress string `json:"poolAddress,omitempty" yaml:"poolAddress,omitempty"`
+	// PoolNetbits is the IPv4 virtual address pool prefix length.
+	PoolNetbits string `json:"poolNetbits,omitempty" yaml:"poolNetbits,omitempty"`
+	// PoolAddressV6 is the IPv6 virtual address pool network address.
+	PoolAddressV6 string `json:"poolAddressV6,omitempty" yaml:"poolAddressV6,omitempty"`
+	// PoolNetbitsV6 is the IPv6 virtual address pool prefix length.
+	PoolNetbitsV6 string `json:"poolNetbitsV6,omitempty" yaml:"poolNetbitsV6,omitempty"`
+	// DNSServers contains DNS servers pushed to mobile clients.
+	DNSServers []string `json:"dnsServers,omitempty" yaml:"dnsServers,omitempty"`
+	// WINSServers contains WINS servers pushed to mobile clients.
+	WINSServers []string `json:"winsServers,omitempty" yaml:"winsServers,omitempty"`
+	// DNSDomain is the DNS domain pushed to mobile clients.
+	DNSDomain string `json:"dnsDomain,omitempty" yaml:"dnsDomain,omitempty"`
+	// DNSSplit is the split DNS configuration for mobile clients.
+	DNSSplit string `json:"dnsSplit,omitempty" yaml:"dnsSplit,omitempty"`
+	// LoginBanner is the banner message displayed to mobile clients on connection.
+	LoginBanner string `json:"loginBanner,omitempty" yaml:"loginBanner,omitempty"`
+	// SavePassword indicates whether mobile clients can save passwords.
+	SavePassword bool `json:"savePassword,omitempty" yaml:"savePassword,omitempty"`
+}
+    IPsecMobileClient contains mobile/road-warrior IPsec client pool
+    configuration.
+
+type IPsecPhase1Tunnel struct {
+	// IKEID is the unique IKE SA identifier.
+	IKEID string `json:"ikeId,omitempty" yaml:"ikeId,omitempty"`
+	// IKEType is the IKE version (e.g., "ikev1", "ikev2", "auto").
+	IKEType string `json:"ikeType,omitempty" yaml:"ikeType,omitempty"`
+	// Interface is the network interface for this tunnel.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// RemoteGateway is the remote peer's IP address or hostname.
+	RemoteGateway string `json:"remoteGateway,omitempty" yaml:"remoteGateway,omitempty"`
+	// Protocol is the IP address family for the tunnel (e.g., "inet" for IPv4, "inet6" for IPv6).
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// AuthMethod is the authentication method (e.g., "pre_shared_key", "rsasig").
+	AuthMethod string `json:"authMethod,omitempty" yaml:"authMethod,omitempty"`
+	// MyIDType is the local identification type (e.g., "myaddress", "fqdn").
+	MyIDType string `json:"myIdType,omitempty" yaml:"myIdType,omitempty"`
+	// MyIDData is the local identification data.
+	MyIDData string `json:"myIdData,omitempty" yaml:"myIdData,omitempty"`
+	// PeerIDType is the remote identification type.
+	PeerIDType string `json:"peerIdType,omitempty" yaml:"peerIdType,omitempty"`
+	// PeerIDData is the remote identification data.
+	PeerIDData string `json:"peerIdData,omitempty" yaml:"peerIdData,omitempty"`
+	// Mode is the IKE negotiation mode (e.g., "main", "aggressive").
+	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Lifetime is the Phase 1 SA lifetime in seconds.
+	Lifetime string `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
+	// RekeyTime is the IKE SA rekey time in seconds.
+	RekeyTime string `json:"rekeyTime,omitempty" yaml:"rekeyTime,omitempty"`
+	// ReauthTime is the IKE SA reauthentication time in seconds.
+	ReauthTime string `json:"reauthTime,omitempty" yaml:"reauthTime,omitempty"`
+	// RandTime is the random jitter range (in seconds) subtracted from rekey/reauth time to prevent synchronized rekeying.
+	RandTime string `json:"randTime,omitempty" yaml:"randTime,omitempty"`
+	// NATTraversal is the NAT-T setting (e.g., "on", "force").
+	NATTraversal string `json:"natTraversal,omitempty" yaml:"natTraversal,omitempty"`
+	// MOBIKE indicates MOBIKE protocol support (e.g., "on", "off").
+	MOBIKE string `json:"mobike,omitempty" yaml:"mobike,omitempty"`
+	// DPDDelay is the dead peer detection check interval in seconds.
+	DPDDelay string `json:"dpdDelay,omitempty" yaml:"dpdDelay,omitempty"`
+	// DPDMaxFail is the maximum number of DPD failures before declaring peer dead.
+	DPDMaxFail string `json:"dpdMaxFail,omitempty" yaml:"dpdMaxFail,omitempty"`
+	// StartAction is the action on tunnel startup (e.g., "none", "start", "trap").
+	StartAction string `json:"startAction,omitempty" yaml:"startAction,omitempty"`
+	// CloseAction is the action on tunnel close (e.g., "none", "start", "trap").
+	CloseAction string `json:"closeAction,omitempty" yaml:"closeAction,omitempty"`
+	// CertRef is the reference ID of the certificate used for this tunnel.
+	CertRef string `json:"certRef,omitempty" yaml:"certRef,omitempty"`
+	// CARef is the reference ID of the certificate authority used for this tunnel.
+	CARef string `json:"caRef,omitempty" yaml:"caRef,omitempty"`
+	// IKEPort is the custom IKE port override (default 500).
+	IKEPort string `json:"ikePort,omitempty" yaml:"ikePort,omitempty"`
+	// NATTPort is the custom NAT-T port override (default 4500).
+	NATTPort string `json:"nattPort,omitempty" yaml:"nattPort,omitempty"`
+	// SplitConn enables split connection for this tunnel.
+	SplitConn string `json:"splitConn,omitempty" yaml:"splitConn,omitempty"`
+	// Description is a human-readable description of the tunnel.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Disabled indicates whether this tunnel is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Mobile indicates whether this tunnel is a mobile/road-warrior endpoint.
+	Mobile bool `json:"mobile,omitempty" yaml:"mobile,omitempty"`
+	// EncryptionAlgorithms lists the encryption algorithms (e.g., "aes-256", "aes-128").
+	EncryptionAlgorithms []string `json:"encryptionAlgorithms,omitempty" yaml:"encryptionAlgorithms,omitempty"`
+}
+    IPsecPhase1Tunnel represents a platform-agnostic IKE Phase 1 tunnel
+    configuration.
+
+type IPsecPhase2Tunnel struct {
+	// IKEID is the parent Phase 1 IKE SA identifier.
+	IKEID string `json:"ikeId,omitempty" yaml:"ikeId,omitempty"`
+	// UniqID is the unique identifier for this Phase 2 entry.
+	UniqID string `json:"uniqId,omitempty" yaml:"uniqId,omitempty"`
+	// ReqID is the unique request identifier for this Phase 2 entry.
+	ReqID string `json:"reqId,omitempty" yaml:"reqId,omitempty"`
+	// Mode is the IPsec mode (e.g., "tunnel", "transport").
+	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Disabled indicates whether this Phase 2 entry is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Protocol is the IPsec protocol (e.g., "esp", "ah").
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// LocalIDType is the local network identity type (e.g., "network", "address").
+	LocalIDType string `json:"localIdType,omitempty" yaml:"localIdType,omitempty"`
+	// LocalIDAddress is the local network identity address.
+	LocalIDAddress string `json:"localIdAddress,omitempty" yaml:"localIdAddress,omitempty"`
+	// LocalIDNetbits is the local network identity prefix length.
+	LocalIDNetbits string `json:"localIdNetbits,omitempty" yaml:"localIdNetbits,omitempty"`
+	// RemoteIDType is the remote network identity type.
+	RemoteIDType string `json:"remoteIdType,omitempty" yaml:"remoteIdType,omitempty"`
+	// RemoteIDAddress is the remote network identity address.
+	RemoteIDAddress string `json:"remoteIdAddress,omitempty" yaml:"remoteIdAddress,omitempty"`
+	// RemoteIDNetbits is the remote network identity prefix length.
+	RemoteIDNetbits string `json:"remoteIdNetbits,omitempty" yaml:"remoteIdNetbits,omitempty"`
+	// NATLocalIDType is the NAT/BINAT local identity type.
+	NATLocalIDType string `json:"natLocalIdType,omitempty" yaml:"natLocalIdType,omitempty"`
+	// NATLocalIDAddress is the NAT/BINAT local identity address.
+	NATLocalIDAddress string `json:"natLocalIdAddress,omitempty" yaml:"natLocalIdAddress,omitempty"`
+	// NATLocalIDNetbits is the NAT/BINAT local identity prefix length.
+	NATLocalIDNetbits string `json:"natLocalIdNetbits,omitempty" yaml:"natLocalIdNetbits,omitempty"`
+	// PFSGroup is the Perfect Forward Secrecy Diffie-Hellman group number.
+	PFSGroup string `json:"pfsGroup,omitempty" yaml:"pfsGroup,omitempty"`
+	// Lifetime is the Phase 2 SA lifetime in seconds.
+	Lifetime string `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
+	// PingHost is the keep-alive destination IP for tunnel monitoring.
+	PingHost string `json:"pingHost,omitempty" yaml:"pingHost,omitempty"`
+	// Description is a human-readable description of this Phase 2 entry.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// EncryptionAlgorithms lists the encryption algorithms for this child SA.
+	EncryptionAlgorithms []string `json:"encryptionAlgorithms,omitempty" yaml:"encryptionAlgorithms,omitempty"`
+	// HashAlgorithms lists the hash/integrity algorithms for this child SA.
+	HashAlgorithms []string `json:"hashAlgorithms,omitempty" yaml:"hashAlgorithms,omitempty"`
+}
+    IPsecPhase2Tunnel represents a platform-agnostic IPsec Phase 2 (child SA)
+    configuration.
+
+type InboundNATRule struct {
+	// UUID is the unique identifier for the port-forward rule.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Interfaces lists the interface names this rule applies to.
+	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// IPProtocol is the IP address family (inet or inet6).
+	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// Protocol is the layer-4 protocol (e.g., "tcp", "udp").
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// Source is the source endpoint for the port-forward rule.
+	Source RuleEndpoint `json:"source" yaml:"source,omitempty"`
+	// Destination is the destination endpoint for the port-forward rule.
+	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
+	// ExternalPort is the external port or range to forward.
+	ExternalPort string `json:"externalPort,omitempty" yaml:"externalPort,omitempty"`
+	// InternalIP is the internal target IP address for port forwarding.
+	InternalIP string `json:"internalIp,omitempty" yaml:"internalIp,omitempty"`
+	// InternalPort is the internal target port for port forwarding.
+	InternalPort string `json:"internalPort,omitempty" yaml:"internalPort,omitempty"`
+	// LocalPort is the local port used for NAT reflection.
+	LocalPort string `json:"localPort,omitempty" yaml:"localPort,omitempty"`
+	// Reflection is the NAT reflection setting for this rule.
+	Reflection string `json:"reflection,omitempty" yaml:"reflection,omitempty"`
+	// NATReflection is the NAT reflection mode (e.g., "enable", "disable", "purenat").
+	NATReflection string `json:"natReflection,omitempty" yaml:"natReflection,omitempty"`
+	// AssociatedRuleID links this rule to an automatically generated filter rule.
+	AssociatedRuleID string `json:"associatedRuleId,omitempty" yaml:"associatedRuleId,omitempty"`
+	// Priority is the rule evaluation priority.
+	Priority int `json:"priority,omitempty" yaml:"priority,omitempty"`
+	// NoRDR disables the redirect for matching traffic.
+	NoRDR bool `json:"noRdr,omitempty" yaml:"noRdr,omitempty"`
+	// NoSync excludes the rule from XMLRPC config synchronization.
+	NoSync bool `json:"noSync,omitempty" yaml:"noSync,omitempty"`
+	// Disabled indicates the port-forward rule is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Log indicates whether matched packets are logged.
+	Log bool `json:"log,omitempty" yaml:"log,omitempty"`
+	// Description is a human-readable description of the port-forward rule.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    InboundNATRule represents an inbound (port-forward) NAT rule.
+
+type Interface struct {
+	// Name is the logical interface name (e.g., "lan", "wan", "opt1").
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// PhysicalIf is the physical device identifier (e.g., "igb0", "em0").
+	PhysicalIf string `json:"physicalIf,omitempty" yaml:"physicalIf,omitempty"`
+	// Description is a human-readable label for the interface.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Enabled indicates whether the interface is administratively up.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// IPAddress is the IPv4 address assigned to the interface.
+	IPAddress string `json:"ipAddress,omitempty" yaml:"ipAddress,omitempty"`
+	// IPv6Address is the IPv6 address assigned to the interface.
+	IPv6Address string `json:"ipv6Address,omitempty" yaml:"ipv6Address,omitempty"`
+	// Subnet is the IPv4 subnet prefix length.
+	Subnet string `json:"subnet,omitempty" yaml:"subnet,omitempty"`
+	// SubnetV6 is the IPv6 subnet prefix length.
+	SubnetV6 string `json:"subnetV6,omitempty" yaml:"subnetV6,omitempty"`
+	// Gateway is the IPv4 gateway for the interface.
+	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
+	// GatewayV6 is the IPv6 gateway for the interface.
+	GatewayV6 string `json:"gatewayV6,omitempty" yaml:"gatewayV6,omitempty"`
+	// BlockPrivate enables blocking of RFC 1918 private network traffic.
+	BlockPrivate bool `json:"blockPrivate,omitempty" yaml:"blockPrivate,omitempty"`
+	// BlockBogons enables blocking of bogon (unassigned/reserved) network traffic.
+	BlockBogons bool `json:"blockBogons,omitempty" yaml:"blockBogons,omitempty"`
+	// Type is the interface type (e.g., "dhcp", "static", "none").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// MTU is the maximum transmission unit size.
+	MTU string `json:"mtu,omitempty" yaml:"mtu,omitempty"`
+	// SpoofMAC is an overridden MAC address for the interface.
+	SpoofMAC string `json:"spoofMac,omitempty" yaml:"spoofMac,omitempty"`
+	// DHCPHostname is the hostname sent in DHCP requests.
+	DHCPHostname string `json:"dhcpHostname,omitempty" yaml:"dhcpHostname,omitempty"`
+	// Media is the interface media type (e.g., "autoselect").
+	Media string `json:"media,omitempty" yaml:"media,omitempty"`
+	// MediaOpt is the interface media option (e.g., "full-duplex").
+	MediaOpt string `json:"mediaOpt,omitempty" yaml:"mediaOpt,omitempty"`
+	// Virtual indicates this is a virtual rather than physical interface.
+	Virtual bool `json:"virtual,omitempty" yaml:"virtual,omitempty"`
+	// Lock prevents the interface from being accidentally deleted or modified.
+	Lock bool `json:"lock,omitempty" yaml:"lock,omitempty"`
+}
+    Interface represents a network interface with normalized fields.
+
+type InterfaceGroup struct {
+	// Name is the interface group name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Members contains the interface names belonging to this group.
+	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
+	// Description is a human-readable description of the interface group.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    InterfaceGroup represents a logical grouping of interfaces.
+
+type InterfaceStatistics struct {
+	// Name is the logical interface name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the interface type classification.
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Enabled indicates the interface is administratively up.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// HasIPv4 indicates an IPv4 address is configured.
+	HasIPv4 bool `json:"hasIpv4,omitempty" yaml:"hasIpv4,omitempty"`
+	// HasIPv6 indicates an IPv6 address is configured.
+	HasIPv6 bool `json:"hasIpv6,omitempty" yaml:"hasIpv6,omitempty"`
+	// HasDHCP indicates a DHCP scope exists for this interface.
+	HasDHCP bool `json:"hasDhcp,omitempty" yaml:"hasDhcp,omitempty"`
+	// BlockPriv indicates RFC 1918 private traffic is blocked.
+	BlockPriv bool `json:"blockPriv,omitempty" yaml:"blockPriv,omitempty"`
+	// BlockBogons indicates bogon traffic is blocked.
+	BlockBogons bool `json:"blockBogons,omitempty" yaml:"blockBogons,omitempty"`
+}
+    InterfaceStatistics contains detailed statistics for a single interface.
+
+type KeaDHCPConfig struct {
+	// Enabled indicates whether the Kea DHCP4 server is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Interfaces lists the interfaces the Kea server listens on.
+	Interfaces string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// FirewallRules indicates whether automatic firewall rules are created.
+	FirewallRules bool `json:"firewallRules,omitempty" yaml:"firewallRules,omitempty"`
+	// ValidLifetime is the default lease valid lifetime in seconds.
+	ValidLifetime string `json:"validLifetime,omitempty" yaml:"validLifetime,omitempty"`
+	// HA contains Kea high-availability settings.
+	HA KeaDHCPHA `json:"ha" yaml:"ha,omitempty"`
+}
+    KeaDHCPConfig contains Kea DHCP server general settings. Subnet and
+    reservation data is normalized into the unified DHCP slice on CommonDevice.
+
+type KeaDHCPHA struct {
+	// Enabled indicates whether Kea DHCP HA is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// ThisServerName is the name of this server in the HA pair.
+	ThisServerName string `json:"thisServerName,omitempty" yaml:"thisServerName,omitempty"`
+	// MaxUnackedClients is the number of unacked clients before failover.
+	MaxUnackedClients string `json:"maxUnackedClients,omitempty" yaml:"maxUnackedClients,omitempty"`
+}
+    KeaDHCPHA contains Kea DHCP high-availability configuration.
+
+type LAGG struct {
+	// Interface is the LAGG interface name (e.g., "lagg0", "Port-channel1").
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Members contains the member physical interface names.
+	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
+	// Protocol is the aggregation protocol (lacp, failover, loadbalance, or roundrobin).
+	Protocol LAGGProtocol `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// Description is a human-readable description of the LAGG.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Created is the timestamp when the LAGG was created.
+	Created string `json:"created,omitempty" yaml:"created,omitempty"`
+	// Updated is the timestamp when the LAGG was last modified.
+	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
+}
+    LAGG represents a link aggregation configuration.
+
+type LAGGProtocol string
+    LAGGProtocol represents the link aggregation protocol.
+
+const (
+	// LAGGProtocolLACP uses IEEE 802.3ad Link Aggregation Control Protocol.
+	LAGGProtocolLACP LAGGProtocol = "lacp"
+	// LAGGProtocolFailover uses active/standby failover between members.
+	LAGGProtocolFailover LAGGProtocol = "failover"
+	// LAGGProtocolLoadBalance distributes traffic across members by hashing.
+	LAGGProtocolLoadBalance LAGGProtocol = "loadbalance"
+	// LAGGProtocolRoundRobin distributes traffic across members in round-robin order.
+	LAGGProtocolRoundRobin LAGGProtocol = "roundrobin"
+)
+func (p LAGGProtocol) IsValid() bool
+    IsValid reports whether p is a recognized LAGG protocol.
+
+type LoadBalancerConfig struct {
+	// MonitorTypes contains health monitor configurations.
+	MonitorTypes []MonitorType `json:"monitorTypes,omitempty" yaml:"monitorTypes,omitempty"`
+}
+    LoadBalancerConfig contains load balancer configuration.
+
+type MonitAlert struct {
+	// Enabled indicates whether this alert is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Recipient is the email address to receive alerts.
+	Recipient string `json:"recipient,omitempty" yaml:"recipient,omitempty"`
+	// NotOn suppresses alerts for specified events.
+	NotOn string `json:"notOn,omitempty" yaml:"notOn,omitempty"`
+	// Events contains the event types that trigger this alert.
+	Events string `json:"events,omitempty" yaml:"events,omitempty"`
+	// Description is a human-readable description of the alert.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    MonitAlert contains Monit alert notification configuration.
+
+type MonitConfig struct {
+	// Enabled indicates whether the Monit daemon is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Interval is the monitoring check interval in seconds.
+	Interval string `json:"interval,omitempty" yaml:"interval,omitempty"`
+	// StartDelay is the delay in seconds before Monit starts checking after boot.
+	StartDelay string `json:"startDelay,omitempty" yaml:"startDelay,omitempty"`
+	// MailServer is the SMTP server address for alert delivery.
+	MailServer string `json:"mailServer,omitempty" yaml:"mailServer,omitempty"`
+	// MailPort is the SMTP server port.
+	MailPort string `json:"mailPort,omitempty" yaml:"mailPort,omitempty"`
+	// SSLEnabled enables TLS for SMTP communication.
+	SSLEnabled bool `json:"sslEnabled,omitempty" yaml:"sslEnabled,omitempty"`
+	// HTTPDEnabled enables the Monit web interface.
+	HTTPDEnabled bool `json:"httpdEnabled,omitempty" yaml:"httpdEnabled,omitempty"`
+	// HTTPDPort is the Monit web interface listening port.
+	HTTPDPort string `json:"httpdPort,omitempty" yaml:"httpdPort,omitempty"`
+	// MMonitURL is the M/Monit aggregation server URL.
+	MMonitURL string `json:"mmonitUrl,omitempty" yaml:"mmonitUrl,omitempty"`
+	// Alert contains alert notification settings.
+	Alert *MonitAlert `json:"alert,omitempty" yaml:"alert,omitempty"`
+	// Services contains monitored service definitions.
+	Services []MonitServiceEntry `json:"services,omitempty" yaml:"services,omitempty"`
+	// Tests contains monitoring test definitions.
+	Tests []MonitTest `json:"tests,omitempty" yaml:"tests,omitempty"`
+}
+    MonitConfig contains process monitoring (Monit) configuration.
+
+type MonitServiceEntry struct {
+	// UUID is the unique identifier for this service entry.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Enabled indicates whether monitoring of this service is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Name is the service name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the service monitoring type (e.g., "process", "host", "system", "file").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Description is a human-readable description of the monitored service.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// PIDFile is the path to the service's PID file.
+	PIDFile string `json:"pidFile,omitempty" yaml:"pidFile,omitempty"`
+	// Match is a process name pattern to match.
+	Match string `json:"match,omitempty" yaml:"match,omitempty"`
+	// Path is the filesystem path to monitor (for file/directory checks).
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+	// Address is the network address to monitor (for host checks).
+	Address string `json:"address,omitempty" yaml:"address,omitempty"`
+	// Interface is the network interface to monitor.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Start is the command to start the service.
+	Start string `json:"start,omitempty" yaml:"start,omitempty"`
+	// Stop is the command to stop the service.
+	Stop string `json:"stop,omitempty" yaml:"stop,omitempty"`
+	// Tests contains the test UUIDs applied to this service.
+	Tests string `json:"tests,omitempty" yaml:"tests,omitempty"`
+	// Depends lists service dependencies (other monitored services).
+	Depends string `json:"depends,omitempty" yaml:"depends,omitempty"`
+}
+    MonitServiceEntry represents a monitored service definition.
+
+type MonitTest struct {
+	// UUID is the unique identifier for this test.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Name is the test name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the test type (e.g., "ResourceTesting", "ConnectionTesting").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Condition is the test condition expression (e.g., "memory usage > 90%").
+	Condition string `json:"condition,omitempty" yaml:"condition,omitempty"`
+	// Action is the action to take when the condition is met (e.g., "alert", "restart").
+	Action string `json:"action,omitempty" yaml:"action,omitempty"`
+	// Path is the path to test (for file existence tests).
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+}
+    MonitTest represents a Monit monitoring test definition.
+
+type MonitorOptions struct {
+	// Path is the HTTP path to check for HTTP/HTTPS monitors.
+	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+	// Host is the HTTP Host header value for the health check.
+	Host string `json:"host,omitempty" yaml:"host,omitempty"`
+	// Code is the expected HTTP status code.
+	Code string `json:"code,omitempty" yaml:"code,omitempty"`
+	// Send is the data payload to send for TCP monitors.
+	Send string `json:"send,omitempty" yaml:"send,omitempty"`
+	// Expect is the expected response string for TCP monitors.
+	Expect string `json:"expect,omitempty" yaml:"expect,omitempty"`
+}
+    MonitorOptions contains health check options for a monitor.
+
+type MonitorType struct {
+	// Name is the monitor name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the monitor type (e.g., "http", "https", "icmp", "tcp").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Description is a human-readable description of the monitor.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Options contains health check options for the monitor.
+	Options MonitorOptions `json:"options" yaml:"options,omitempty"`
+}
+    MonitorType represents a load balancer health monitor.
+
+type NATConfig struct {
+	// OutboundMode is the outbound NAT mode (automatic, hybrid, advanced, or disabled).
+	OutboundMode NATOutboundMode `json:"outboundMode,omitempty" yaml:"outboundMode,omitempty"`
+	// ReflectionDisabled indicates NAT reflection is turned off.
+	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
+	// PfShareForward enables pf share-forward for NAT.
+	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
+	// OutboundRules contains outbound NAT rules.
+	OutboundRules []NATRule `json:"outboundRules,omitempty" yaml:"outboundRules,omitempty"`
+	// InboundRules contains inbound (port-forward) NAT rules.
+	InboundRules []InboundNATRule `json:"inboundRules,omitempty" yaml:"inboundRules,omitempty"`
+	// BiNATEnabled indicates bidirectional NAT is active.
+	BiNATEnabled bool `json:"biNatEnabled,omitempty" yaml:"biNatEnabled,omitempty"`
+}
+    NATConfig contains all NAT-related configuration.
+
+func (c NATConfig) HasData() bool
+    HasData reports whether the NATConfig contains any meaningful configuration
+    (any non-zero fields). This is the single source of truth for NAT presence
+    detection, used by both CommonDevice.HasNATConfig and the diff engine.
+
+type NATOutboundMode string
+    NATOutboundMode represents the outbound NAT operating mode.
+
+const (
+	// OutboundAutomatic uses automatic outbound NAT rules.
+	OutboundAutomatic NATOutboundMode = "automatic"
+	// OutboundHybrid combines automatic and manual outbound NAT rules.
+	OutboundHybrid NATOutboundMode = "hybrid"
+	// OutboundAdvanced uses only manually configured outbound NAT rules.
+	OutboundAdvanced NATOutboundMode = "advanced"
+	// OutboundDisabled turns off outbound NAT entirely.
+	OutboundDisabled NATOutboundMode = "disabled"
+)
+func (m NATOutboundMode) IsValid() bool
+    IsValid reports whether m is a recognized NAT outbound mode.
+
+type NATRule struct {
+	// UUID is the unique identifier for the NAT rule.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Interfaces lists the interface names this rule applies to.
+	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	// IPProtocol is the IP address family (inet or inet6).
+	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// Protocol is the layer-4 protocol (e.g., "tcp", "udp").
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// Source is the source endpoint for the NAT rule.
+	Source RuleEndpoint `json:"source" yaml:"source,omitempty"`
+	// Destination is the destination endpoint for the NAT rule.
+	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
+	// Target is the NAT translation target address.
+	Target string `json:"target,omitempty" yaml:"target,omitempty"`
+	// SourcePort is the translated source port.
+	SourcePort string `json:"sourcePort,omitempty" yaml:"sourcePort,omitempty"`
+	// NatPort is the translated destination port.
+	NatPort string `json:"natPort,omitempty" yaml:"natPort,omitempty"`
+	// PoolOpts specifies the address pool options for NAT translation.
+	PoolOpts string `json:"poolOpts,omitempty" yaml:"poolOpts,omitempty"`
+	// StaticNatPort preserves the original source port during NAT translation.
+	StaticNatPort bool `json:"staticNatPort,omitempty" yaml:"staticNatPort,omitempty"`
+	// NoNat disables NAT for matching traffic (exclusion rule).
+	NoNat bool `json:"noNat,omitempty" yaml:"noNat,omitempty"`
+	// Disabled indicates the NAT rule is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Log indicates whether matched packets are logged.
+	Log bool `json:"log,omitempty" yaml:"log,omitempty"`
+	// Description is a human-readable description of the NAT rule.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Category is the classification category for the NAT rule.
+	Category string `json:"category,omitempty" yaml:"category,omitempty"`
+	// Tag is the pf tag applied to packets matching this rule.
+	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	// Tagged matches packets that already carry the specified pf tag.
+	Tagged string `json:"tagged,omitempty" yaml:"tagged,omitempty"`
+}
+    NATRule represents an outbound NAT rule.
+
+type NATSummary struct {
+	// Mode is the outbound NAT mode.
+	Mode NATOutboundMode `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// ReflectionDisabled indicates NAT reflection is turned off.
+	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
+	// PfShareForward enables pf share-forward for NAT.
+	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
+	// OutboundRules contains outbound NAT rules.
+	OutboundRules []NATRule `json:"outboundRules,omitempty" yaml:"outboundRules,omitempty"`
+	// InboundRules contains inbound (port-forward) NAT rules.
+	InboundRules []InboundNATRule `json:"inboundRules,omitempty" yaml:"inboundRules,omitempty"`
+}
+    NATSummary is a read-only convenience view of a device's NAT configuration,
+    returned by CommonDevice.NATSummary. Slice fields are cloned so callers can
+    iterate or filter without mutating the original device.
+
+type NTPConfig struct {
+	// PreferredServer is the preferred NTP server address.
+	PreferredServer string `json:"preferredServer,omitempty" yaml:"preferredServer,omitempty"`
+}
+    NTPConfig contains NTP service configuration.
+
+type NetflowConfig struct {
+	// CaptureInterfaces lists the interfaces to capture flow data from.
+	CaptureInterfaces string `json:"captureInterfaces,omitempty" yaml:"captureInterfaces,omitempty"`
+	// CaptureVersion is the NetFlow protocol version (e.g., "9", "10" for IPFIX).
+	CaptureVersion string `json:"captureVersion,omitempty" yaml:"captureVersion,omitempty"`
+	// EgressOnly captures only egress flows (reduces duplicate accounting).
+	EgressOnly bool `json:"egressOnly,omitempty" yaml:"egressOnly,omitempty"`
+	// CaptureTargets contains flow collector target addresses.
+	CaptureTargets string `json:"captureTargets,omitempty" yaml:"captureTargets,omitempty"`
+	// CollectEnabled enables the local flow collector.
+	CollectEnabled bool `json:"collectEnabled,omitempty" yaml:"collectEnabled,omitempty"`
+	// InactiveTimeout is the timeout for inactive flows in seconds.
+	InactiveTimeout string `json:"inactiveTimeout,omitempty" yaml:"inactiveTimeout,omitempty"`
+	// ActiveTimeout is the timeout for active flows in seconds.
+	ActiveTimeout string `json:"activeTimeout,omitempty" yaml:"activeTimeout,omitempty"`
+}
+    NetflowConfig contains NetFlow/IPFIX traffic accounting configuration.
+
+type OpenVPNCSC struct {
+	// CommonName is the certificate common name this override applies to.
+	CommonName string `json:"commonName,omitempty" yaml:"commonName,omitempty"`
+	// Block prevents this client from connecting.
+	Block bool `json:"block,omitempty" yaml:"block,omitempty"`
+	// TunnelNetwork is the IPv4 tunnel network override for this client.
+	TunnelNetwork string `json:"tunnelNetwork,omitempty" yaml:"tunnelNetwork,omitempty"`
+	// TunnelNetworkV6 is the IPv6 tunnel network override for this client.
+	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
+	// LocalNetwork is the IPv4 local network pushed to this client.
+	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkV6 is the IPv6 local network pushed to this client.
+	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// RemoteNetwork is the IPv4 remote network accessible through this client.
+	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkV6 is the IPv6 remote network accessible through this client.
+	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// GWRedir redirects all client traffic through the VPN gateway.
+	GWRedir bool `json:"gwRedir,omitempty" yaml:"gwRedir,omitempty"`
+	// PushReset clears all previously pushed options before applying overrides.
+	PushReset bool `json:"pushReset,omitempty" yaml:"pushReset,omitempty"`
+	// RemoveRoute removes server-side routes for this client.
+	RemoveRoute bool `json:"removeRoute,omitempty" yaml:"removeRoute,omitempty"`
+	// DNSDomain is the DNS domain override for this client.
+	DNSDomain string `json:"dnsDomain,omitempty" yaml:"dnsDomain,omitempty"`
+	// DNSServers contains DNS server overrides pushed to this client.
+	DNSServers []string `json:"dnsServers,omitempty" yaml:"dnsServers,omitempty"`
+	// NTPServers contains NTP server overrides pushed to this client.
+	NTPServers []string `json:"ntpServers,omitempty" yaml:"ntpServers,omitempty"`
+}
+    OpenVPNCSC represents OpenVPN client-specific configuration overrides. These
+    allow per-client settings based on the client's certificate common name.
+
+type OpenVPNClient struct {
+	// VPNID is the unique VPN instance identifier.
+	VPNID string `json:"vpnId,omitempty" yaml:"vpnId,omitempty"`
+	// Mode is the client mode (e.g., "p2p_tls", "p2p_shared_key").
+	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Protocol is the transport protocol (e.g., "UDP4", "TCP4").
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// DevMode is the tunnel device mode (e.g., "tun", "tap").
+	DevMode string `json:"devMode,omitempty" yaml:"devMode,omitempty"`
+	// Interface is the interface the client binds to.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// ServerAddr is the remote server address.
+	ServerAddr string `json:"serverAddr,omitempty" yaml:"serverAddr,omitempty"`
+	// ServerPort is the remote server port.
+	ServerPort string `json:"serverPort,omitempty" yaml:"serverPort,omitempty"`
+	// Description is a human-readable description of the client instance.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// CertRef is the reference ID of the client certificate.
+	CertRef string `json:"certRef,omitempty" yaml:"certRef,omitempty"`
+	// CARef is the reference ID of the certificate authority.
+	CARef string `json:"caRef,omitempty" yaml:"caRef,omitempty"`
+	// Compression is the compression algorithm.
+	Compression string `json:"compression,omitempty" yaml:"compression,omitempty"`
+	// VerbosityLevel is the logging verbosity level.
+	VerbosityLevel string `json:"verbosityLevel,omitempty" yaml:"verbosityLevel,omitempty"`
+}
+    OpenVPNClient represents an OpenVPN client instance.
+
+type OpenVPNConfig struct {
+	// Servers contains OpenVPN server instances.
+	Servers []OpenVPNServer `json:"servers,omitempty" yaml:"servers,omitempty"`
+	// Clients contains OpenVPN client instances.
+	Clients []OpenVPNClient `json:"clients,omitempty" yaml:"clients,omitempty"`
+	// ClientSpecificConfigs contains per-client overrides keyed by certificate common name.
+	ClientSpecificConfigs []OpenVPNCSC `json:"clientSpecificConfigs,omitempty" yaml:"clientSpecificConfigs,omitempty"`
+}
+    OpenVPNConfig contains OpenVPN server and client configurations.
+
+type OpenVPNServer struct {
+	// VPNID is the unique VPN instance identifier.
+	VPNID string `json:"vpnId,omitempty" yaml:"vpnId,omitempty"`
+	// Mode is the server mode (e.g., "server_tls", "server_user", "p2p_tls").
+	Mode string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Protocol is the transport protocol (e.g., "UDP4", "TCP4").
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// DevMode is the tunnel device mode (e.g., "tun", "tap").
+	DevMode string `json:"devMode,omitempty" yaml:"devMode,omitempty"`
+	// Interface is the interface the server listens on.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// LocalPort is the local port the server listens on.
+	LocalPort string `json:"localPort,omitempty" yaml:"localPort,omitempty"`
+	// Description is a human-readable description of the server instance.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// TunnelNetwork is the IPv4 tunnel network CIDR.
+	TunnelNetwork string `json:"tunnelNetwork,omitempty" yaml:"tunnelNetwork,omitempty"`
+	// TunnelNetworkV6 is the IPv6 tunnel network CIDR.
+	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
+	// RemoteNetwork is the IPv4 remote network CIDR accessible through the tunnel.
+	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkV6 is the IPv6 remote network CIDR accessible through the tunnel.
+	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// LocalNetwork is the IPv4 local network CIDR pushed to clients.
+	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkV6 is the IPv6 local network CIDR pushed to clients.
+	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// MaxClients is the maximum number of simultaneous client connections.
+	MaxClients string `json:"maxClients,omitempty" yaml:"maxClients,omitempty"`
+	// Compression is the compression algorithm (e.g., "lzo", "lz4", "no").
+	Compression string `json:"compression,omitempty" yaml:"compression,omitempty"`
+	// DNSServers contains DNS servers pushed to clients.
+	DNSServers []string `json:"dnsServers,omitempty" yaml:"dnsServers,omitempty"`
+	// NTPServers contains NTP servers pushed to clients.
+	NTPServers []string `json:"ntpServers,omitempty" yaml:"ntpServers,omitempty"`
+	// CertRef is the reference ID of the server certificate.
+	CertRef string `json:"certRef,omitempty" yaml:"certRef,omitempty"`
+	// CARef is the reference ID of the certificate authority.
+	CARef string `json:"caRef,omitempty" yaml:"caRef,omitempty"`
+	// CRLRef is the reference ID of the certificate revocation list.
+	CRLRef string `json:"crlRef,omitempty" yaml:"crlRef,omitempty"`
+	// DHLength is the Diffie-Hellman key length in bits.
+	DHLength string `json:"dhLength,omitempty" yaml:"dhLength,omitempty"`
+	// ECDHCurve is the elliptic curve for ECDH key exchange.
+	ECDHCurve string `json:"ecdhCurve,omitempty" yaml:"ecdhCurve,omitempty"`
+	// CertDepth is the maximum certificate chain verification depth.
+	CertDepth string `json:"certDepth,omitempty" yaml:"certDepth,omitempty"`
+	// TLSType is the TLS authentication type (e.g., "auth", "crypt").
+	TLSType string `json:"tlsType,omitempty" yaml:"tlsType,omitempty"`
+	// VerbosityLevel is the logging verbosity level (0-11).
+	VerbosityLevel string `json:"verbosityLevel,omitempty" yaml:"verbosityLevel,omitempty"`
+	// Topology is the server topology (e.g., "subnet", "net30").
+	Topology string `json:"topology,omitempty" yaml:"topology,omitempty"`
+	// StrictUserCN enforces matching of certificate CN to username.
+	StrictUserCN bool `json:"strictUserCn,omitempty" yaml:"strictUserCn,omitempty"`
+	// GWRedir redirects all client traffic through the VPN gateway.
+	GWRedir bool `json:"gwRedir,omitempty" yaml:"gwRedir,omitempty"`
+	// DynamicIP allows clients with dynamic IP addresses.
+	DynamicIP bool `json:"dynamicIp,omitempty" yaml:"dynamicIp,omitempty"`
+	// ServerBridgeDHCP enables DHCP for bridged server mode.
+	ServerBridgeDHCP bool `json:"serverBridgeDhcp,omitempty" yaml:"serverBridgeDhcp,omitempty"`
+	// DNSDomain is the DNS domain pushed to clients.
+	DNSDomain string `json:"dnsDomain,omitempty" yaml:"dnsDomain,omitempty"`
+	// NetBIOSEnable enables NetBIOS over TCP/IP for clients.
+	NetBIOSEnable bool `json:"netBiosEnable,omitempty" yaml:"netBiosEnable,omitempty"`
+	// NetBIOSNType is the NetBIOS node type.
+	NetBIOSNType string `json:"netBiosNType,omitempty" yaml:"netBiosNType,omitempty"`
+	// NetBIOSScope is the NetBIOS scope ID.
+	NetBIOSScope string `json:"netBiosScope,omitempty" yaml:"netBiosScope,omitempty"`
+}
+    OpenVPNServer represents an OpenVPN server instance.
+
+type PPP struct {
+	// Interface is the PPP interface name (e.g., "pppoe0").
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Type is the PPP connection type (e.g., "pppoe", "pptp", "l2tp").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Description is a human-readable description of the PPP connection.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Ports lists the physical interface(s) the PPP connection operates over.
+	// May contain multiple entries for multi-link PPP (MLPPP).
+	Ports string `json:"ports,omitempty" yaml:"ports,omitempty"`
+	// Username is the authentication username for the PPP connection.
+	Username string `json:"username,omitempty" yaml:"username,omitempty"`
+	// AuthMethod is the PPP authentication method (e.g., "chap", "pap", "mschap").
+	AuthMethod string `json:"authMethod,omitempty" yaml:"authMethod,omitempty"`
+	// MTU is the maximum transmission unit for the PPP link.
+	MTU string `json:"mtu,omitempty" yaml:"mtu,omitempty"`
+	// Provider is the ISP or service provider identifier.
+	Provider string `json:"provider,omitempty" yaml:"provider,omitempty"`
+}
+    PPP represents a PPP connection configuration.
+
+type Package struct {
+	// Name is the package name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Version is the package version string.
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	// Type classifies the package (e.g., "package", "plugin", "module", "license").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// Installed indicates the package is currently installed.
+	Installed bool `json:"installed,omitempty" yaml:"installed,omitempty"`
+	// Locked indicates the package version is pinned and should not be auto-updated.
+	Locked bool `json:"locked,omitempty" yaml:"locked,omitempty"`
+	// Automatic indicates the package was installed as a dependency.
+	Automatic bool `json:"automatic,omitempty" yaml:"automatic,omitempty"`
+	// Description is a human-readable description of the package.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    Package represents an installed or available software package.
+
+type PerformanceFinding struct {
+	// Component is the configuration component affected by the finding.
+	Component string `json:"component,omitempty" yaml:"component,omitempty"`
+	// Issue is a brief summary of the finding.
+	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Description is a detailed explanation of the finding.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    PerformanceFinding represents a performance finding.
+
+type PerformanceMetrics struct {
+	// ConfigComplexity is a complexity metric for the configuration.
+	ConfigComplexity int `json:"configComplexity,omitempty" yaml:"configComplexity,omitempty"`
+}
+    PerformanceMetrics contains performance metrics.
+
+type PluginComplianceResult struct {
+	// PluginInfo contains metadata about the plugin that produced these results.
+	PluginInfo CompliancePluginInfo `json:"pluginInfo" yaml:"pluginInfo,omitempty"`
+	// Findings contains compliance findings specific to this plugin.
+	Findings []ComplianceFinding `json:"findings,omitempty" yaml:"findings,omitempty"`
+	// Summary contains summary statistics for this plugin's results.
+	Summary *ComplianceResultSummary `json:"summary,omitempty" yaml:"summary,omitempty"`
+	// Controls contains the control definitions evaluated by this plugin.
+	Controls []ComplianceControl `json:"controls,omitempty" yaml:"controls,omitempty"`
+	// Compliance maps control IDs to their compliant/non-compliant status.
+	Compliance map[string]bool `json:"compliance,omitempty" yaml:"compliance,omitempty"`
+}
+    PluginComplianceResult contains the compliance results for a single audit
+    plugin.
+
+type Revision struct {
+	// Username is the user who made the last configuration change.
+	Username string `json:"username,omitempty" yaml:"username,omitempty"`
+	// Time is the timestamp of the last configuration change.
+	Time string `json:"time,omitempty" yaml:"time,omitempty"`
+	// Description is a human-readable description of the revision.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    Revision contains configuration revision metadata.
+
+type Routing struct {
+	// Gateways contains configured network gateways.
+	Gateways []Gateway `json:"gateways,omitempty" yaml:"gateways,omitempty"`
+	// GatewayGroups contains gateway groups for failover and load balancing.
+	GatewayGroups []GatewayGroup `json:"gatewayGroups,omitempty" yaml:"gatewayGroups,omitempty"`
+	// StaticRoutes contains manually configured routes.
+	StaticRoutes []StaticRoute `json:"staticRoutes,omitempty" yaml:"staticRoutes,omitempty"`
+}
+    Routing contains gateway and static route configuration.
+
+type RuleEndpoint struct {
+	// Address is the resolved effective address (e.g., "any", a CIDR, or hostname).
+	Address string `json:"address,omitempty" yaml:"address,omitempty"`
+	// Port is the port or port range specification.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// Negated indicates the endpoint match is inverted (NOT logic).
+	Negated bool `json:"negated,omitempty" yaml:"negated,omitempty"`
+}
+    RuleEndpoint represents a normalized source or destination in a firewall or
+    NAT rule. The Address field contains the already-resolved effective address
+    ("any", a CIDR, hostname, or empty string).
+
+type SNMPConfig struct {
+	// ROCommunity is the read-only SNMP community string.
+	ROCommunity string `json:"roCommunity,omitempty" yaml:"roCommunity,omitempty"`
+	// SysLocation is the SNMP system location.
+	SysLocation string `json:"sysLocation,omitempty" yaml:"sysLocation,omitempty"`
+	// SysContact is the SNMP system contact.
+	SysContact string `json:"sysContact,omitempty" yaml:"sysContact,omitempty"`
+}
+    SNMPConfig contains SNMP service configuration.
+
+type SSH struct {
+	// Enabled indicates whether the SSH service is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Port is the SSH listening port.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// Group is the system group allowed SSH access.
+	Group string `json:"group,omitempty" yaml:"group,omitempty"`
+}
+    SSH contains SSH service configuration.
+
+type SecurityAssessment struct {
+	// OverallScore is the overall security posture score (0-100).
+	OverallScore int `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
+	// SecurityFeatures lists the names of enabled security features.
+	SecurityFeatures []string `json:"securityFeatures,omitempty" yaml:"securityFeatures,omitempty"`
+	// Vulnerabilities lists identified vulnerability descriptions.
+	Vulnerabilities []string `json:"vulnerabilities,omitempty" yaml:"vulnerabilities,omitempty"`
+	// Recommendations lists suggested security improvements.
+	Recommendations []string `json:"recommendations,omitempty" yaml:"recommendations,omitempty"`
+}
+    SecurityAssessment contains security assessment data.
+
+type SecurityFinding struct {
+	// Component is the configuration component affected by the finding.
+	Component string `json:"component,omitempty" yaml:"component,omitempty"`
+	// Issue is a brief summary of the finding.
+	Issue string `json:"issue,omitempty" yaml:"issue,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Description is a detailed explanation of the finding.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    SecurityFinding represents a security finding.
+
+type ServiceStatistics struct {
+	// Name is the service name.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Enabled indicates the service is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Details contains additional key-value metadata about the service.
+	Details map[string]string `json:"details,omitempty" yaml:"details,omitempty"`
+}
+    ServiceStatistics contains statistics for a service.
+
+type Severity string
+    Severity represents the severity level of a conversion warning. Severity
+    is a triage signal, not a compliance verdict: consumers use it to decide
+    presentation order and filtering, but a warning at any severity still
+    indicates that something in the source configuration did not round-trip
+    perfectly into the CommonDevice model.
+
+    Severity values are case-sensitive typed strings. Use IsValidSeverity to
+    check whether a given value is recognized.
+
+const (
+	// SeverityCritical indicates data loss or corruption in the converted output.
+	SeverityCritical Severity = "critical"
+	// SeverityHigh indicates a material gap or silently altered behavior.
+	SeverityHigh Severity = "high"
+	// SeverityMedium indicates partial data preservation (e.g., truncated collections).
+	SeverityMedium Severity = "medium"
+	// SeverityLow indicates a cosmetic or best-effort conversion gap.
+	SeverityLow Severity = "low"
+	// SeverityInfo indicates an informational observation about the conversion.
+	SeverityInfo Severity = "info"
+)
+    Severity level constants for conversion warnings.
+
+    Converters should pick the level that best matches the consumer-visible
+    impact of the issue:
+
+      - SeverityCritical: data loss or corruption that would cause downstream
+        analysis to be wrong. Reserved for cases that should fail loudly.
+        No converter currently emits this level — it is reserved for future
+        invariant-breaking conditions discovered during conversion.
+      - SeverityHigh: significant information missing or silently altered (e.g.,
+        a firewall rule with an empty type, or an inbound NAT rule missing its
+        internal IP). Converters reserve this for conditions that render the
+        converted config functionally incorrect.
+      - SeverityMedium: partially preserved data, orphaned cross-references,
+        or missing but recoverable context (e.g., a rule missing its source
+        address, an orphan reservation pointing at no subnet).
+      - SeverityLow: best-effort gaps that do not impair analysis but are worth
+        surfacing (e.g., an unrecognized enum value that passes through as a raw
+        string).
+      - SeverityInfo: normal, expected observations (e.g., a Kea subnet
+        declared multiple pools and only the first is represented in the unified
+        DHCPScope). Not an error.
+
+func ValidSeverities() []Severity
+    ValidSeverities returns a fresh copy of all valid severity values. Returns a
+    new slice each call to prevent callers from mutating shared state.
+
+func (s Severity) String() string
+    String returns the string representation of the severity.
+
+type StaticRoute struct {
+	// Network is the destination network in CIDR notation.
+	Network string `json:"network,omitempty" yaml:"network,omitempty"`
+	// Gateway is the next-hop gateway name for the route.
+	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
+	// Description is a human-readable description of the route.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Disabled indicates the route is administratively disabled.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Created is the timestamp when the route was created.
+	Created string `json:"created,omitempty" yaml:"created,omitempty"`
+	// Updated is the timestamp when the route was last modified.
+	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
+}
+    StaticRoute represents a manually configured route.
+
+type Statistics struct {
+	// TotalInterfaces is the total number of configured interfaces.
+	TotalInterfaces int `json:"totalInterfaces,omitempty" yaml:"totalInterfaces,omitempty"`
+	// InterfacesByType maps interface type names to their counts.
+	InterfacesByType map[string]int `json:"interfacesByType,omitempty" yaml:"interfacesByType,omitempty"`
+	// InterfaceDetails contains per-interface statistics.
+	InterfaceDetails []InterfaceStatistics `json:"interfaceDetails,omitempty" yaml:"interfaceDetails,omitempty"`
+
+	// TotalVLANs is the total number of configured VLANs.
+	TotalVLANs int `json:"totalVlans,omitempty" yaml:"totalVlans,omitempty"`
+	// TotalBridges is the total number of configured bridges.
+	TotalBridges int `json:"totalBridges,omitempty" yaml:"totalBridges,omitempty"`
+	// TotalCertificates is the total number of certificates.
+	TotalCertificates int `json:"totalCertificates,omitempty" yaml:"totalCertificates,omitempty"`
+	// TotalCAs is the total number of certificate authorities.
+	TotalCAs int `json:"totalCas,omitempty" yaml:"totalCas,omitempty"`
+
+	// TotalFirewallRules is the total number of firewall filter rules.
+	TotalFirewallRules int `json:"totalFirewallRules,omitempty" yaml:"totalFirewallRules,omitempty"`
+	// RulesByInterface maps interface names to their firewall rule counts.
+	RulesByInterface map[string]int `json:"rulesByInterface,omitempty" yaml:"rulesByInterface,omitempty"`
+	// RulesByType maps rule types (pass, block, reject) to their counts.
+	RulesByType map[string]int `json:"rulesByType,omitempty" yaml:"rulesByType,omitempty"`
+	// NATEntries is the total number of NAT rules (inbound and outbound).
+	NATEntries int `json:"natEntries,omitempty" yaml:"natEntries,omitempty"`
+	// NATMode is the outbound NAT mode.
+	NATMode NATOutboundMode `json:"natMode,omitempty" yaml:"natMode,omitempty"`
+
+	// TotalGateways is the total number of configured gateways.
+	TotalGateways int `json:"totalGateways,omitempty" yaml:"totalGateways,omitempty"`
+	// TotalGatewayGroups is the total number of gateway groups.
+	TotalGatewayGroups int `json:"totalGatewayGroups,omitempty" yaml:"totalGatewayGroups,omitempty"`
+
+	// DHCPScopes is the number of enabled DHCP scopes.
+	DHCPScopes int `json:"dhcpScopes,omitempty" yaml:"dhcpScopes,omitempty"`
+	// DHCPScopeDetails contains per-scope DHCP statistics.
+	DHCPScopeDetails []DHCPScopeStatistics `json:"dhcpScopeDetails,omitempty" yaml:"dhcpScopeDetails,omitempty"`
+
+	// TotalUsers is the total number of system user accounts.
+	TotalUsers int `json:"totalUsers,omitempty" yaml:"totalUsers,omitempty"`
+	// UsersByScope maps user scopes to their counts.
+	UsersByScope map[string]int `json:"usersByScope,omitempty" yaml:"usersByScope,omitempty"`
+	// TotalGroups is the total number of system groups.
+	TotalGroups int `json:"totalGroups,omitempty" yaml:"totalGroups,omitempty"`
+	// GroupsByScope maps group scopes to their counts.
+	GroupsByScope map[string]int `json:"groupsByScope,omitempty" yaml:"groupsByScope,omitempty"`
+
+	// EnabledServices lists the names of active services.
+	EnabledServices []string `json:"enabledServices,omitempty" yaml:"enabledServices,omitempty"`
+	// TotalServices is the total number of configured services.
+	TotalServices int `json:"totalServices,omitempty" yaml:"totalServices,omitempty"`
+	// ServiceDetails contains per-service statistics.
+	ServiceDetails []ServiceStatistics `json:"serviceDetails,omitempty" yaml:"serviceDetails,omitempty"`
+
+	// SysctlSettings is the total number of sysctl tunables.
+	SysctlSettings int `json:"sysctlSettings,omitempty" yaml:"sysctlSettings,omitempty"`
+	// LoadBalancerMonitors is the total number of load balancer health monitors.
+	LoadBalancerMonitors int `json:"loadBalancerMonitors,omitempty" yaml:"loadBalancerMonitors,omitempty"`
+	// SecurityFeatures lists the names of enabled security features.
+	SecurityFeatures []string `json:"securityFeatures,omitempty" yaml:"securityFeatures,omitempty"`
+
+	// Summary contains aggregated summary statistics.
+	Summary StatisticsSummary `json:"summary" yaml:"summary,omitempty"`
+}
+    Statistics contains calculated statistics about a device configuration.
+
+type StatisticsSummary struct {
+	// TotalConfigItems is the total number of configuration items across all sections.
+	TotalConfigItems int `json:"totalConfigItems,omitempty" yaml:"totalConfigItems,omitempty"`
+	// SecurityScore is the overall security posture score (0-100).
+	SecurityScore int `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
+	// ConfigComplexity is a complexity metric for the configuration.
+	ConfigComplexity int `json:"configComplexity,omitempty" yaml:"configComplexity,omitempty"`
+	// HasSecurityFeatures indicates at least one security feature is enabled.
+	HasSecurityFeatures bool `json:"hasSecurityFeatures,omitempty" yaml:"hasSecurityFeatures,omitempty"`
+}
+    StatisticsSummary contains summary statistics.
+
+type SysctlItem struct {
+	// Tunable is the sysctl parameter name (e.g., "net.inet.tcp.recvspace").
+	Tunable string `json:"tunable,omitempty" yaml:"tunable,omitempty"`
+	// Value is the configured value for the tunable.
+	Value string `json:"value,omitempty" yaml:"value,omitempty"`
+	// Description is a human-readable description of the tunable.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    SysctlItem represents a single sysctl tunable.
+
+type SyslogConfig struct {
+	// Enabled indicates whether remote syslog forwarding is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// SystemLogging enables forwarding of system log messages.
+	SystemLogging bool `json:"systemLogging,omitempty" yaml:"systemLogging,omitempty"`
+	// AuthLogging enables forwarding of authentication log messages.
+	AuthLogging bool `json:"authLogging,omitempty" yaml:"authLogging,omitempty"`
+	// FilterLogging enables forwarding of firewall filter log messages.
+	FilterLogging bool `json:"filterLogging,omitempty" yaml:"filterLogging,omitempty"`
+	// DHCPLogging enables forwarding of DHCP log messages.
+	DHCPLogging bool `json:"dhcpLogging,omitempty" yaml:"dhcpLogging,omitempty"`
+	// VPNLogging enables forwarding of VPN log messages.
+	VPNLogging bool `json:"vpnLogging,omitempty" yaml:"vpnLogging,omitempty"`
+	// PortalAuthLogging enables forwarding of captive portal authentication log messages.
+	PortalAuthLogging bool `json:"portalAuthLogging,omitempty" yaml:"portalAuthLogging,omitempty"`
+	// DPingerLogging enables forwarding of gateway monitoring (dpinger) log messages.
+	DPingerLogging bool `json:"dpingerLogging,omitempty" yaml:"dpingerLogging,omitempty"`
+	// HostapdLogging enables forwarding of wireless access point (hostapd) log messages.
+	HostapdLogging bool `json:"hostapdLogging,omitempty" yaml:"hostapdLogging,omitempty"`
+	// ResolverLogging enables forwarding of DNS resolver log messages.
+	ResolverLogging bool `json:"resolverLogging,omitempty" yaml:"resolverLogging,omitempty"`
+	// PPPLogging enables forwarding of PPP connection log messages.
+	PPPLogging bool `json:"pppLogging,omitempty" yaml:"pppLogging,omitempty"`
+	// IGMPProxyLogging enables forwarding of IGMP proxy log messages.
+	IGMPProxyLogging bool `json:"igmpProxyLogging,omitempty" yaml:"igmpProxyLogging,omitempty"`
+	// RemoteServer is the primary remote syslog server address.
+	RemoteServer string `json:"remoteServer,omitempty" yaml:"remoteServer,omitempty"`
+	// RemoteServer2 is the secondary remote syslog server address.
+	RemoteServer2 string `json:"remoteServer2,omitempty" yaml:"remoteServer2,omitempty"`
+	// RemoteServer3 is the tertiary remote syslog server address.
+	RemoteServer3 string `json:"remoteServer3,omitempty" yaml:"remoteServer3,omitempty"`
+	// SourceIP is the source IP address for syslog messages.
+	SourceIP string `json:"sourceIp,omitempty" yaml:"sourceIp,omitempty"`
+	// IPProtocol is the IP protocol for syslog transport (e.g., "ipv4", "ipv6").
+	IPProtocol string `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
+	// LogFileSize is the maximum log file size.
+	LogFileSize string `json:"logFileSize,omitempty" yaml:"logFileSize,omitempty"`
+	// RotateCount is the number of rotated log files to retain.
+	RotateCount string `json:"rotateCount,omitempty" yaml:"rotateCount,omitempty"`
+	// Format is the syslog message format.
+	Format string `json:"format,omitempty" yaml:"format,omitempty"`
+}
+    SyslogConfig contains remote syslog configuration.
+
+type System struct {
+	// Hostname is the device hostname.
+	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
+	// Domain is the DNS domain name for the device.
+	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
+	// Optimization is the TCP/IP stack optimization profile (e.g., "normal", "conservative").
+	Optimization string `json:"optimization,omitempty" yaml:"optimization,omitempty"`
+	// Language is the web GUI language code.
+	Language string `json:"language,omitempty" yaml:"language,omitempty"`
+	// Timezone is the system timezone in Region/City format.
+	Timezone string `json:"timezone,omitempty" yaml:"timezone,omitempty"`
+	// TimeServers contains configured NTP server addresses.
+	TimeServers []string `json:"timeServers,omitempty" yaml:"timeServers,omitempty"`
+	// DNSServers contains configured DNS resolver addresses.
+	DNSServers []string `json:"dnsServers,omitempty" yaml:"dnsServers,omitempty"`
+
+	// DNSAllowOverride indicates whether DHCP/PPP clients may override DNS settings.
+	DNSAllowOverride bool `json:"dnsAllowOverride,omitempty" yaml:"dnsAllowOverride,omitempty"`
+
+	// WebGUI contains web GUI access configuration.
+	WebGUI WebGUI `json:"webGui" yaml:"webGui,omitempty"`
+	// SSH contains SSH service configuration.
+	SSH SSH `json:"ssh" yaml:"ssh,omitempty"`
+	// Firmware contains firmware version and update settings.
+	Firmware Firmware `json:"firmware" yaml:"firmware,omitempty"`
+
+	// NextUID is the next available user ID for account creation.
+	NextUID int `json:"nextUid,omitempty" yaml:"nextUid,omitempty"`
+	// NextGID is the next available group ID for group creation.
+	NextGID int `json:"nextGid,omitempty" yaml:"nextGid,omitempty"`
+
+	// DisableNATReflection disables NAT reflection (hairpin NAT).
+	DisableNATReflection bool `json:"disableNatReflection,omitempty" yaml:"disableNatReflection,omitempty"`
+	// DisableConsoleMenu disables the serial/VGA console menu.
+	DisableConsoleMenu bool `json:"disableConsoleMenu,omitempty" yaml:"disableConsoleMenu,omitempty"`
+	// DisableVLANHWFilter disables VLAN hardware filtering.
+	DisableVLANHWFilter bool `json:"disableVlanHwFilter,omitempty" yaml:"disableVlanHwFilter,omitempty"`
+	// DisableChecksumOffloading disables hardware checksum offloading.
+	DisableChecksumOffloading bool `json:"disableChecksumOffloading,omitempty" yaml:"disableChecksumOffloading,omitempty"`
+	// DisableSegmentationOffloading disables TCP segmentation offloading.
+	DisableSegmentationOffloading bool `json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	// DisableLargeReceiveOffloading disables large receive offloading.
+	DisableLargeReceiveOffloading bool `json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	// IPv6Allow enables IPv6 traffic on the device.
+	IPv6Allow bool `json:"ipv6Allow,omitempty" yaml:"ipv6Allow,omitempty"`
+
+	// PowerdACMode is the power management mode when on AC power.
+	PowerdACMode string `json:"powerdAcMode,omitempty" yaml:"powerdAcMode,omitempty"`
+	// PowerdBatteryMode is the power management mode when on battery.
+	PowerdBatteryMode string `json:"powerdBatteryMode,omitempty" yaml:"powerdBatteryMode,omitempty"`
+	// PowerdNormalMode is the default power management mode.
+	PowerdNormalMode string `json:"powerdNormalMode,omitempty" yaml:"powerdNormalMode,omitempty"`
+
+	// PfShareForward enables pf share-forward optimization.
+	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
+	// LbUseSticky enables sticky connections for load balancing.
+	LbUseSticky bool `json:"lbUseSticky,omitempty" yaml:"lbUseSticky,omitempty"`
+	// RrdBackup enables RRD data backup on shutdown.
+	RrdBackup bool `json:"rrdBackup,omitempty" yaml:"rrdBackup,omitempty"`
+	// NetflowBackup enables NetFlow data backup on shutdown.
+	NetflowBackup bool `json:"netflowBackup,omitempty" yaml:"netflowBackup,omitempty"`
+
+	// Bogons contains bogon network update configuration.
+	Bogons Bogons `json:"bogons" yaml:"bogons,omitempty"`
+
+	// Notes contains operator notes associated with the system.
+	Notes []string `json:"notes,omitempty" yaml:"notes,omitempty"`
+
+	// UseVirtualTerminal enables the virtual terminal.
+	UseVirtualTerminal bool `json:"useVirtualTerminal,omitempty" yaml:"useVirtualTerminal,omitempty"`
+	// DNSSearchDomain is the DNS search domain suffix.
+	DNSSearchDomain string `json:"dnsSearchDomain,omitempty" yaml:"dnsSearchDomain,omitempty"`
+}
+    System contains system-level configuration settings.
+
+type TrafficShaperConfig struct {
+	// Pipes contains pipe (bandwidth limiter) identifiers.
+	Pipes string `json:"pipes,omitempty" yaml:"pipes,omitempty"`
+	// Queues contains queue (scheduler) identifiers.
+	Queues string `json:"queues,omitempty" yaml:"queues,omitempty"`
+	// Rules contains traffic shaping rule identifiers.
+	Rules string `json:"rules,omitempty" yaml:"rules,omitempty"`
+}
+    TrafficShaperConfig contains QoS/traffic shaping configuration.
+
+type TrustConfig struct {
+	// StoreIntermediateCerts enables caching of intermediate CA certificates.
+	StoreIntermediateCerts bool `json:"storeIntermediateCerts,omitempty" yaml:"storeIntermediateCerts,omitempty"`
+	// InstallCRLs enables installation of certificate revocation lists.
+	InstallCRLs bool `json:"installCrls,omitempty" yaml:"installCrls,omitempty"`
+	// FetchCRLs enables automatic fetching of CRLs from distribution points.
+	FetchCRLs bool `json:"fetchCrls,omitempty" yaml:"fetchCrls,omitempty"`
+	// EnableLegacySect enables the OpenSSL legacy provider section.
+	EnableLegacySect bool `json:"enableLegacySect,omitempty" yaml:"enableLegacySect,omitempty"`
+	// EnableConfigConstraints enables certificate configuration constraints.
+	EnableConfigConstraints bool `json:"enableConfigConstraints,omitempty" yaml:"enableConfigConstraints,omitempty"`
+	// CipherString is the OpenSSL cipher string for TLS connections.
+	CipherString string `json:"cipherString,omitempty" yaml:"cipherString,omitempty"`
+	// Ciphersuites is the TLS 1.3 ciphersuite list.
+	Ciphersuites string `json:"ciphersuites,omitempty" yaml:"ciphersuites,omitempty"`
+	// Groups is the list of supported TLS key exchange groups.
+	Groups string `json:"groups,omitempty" yaml:"groups,omitempty"`
+	// MinProtocol is the minimum TLS protocol version (e.g., "TLSv1.2").
+	MinProtocol string `json:"minProtocol,omitempty" yaml:"minProtocol,omitempty"`
+	// MinProtocolDTLS is the minimum DTLS protocol version.
+	MinProtocolDTLS string `json:"minProtocolDtls,omitempty" yaml:"minProtocolDtls,omitempty"`
+}
+    TrustConfig contains system-wide TLS and certificate trust settings.
+
+type UnboundConfig struct {
+
+	// Enabled indicates whether the Unbound resolver is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// DNSSEC enables DNSSEC validation.
+	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
+	// DNSSECStripped enables DNSSEC stripped mode.
+	DNSSECStripped bool `json:"dnssecStripped,omitempty" yaml:"dnssecStripped,omitempty"`
+
+	// PrivateAddress lists CIDR prefixes or IPs supplied to Unbound's
+	// `private-address` directive. When populated, Unbound rejects DNS
+	// responses that resolve to these ranges for public domains — the DNS
+	// rebind protection mechanism. The converter validates each entry (drops
+	// and warns on unparseable values); consumers may still want to re-verify
+	// before acting on them.
+	PrivateAddress []string `json:"privateAddress,omitempty" yaml:"privateAddress,omitempty"`
+	// PrivateAddressConfigured distinguishes "the MVC <privateaddress> element
+	// was absent from config.xml" (false — rebind-protection status is Unknown,
+	// common on older installs or fresh setups) from "the element was present
+	// but empty, or filtered down to empty after validation" (true — rebind
+	// protection is explicitly not in force). Consumers evaluating rebind
+	// protection should gate on this before acting on PrivateAddress length.
+	PrivateAddressConfigured bool `json:"privateAddressConfigured,omitempty" yaml:"privateAddressConfigured,omitempty"`
+	// HideIdentity corresponds to Unbound's `hide-identity` directive.
+	// When true, Unbound does not reveal its server identity in responses.
+	HideIdentity bool `json:"hideIdentity,omitempty" yaml:"hideIdentity,omitempty"`
+	// HideVersion corresponds to Unbound's `hide-version` directive.
+	// When true, Unbound does not reveal its version string.
+	HideVersion bool `json:"hideVersion,omitempty" yaml:"hideVersion,omitempty"`
+	// LogQueries indicates whether Unbound logs each incoming query.
+	LogQueries bool `json:"logQueries,omitempty" yaml:"logQueries,omitempty"`
+	// LogReplies indicates whether Unbound logs each outgoing reply.
+	LogReplies bool `json:"logReplies,omitempty" yaml:"logReplies,omitempty"`
+	// Prefetch enables Unbound's prefetch behavior (cache warming for
+	// messages close to expiration).
+	Prefetch bool `json:"prefetch,omitempty" yaml:"prefetch,omitempty"`
+}
+    UnboundConfig contains Unbound DNS resolver configuration. The first
+    three fields (Enabled, DNSSEC, DNSSECStripped) are sourced from the
+    legacy <unbound> element. The remaining fields are sourced from the MVC
+    <OPNsense><unboundplus> element; the OPNsense-specific converter handles the
+    split.
+
+type UnusedInterfaceFinding struct {
+	// InterfaceName is the name of the unused interface.
+	InterfaceName string `json:"interfaceName,omitempty" yaml:"interfaceName,omitempty"`
+	// Description is a summary of why the interface is considered unused.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    UnusedInterfaceFinding represents an unused interface finding.
+
+type User struct {
+	// Name is the login username.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Disabled indicates the user account is locked.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Description is a human-readable description of the user.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Scope is the user scope (e.g., "system", "local").
+	Scope string `json:"scope,omitempty" yaml:"scope,omitempty"`
+	// GroupName is the primary group the user belongs to.
+	GroupName string `json:"groupName,omitempty" yaml:"groupName,omitempty"`
+	// UID is the numeric user identifier.
+	UID string `json:"uid,omitempty" yaml:"uid,omitempty"`
+	// APIKeys contains API key credentials associated with the user.
+	APIKeys []APIKey `json:"apiKeys,omitempty" yaml:"apiKeys,omitempty"`
+}
+    User represents a system user account.
+
+type VIPMode string
+    VIPMode represents the virtual IP operating mode.
+
+const (
+	// VIPModeCarp uses CARP (Common Address Redundancy Protocol) for HA failover.
+	VIPModeCarp VIPMode = "carp"
+	// VIPModeIPAlias assigns an additional IP address to an interface.
+	VIPModeIPAlias VIPMode = "ipalias"
+	// VIPModeProxyARP enables ARP proxying for downstream hosts.
+	VIPModeProxyARP VIPMode = "proxyarp"
+)
+func (m VIPMode) IsValid() bool
+    IsValid reports whether m is a recognized virtual IP mode.
+
+type VLAN struct {
+	// VLANIf is the VLAN interface name (e.g., "igb0_vlan100").
+	VLANIf string `json:"vlanIf,omitempty" yaml:"vlanIf,omitempty"`
+	// PhysicalIf is the parent physical interface carrying the VLAN.
+	PhysicalIf string `json:"physicalIf,omitempty" yaml:"physicalIf,omitempty"`
+	// Tag is the 802.1Q VLAN tag identifier.
+	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	// Description is a human-readable description of the VLAN.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Created is the timestamp when the VLAN was created.
+	Created string `json:"created,omitempty" yaml:"created,omitempty"`
+	// Updated is the timestamp when the VLAN was last modified.
+	Updated string `json:"updated,omitempty" yaml:"updated,omitempty"`
+}
+    VLAN represents a VLAN configuration.
+
+type VPN struct {
+	// OpenVPN contains OpenVPN server and client configurations.
+	OpenVPN OpenVPNConfig `json:"openVpn" yaml:"openVpn,omitempty"`
+	// WireGuard contains WireGuard VPN configuration.
+	WireGuard WireGuardConfig `json:"wireGuard" yaml:"wireGuard,omitempty"`
+	// IPsec contains IPsec VPN configuration.
+	IPsec IPsecConfig `json:"ipsec" yaml:"ipsec,omitempty"`
+}
+    VPN contains all VPN subsystem configurations.
+
+type VirtualIP struct {
+	// Mode is the virtual IP mode (carp, ipalias, or proxyarp).
+	Mode VIPMode `json:"mode,omitempty" yaml:"mode,omitempty"`
+	// Interface is the interface the virtual IP is bound to.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Subnet is the virtual IP address.
+	Subnet string `json:"subnet,omitempty" yaml:"subnet,omitempty"`
+	// SubnetBits is the CIDR subnet mask length.
+	SubnetBits string `json:"subnetBits,omitempty" yaml:"subnetBits,omitempty"`
+	// Description is a human-readable description of the virtual IP.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// UniqueID is a platform-generated unique identifier for the VIP entry.
+	UniqueID string `json:"uniqueId,omitempty" yaml:"uniqueId,omitempty"`
+	// VHID is the Virtual Host ID for CARP (1-255, unique per interface).
+	VHID string `json:"vhid,omitempty" yaml:"vhid,omitempty"`
+	// AdvSkew is the CARP advertisement skew (0-254, lower = higher priority).
+	AdvSkew string `json:"advSkew,omitempty" yaml:"advSkew,omitempty"`
+	// AdvBase is the CARP advertisement base interval in seconds.
+	AdvBase string `json:"advBase,omitempty" yaml:"advBase,omitempty"`
+}
+    VirtualIP represents a virtual IP address configuration.
+
+type WebGUI struct {
+	// Protocol is the web GUI protocol (http or https).
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	// SSLCertRef is the reference ID of the SSL certificate used by the web GUI.
+	SSLCertRef string `json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`
+	// LoginAutocomplete enables browser autocomplete on the login form.
+	LoginAutocomplete bool `json:"loginAutocomplete,omitempty" yaml:"loginAutocomplete,omitempty"`
+	// MaxProcesses is the maximum number of web server processes.
+	MaxProcesses string `json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`
+}
+    WebGUI contains web GUI configuration.
+
+type WireGuardClient struct {
+	// UUID is the unique identifier for the WireGuard peer.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Enabled indicates whether this peer is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Name is the human-readable name for the peer.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// PublicKey is the peer's WireGuard public key.
+	PublicKey string `json:"publicKey,omitempty" yaml:"publicKey,omitempty"`
+	// PSK is the optional pre-shared key for additional security.
+	PSK string `json:"psk,omitempty" yaml:"psk,omitempty"`
+	// TunnelAddress is the allowed IP address for the peer.
+	TunnelAddress string `json:"tunnelAddress,omitempty" yaml:"tunnelAddress,omitempty"`
+	// ServerAddress is the endpoint address for the peer.
+	ServerAddress string `json:"serverAddress,omitempty" yaml:"serverAddress,omitempty"`
+	// ServerPort is the endpoint port for the peer.
+	ServerPort string `json:"serverPort,omitempty" yaml:"serverPort,omitempty"`
+	// Keepalive is the persistent keepalive interval in seconds.
+	Keepalive string `json:"keepalive,omitempty" yaml:"keepalive,omitempty"`
+}
+    WireGuardClient represents a WireGuard peer (client) instance.
+
+type WireGuardConfig struct {
+	// Enabled indicates whether WireGuard is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Servers contains WireGuard server (local) instances.
+	Servers []WireGuardServer `json:"servers,omitempty" yaml:"servers,omitempty"`
+	// Clients contains WireGuard peer (client) instances.
+	Clients []WireGuardClient `json:"clients,omitempty" yaml:"clients,omitempty"`
+}
+    WireGuardConfig contains WireGuard VPN configuration.
+
+type WireGuardServer struct {
+	// UUID is the unique identifier for the WireGuard server.
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	// Enabled indicates whether this server instance is active.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Name is the human-readable name for the server instance.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// PublicKey is the WireGuard public key.
+	PublicKey string `json:"publicKey,omitempty" yaml:"publicKey,omitempty"`
+	// Port is the UDP listening port.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// MTU is the tunnel maximum transmission unit.
+	MTU string `json:"mtu,omitempty" yaml:"mtu,omitempty"`
+	// TunnelAddress is the tunnel IP address with prefix.
+	TunnelAddress string `json:"tunnelAddress,omitempty" yaml:"tunnelAddress,omitempty"`
+	// DNS is the DNS server address for the tunnel.
+	DNS string `json:"dns,omitempty" yaml:"dns,omitempty"`
+	// Gateway is the gateway address for the tunnel.
+	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
+}
+    WireGuardServer represents a WireGuard server (local) instance.
+
