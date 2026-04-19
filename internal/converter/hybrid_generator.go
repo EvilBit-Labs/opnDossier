@@ -167,19 +167,28 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 // GenerateToWriter writes documentation directly to the provided io.Writer.
 //
 // Supported formats: markdown (default), json, yaml, text, and html.
-// For markdown, sections are written incrementally as they are generated.
-// For JSON and YAML, an encoder writes directly to w — this avoids the 2x
-// peak-memory hit that Generate incurs (marshaled bytes plus their string(...)
-// conversion both resident at once). For text and HTML, the full output is
-// produced then written because those formats require complete document
-// serialization or post-processing.
+//
+// Streaming semantics vary by format:
+//   - JSON / YAML: an encoder writes directly to w, avoiding the 2x peak-memory
+//     hit that Generate incurs (marshaled bytes plus their string(...) conversion
+//     both resident at once). Partial output can land in w before an error.
+//   - Markdown: sections are written incrementally ONLY when the builder
+//     implements `builder.SectionWriter` (see generateMarkdownToWriter and the
+//     SectionWriter branch in GenerateHybrid). Otherwise the fallback
+//     generates the full string via Generate and writes it in one shot —
+//     identical to Generate's memory profile.
+//   - Plain text and HTML: generatePlainTextToWriter / generateHTMLToWriter
+//     build the full string first and then write it; nothing is flushed on
+//     error.
 //
 // Use GenerateToWriter when:
 //   - You are writing directly to a file, socket, or HTTP response.
 //   - Output may be large and peak memory matters (particularly JSON/YAML,
 //     which pay the 2x marshaled-bytes+string penalty in Generate).
-//   - You want partial-output-on-error semantics: bytes already flushed to w
-//     remain visible if encoding fails partway through.
+//   - You want partial-output-on-error semantics for JSON/YAML (and
+//     SectionWriter-backed Markdown): bytes already flushed to w remain
+//     visible if encoding fails partway through. Plain-text and HTML do NOT
+//     provide partial output — they write all-or-nothing.
 //   - You are composing with io.Copy, io.MultiWriter, or other writer patterns.
 //
 // For an in-memory string — for example to embed in another structure, feed a

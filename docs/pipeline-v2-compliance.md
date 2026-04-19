@@ -59,7 +59,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 **Files:**
 
-- [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) - `govulncheck`, CodeQL, Trivy filesystem scan
+- [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) - `govulncheck` + Trivy filesystem scan (CodeQL runs separately via GitHub's default-setup code scanning)
 - [`.github/workflows/sbom.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/sbom.yml) - Repository SBOM generation
 - FOSSA license scanning (GitHub App integration)
 - [`.github/workflows/release.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/release.yml) - SLSA provenance + Cosign signing
@@ -168,7 +168,7 @@ cosign verify-blob \
 ### Scheduled Scans
 
 - **OSSF Scorecard**: Weekly repository hygiene assessment
-- **Security workflow**: Weekly run of `govulncheck`, CodeQL, and Trivy (Mondays at 06:00 UTC)
+- **Security workflow**: Weekly run of `govulncheck` + Trivy (Mondays at 06:00 UTC); CodeQL runs via GitHub's default-setup code scanning separately
 - **Dependabot**: Weekly dependency update PRs
 
 ### Real-time Monitoring
