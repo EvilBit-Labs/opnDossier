@@ -84,8 +84,11 @@ opnDossier is a tool for auditing and reporting on OPNsense configurations, with
   - `just ci-check` - run full CI-equivalent checks (must pass before reporting success)
   - `just format` - format code and documentation
   - `just dev` - run in development mode
+- **Pre-commit hooks may modify files**: It is normal for hooks to rewrite files during commit attempts, especially for formatting and other automatic fixes. Run `just ci-check` immediately before committing to reduce churn. If hooks still modify files, restage the changes and retry the commit.
+- **Read `GOTCHAS.md` before substantial changes**: It captures non-obvious behaviors and repository footguns that frequently affect parser work, tests, and CLI behavior.
+- **Markdown validation**: Never run `mdformat` directly. Use `pre-commit run -a` so the repository's configured plugins and formatting pipeline are applied correctly.
+- **`//nolint:` placement**: Put `//nolint:` directives on their own line immediately above the relevant call or declaration. Inline directives may be stripped or broken by formatting tools.
 - **No external dependencies**: All code must run fully offline.
-- **Never commit code without explicit user permission.**
 
 ## Go Coding Standards
 
@@ -297,6 +300,8 @@ type Plugin interface {
 - **CodeRabbit.ai Integration**: Prefer coderabbit.ai for code review over GitHub Copilot auto-reviews
 - **Single Maintainer Workflow**: Configure for single maintainer (UncleSp1d3r) with no second reviewer requirement
 - **No Auto-commits**: Never commit code on behalf of maintainer without explicit permission
+- **No Auto-merges**: Never merge on behalf of the maintainer. Merges require a passing CI check and human approval.
+- **AI Disclosure**: When preparing pull request descriptions, briefly disclose AI assistance in line with `AI_POLICY.md`.
 
 ### Assistant Behavior Rules
 
@@ -305,6 +310,7 @@ type Plugin interface {
 - **Tool Usage**: Use `just` for task execution, `go` commands for Go development
 - **Focus on Value**: Enhance the project's unique value proposition as an OPNsense configuration auditing tool
 - **Respect Documentation**: Always consult and follow project documentation before making changes
+- **Zero Tolerance for Tech Debt**: Do not wave away failing checks, warnings, or CI issues as pre-existing. Investigate and fix them when they block the quality bar.
 
 ### Code Generation Requirements
 
@@ -447,9 +453,9 @@ When encountering problems:
 
 AI agents **MUST** familiarize themselves with:
 
-- **[requirements.md](project_spec/requirements.md)** - Complete functional and technical requirements
-- **[docs/development/architecture.md](docs/development/architecture.md)** - System design, data flow, and component architecture
-- **[docs/development/standards.md](docs/development/standards.md)** - Go-specific coding standards and project structure
+- **[requirements.md](../project_spec/requirements.md)** - Complete functional and technical requirements
+- **[docs/development/architecture.md](../docs/development/architecture.md)** - System design, data flow, and component architecture
+- **[docs/development/standards.md](../docs/development/standards.md)** - Go-specific coding standards and project structure
 - **[AGENTS.md](../AGENTS.md)** - Complete AI agent development guidelines (single source of truth)
 
 **Remember**: When in doubt, refer to AGENTS.md for the complete authoritative guidance. This file provides Copilot-specific quick reference derived from that source.
