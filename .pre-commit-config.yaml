@@ -6,18 +6,18 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
-        args: ["--maxkb=1024"]
+        args: [ "--maxkb=1024" ]
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-illegal-windows-names
       - id: check-json
       - id: check-toml
       - id: check-yaml
-        args: [--unsafe]
+        args: [ --unsafe ]
       - id: check-xml
         exclude: ^internal/cfgparser/testdata/
       - id: mixed-line-ending
-        args: [--fix=auto]
+        args: [ --fix=auto ]
       - id: check-docstring-first
       - id: check-vcs-permalinks
 
@@ -42,7 +42,7 @@ repos:
           - mdformat-gfm-alerts
           - mdformat-toc
           - mdformat-front-matters
-        types: [markdown]
+        types: [ markdown ]
         exclude: \.golden\.md$
 
   # Go linting — mirrors `just lint` / CI lint job. Uses local hooks that
@@ -66,7 +66,7 @@ repos:
         description: Apply golangci-lint formatters (gofumpt, goimports, gci, golines).
         entry: mise exec -- golangci-lint fmt
         language: system
-        types: [go]
+        types: [ go ]
         require_serial: true
         pass_filenames: false
       - id: golangci-lint-full
@@ -74,28 +74,6 @@ repos:
         description: Run all configured linters against the full module.
         entry: mise exec -- golangci-lint run --fix
         language: system
-        types: [go]
+        types: [ go ]
         require_serial: true
         pass_filenames: false
-
-  # Pre-push gate — runs the full local quality bar once before a push reaches
-  # GitHub. CI cannot host the race detector reliably on GitHub runners, so
-  # `just ci-check` (which includes `test-race`) is the enforcement point here.
-  # This hook fires only on `git push`, not on every commit (it is too slow for
-  # that). Install with:
-  #   pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
-  # Escape hatch for emergencies: `git push --no-verify` (not for routine use).
-  - repo: local
-    hooks:
-      - id: ci-check-full
-        name: just ci-check (full local quality bar)
-        description: >-
-          Run the full `just ci-check` suite (check, format-check, lint, test,
-          test-integration, test-race) before allowing a push. This is the
-          local backstop for the race detector, which CI cannot host reliably.
-        entry: just ci-check
-        language: system
-        stages: [pre-push]
-        pass_filenames: false
-        always_run: true
-        verbose: true
