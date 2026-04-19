@@ -135,7 +135,8 @@ func handlerForFormat(format string) (FormatHandler, error) {
 // YAML output because the marshaled byte slice and its string(...) conversion both
 // live on the heap simultaneously. For markdown, text, and HTML the builder
 // already accumulates a string, so there is no additional penalty versus
-// GenerateToWriter. Prefer GenerateToWriter once output approaches ~5MB.
+// GenerateToWriter. Prefer GenerateToWriter for large outputs or when peak
+// memory matters (streaming directly to a file/socket/HTTP response).
 //
 // Use Generate when:
 //   - You need the result as an in-memory string (to embed in another structure,
@@ -175,7 +176,8 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 //
 // Use GenerateToWriter when:
 //   - You are writing directly to a file, socket, or HTTP response.
-//   - Output may be large (>5MB for JSON/YAML) and peak memory matters.
+//   - Output may be large and peak memory matters (particularly JSON/YAML,
+//     which pay the 2x marshaled-bytes+string penalty in Generate).
 //   - You want partial-output-on-error semantics: bytes already flushed to w
 //     remain visible if encoding fails partway through.
 //   - You are composing with io.Copy, io.MultiWriter, or other writer patterns.
