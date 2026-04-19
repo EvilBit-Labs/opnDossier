@@ -79,7 +79,8 @@ config := cmdCtx.Config
 | `--timestamps`  | bool   | false    | Include timestamps in logs         |
 | `--minimal`     | bool   | false    | Minimal output mode                |
 
-> **Note:** `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
+> [!NOTE]
+> `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
 
 ## Parser Package (internal/cfgparser)
 
