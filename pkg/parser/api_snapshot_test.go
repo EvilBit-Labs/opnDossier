@@ -35,8 +35,8 @@ func captureGoDoc(t *testing.T, packagePath string) []byte {
 	t.Helper()
 
 	cmd := exec.CommandContext(t.Context(), "go", "doc", "-all", packagePath)
-	out, err := cmd.Output()
-	require.NoErrorf(t, err, "go doc -all %s failed", packagePath)
+	out, err := cmd.CombinedOutput()
+	require.NoErrorf(t, err, "go doc -all %s failed: %s", packagePath, out)
 
 	return out
 }

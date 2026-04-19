@@ -190,7 +190,7 @@ if err != nil {
 defer file.Close()
 
 // Auto-detect device type and parse to CommonDevice
-device, warnings, err := factory.CreateDevice(context.Background(), file, "", false)
+device, warnings, err := factory.CreateDevice(context.Background(), file, common.DeviceTypeUnknown, false)
 if err != nil {
     return fmt.Errorf("parse failed: %w", err)
 }
@@ -199,8 +199,11 @@ for _, w := range warnings {
     logger.Warn("conversion warning", "field", w.Field, "message", w.Message)
 }
 
-// With validation
-device, warnings, err := factory.CreateDevice(context.Background(), file, "", true)
+// With validation (Seek back to start first; CreateDevice consumed the reader above.)
+if _, err := file.Seek(0, io.SeekStart); err != nil {
+    return fmt.Errorf("seek failed: %w", err)
+}
+device, warnings, err := factory.CreateDevice(context.Background(), file, common.DeviceTypeUnknown, true)
 if err != nil {
     return fmt.Errorf("parse and validate failed: %w", err)
 }
@@ -796,12 +799,10 @@ External Go projects can register custom device parsers by:
 1. **Implement the `DeviceParser` interface** in `pkg/parser/`:
 
    ```go
-   type CustomParser struct {
-       decoder parser.OPNsenseXMLDecoder
-   }
+   type CustomParser struct{}
 
    func (p *CustomParser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
-       // Implementation
+       // Implementation: decode XML from r into your own schema DTO, then convert.
    }
 
    func (p *CustomParser) ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
@@ -809,11 +810,11 @@ External Go projects can register custom device parsers by:
    }
    ```
 
-2. **Export a factory function** matching the `ConstructorFunc` signature:
+2. **Export a factory function** matching the `ConstructorFunc` signature. Custom parsers targeting a non-OPNsense schema should accept the `OPNsenseXMLDecoder` parameter only for signature compatibility and ignore it — the parser manages its own XML decoding. This mirrors the canonical pattern in `pkg/parser/pfsense/parser.go`, which decodes directly into `*pfschema.Document` via `parser.NewSecureXMLDecoder`:
 
    ```go
-   func NewCustomParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
-       return &CustomParser{decoder: decoder}
+   func NewCustomParserFactory(_ parser.OPNsenseXMLDecoder) parser.DeviceParser {
+       return &CustomParser{}
    }
    ```
 
