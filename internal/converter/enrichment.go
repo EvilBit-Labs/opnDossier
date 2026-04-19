@@ -77,10 +77,19 @@ func prepareForExport(data *common.CommonDevice, redact bool) *common.CommonDevi
 // the caller's data. Slice fields that contain sensitive data are deep-copied
 // before redaction.
 //
-// SECURITY NOTE: The following sensitive fields are already excluded by the converter's
-// field mapping and never appear in CommonDevice:
+// SECURITY NOTE: The following sensitive field mappings are vetted:
 //   - OpenVPN TLS keys (schema.OpenVPNServer.TLS, schema.OpenVPNSystem.StaticKeys)
-//   - IPsec pre-shared keys (schema.IPsec.PreSharedKeys)
+//     — excluded by the converter's field mapping and never appear in CommonDevice.
+//   - IPsec pre-shared keys — schema.IPsec.PreSharedKeys IS mapped to
+//     common.IPsecConfig.PreSharedKeys. In the current OPNsense MVC model this
+//     field stores UUID references to the Ipsec/KeyPairs/PreSharedKey MVC model
+//     (not raw key material), so no credential leaks today. If a future schema
+//     revision ever starts storing raw keys in this field, redaction logic
+//     must be added below.
+//   - pfSense IPsecPhase1.PreSharedKey is a scalar raw key but is intentionally
+//     not mapped into common.IPsecPhase1Tunnel — see
+//     pkg/parser/pfsense/converter_services.go convertIPsecPhase1Tunnels and
+//     the TestConverter_IPsecPhase1_PreSharedKeyExclusion regression test.
 //   - WireGuard private keys (only public keys are mapped; PSKs are mapped but redacted below)
 //
 // If new secret fields are added to common.*, they MUST be added here.

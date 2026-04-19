@@ -102,6 +102,8 @@ When converting XML schema `string` fields to typed enums (e.g., `common.Firewal
 
 - **Symptom:** Invalid enum values (e.g., `FirewallRuleType("match")`) pass through the pipeline without error, failing silently in downstream `switch` statements.
 - **Prevention:** Call `IsValid()` after every XML-to-enum cast. For `NATOutboundMode`, `LAGGProtocol`, and `VIPMode` there is no downstream validation — the converter cast is the only defense.
+- **Regression tests:** `TestConverter_EnumCast_EmitsWarning` in `pkg/parser/opnsense/converter_enum_cast_test.go` and `pkg/parser/pfsense/converter_enum_cast_test.go` cover every known callsite. When adding a new enum cast, add a row to the table-driven test in the same PR — otherwise the §5.2 defense is invisible.
+- **History:** The NATS-145 audit (2026-04-18) discovered two unguarded `IPProtocol` casts in OPNsense `convertOutboundNATRules` and `convertInboundNATRules` that had been silently passing invalid values through for months. Both were fixed in the same audit with the canonical `if field != "" && !cast.IsValid() { addWarning }` pattern.
 
 ### 5.3 PreRunE Test Commands Must Bind to Real Globals
 
@@ -276,12 +278,15 @@ Both OPNsense and pfSense emit the same liberal truthy vocabulary (`1|on|yes|tru
 
 ## 16. pfSense IPsec Enabled Flag
 
-### 16.1 Converter Must Set Enabled Explicitly
+### 16.1 Phase 1 Is the Gate
 
-`convertIPsec()` must set `common.IPsecConfig.Enabled = true` when Phase1/Phase2 tunnels exist or the mobile client is enabled. Downstream consumers (e.g., `builder_vpn.go`) short-circuit to "No IPsec configuration present" when `Enabled` is false, effectively hiding valid converted tunnel data.
+`convertIPsec()` in `pkg/parser/pfsense/converter_services.go` sets `common.IPsecConfig.Enabled = true` **only when `len(ipsec.Phase1) > 0`**. Phase 2 tunnels and the mobile client configuration hang off Phase 1 in pfSense — without a Phase 1 entry they are functionally inactive, so the converter treats them as orphans: `Enabled` stays `false` and a medium-severity `ConversionWarning` is emitted for each orphan kind (`IPsec.Phase2`, `IPsec.Client`).
 
-- **Symptom:** IPsec tunnels are converted but reports say "No IPsec configuration present."
-- **Fix:** Ensure the converter sets `Enabled: true` whenever meaningful IPsec data exists.
+Downstream consumers (e.g., `builder_vpn.go`) short-circuit to "No IPsec configuration present" when `Enabled` is false — this is the correct behavior for orphan-only data, but breaks silently if the Phase 1 gate is ever weakened.
+
+- **Symptom:** Valid Phase 1 tunnels show as "No IPsec configuration present" in reports (gate broken, `Enabled` stuck at `false`).
+- **Detection:** `TestConverter_IPsecEnabled_Gotchas16` in `pkg/parser/pfsense/converter_ipsec_test.go` is the canonical regression. If that test fails, the gate has drifted.
+- **Fix:** Keep the Phase 1 guard in `convertIPsec` intact. Phase 2 or mobile client without Phase 1 must stay orphan-warned, not implicitly promoted to `Enabled`.
 
 ## 17. HybridGenerator Interface Coupling
 
