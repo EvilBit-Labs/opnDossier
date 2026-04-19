@@ -229,14 +229,21 @@ func TestLoadDynamicPlugins_RejectsWorldWritableContainerDir(t *testing.T) {
 	}
 }
 
-// TestLoadDynamicPlugins_RejectsRelativePath verifies that a plugin path
-// computed against a non-absolute directory is rejected. We exercise this by
-// chdir-ing into a tempdir that holds a .so and passing "." as the dir.
+// TestLoadDynamicPlugins_NormalizesRelativeDir verifies that a relative
+// plugin directory (e.g. `--plugin-dir ./plugins`) is normalized to an
+// absolute path before the preflight runs. Each candidate plugin is therefore
+// passed through preflight with an absolute path; the relative-path
+// defense-in-depth check inside runPluginPreflight never fires through this
+// code path, and a relative --plugin-dir value is a supported invocation.
 //
-// Cross-platform: runs on all platforms — the absolute-path check is OS
-// independent. Concurrency-sensitive because os.Chdir is process global,
-// so this test does NOT call t.Parallel().
-func TestLoadDynamicPlugins_RejectsRelativePath(t *testing.T) {
+// The relative-path rejection inside runPluginPreflight remains covered by
+// the unit test "relative path is rejected" in TestRunPluginPreflight below —
+// that path is still reachable if a future caller invokes the preflight
+// directly without going through LoadDynamicPlugins.
+//
+// Cross-platform: runs on all platforms. Concurrency-sensitive because
+// os.Chdir is process global, so this test does NOT call t.Parallel().
+func TestLoadDynamicPlugins_NormalizesRelativeDir(t *testing.T) {
 	// os.Chdir mutates process-global state; running in parallel would race
 	// with every other test in the binary, so we intentionally omit
 	// t.Parallel.
@@ -245,27 +252,34 @@ func TestLoadDynamicPlugins_RejectsRelativePath(t *testing.T) {
 	writePluginFile(t, dir, "ok.so", 0o600, []byte("stub"))
 
 	// t.Chdir (Go 1.24+) restores the previous working directory via
-	// t.Cleanup automatically, so we avoid a bare os.Chdir that the
-	// linter cannot prove safe.
+	// t.Cleanup automatically.
 	t.Chdir(dir)
 
 	registry := newPluginRegistryWithLoader(alwaysFailLoader())
 	logger := newTestLogger(t)
 
-	// "." resolves to the plugin dir through os.ReadDir, but each path
-	// passed to the preflight is still relative because filepath.Join(".",
-	// "ok.so") stays relative.
+	// Pass "." as the plugin dir. LoadDynamicPlugins must resolve this to
+	// the current working directory (an absolute path) before handing each
+	// candidate to the preflight.
 	result, err := registry.LoadDynamicPlugins(context.Background(), ".", true, logger)
+
+	// The loader is alwaysFailLoader, so we expect exactly one failure,
+	// but the failure must come from the loader — not from the preflight
+	// rejecting a relative path.
 	if err == nil {
-		t.Fatal("LoadDynamicPlugins() expected error for relative path")
+		t.Fatal("LoadDynamicPlugins() expected an error from the always-failing loader")
 	}
 
 	if result.Failed() != 1 {
 		t.Fatalf("Failed() = %d, want 1", result.Failed())
 	}
 
-	if !strings.Contains(result.Failures[0].Error(), "relative path") {
-		t.Errorf("expected 'relative path' in failure, got: %v", result.Failures[0].Err)
+	failure := result.Failures[0].Error()
+	if strings.Contains(failure, "relative path") {
+		t.Errorf("did not expect 'relative path' rejection after normalization, got: %v", result.Failures[0].Err)
+	}
+	if !strings.Contains(failure, "loader should not have been invoked") {
+		t.Errorf("expected loader-invocation failure (proof preflight accepted), got: %v", result.Failures[0].Err)
 	}
 }
 

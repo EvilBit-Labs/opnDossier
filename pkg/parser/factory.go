@@ -219,7 +219,7 @@ type peekResult struct {
 // CLI callers wrap *os.File readers which return io.EOF promptly on EOF, so
 // the goroutine exits naturally in that path. Library consumers supplying
 // readers that can block indefinitely (sockets, fifos, long-polling HTTP
-// bodies) MUST cancel the context to release the goroutine. See AGENTS.md
+// bodies) MUST cancel the context to release the goroutine. See GOTCHAS.md
 // §1.1 for why we never use t.Parallel() in tests that exercise this path
 // against package-level state.
 func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader, error) {

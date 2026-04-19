@@ -86,14 +86,25 @@ See the [Plugin Development Guide](../../development/plugin-development.md) for 
 !!! warning "Trust model"
     `--plugin-dir` is opt-in and the loader is deliberately minimal. Treat every `.so` file the same way you would treat an unsigned executable.
 
-When `--plugin-dir` is supplied (or the default `./plugins` directory exists), opnDossier loads every `.so` file in that directory via Go's standard `plugin.Open()` mechanism. A stderr warning is emitted each time `--plugin-dir` is non-empty.
+When `--plugin-dir` is supplied, opnDossier loads every `.so` file in that directory via Go's standard `plugin.Open()` mechanism. Loading is opt-in — without `--plugin-dir`, the dynamic loader never runs. A stderr warning is emitted each time `--plugin-dir` is non-empty. The plugin directory path is normalized to an absolute path before the preflight runs so relative paths (e.g. `--plugin-dir ./plugins`) work correctly and the audit log records the canonical path.
 
 The loader accepts the following trade-offs by design:
 
 - **Full process privileges.** A loaded plugin executes inside the opnDossier process with the same user, file-system, and network permissions. There is no sandbox, privilege separation, or capability restriction.
-- **No signature verification.** The loader performs no checksum, signature, or provenance check on `.so` files. Any file ending in `.so` in the plugin directory will be loaded and executed.
-- **Symlinks are followed.** `plugin.Open()` follows symlinks, so a link planted in the plugin directory can point at an attacker-controlled file elsewhere on disk.
-- **Opt-in only.** Plugins are never fetched from remote sources. Loading requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory in the working directory.
+- **No signature verification.** The loader performs no checksum, signature, or provenance check on `.so` files. Any file ending in `.so` in the plugin directory that passes preflight will be loaded and executed.
+- **Opt-in only.** Plugins are never fetched from remote sources. Loading requires an explicit `--plugin-dir` flag.
+
+### Phase A preflight
+
+Before `plugin.Open()` runs on any candidate, a preflight pass enforces the following checks and emits a structured audit log entry (INFO for accepted, WARN for rejected) with path, SHA-256, mode, owner UID, size, verdict, and reason:
+
+- **Symlinks rejected.** `os.Lstat` rejects any `.so` that is itself a symlink. This closes the attack where a link in the plugin directory points at an attacker-controlled file elsewhere on disk.
+- **Group/world-writable plugin files rejected** (POSIX only). Writable-by-other files fail preflight.
+- **Group/world-writable plugin directories rejected** (POSIX only). The containing directory must itself be write-restricted.
+- **Absolute paths required.** Relative paths that bypass normalization are rejected; `LoadDynamicPlugins` resolves `--plugin-dir` to an absolute path before preflight.
+- **SHA-256 audit trail.** The file digest is computed with a 64 MiB cap so the audit log can identify the artifact even when `plugin.Open` subsequently fails.
+
+On Windows the permission-bit checks are skipped (NTFS permissions do not map cleanly to POSIX mode bits) but symlink and absolute-path checks still run.
 
 Before enabling `--plugin-dir`:
 
@@ -102,7 +113,7 @@ Before enabling `--plugin-dir`:
 - Keep the plugin directory out of paths that untrusted processes (user shells on a shared host, CI runners accepting external PRs) can write to.
 - Pin plugin builds to the same Go toolchain and module set as the opnDossier binary — a version mismatch is caught at load time, but only after the `.so` has been mapped into the process.
 
-Planned hardening (e.g. stricter symlink handling and load-time provenance checks) is tracked as Phase A of the plugin sandboxing work. Until then, the guidance above is the full mitigation.
+Phase B hardening (owner-UID check, configurable size cap, path denylist, filename allowlist, optional SHA-256 manifest, sandboxing) is tracked for post-v1.5.
 
 **Further reading:** [Plugin Development Guide — Security Model](../../development/plugin-development.md#security-model) and [GOTCHAS §2.5 — Dynamic Plugin Trust Model](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#25-dynamic-plugin-trust-model).
 

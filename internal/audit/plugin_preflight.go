@@ -14,11 +14,11 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
-// Phase A plugin loader hardening constants. These bound the preflight
-// behaviour and are exported as package-level const so tests and docs can
-// reference a single source of truth. Phase B follow-ups (owner-UID check,
-// path denylist, filename allowlist, SHA-256 manifest) are tracked for
-// post-v1.5; see GOTCHAS §2.5.
+// Phase A plugin loader hardening constants. These package-level constants
+// bound the preflight behaviour so code, tests in this package, and
+// documentation comments can reference a single source of truth. Phase B
+// follow-ups (owner-UID check, path denylist, filename allowlist, SHA-256
+// manifest) are tracked for post-v1.5; see GOTCHAS §2.5.
 const (
 	// pluginWritableMask matches the group-write and world-write bits
 	// (0o020 | 0o002 = 0o022). Any file or directory carrying one of these
@@ -64,9 +64,8 @@ type pluginPreflightResult struct {
 //
 // The checks, in order:
 //  1. The path must be absolute (cross-platform).
-//  2. Lstat the path. A symlink is rejected outright because plugin.Open
-//     follows links (POSIX only — Windows symlink semantics differ and are
-//     skipped at runtime).
+//  2. Lstat the path. A symlink is rejected outright on every platform
+//     because plugin.Open follows links.
 //  3. Reject group/world-writable plugin files (POSIX only).
 //  4. Stat the containing directory; reject if group/world-writable (POSIX
 //     only).

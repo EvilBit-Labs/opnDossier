@@ -140,6 +140,19 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 
 	ctxLogger := logger.WithContext(ctx)
 
+	// Normalize dir to an absolute path up front. The Phase A preflight
+	// rejects non-absolute paths, so a common invocation like
+	// `--plugin-dir ./plugins` would otherwise cause every plugin to fail.
+	// The audit log records the normalized absolute path for unambiguous
+	// forensics.
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		ctxLogger.Error("Failed to resolve absolute plugin directory", "dir", dir, "error", err)
+
+		return LoadResult{}, fmt.Errorf("failed to resolve absolute plugin directory %q: %w", dir, err)
+	}
+	dir = absDir
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
