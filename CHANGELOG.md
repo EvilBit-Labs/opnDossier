@@ -27,13 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pkg**: Audit converters and ConversionWarning API — NATS-145 ([#580](https://github.com/EvilBit-Labs/opnDossier/pull/580))
 - **api**: Document public pkg/ consumer contract - NATS-146
 - **tooling**: Phase 1 — infrastructure and pre-commit quality gates
-- **security,deps,docs**: Phase 2 round 1 — security workflow, deps audit, pre-push hook
 - **ci,release,docs**: Phase 2 round 2 — CI matrix, coverage gate, docker snapshot, action pin
 
 ### Fixed
 
 - **firewall,schema**: Post-merge review feedback on NATS-77 (PR #571) ([#573](https://github.com/EvilBit-Labs/opnDossier/pull/573))
 - **parser**: Liberal boolean parsing for OPNsense config.xml ([#558](https://github.com/EvilBit-Labs/opnDossier/pull/558)) ([#577](https://github.com/EvilBit-Labs/opnDossier/pull/577))
+
+### Security
+
+- **security,deps,docs**: Phase 2 round 1 — new `.github/workflows/security.yml` (govulncheck + Trivy), 9 pseudo-version indirect deps inventoried in `go.mod`, and `SECURITY.md` aligned with the actual scanner set (Grype/Snyk claims removed)
 
 ## [1.4.0] - 2026-04-03
 

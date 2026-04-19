@@ -57,7 +57,7 @@ Examples:
 
 ### SEE ALSO
 
-* [opnDossier](opnDossier.md)	 - opnDossier: A CLI tool for processing OPNsense configuration files.
+* [opnDossier](opnDossier.md)	 - opnDossier: A CLI tool for processing OPNsense and pfSense configuration files.
 * [opnDossier config init](opnDossier_config_init.md)	 - Generate a template configuration file
 * [opnDossier config show](opnDossier_config_show.md)	 - Display the effective configuration
 * [opnDossier config validate](opnDossier_config_validate.md)	 - Validate a configuration file

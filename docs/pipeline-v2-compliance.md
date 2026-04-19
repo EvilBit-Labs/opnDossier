@@ -79,7 +79,7 @@ The project provides the following local security and compliance tooling:
 - **`just scan`** — run `gosec` source-code security analysis
 - **`just sbom`** — generate a CycloneDX SBOM via `cyclonedx-gomod`
 - **`just security-all`** — run `gosec` and SBOM generation together
-- **`govulncheck`** — install via `go install golang.org/x/vuln/cmd/govulncheck@latest`, then run `govulncheck ./...` to reproduce the CI check locally
+- **`govulncheck`** — already pinned in `mise.toml`; reproduce the CI check locally with `mise exec -- govulncheck ./...` (matches the exact version CI runs)
 - **FOSSA CLI** — run `fossa analyze` and `fossa test` locally (requires `FOSSA_API_KEY`)
 
 Trivy and CodeQL are executed only in CI. To reproduce a Trivy finding locally, install the CLI from the upstream project and run `trivy fs --severity CRITICAL,HIGH,MEDIUM --ignore-unfixed .`.

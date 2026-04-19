@@ -21,7 +21,8 @@ func TestGetRootCmd(t *testing.T) {
 	rootCmd := GetRootCmd()
 	require.NotNil(t, rootCmd)
 	assert.Equal(t, "opnDossier", rootCmd.Use)
-	assert.Contains(t, rootCmd.Short, "CLI tool for processing OPNsense configuration files")
+	assert.Contains(t, rootCmd.Short, "CLI tool for processing OPNsense")
+	assert.Contains(t, rootCmd.Short, "pfSense")
 }
 
 func TestRootCmdFlags(t *testing.T) {

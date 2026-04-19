@@ -47,5 +47,5 @@ opnDossier man [output-directory] [flags]
 
 ### SEE ALSO
 
-* [opnDossier](opnDossier.md)	 - opnDossier: A CLI tool for processing OPNsense configuration files.
+* [opnDossier](opnDossier.md)	 - opnDossier: A CLI tool for processing OPNsense and pfSense configuration files.
 

@@ -716,19 +716,21 @@ The `ConversionWarning` type captures non-fatal issues encountered during schema
 ```go
 // ConversionWarning represents a non-fatal issue encountered during conversion
 type ConversionWarning struct {
-    Field    string            // Dot-path of problematic field (e.g., "FirewallRules[0].Type")
-    Value    string            // Problematic value encountered
-    Message  string            // Human-readable description
-    Severity analysis.Severity // Importance of the warning
+    Field    string          // Dot-path of problematic field (e.g., "FirewallRules[0].Type")
+    Value    string          // Problematic value encountered
+    Message  string          // Human-readable description
+    Severity common.Severity // Importance of the warning
 }
 ```
+
+`ConversionWarning.Severity` is `pkg/model.Severity` (string alias) — the same package that defines the `ConversionWarning` struct itself. Use the `common.Severity*` constants, NOT the `analysis.Severity*` constants used by compliance findings.
 
 ### Warning Generation
 
 The OPNsense converter (`pkg/parser/opnsense/converter.go`) accumulates warnings during conversion via the `addWarning()` method:
 
 ```go
-func (c *Converter) addWarning(field, value, message string, severity analysis.Severity) {
+func (c *Converter) addWarning(field, value, message string, severity common.Severity) {
     c.warnings = append(c.warnings, common.ConversionWarning{
         Field:    field,
         Value:    value,

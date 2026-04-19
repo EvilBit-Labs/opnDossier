@@ -16,7 +16,9 @@ The 'sanitize' command redacts sensitive information from OPNsense configuration
 files, making them safe to share for troubleshooting, documentation, or public
 reporting without exposing credentials, IP addresses, or other sensitive data.
 Unlike --redact on other commands (which only affects the rendered output),
-sanitize rewrites the source config.xml itself.
+sanitize produces a fully-rewritten copy of the config.xml with sensitive
+values redacted. The input file is never modified in place (see OUTPUT below
+for where the sanitized copy is written).
 
 SANITIZATION MODES:
   Choose the mode with --mode/-m based on your sharing context:
@@ -101,5 +103,5 @@ opnDossier sanitize [file] [flags]
 
 ### SEE ALSO
 
-* [opnDossier](opnDossier.md)	 - opnDossier: A CLI tool for processing OPNsense configuration files.
+* [opnDossier](opnDossier.md)	 - opnDossier: A CLI tool for processing OPNsense and pfSense configuration files.
 
