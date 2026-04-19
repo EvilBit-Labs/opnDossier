@@ -162,11 +162,16 @@ test:
 test-v:
     @{{ mise_exec }} go test -v ./...
 
-# Run tests with coverage report
+# Run tests with coverage report.
+# Covers BOTH default and integration suites — integration tests carry the
+# `//go:build integration` tag and are otherwise invisible to coverage, which
+# leaves cmd/audit.go and cmd/convert.go worker functions looking like 0%
+# despite being tested. -coverpkg=./... attributes cross-package coverage
+# (e.g. cmd tests exercising internal/ code) back to the package under test.
 [group('test')]
 test-coverage:
-    @{{ mise_exec }} go test -coverprofile=coverage.txt ./...
-    @{{ mise_exec }} go tool cover -func=coverage.txt
+    @{{ mise_exec }} go test -tags=integration -covermode=atomic -coverpkg=./... -coverprofile=coverage.txt ./...
+    @{{ mise_exec }} go tool cover -func=coverage.txt | tail -20
 
 # Run integration tests (build tag)
 [group('test')]
