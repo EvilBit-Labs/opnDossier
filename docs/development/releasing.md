@@ -236,7 +236,8 @@ cosign verify-blob \
   opnDossier_Linux_x86_64.tar.gz
 ```
 
-**Note**: SLSA provenance is generated via GitHub Actions for automated releases. For manual releases, SLSA provenance can be generated separately using the SLSA framework tools.
+> [!NOTE]
+> SLSA provenance is generated via GitHub Actions for automated releases. For manual releases, SLSA provenance can be generated separately using the SLSA framework tools.
 
 ## GoReleaser Configuration
 
@@ -373,7 +374,7 @@ Commits are automatically categorized based on conventional commit prefixes:
 
 Follow conventional commits:
 
-```
+```text
 type(scope): description
 
 [optional body]
