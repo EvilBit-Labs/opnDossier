@@ -6,7 +6,7 @@
 
 opnDossier is a command-line tool for network operators and security professionals working with OPNsense and pfSense firewalls. Transform complex XML configuration files into clear, readable documentation and identify security issues, misconfigurations, and optimization opportunities.
 
-Built for offline operation in secure environments - no external dependencies, no telemetry, complete airgapped support.
+Built for offline operation in secure environments — no external dependencies, no telemetry, complete airgapped support.
 
 ### What It Does
 
@@ -183,16 +183,6 @@ go build -o opnDossier main.go
 ```
 
 For development builds with additional tooling, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-If you plan to contribute, also install the configured git hooks so local checks run automatically. `just install` installs the `pre-commit` and `commit-msg` hooks:
-
-```bash
-just install   # runs mise install, installs pre-commit + commit-msg hooks, tidies modules
-# or, manually:
-pre-commit install --hook-type pre-commit --hook-type commit-msg
-```
-
-There is intentionally no `pre-push` hook — heavy pre-push hooks break non-interactive push clients (Copilot, bot agents). Run `just ci-check` manually before pushing substantive changes. See [CONTRIBUTING.md §Git Hooks](CONTRIBUTING.md#git-hooks) for the rationale and the `--no-verify` emergency escape hatch.
 
 ## Usage Examples
 
@@ -565,7 +555,7 @@ opnDossier is designed with security as a first-class concern:
 - **No external dependencies** - Operates completely offline
 - **No telemetry** - No data collection or external communication
 - **Secure by design** - Input validation, sanitization, and SBOM generation
-- **Automated scanning** - Daily vulnerability scans and dependency audits in CI/CD
+- **Automated scanning** - Vulnerability scans and dependency audits run in CI/CD on pull requests, pushes, and a weekly schedule
 
 For security vulnerabilities, please see our [security policy](SECURITY.md).
 
