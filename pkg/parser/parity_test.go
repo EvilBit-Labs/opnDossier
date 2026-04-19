@@ -107,7 +107,7 @@ func isFieldPopulated(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Slice, reflect.Map, reflect.String:
 		return v.Len() > 0
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		return !v.IsNil()
 	case reflect.Struct:
 		// reflect.Value.Fields() returns iter.Seq2[reflect.StructField, reflect.Value]
