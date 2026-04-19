@@ -47,10 +47,10 @@ opnDossier supports the current and previous stable Go releases (N and N-1), mat
    just install
    ```
 
-   This installs the `pre-commit`, `commit-msg`, and `pre-push` hooks. To install manually:
+   This installs the `pre-commit` and `commit-msg` hooks. To install manually:
 
    ```bash
-   pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+   pre-commit install --hook-type pre-commit --hook-type commit-msg
    ```
 
 4. Run tests to ensure everything works:
@@ -67,40 +67,31 @@ opnDossier supports the current and previous stable Go releases (N and N-1), mat
 
 ## Git Hooks
 
-The project uses a two-tier hook system enforced via `pre-commit`:
-
-### Fast Pre-Commit Hooks (Every Commit)
-
-These hooks run on every commit and must be fast:
+Fast pre-commit checks run on every commit via `pre-commit`:
 
 - **Formatters**: `gofumpt`, `mdformat`
 - **Lint config verification**: `actionlint`, `yamllint`
 - **golangci-lint fmt and --fix**: Auto-fixable issues only
 
-The pre-commit hooks focus on automatic fixes and style enforcement that can execute in under a few seconds.
+These focus on automatic fixes and style enforcement that execute in under a few seconds.
 
-### Slow Pre-Push Hook (Once Per Push)
+### No pre-push hook
 
-The pre-push hook runs the full `just ci-check` suite once before `git push` completes:
+A `just ci-check` pre-push hook was deliberately NOT added. Heavy pre-push hooks silently break non-interactive push clients (Copilot, bot agents) — they cannot recover from hook failures and discard the session. Instead:
 
-- `just check` - Verify build and dependencies
-- `just format-check` - Verify all code is formatted
-- `just lint` - Full golangci-lint run
-- `just test` - Unit tests
-- `just test-integration` - Integration tests
-- `just test-race` - Race detector
-
-**Why pre-push for the full suite?** The complete test suite is too slow to run on every commit, and `test-race` (the Go race detector) cannot be hosted reliably on GitHub Actions runners. The pre-push hook is the enforcement point for the race detector and the full quality bar, catching issues locally before they reach CI.
+- Run `just ci-check` manually before pushing substantive changes.
+- Race-detector regressions in `cmd/` are prevented structurally by the `forbidigo t.Parallel()` rule in `.golangci.yml`, which lint catches on every commit.
+- CI runs the full suite (including `test-integration`) on every PR and every push to `main`.
 
 ### Escape Hatch
 
-If you need to bypass the pre-push hook in an emergency (for example, a hotfix where the full suite is orthogonal to the change), use:
+If pre-commit blocks a genuine emergency (for example, a hotfix where the check is orthogonal to the change), use:
 
 ```bash
-git push --no-verify
+git commit --no-verify
 ```
 
-**`--no-verify` is for emergencies only, not routine use.** CI does not mirror `test-race`, so bypassing the pre-push hook means no one else will catch race conditions before merge. Any failure that prompts you to reach for `--no-verify` should be filed as a bug or todo afterward.
+**`--no-verify` is for emergencies only.** Any failure that prompts you to reach for it should be filed as a follow-up afterward.
 
 ## Development Workflow
 
