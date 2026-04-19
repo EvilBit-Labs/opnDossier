@@ -267,7 +267,7 @@ Dynamic plugins are loaded as Go `.so` shared objects via the standard `plugin.O
 
 - **Full process privileges.** A loaded plugin executes within the same process as opnDossier with identical permissions. There is no sandboxing, privilege separation, or capability restriction.
 - **No verification.** The loader does not perform signature verification, checksum validation, or provenance checks on `.so` files. Any file matching the `.so` extension in the plugin directory will be loaded and executed.
-- **Opt-in loading.** Dynamic plugin loading only occurs when the `--plugin-dir` flag is explicitly provided or the default `./plugins` directory exists. Plugins are not fetched from remote sources.
+- **Opt-in loading.** Dynamic plugin loading only occurs when the `--plugin-dir` flag is explicitly provided. There is no `./plugins` auto-discovery fallback — `PluginManager.InitializePlugins` skips `LoadDynamicPlugins` when `pluginDir == ""`. Plugins are not fetched from remote sources.
 - **Same-toolchain requirement.** Plugins must be compiled with the exact same Go version and module dependencies as the main binary. A version mismatch causes a load error, not a security bypass.
 
 **Recommendations:**

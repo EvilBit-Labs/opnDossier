@@ -17,8 +17,8 @@ Generate man pages for opnDossier and all of its commands.
 If no output directory is specified, man pages will be written to './man/'.
 
 Example:
-  opndossier man
-  opndossier man /usr/local/share/man/man1/
+  opnDossier man
+  opnDossier man /usr/local/share/man/man1/
 
 
 ```

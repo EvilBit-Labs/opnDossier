@@ -20,8 +20,8 @@ var manCmd = &cobra.Command{
 If no output directory is specified, man pages will be written to './man/'.
 
 Example:
-  opndossier man
-  opndossier man /usr/local/share/man/man1/
+  opnDossier man
+  opnDossier man /usr/local/share/man/man1/
 `,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

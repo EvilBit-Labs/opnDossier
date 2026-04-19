@@ -86,7 +86,7 @@ opnDossier convert [file ...] [flags]
   -o, --output string      Output file path for saving converted configuration (default: print to console)
   -f, --format string      Output format for conversion (markdown, json, yaml, text, html) (default "markdown")
       --force              Force overwrite existing files without prompting for confirmation
-      --include-tunables   Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)
+      --include-tunables   Include all system tunables in the rendered report (ignored for JSON/YAML, which always include every tunable)
       --section strings    Specific sections to include in output (comma-separated, e.g., system,network,firewall)
       --wrap int           Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120) (default -1)
       --no-wrap            Disable text wrapping (alias for --wrap 0)
