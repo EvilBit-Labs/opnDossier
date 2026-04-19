@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
 - **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
 - **parser**: Audit and harden public API surface - NATS-144 ([#575](https://github.com/EvilBit-Labs/opnDossier/pull/575))
-- **parser,model**: API shape enforcement for v1.5 — compile-time `var _ parser.DeviceParser = (*Parser)(nil)` assertions in `pkg/parser/api_shape_test.go` plus `go doc -all` goldie snapshot tests in `pkg/parser/api_snapshot_test.go` covering `pkg/parser`, `pkg/parser/opnsense`, `pkg/parser/pfsense`, and `pkg/model`. Golden fixtures live under `pkg/parser/testdata/api-snapshots/`. Regenerate with `go test ./pkg/parser/... -run TestPublicAPISnapshot -update` after intentional API changes. Release checklist now requires reviewing the fixture diffs before tagging.
+- **parser,model**: API shape enforcement for v1.5 — compile-time `var _ parser.DeviceParser = (*Parser)(nil)` assertions in `pkg/parser/api_shape_test.go` plus `go doc -all` goldie snapshot tests in `pkg/parser/api_snapshot_test.go` covering `pkg/parser`, `pkg/parser/opnsense`, `pkg/parser/pfsense`, and `pkg/model`. Golden fixtures live under `pkg/parser/testdata/api-snapshots/`. Regenerate with `go test ./pkg/parser/... -run TestPublicAPISnapshot -update` after intentional API changes. Release checklist now requires reviewing the fixture diffs before tagging. ([#586](https://github.com/EvilBit-Labs/opnDossier/pull/586))
 
 ### Changed
 
@@ -20,14 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to match the `ComplianceResults` type name. JSON tag also renames
   (`complianceChecks` -> `complianceResults`). Affects `pkg/model` public API
   from v1.5; pre-v1.5 consumers had no semver commitment.
-  See `docs/development/public-api.md` § Current Regime.
+  See `docs/development/public-api.md` § Current Regime. ([#586](https://github.com/EvilBit-Labs/opnDossier/pull/586))
 - **[breaking]** Renamed `pkg/parser.XMLDecoder` -> `pkg/parser.OPNsenseXMLDecoder`
   to reflect that the interface is typed to `*schema.OpnSenseDocument` and
   cannot be used for pfSense parsing. Affects `pkg/parser` public API from
-  v1.5; pre-v1.5 consumers had no semver commitment.
+  v1.5; pre-v1.5 consumers had no semver commitment. ([#586](https://github.com/EvilBit-Labs/opnDossier/pull/586))
 - **[breaking]** Removed deprecated type alias `pkg/model.FindingSeverity`;
   use `pkg/model.Severity` directly. The alias had no remaining call sites
-  and is being removed in the pre-v1.5 free-change window.
+  and is being removed in the pre-v1.5 free-change window. ([#586](https://github.com/EvilBit-Labs/opnDossier/pull/586))
 - **mergify**: Upgrade configuration to current format ([#543](https://github.com/EvilBit-Labs/opnDossier/pull/543))
 - Update labeling instructions and configuration settings in `.coderabbit.yaml`
 - Add OPNsense/pfSense XML data structure research ([#547](https://github.com/EvilBit-Labs/opnDossier/pull/547))
