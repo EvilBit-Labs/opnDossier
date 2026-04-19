@@ -36,6 +36,13 @@ jobs:
   # `oldstable` / N-1 (Go 1.25) cannot compile the module. A Go-version matrix
   # would be DOA. The OS matrix below is the only axis that meaningfully
   # varies.
+  #
+  # TODO: Once Go 1.27 ships and 1.26 becomes `oldstable`, reintroduce the
+  # N/N-1 `go-version: [stable, oldstable]` matrix and move the go.mod
+  # `go 1.26` floor accordingly (staying one release behind). This will
+  # reinstate Copilot's originally-requested N/N-1 compatibility testing.
+  # Remember to re-expand the matrix check names in `.mergify.yml` and the
+  # Go version wording in `README.md` / `CONTRIBUTING.md` at the same time.
   # ─────────────────────────────────────────────────────────────────────────
   test:
     name: Test (${{ matrix.os }})
