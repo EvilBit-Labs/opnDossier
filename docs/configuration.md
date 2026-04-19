@@ -610,6 +610,6 @@ This displays:
 
 ## Related Documentation
 
-- [Usage Guide](./user-guide/usage.md) - General usage instructions
-- [API Reference](./api.md) - Programmatic API documentation
+- [Getting Started](./user-guide/getting-started.md) - General usage instructions
+- [API Reference](./development/api.md) - Programmatic API documentation
 - [Examples](./examples.md) - Practical usage examples

@@ -65,7 +65,10 @@ func TestConvertCmdHelp(t *testing.T) {
 	// Just verify command structure, not help output
 	assert.Contains(t, convertCmd.Short, "Convert OPNsense configuration files")
 	assert.Contains(t, convertCmd.Long, "convert")
-	assert.Contains(t, convertCmd.Long, "Examples:")
+	// Examples live on the dedicated Cobra Example field (TODO #117) so they
+	// surface in `--help`, auto-generated man pages, and markdown docs.
+	assert.NotEmpty(t, convertCmd.Example, "convert should define Cobra Example content")
+	assert.Contains(t, convertCmd.Example, "opnDossier convert")
 }
 
 func TestConvertCmdRequiresArgs(t *testing.T) {

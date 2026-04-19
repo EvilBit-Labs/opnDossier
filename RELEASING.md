@@ -156,12 +156,30 @@ ls -la dist/
 
 ### Step 2: Generate Changelog Preview
 
+`CHANGELOG.md` follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). During development, commits flow into `## [Unreleased]` at the top of `CHANGELOG.md`. On release, git-cliff promotes the Unreleased section to `## [vX.Y.Z] - YYYY-MM-DD` and seeds a new empty Unreleased section for the next cycle.
+
+Commit types are mapped to Keep-a-Changelog buckets by `cliff.toml`:
+
+| Commit prefix                                                                | Changelog section |
+| ---------------------------------------------------------------------------- | ----------------- |
+| `feat:`                                                                      | **Added**         |
+| `fix:` (except `fix(security)`)                                              | **Fixed**         |
+| `fix(security):`, `security:`                                                | **Security**      |
+| `deprecate:`, `*(deprecate):`                                                | **Deprecated**    |
+| `remove:`, `*(remove):`                                                      | **Removed**       |
+| `perf:`, `refactor:`, `docs:`, `chore:`, `ci:`, `test:`, `style:`, `revert:` | **Changed**       |
+
+Commits whose body carries `BREAKING CHANGE:` land in **Changed** and are prefixed with `[**breaking**]` in the bullet — hand-curate migration notes beneath the release header when this happens.
+
 ```bash
-# Preview changelog for unreleased commits
+# Preview the Unreleased section as it would appear for the next tag
 git-cliff --unreleased
 
-# Preview full changelog
+# Preview the full changelog (all tagged versions + Unreleased)
 git-cliff --output /dev/stdout
+
+# Generate the final changelog for a specific version and write to disk
+just changelog-version vX.Y.Z
 ```
 
 ### Step 3: Create and Push Tag
@@ -495,8 +513,10 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 
 ### Prepare
 
-- [ ] Generate changelog — `just changelog-version vX.Y.Z`
-- [ ] Review `CHANGELOG.md` — verify entries are correct and complete
+- [ ] Preview Unreleased section — `git-cliff --unreleased` (confirms commits are bucketed into Added / Changed / Deprecated / Removed / Fixed / Security correctly)
+- [ ] Generate changelog — `just changelog-version vX.Y.Z` (promotes `## [Unreleased]` to `## [vX.Y.Z] - YYYY-MM-DD`)
+- [ ] Review `CHANGELOG.md` — verify entries are correct, complete, and in the right Keep-a-Changelog buckets
+- [ ] Hand-curate **Breaking Changes** / **Migration** subsections beneath the new release header if any commits carry `BREAKING CHANGE:`
 - [ ] Write or update `RELEASE_NOTES.md`
 - [ ] Bump `action.yml` default `version:` input to the new tag (e.g. `vX.Y.Z`)
 - [ ] Sweep README GitHub Action examples (`uses: EvilBit-Labs/opnDossier@vX.Y.Z` lines) to the new tag — grep for the previous tag to catch every callsite

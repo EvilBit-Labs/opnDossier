@@ -69,7 +69,11 @@ nav:
       - YAML Processing Examples: data-model/examples/yaml-processing.md
 
   - Development:
-      - Architecture: development/architecture.md
+      - Architecture:
+          - Overview (TOC): development/architecture.md
+          - System Overview: development/architecture/overview.md
+          - Pipelines: development/architecture/pipelines.md
+          - Plugin System: development/architecture/plugin-system.md
       - Development Standards: development/standards.md
       - API Reference: development/api.md
       - Plugin Development: development/plugin-development.md
@@ -84,11 +88,27 @@ nav:
       - Vulnerability Scanning: security/vulnerability-scanning.md
 
   - Reference:
-      - API Documentation: api.md
       - XML Field Reference: xml-field-reference.md
       - Firewall Security Controls: firewall-security-controls-reference.md
       - Compliance Standards: compliance-standards.md
       - Pipeline v2 Compliance: pipeline-v2-compliance.md
+      - CLI Reference (Auto-generated):
+          - Overview: cli/opnDossier.md
+          - audit: cli/opnDossier_audit.md
+          - convert: cli/opnDossier_convert.md
+          - display: cli/opnDossier_display.md
+          - diff: cli/opnDossier_diff.md
+          - sanitize: cli/opnDossier_sanitize.md
+          - validate: cli/opnDossier_validate.md
+          - config:
+              - Overview: cli/opnDossier_config.md
+              - config init: cli/opnDossier_config_init.md
+              - config show: cli/opnDossier_config_show.md
+              - config validate: cli/opnDossier_config_validate.md
+          - man: cli/opnDossier_man.md
+          - completion: cli/opnDossier_completion.md
+          - conv (alias): cli/opnDossier_conv.md
+          - version: cli/opnDossier_version.md
 
   - Research & Internal:
       - Theme Usage: theme-usage.md

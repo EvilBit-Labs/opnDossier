@@ -157,9 +157,9 @@ opndossier/
 
 opnDossier has two independent extension points:
 
-**Device Parsers** (`pkg/parser/`) -- Add support for new device types (pfSense, Fortinet, etc.). Device parsers transform vendor-specific XML into the platform-agnostic `CommonDevice` model. They self-register via `init()` and are linked at compile time through blank imports. See the [Device Parser Development](docs/dev-guide/plugin-development.md#device-parser-development) section in the Plugin Development Guide.
+**Device Parsers** (`pkg/parser/`) -- Add support for new device types (pfSense, Fortinet, etc.). Device parsers transform vendor-specific XML into the platform-agnostic `CommonDevice` model. They self-register via `init()` and are linked at compile time through blank imports. See the [Device Parser Development](docs/development/plugin-development.md#device-parser-development) section in the Plugin Development Guide.
 
-**Compliance Plugins** (`internal/plugins/`) -- Add new compliance standards and audit checks. Compliance plugins implement the `compliance.Plugin` interface and run security checks against the `CommonDevice` model. See the [Plugin Development Guide](docs/dev-guide/plugin-development.md) for details.
+**Compliance Plugins** (`internal/plugins/`) -- Add new compliance standards and audit checks. Compliance plugins implement the `compliance.Plugin` interface and run security checks against the `CommonDevice` model. See the [Plugin Development Guide](docs/development/plugin-development.md) for details.
 
 Both systems use self-registration patterns -- adding a new parser or plugin requires zero changes to existing code.
 

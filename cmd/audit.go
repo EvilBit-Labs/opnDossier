@@ -177,28 +177,28 @@ OPNsense config.xml files. It produces a report with compliance findings,
 security recommendations, and risk assessments based on the selected audit
 mode and compliance plugins.
 
-  AUDIT MODES:
+AUDIT MODES:
   Select the audit perspective using the --mode flag:
 
-    blue      - Defensive audit with security findings and recommendations (default)
-    red       - Attacker-focused recon report highlighting attack surfaces
+    blue  - Defensive audit with security findings and recommendations (default)
+    red   - Attacker-focused recon report highlighting attack surfaces
+            (experimental — analysis methods are placeholder stubs)
 
-  COMPLIANCE PLUGINS (blue mode only):
-  Select compliance checks to run with the --plugins flag (requires --mode blue):
+COMPLIANCE PLUGINS (blue mode only):
+  Select compliance checks with --plugins (requires --mode blue):
 
     stig      - Security Technical Implementation Guide
     sans      - SANS Firewall Baseline
     firewall  - Firewall Configuration Analysis
 
-  When no plugins are specified in blue mode, all available plugins are run.
-  The --plugins flag is not accepted with red mode.
+  Omit --plugins to run every available plugin. The flag is rejected with red mode.
 
-  CONTROL FILTERING (blue mode only):
-  Use --failures-only to show only non-compliant controls in plugin results tables.
-  When omitted, all controls (PASS and FAIL) are shown.
+CONTROL FILTERING (blue mode only):
+  Use --failures-only to hide PASS rows in plugin result tables. Applies only to
+  markdown output; JSON/YAML consumers must filter client-side.
 
-  OUTPUT FORMATS:
-  The audit report can be exported in multiple formats using the --format flag:
+OUTPUT FORMATS:
+  Select the report encoding with --format:
 
     markdown  - Standard markdown report (default)
     json      - JSON format for programmatic access
@@ -206,36 +206,37 @@ mode and compliance plugins.
     text      - Plain text output (markdown without formatting)
     html      - Self-contained HTML report for web viewing
 
-Examples:
-  # Run a blue team audit with all compliance plugins (default)
+MULTI-FILE RUNS:
+  Pass multiple input files to audit them concurrently. --output is rejected in
+  multi-file mode; each report is auto-named <input>-audit.<ext>.
+
+RELATED:
+  convert    - Render configuration without compliance checks
+  validate   - Structural validation (no audit)
+  sanitize   - Redact secrets before sharing audit output`,
+	Example: `  # Run a blue team audit with all compliance plugins (default)
   opnDossier audit config.xml
 
   # Blue team defensive audit with specific plugins
   opnDossier audit config.xml --plugins stig,sans
 
-  # Red team attack surface analysis
+  # Red team attack surface analysis (experimental)
   opnDossier audit config.xml --mode red
 
   # Export audit report as JSON
   opnDossier audit config.xml --format json -o audit-report.json
 
-  # Run audit on multiple files (each report is auto-named: config1-audit.md, config2-audit.md)
+  # Multi-file audit (reports auto-named config1-audit.md, config2-audit.md)
   opnDossier audit config1.xml config2.xml --mode blue
 
   # Comprehensive blue team audit with all compliance checks
   opnDossier audit config.xml --mode blue --comprehensive --plugins stig,sans,firewall
 
-  # Show only failing controls in blue mode
+  # Show only failing controls in blue mode markdown output
   opnDossier audit config.xml --mode blue --failures-only
 
   # Redact sensitive fields from audit output
-  opnDossier audit config.xml --redact
-
-  # Quiet mode (errors only)
-  opnDossier --quiet audit config.xml --mode blue
-
-  # Verbose audit diagnostics
-  opnDossier --verbose audit config.xml --mode blue --plugins stig,sans`,
+  opnDossier audit config.xml --redact`,
 	RunE: runAudit,
 }
 

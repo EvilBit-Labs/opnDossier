@@ -79,7 +79,7 @@ The `--plugin-dir` flag specifies a directory containing dynamic `.so` files tha
 opndossier audit config.xml --mode blue --plugin-dir /opt/plugins
 ```
 
-See the [Plugin Development Guide](../../dev-guide/plugin-development.md) for details on creating compliance plugins.
+See the [Plugin Development Guide](../../development/plugin-development.md) for details on creating compliance plugins.
 
 ## Output Formats
 

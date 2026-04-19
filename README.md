@@ -527,7 +527,7 @@ If you add a new field to `CommonDevice` that carries a secret, update this tabl
 
 - **[User Guide](docs/user-guide/)** - Installation, usage, and configuration
 - **[Security Documentation](docs/security/)** - Vulnerability scanning and security features
-- **[API Reference](docs/api.md)** - Detailed API documentation
+- **[API Reference](docs/development/api.md)** - Detailed API documentation
 - **[Public Go API](docs/development/public-api.md)** - Stability policy and semver rules for library consumers
 - **[Examples](docs/examples/)** - Real-world usage examples
 

@@ -136,7 +136,6 @@ Check out the [Getting Started](user-guide/getting-started.md) tutorial, or brow
 - **[User Guide](user-guide/commands/overview.md)** - Commands, configuration, and workflows
 - **[Examples](examples/index.md)** - Comprehensive usage examples and common workflows
 - **[About](about.md)** - Project overview and features
-- **[API Reference](api.md)** - Command-line interface and API documentation
 
 ### Developer Documentation
 

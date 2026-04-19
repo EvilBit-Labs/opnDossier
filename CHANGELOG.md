@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
+- **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
+- **parser**: Audit and harden public API surface - NATS-144 ([#575](https://github.com/EvilBit-Labs/opnDossier/pull/575))
+
+### Changed
+
+- **mergify**: Upgrade configuration to current format ([#543](https://github.com/EvilBit-Labs/opnDossier/pull/543))
+- Update labeling instructions and configuration settings in `.coderabbit.yaml`
+- Add OPNsense/pfSense XML data structure research ([#547](https://github.com/EvilBit-Labs/opnDossier/pull/547))
+- **NATS-6**: Remove template system dead code for v2.0 ([#550](https://github.com/EvilBit-Labs/opnDossier/pull/550))
+- Address CodeRabbit feedback from PR #550 ([#552](https://github.com/EvilBit-Labs/opnDossier/pull/552))
+- **NATS-7**: Replace O(n²) duplicate rule detection with hash buckets ([#554](https://github.com/EvilBit-Labs/opnDossier/pull/554))
+- **NATS-6**: Clean up residuals after template system removal ([#556](https://github.com/EvilBit-Labs/opnDossier/pull/556))
+- Add Jira as primary task tracker to Rules of Engagement
+- Update heading level for Agent Rules and remove unused dependency from `tessl.json`
+- **pkg**: Audit converters and ConversionWarning API — NATS-145 ([#580](https://github.com/EvilBit-Labs/opnDossier/pull/580))
+- **api**: Document public pkg/ consumer contract - NATS-146
+- **tooling**: Phase 1 — infrastructure and pre-commit quality gates
+- **security,deps,docs**: Phase 2 round 1 — security workflow, deps audit, pre-push hook
+- **ci,release,docs**: Phase 2 round 2 — CI matrix, coverage gate, docker snapshot, action pin
+
+### Fixed
+
+- **firewall,schema**: Post-merge review feedback on NATS-77 (PR #571) ([#573](https://github.com/EvilBit-Labs/opnDossier/pull/573))
+- **parser**: Liberal boolean parsing for OPNsense config.xml ([#558](https://github.com/EvilBit-Labs/opnDossier/pull/558)) ([#577](https://github.com/EvilBit-Labs/opnDossier/pull/577))
+
 ## [1.4.0] - 2026-04-03
 
 ### Features
