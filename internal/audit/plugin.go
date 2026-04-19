@@ -676,37 +676,32 @@ func (r LoadResult) Failed() int {
 	return len(r.Failures)
 }
 
-// globalRegistry holds the singleton PluginRegistry instance, and
+// globalRegistry holds the (deprecated) singleton PluginRegistry instance, and
 // globalRegistryOnce gates its one-time initialization.
+//
+// Deprecated: the global registry is retained only for backwards compatibility
+// with a small number of tests that exercise the old singleton API. Production
+// code must use NewPluginManager with an explicit *PluginRegistry (pass nil to
+// allocate a private one). Scheduled for removal in v2.0. See todo #143.
 //
 // Thread-safety guarantee: sync.Once.Do(f) guarantees that all writes
 // within f happen-before any call to Do returns (per the Go memory model,
-// https://go.dev/ref/mem#once). This means the assignment of globalRegistry
-// inside Do is visible to every goroutine that subsequently calls
+// https://go.dev/ref/mem#once). The assignment of globalRegistry inside Do
+// is therefore visible to every goroutine that subsequently calls
 // GetGlobalRegistry() without additional synchronization.
 //
-// Lifecycle: all plugin registration via RegisterGlobalPlugin() should
-// complete during sequential application startup before concurrent access
-// to the registry begins. While the internal sync.RWMutex on PluginRegistry
-// makes concurrent reads and writes safe, the intended usage pattern is
-// initialization-then-read.
-//
-// Note: this global singleton is independent of any PluginManager instance.
-// PluginManager allocates and populates its own PluginRegistry; callers that
-// need the global registry must use RegisterGlobalPlugin() explicitly.
-//
-//nolint:gochecknoglobals // Global registry for convenience functions
+//nolint:gochecknoglobals // Deprecated global registry retained for v2.0 removal.
 var (
 	globalRegistry     *PluginRegistry
 	globalRegistryOnce sync.Once
 )
 
-// GetGlobalRegistry returns the global plugin registry singleton,
-// initializing it on first access via sync.Once. It is safe to call
-// concurrently from multiple goroutines; the sync.Once guarantee ensures
-// the initialization completes and its writes are visible before any
-// caller receives the pointer. Subsequent calls return the same
-// *PluginRegistry instance without further synchronization overhead.
+// GetGlobalRegistry returns the (deprecated) global plugin registry singleton,
+// initializing it on first access via sync.Once.
+//
+// Deprecated: use NewPluginManager with an explicit *PluginRegistry (pass nil
+// to allocate a private one). The global registry is scheduled for removal in
+// v2.0. New code must not depend on this function. See todo #143.
 func GetGlobalRegistry() *PluginRegistry {
 	globalRegistryOnce.Do(func() {
 		globalRegistry = NewPluginRegistry()
@@ -714,26 +709,30 @@ func GetGlobalRegistry() *PluginRegistry {
 	return globalRegistry
 }
 
-// RegisterGlobalPlugin registers a compliance plugin with the global
-// singleton registry. All calls to RegisterGlobalPlugin should occur during
-// sequential application startup before the registry is accessed
-// concurrently for reads. While the underlying PluginRegistry.RegisterPlugin
-// is mutex-protected and technically safe to call concurrently, the
-// application's intended pattern is register-at-startup, read-during-operation.
+// RegisterGlobalPlugin registers a compliance plugin with the (deprecated)
+// global singleton registry.
 //
-// Note: PluginManager.InitializePlugins() populates the manager's own
-// PluginRegistry, not this global singleton. Callers that need plugins in the
-// global registry must call RegisterGlobalPlugin() directly.
+// Deprecated: use NewPluginManager with an explicit *PluginRegistry and call
+// RegisterPlugin on that instance directly. Scheduled for removal in v2.0.
+// See todo #143.
 func RegisterGlobalPlugin(p compliance.Plugin) error {
 	return GetGlobalRegistry().RegisterPlugin(p)
 }
 
-// GetGlobalPlugin retrieves a plugin from the global registry.
+// GetGlobalPlugin retrieves a plugin from the (deprecated) global registry.
+//
+// Deprecated: use NewPluginManager with an explicit *PluginRegistry and call
+// GetPlugin on that instance directly. Scheduled for removal in v2.0.
+// See todo #143.
 func GetGlobalPlugin(name string) (compliance.Plugin, error) {
 	return GetGlobalRegistry().GetPlugin(name)
 }
 
-// ListGlobalPlugins returns all plugins in the global registry.
+// ListGlobalPlugins returns all plugins in the (deprecated) global registry.
+//
+// Deprecated: use NewPluginManager with an explicit *PluginRegistry and call
+// ListPlugins on that instance directly. Scheduled for removal in v2.0.
+// See todo #143.
 func ListGlobalPlugins() []string {
 	return GetGlobalRegistry().ListPlugins()
 }

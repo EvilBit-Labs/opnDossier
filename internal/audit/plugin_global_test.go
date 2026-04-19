@@ -550,7 +550,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 
 		if err := pm.InitializePlugins(context.Background()); err != nil {
 			t.Fatalf("InitializePlugins() unexpected error: %v", err)
@@ -566,7 +566,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 
 		missingDir := filepath.Join(t.TempDir(), "does-not-exist")
 		pm.SetPluginDir(missingDir, true)
@@ -585,7 +585,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 		pm.SetPluginDir(t.TempDir(), false)
 
 		if err := pm.InitializePlugins(context.Background()); err != nil {
@@ -1522,7 +1522,7 @@ func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	pm := NewPluginManager(logger)
+	pm := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	if err := pm.InitializePlugins(ctx); err != nil {

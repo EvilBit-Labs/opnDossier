@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- docs/development/cli-output-policy.md documents the CLI output
+  policy across six purposes (user-facing structured, diagnostic,
+  interactive prompts, machine-readable, progress, pre-logger).
+  Phase A doc; per-site triage of existing Fprintf sites tracked
+  as Phase B. (#163)
+- **sanitizer**: `BenchmarkSanitizeXML_10MB` with a realistic 10MB OPNsense
+  fixture (~5000 firewall rules, mixed secret-bearing fields across users,
+  certificates, SNMP, OpenVPN, IPsec, DHCP host overrides). The fixture
+  is generated lazily under `internal/sanitizer/testdata/benchmark-10mb.xml`
+  and excluded from git. Serves as the post-fix baseline after
+  PERF-M1/M2/M5 (#148/#149/#150) — reference point for future sanitizer
+  perf regression detection. (#187)
 - **sanitizer**: `Sanitizer.SetLogger` plus a reflection-path warning when `SanitizeStruct` encounters a `map[K]struct{...}` or `map[K]*struct{...}` value. Go does not allow in-place mutation of such map values, so the walker has always skipped them silently — the warning surfaces the gap so a future schema that routes secrets through a struct-valued map is detected at runtime rather than shipped as cleartext. The raw-XML `SanitizeXML` path is unaffected. Full redaction of struct-valued maps is scheduled under tag-based redaction (todo #151).
 - **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
 - **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
@@ -17,6 +29,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- cmd/convert.go:RunE god-function extracted into processConvertFile
+  worker. 189-line closure + 150-line nested goroutine reduced to
+  ~40-line orchestration. errs channel replaced with indexed results
+  slice; error aggregation via errors.Join after wg.Wait(). Pattern
+  matches cmd/audit.go:runAudit + processAuditFile. (#112)
+- MarkdownBuilder gains WithGeneratedTime and WithVersion options for
+  deterministic golden-file generation. Regex normalization in
+  internal/converter/golden_test.go removed. Goldens regenerate
+  identically across machines. (#157)
+- `internal/audit` plugin registry consolidated: `PluginManager` now owns
+  a single registry (via `NewPluginManager(logger, reg)`);
+  `GetGlobalRegistry` / `RegisterGlobalPlugin` (+ `GetGlobalPlugin`,
+  `ListGlobalPlugins`) deprecated (v2.0 removal). GOTCHAS §2.1 class of
+  bug eliminated. Internal API; no semver impact. (#143)
 - Red-mode stub analysis methods now emit `not_implemented: true` +
   `stub: true` markers instead of fabricated non-zero counters. Output
   is structurally honest; consumers cannot confuse stub data for real
@@ -96,6 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **tooling**: Phase 1 — infrastructure and pre-commit quality gates
 - **security,deps,docs**: Phase 2 round 1 — security workflow, deps audit, pre-push hook
 - **ci,release,docs**: Phase 2 round 2 — CI matrix, coverage gate, docker snapshot, action pin
+- Adopt Go 1.21+ `cmp` package (cmp.Or, cmp.Compare, cmp.Less) where
+  it improves clarity. Internal refactor; no behavior change. (#162)
 
 ### Deprecated
 

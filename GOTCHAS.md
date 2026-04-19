@@ -21,12 +21,16 @@ When a data race occurs in a test touching global state, the Go race detector ma
 
 ## 2. Plugin Architecture
 
-### 2.1 Registry Independence
+### 2.1 Registry Consolidation (Historical — Resolved 2026-04-19)
 
-`audit.PluginManager` maintains its own internal `PluginRegistry` instance. This is **independent** of the global singleton returned by `audit.GetGlobalRegistry()`.
+**Status: RESOLVED.** `PluginManager` and the package-level global registry previously maintained independent `PluginRegistry` instances, and `InitializePlugins` populated only the manager's copy — leading to silent "plugin registered in one, queried from the other" bugs.
 
-- **Gotcha:** Calling `pm.InitializePlugins()` does **not** populate the global registry.
-- **Requirement:** If a plugin must be available globally (e.g., for simple CLI helpers), it must be explicitly registered via `audit.RegisterGlobalPlugin()`.
+As of todo #143, there is a single registry path:
+
+- `NewPluginManager(logger, reg *PluginRegistry)` accepts the registry as a constructor argument. Pass `nil` to allocate a fresh private registry, or pass a shared `*PluginRegistry` when multiple managers or subsystems must observe the same plugin set.
+- `GetGlobalRegistry`, `RegisterGlobalPlugin`, `GetGlobalPlugin`, and `ListGlobalPlugins` are `// Deprecated:` and scheduled for removal in v2.0. They remain functional only to keep a small number of legacy tests compiling.
+
+New production code must use `NewPluginManager` with an explicit registry. Do not call the deprecated globals.
 
 ### 2.2 Panic Recovery Retains Plugins
 

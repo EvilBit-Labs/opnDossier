@@ -278,9 +278,9 @@ assert.Contains(t, interfaceCell, ", ") // Multi-value separator
 Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 
 - Golden files contain **actual** values (timestamps, versions), not placeholders
-- Use a `normalizeGoldenOutput` function to normalize dynamic content before comparison
+- Inject dynamic values at construction time via builder options (e.g., `builder.WithGeneratedTime`, `builder.WithVersion`) rather than normalizing output after the fact. Goldie compares bytes directly.
 - Update golden files: `go test ./path -run TestGolden -update`
-- Use `time.RFC3339` for timestamps
+- Use `time.RFC3339` for timestamps; fix the injected test time to UTC so goldens are byte-identical across machines
 - Clean trailing whitespace: `sed -i '' 's/[[:space:]]*$//' *.golden.md`
 - Ensure golden files end with a trailing newline — goldie uses strict byte comparison
 - When making a report section conditional, update tests that assert its presence in ToC
@@ -471,6 +471,10 @@ type Config struct {
 - Include context in log messages (filename, operation, duration)
 - Use appropriate log levels (debug, info, warn, error)
 - Avoid logging sensitive information
+
+### CLI Output Policy
+
+The structured logger is one of six CLI output channels. User-facing warnings, interactive prompts, machine-readable output, progress, and the narrow pre-logger fallback each have their own canonical API and rules (TTY-awareness, `TERM=dumb` fallback, what never appears on stdout vs stderr). When adding CLI output, pick the channel by purpose — see [cli-output-policy.md](cli-output-policy.md) for the full policy.
 
 ### Thread Safety with `sync.RWMutex`
 

@@ -81,13 +81,13 @@ When auditing multiple files, each report is auto-named to prevent filename coll
 
 ## Plugin Registry
 
-`audit.PluginManager` maintains its own `PluginRegistry` instance that is **independent** of the global singleton returned by `audit.GetGlobalRegistry()`. This split exists so that CLI invocations and programmatic callers can operate with isolated plugin sets, but it introduces a sharp edge:
+`audit.PluginManager` owns a single `PluginRegistry` supplied at construction time: `NewPluginManager(logger, reg)`. Pass `nil` to allocate a fresh private registry (the common case for short-lived programmatic callers), or pass a shared `*PluginRegistry` when multiple managers or subsystems must observe the same plugin set (e.g., CLI helpers and the audit pipeline).
 
-- `pm.InitializePlugins()` populates the manager's registry **only** — not the global one.
-- Plugins that must be visible to simple CLI helpers must be registered explicitly via `audit.RegisterGlobalPlugin()`.
+- `pm.InitializePlugins()` populates the registry supplied to `NewPluginManager`.
 - Registry methods (`ListPlugins`, `GetPlugin`) are protected by `sync.RWMutex` and are safe for concurrent access. After `InitializePlugins` returns, the registry is effectively read-only.
+- The legacy package-level global registry (`GetGlobalRegistry`, `RegisterGlobalPlugin`, `GetGlobalPlugin`, `ListGlobalPlugins`) is `// Deprecated:` and scheduled for removal in v2.0. New code must not depend on it.
 
-See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#21-registry-independence) for the full invariant and the CLI call sites that depend on it.
+See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#21-registry-consolidation-historical--resolved-2026-04-19) for the historical context on the two-registry bug this consolidation eliminated.
 
 ### Plugin Selection and the `--plugins` Flag
 

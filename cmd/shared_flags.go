@@ -299,7 +299,7 @@ func registryPluginNames() []string {
 			return
 		}
 
-		pm := audit.NewPluginManager(logger)
+		pm := audit.NewPluginManager(logger, nil)
 		if initErr := pm.InitializePlugins(context.Background()); initErr != nil {
 			cachedPluginNames = slices.Sorted(maps.Keys(pluginDescriptions))
 

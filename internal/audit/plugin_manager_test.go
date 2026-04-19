@@ -22,26 +22,54 @@ func TestNewPluginManager(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
 
-	if manager == nil {
-		t.Fatal("NewPluginManager() returned nil")
-	}
+	t.Run("nil registry allocates a private one", func(t *testing.T) {
+		t.Parallel()
 
-	if manager.registry == nil {
-		t.Error("NewPluginManager() registry not initialized")
-	}
+		manager := NewPluginManager(logger, nil)
+		if manager == nil {
+			t.Fatal("NewPluginManager() returned nil")
+		}
+		if manager.registry == nil {
+			t.Error("NewPluginManager(nil) registry not initialized")
+		}
+		if manager.logger != logger {
+			t.Error("NewPluginManager() logger not set correctly")
+		}
+	})
 
-	if manager.logger != logger {
-		t.Error("NewPluginManager() logger not set correctly")
-	}
+	t.Run("explicit registry is retained (single source of truth)", func(t *testing.T) {
+		t.Parallel()
+
+		reg := NewPluginRegistry()
+		manager := NewPluginManager(logger, reg)
+		if manager == nil {
+			t.Fatal("NewPluginManager() returned nil")
+		}
+		if manager.registry != reg {
+			t.Error(
+				"NewPluginManager(reg) did not retain the supplied registry; a second registry was allocated — see todo #143",
+			)
+		}
+	})
+
+	t.Run("explicit registry is shared across managers", func(t *testing.T) {
+		t.Parallel()
+
+		reg := NewPluginRegistry()
+		m1 := NewPluginManager(logger, reg)
+		m2 := NewPluginManager(logger, reg)
+		if m1.registry != m2.registry {
+			t.Error("shared registry should be observable across managers")
+		}
+	})
 }
 
 func TestPluginManager_InitializePlugins(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 
 	ctx := context.Background()
 	err := manager.InitializePlugins(ctx)
@@ -74,7 +102,7 @@ func TestPluginManager_GetRegistry(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 
 	registry := manager.GetRegistry()
 	if registry == nil {
@@ -111,7 +139,7 @@ func TestPluginManager_ListAvailablePlugins(t *testing.T) {
 			t.Parallel()
 
 			logger := newTestLogger(t)
-			manager := NewPluginManager(logger)
+			manager := NewPluginManager(logger, nil)
 			ctx := context.Background()
 
 			if tt.initializePlugins {
@@ -156,7 +184,7 @@ func TestPluginManager_RunComplianceAudit(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	// Initialize plugins first
@@ -250,7 +278,7 @@ func TestPluginManager_GetPluginControlInfo(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	// Initialize plugins first
@@ -325,7 +353,7 @@ func TestPluginManager_ValidatePluginConfiguration(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	// Initialize plugins first
@@ -378,7 +406,7 @@ func TestPluginManager_GetPluginStatistics(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	// Test with no plugins initialized
@@ -450,7 +478,7 @@ func TestPluginManager_WithNilConfig(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	// Initialize plugins first
@@ -488,7 +516,7 @@ func TestPluginManager_PluginValidationFailure(t *testing.T) {
 	t.Parallel()
 
 	logger := newTestLogger(t)
-	manager := NewPluginManager(logger)
+	manager := NewPluginManager(logger, nil)
 
 	// Try to register a plugin that fails validation
 	failingPlugin := &mockFailingPlugin{

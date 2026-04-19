@@ -2,6 +2,7 @@
 package analyzers
 
 import (
+	"cmp"
 	"net"
 	"strconv"
 	"strings"
@@ -72,11 +73,7 @@ func (n *Normalizer) normalizeIPv4Octets(s string) string {
 		return s
 	}
 	for i, octet := range octets {
-		trimmed := strings.TrimLeft(octet, "0")
-		if trimmed == "" {
-			trimmed = "0"
-		}
-		octets[i] = trimmed
+		octets[i] = cmp.Or(strings.TrimLeft(octet, "0"), "0")
 	}
 	return strings.Join(octets, ".")
 }
@@ -154,10 +151,7 @@ func (n *Normalizer) normalizePortNumber(s string) string {
 		return s
 	}
 
-	// Strip leading zeros
-	result := strings.TrimLeft(s, "0")
-	if result == "" {
-		return "0"
-	}
-	return result
+	// Strip leading zeros, preserving "0" when the result would be empty
+	// (e.g., "0" or "000" → "0").
+	return cmp.Or(strings.TrimLeft(s, "0"), "0")
 }

@@ -42,12 +42,6 @@ func NewXMLParser() *XMLParser {
 	}
 }
 
-// charsetReader delegates to the shared parser.CharsetReader for charset handling.
-// Supported encodings: UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252.
-func charsetReader(charset string, input io.Reader) (io.Reader, error) {
-	return parser.CharsetReader(charset, input)
-}
-
 // Parse parses an OPNsense configuration file with security protections using streaming to minimize memory usage.
 // The streaming approach processes XML tokens individually rather than loading the entire document into memory,
 // providing better memory efficiency for large configuration files while maintaining security protections

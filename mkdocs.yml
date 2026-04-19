@@ -75,6 +75,7 @@ nav:
           - Pipelines: development/architecture/pipelines.md
           - Plugin System: development/architecture/plugin-system.md
       - Development Standards: development/standards.md
+      - CLI Output Policy: development/cli-output-policy.md
       - API Reference: development/api.md
       - Plugin Development: development/plugin-development.md
       - Contributing: development/contributing.md

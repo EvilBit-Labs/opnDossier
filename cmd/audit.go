@@ -291,13 +291,9 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	sem := make(chan struct{}, maxConcurrent)
 
 	// Buffer results: each goroutine produces an auditResult or an error.
-	// Results are collected here and emitted serially after all processing completes.
-	type resultOrError struct {
-		result auditResult
-		err    error
-	}
-
-	results := make([]resultOrError, len(args))
+	// Results are collected here and emitted serially after all processing completes
+	// (GOTCHAS §8.3: concurrent generation, serial emission).
+	results := make([]auditResultOrError, len(args))
 
 	var wg sync.WaitGroup
 
@@ -306,47 +302,8 @@ func runAudit(cmd *cobra.Command, args []string) error {
 
 		go func(idx int, fp string) {
 			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					// Gate stack dumps behind verbose logging — function names
-					// in stack traces can leak internal plugin paths into
-					// centralized logs, revealing compliance posture.
-					if cmdLogger.IsVerbose() {
-						cmdLogger.Error(
-							"goroutine panicked during audit processing",
-							"input_file", fp,
-							"panic", r,
-							"stack", string(debug.Stack()),
-						)
-					} else {
-						cmdLogger.Error(
-							"goroutine panicked during audit processing",
-							"input_file", fp,
-							"panic", r,
-						)
-					}
-					results[idx] = resultOrError{
-						err: fmt.Errorf("panic processing %s: %v", fp, r),
-					}
-				}
-			}()
 
-			// Acquire semaphore slot with context awareness
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-timeoutCtx.Done():
-				results[idx] = resultOrError{err: timeoutCtx.Err()}
-
-				return
-			}
-
-			output, err := generateAuditOutput(timeoutCtx, fp, cmdLogger, cmdConfig)
-			if err != nil {
-				results[idx] = resultOrError{err: err}
-			} else {
-				results[idx] = resultOrError{result: auditResult{inputFile: fp, output: output}}
-			}
+			results[idx] = processAuditFile(timeoutCtx, fp, sem, cmdLogger, cmdConfig)
 		}(i, filePath)
 	}
 
@@ -369,6 +326,68 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	}
 
 	return errors.Join(allErrors...)
+}
+
+// auditResultOrError pairs a successful audit result with an error slot so a
+// single slice entry can represent either outcome. It preserves input ordering
+// for serial emission (GOTCHAS §8.3).
+type auditResultOrError struct {
+	result auditResult
+	err    error
+}
+
+// processAuditFile runs the audit pipeline for a single input file under the
+// shared concurrency semaphore and returns the result or error. It is safe to
+// call from a goroutine: all I/O emission is deferred to emitAuditResult on
+// the parent goroutine (GOTCHAS §8.3).
+//
+// The function recovers from panics inside generateAuditOutput so that one
+// corrupt plugin or parser cannot abort the whole multi-file run. Stack dumps
+// are gated behind verbose logging because function names in stack traces can
+// leak internal plugin paths into centralized logs.
+//
+//nolint:nonamedreturns // panic recovery in the deferred func must overwrite the success value; a named return is the idiomatic way to do that.
+func processAuditFile(
+	ctx context.Context,
+	fp string,
+	sem chan struct{},
+	cmdLogger *logging.Logger,
+	cmdConfig *config.Config,
+) (res auditResultOrError) {
+	defer func() {
+		if r := recover(); r != nil {
+			if cmdLogger.IsVerbose() {
+				cmdLogger.Error(
+					"goroutine panicked during audit processing",
+					"input_file", fp,
+					"panic", r,
+					"stack", string(debug.Stack()),
+				)
+			} else {
+				cmdLogger.Error(
+					"goroutine panicked during audit processing",
+					"input_file", fp,
+					"panic", r,
+				)
+			}
+			res = auditResultOrError{err: fmt.Errorf("panic processing %s: %v", fp, r)}
+		}
+	}()
+
+	// Acquire semaphore slot with context awareness
+	select {
+	case sem <- struct{}{}:
+		defer func() { <-sem }()
+	case <-ctx.Done():
+		return auditResultOrError{err: ctx.Err()}
+	}
+
+	output, err := generateAuditOutput(ctx, fp, cmdLogger, cmdConfig)
+	if err != nil {
+		return auditResultOrError{err: err}
+	}
+
+	return auditResultOrError{result: auditResult{inputFile: fp, output: output}}
 }
 
 // generateAuditOutput handles parsing and audit generation for a single configuration

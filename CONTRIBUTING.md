@@ -578,6 +578,10 @@ ctxLogger := logger.With("operation", "convert")
 ctxLogger.Error("Conversion failed", "error", err)
 ```
 
+### CLI Output Policy
+
+opnDossier's CLI has several distinct output channels (user-facing warnings, diagnostics, interactive prompts, machine-readable output, progress, and the narrow pre-logger fallback). When adding any CLI output, pick the channel that matches the purpose — not the nearest convenient tool. See [docs/development/cli-output-policy.md](docs/development/cli-output-policy.md) for the full policy, TTY / `TERM=dumb` rules, and what must never appear on which stream.
+
 ### Thread Safety with `sync.RWMutex`
 
 When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`. See the [Development Standards](docs/development/standards.md#thread-safety-with-syncrwmutex) for the full thread safety guide.
@@ -833,7 +837,7 @@ Go map iteration is non-deterministic. When output is assembled from maps, tests
 
 ### Golden File Testing
 
-The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and tests should normalize dynamic content with helpers such as `normalizeGoldenOutput` before comparison. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
+The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and dynamic values (timestamps, versions) should be injected at construction time via builder options (e.g., `builder.WithGeneratedTime`, `builder.WithVersion`) so that goldie can compare bytes directly — no post-hoc normalization. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
 
 ### Pointer Identity Assertions
 

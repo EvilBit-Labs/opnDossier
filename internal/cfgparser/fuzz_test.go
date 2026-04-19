@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
 
 func FuzzXMLParserParse(f *testing.F) {
@@ -27,12 +29,12 @@ func FuzzXMLParserParse(f *testing.F) {
 	f.Add([]byte(`not xml at all`))
 	f.Add([]byte{})
 
-	parser := NewXMLParser()
+	p := NewXMLParser()
 
 	f.Fuzz(func(_ *testing.T, data []byte) {
 		// Must not panic; errors are expected and acceptable
 		//nolint:errcheck,gosec // fuzz tests intentionally discard errors
-		parser.Parse(context.Background(), bytes.NewReader(data))
+		p.Parse(context.Background(), bytes.NewReader(data))
 	})
 }
 
@@ -51,6 +53,6 @@ func FuzzCharsetReader(f *testing.F) {
 	f.Fuzz(func(_ *testing.T, charset string) {
 		// Must not panic; unsupported charset errors are expected
 		//nolint:errcheck,gosec // fuzz tests intentionally discard errors
-		charsetReader(charset, bytes.NewReader([]byte("test input")))
+		parser.CharsetReader(charset, bytes.NewReader([]byte("test input")))
 	})
 }

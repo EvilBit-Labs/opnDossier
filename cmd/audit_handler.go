@@ -41,7 +41,7 @@ func handleAuditMode(
 		SelectedPlugins: auditOpts.SelectedPlugins,
 	}
 
-	pm := audit.NewPluginManager(logger)
+	pm := audit.NewPluginManager(logger, nil)
 
 	// Configure dynamic plugin directory before initialization so that
 	// LoadDynamicPlugins actually executes when the user provides a path.
