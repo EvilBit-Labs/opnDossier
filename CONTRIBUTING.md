@@ -25,6 +25,9 @@ opnDossier follows strict coding standards and development practices:
 
 opnDossier requires Go 1.26 or later. The `go 1.26` directive in `go.mod` enables language features (including `reflect.Value.Fields()` iter.Seq2, added in 1.26) that older toolchains cannot compile. CI exercises a single Go version (pinned via `mise.toml`) across Linux, macOS, and Windows.
 
+> [!NOTE]
+> Once Go 1.27 ships and 1.26 becomes `oldstable`, the N/N-1 support policy and `go-version: [stable, oldstable]` CI matrix will be reinstated — see the TODO in `.github/workflows/ci.yml` for the checklist.
+
 ### Development Setup
 
 ```bash
