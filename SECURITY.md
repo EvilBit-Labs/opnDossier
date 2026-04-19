@@ -55,6 +55,16 @@ Please include:
 - We will coordinate disclosure through a [GitHub Security Advisory](https://github.com/EvilBit-Labs/opnDossier/security/advisories)
 - We will credit you in the advisory (unless you prefer to remain anonymous)
 
+### How Reports Are Handled
+
+Once a confirmed vulnerability is triaged:
+
+1. **Triage**: we determine severity, affected versions, and scope.
+2. **Fix**: we develop the patch on a private branch; critical issues are fast-tracked.
+3. **Ship**: the fix ships either in the next scheduled release or as a hotfix (see [RELEASING.md](RELEASING.md) § Hotfix / security releases for the hotfix procedure).
+4. **Backport**: supported branches (per the Supported Versions table above) receive the fix. Unsupported branches do not.
+5. **Disclosure**: the Security Advisory is published once users have had reasonable time to upgrade.
+
 ### Responsible Disclosure
 
 We ask that you:
