@@ -306,7 +306,7 @@ This hierarchical structure provides:
 - **Extensibility**: New features can be added to appropriate domains
 - **Validation**: Domain-specific validation rules improve data integrity
 - **API Evolution**: JSON tags enable better REST API integration
-- **Compliance Data**: `ComplianceResults` field (formerly `ComplianceChecks`) is a rich nested structure containing `Mode`, `Findings`, `PluginResults` map with per-plugin `PluginComplianceResult` instances, `Summary`, and `Metadata`
+- **Compliance Data**: `CommonDevice.ComplianceChecks` is a rich nested structure containing `Mode`, `Findings`, a `PluginResults` map with per-plugin `PluginComplianceResult` instances, `Summary`, and `Metadata`.
 
 ### Type Safety with Enums
 

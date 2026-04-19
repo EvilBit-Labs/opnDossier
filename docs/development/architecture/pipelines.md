@@ -299,42 +299,15 @@ classDiagram
         -device *common.CommonDevice
         -options BuildOptions
         -logger *Logger
-        +CalculateSecurityScore(data) int
-        +AssessRiskLevel(severity) string
-        +FilterSystemTunables(tunables, filter) []SysctlItem
-        +GroupServicesByStatus(services) map[string][]Service
-        +FormatInterfaceLinks(interfaces) string
-        +EscapeMarkdownSpecialChars(input) string
-    }
-
-    class SecurityAssessor {
-        +CalculateSecurityScore(data) int
-        +AssessRiskLevel(severity) string
-        +AssessServiceRisk(service) string
-        +DetermineSecurityZone(interface) string
-    }
-
-    class DataTransformer {
-        +FilterSystemTunables(tunables, filter) []SysctlItem
-        +GroupServicesByStatus(services) map[string][]Service
-        +FormatSystemStats(data) map[string]interface{}
-    }
-
-    class StringFormatter {
-        +EscapeMarkdownSpecialChars(input) string
-        +FormatTimestamp(timestamp) string
-        +TruncateDescription(text, length) string
-        +FormatBoolean(value) string
     }
 
     ReportBuilder *-- SectionBuilder : composes
     ReportBuilder *-- TableWriter : composes
     ReportBuilder *-- ReportComposer : composes
     ReportBuilder <|.. MarkdownBuilder : implements
-    MarkdownBuilder o-- SecurityAssessor
-    MarkdownBuilder o-- DataTransformer
-    MarkdownBuilder o-- StringFormatter
 ```
+
+Helper functions used by `MarkdownBuilder` (risk scoring, severity classification, markdown escaping, timestamp formatting, etc.) live as package-level functions under [`internal/converter/formatters/`](https://github.com/EvilBit-Labs/opnDossier/tree/main/internal/converter/formatters). They are not modelled as separate types here because they have no per-call state; treat them as stateless pure functions that `MarkdownBuilder` calls.
 
 #### Consumer-Local Interface Narrowing
 
@@ -359,66 +332,26 @@ Handler dispatch replaces the previous switch statement approach, enabling centr
 
 ```mermaid
 graph TD
-    subgraph "Input Processing"
-        XML[OPNsense XML] --> Parser[Enhanced Parser]
-        Parser --> Model[Structured Model]
-    end
-
-    subgraph "Programmatic Generation Engine"
-        Model --> Builder[MarkdownBuilder]
-        Builder --> Security[SecurityAssessor]
-        Builder --> Transform[DataTransformer]
-        Builder --> Format[StringFormatter]
-
-        Security --> Methods[Method-Based Generation]
-        Transform --> Methods
-        Format --> Methods
-    end
-
-    subgraph "Output Optimization"
-        Methods --> StringBuild[Optimized String Building]
-        StringBuild --> Render[Direct Rendering]
-        Render --> Output[Markdown Output]
-    end
-
-    subgraph "Performance Characteristics"
-        Metrics[Performance Metrics<br/>• Faster generation<br/>• Reduced memory<br/>• Increased throughput<br/>• Type-safe operations]
-    end
-
-    Output -.-> Metrics
+    XML[OPNsense / pfSense XML] --> Parser[Parser]
+    Parser --> Model[CommonDevice]
+    Model --> Builder[MarkdownBuilder]
+    Builder --> Formatters[internal/converter/formatters]
+    Builder --> Sections[Build*Section / Write*Table]
+    Sections --> Output[Markdown Output]
+    Formatters -. used by .-> Sections
 
     style Builder fill:#99ff99,stroke:#333,stroke-width:4px
-    style Methods fill:#99ff99,stroke:#333,stroke-width:2px
-    style StringBuild fill:#99ff99,stroke:#333,stroke-width:2px
+    style Sections fill:#99ff99,stroke:#333,stroke-width:2px
 ```
 
-### Method Categories and Performance
+### Method Categories
 
-#### Security Assessment Methods
+The Build*Section / Write*Table methods on `MarkdownBuilder` render individual configuration domains; the helper functions in `internal/converter/formatters/` cover risk scoring (`AssessRiskLevel`, `CalculateSecurityScore`), severity classification, markdown escaping, and timestamp formatting. For current performance numbers, run the benchmarks in `internal/converter/markdown_formatters_test.go` locally — hardcoded figures in docs drift quickly and were removed deliberately.
 
-- **CalculateSecurityScore**: 1.59M operations/sec
-- **AssessRiskLevel**: 92M operations/sec
-- **AssessServiceRisk**: High-frequency assessment capability
-
-#### Data Transformation Methods
-
-- **FilterSystemTunables**: 797K operations/sec
-- **GroupServicesByStatus**: 1.01M operations/sec
-- **FormatSystemStats**: Optimized for large datasets
-
-#### String Utility Methods
-
-- **EscapeMarkdownSpecialChars**: Ultra-fast character processing
-- **FormatTimestamp**: Efficient time formatting
-- **TruncateDescription**: Word-boundary aware truncation
-
-#### Section Builders
-
-- **BuildSystemSection**: 1.7K operations/sec (comprehensive sections)
-- **BuildNetworkSection**: 6.7K operations/sec
-- **BuildSecuritySection**: 5.1K operations/sec
-- **BuildServicesSection**: 13K operations/sec
-- **BuildAuditSection**: Renders compliance audit sections including summary, plugin results, findings tables, and metadata
+- **Build\*Section** (on `MarkdownBuilder`): render one configuration domain as a markdown section (system, network, security, services, IPsec, OpenVPN, HA, IDS, audit).
+- **Write\*Table** (on `MarkdownBuilder`): write a data table to the current markdown document (firewall rules, interfaces, users, groups, sysctl, NAT, VLANs, static routes, DHCP).
+- **BuildAuditSection**: renders compliance audit output including summary, plugin results, findings tables, and metadata.
+- **Formatters**: stateless helpers in `internal/converter/formatters/` (security, severity, strings, timestamps).
 
 ### Memory Management Architecture
 
@@ -454,15 +387,15 @@ type GenerationError struct {
 
 // Context-aware error handling
 func (b *MarkdownBuilder) BuildSection(device *common.CommonDevice) (string, error) {
-    if err := b.validateInput(data); err != nil {
+    if err := b.validateInput(device); err != nil {
         return "", &ValidationError{
             Field:   "input_data",
-            Value:   data,
+            Value:   device,
             Message: fmt.Sprintf("invalid input: %v", err),
         }
     }
 
-    result, err := b.generateContent(data)
+    result, err := b.generateContent(device)
     if err != nil {
         return "", &GenerationError{
             Component: "section_builder",
