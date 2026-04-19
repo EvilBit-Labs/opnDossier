@@ -71,7 +71,7 @@
     },
     {
       "title": "Next Moves",
-      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an OPNsenseXMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
+      "description": "You can now: (1) if you already have a parsed DTO, call opnsense.ConvertDocument(*schema.OpnSenseDocument) or pfsense.ConvertDocument(*pfschema.Document) directly — this is the idiomatic consumer entry point and bypasses the registry entirely; (2) if you only have raw XML on a reader, import pkg/parser + blank-import the per-device packages you need, inject an OPNsenseXMLDecoder, and call Factory.CreateDevice (auto-detect path); (3) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (4) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
     }
   ]
 }
