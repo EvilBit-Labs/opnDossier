@@ -56,7 +56,10 @@ pre-commit install --hook-type pre-commit --hook-type commit-msg
 
 Fast pre-commit checks run locally before each commit: formatters, lint config verification, `golangci-lint fmt`, and `golangci-lint run --fix`.
 
-**No pre-push hook.** A `just ci-check` pre-push hook was deliberately NOT added. Heavy pre-push hooks silently break non-interactive push clients (Copilot, bot agents) because they cannot recover from hook failures and discard the session. Instead:
+> [!IMPORTANT]
+> A `just ci-check` pre-push hook was deliberately not added. Heavy pre-push hooks silently break non-interactive push clients (Copilot, bot agents) because they cannot recover from hook failures and discard the session.
+>
+> Instead:
 
 - Run `just ci-check` manually before pushing substantive changes.
 - Race-detector regressions in `cmd/` are prevented structurally by the `forbidigo t.Parallel()` rule in `.golangci.yml`, which lint catches on every commit.
@@ -407,7 +410,7 @@ opnDossier treats vulnerability management as a first-class workflow concern.
   - `just sbom` - generate SBOM artifacts
 - **CI requirements**:
   - CI runs Grype scans for both the repository filesystem and Go module dependencies (`go.mod`).
-  - Severity thresholds are stricter on `main` (filesystem cutoff is $\\ge$ medium) than on feature branches (filesystem cutoff is $\\ge$ high).
+    - Severity thresholds are stricter on `main` (filesystem cutoff is `>= medium`) than on feature branches (filesystem cutoff is `>= high`).
 - **Where results live**:
   - SARIF uploads appear in the GitHub Security tab (Code Scanning).
   - SBOM and vulnerability report artifacts are attached to workflow runs.
@@ -522,7 +525,7 @@ import (
 
     // Internal packages
     "github.com/EvilBit-Labs/opnDossier/internal/config"
-    
+
     // Public API packages
     common "github.com/EvilBit-Labs/opnDossier/pkg/model"
     "github.com/EvilBit-Labs/opnDossier/pkg/parser"
@@ -982,7 +985,8 @@ Releases should always ship with human-readable notes generated through `git-cli
 
 ### Reporting Vulnerabilities
 
-Do not open public GitHub issues for security vulnerabilities. Use [GitHub Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) or email `support@evilbitlabs.io` instead. The project aims to release fixes for confirmed vulnerabilities within 90 days. `SECURITY.md` documents scope, safe harbor, and the project's PGP details.
+> [!WARNING]
+> Do not open public GitHub issues for security vulnerabilities. Use [GitHub Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) or email `support@evilbitlabs.io` instead. The project aims to release fixes for confirmed vulnerabilities within 90 days. `SECURITY.md` documents scope, safe harbor, and the project's PGP details.
 
 ## Getting Help
 
