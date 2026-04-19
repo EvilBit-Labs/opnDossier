@@ -123,7 +123,7 @@ The audit engine wraps all `RunChecks()` calls in panic recovery. If a plugin pa
 
 **Plugin authors do not need to implement panic recovery at the top level of `RunChecks()`.** The engine handles this automatically. However, panic recovery is not a replacement for proper error handling:
 
-- **Handle expected failure cases explicitly**: `RunChecks()` returns `[]Finding`, not an error. Convert expected issues (invalid configuration, missing data, unsupported features) into descriptive findings with appropriate severity. Use `ValidateConfiguration() error` for pre-execution validation.
+- **Handle expected failure cases explicitly**: `RunChecks()` returns `(findings, evaluated, err)`. Convert expected issues (invalid configuration, missing data, unsupported features) into descriptive findings with appropriate severity rather than returning err. Reserve `err` for truly unrecoverable conditions. Use `ValidateConfiguration() error` for pre-execution validation.
 - **Handle edge cases gracefully**: Validate inputs, check for nil pointers, and guard against out-of-bounds access before they cause panics.
 - **Reserve panics for truly unexpected situations**: Panics should only occur when the plugin encounters an unrecoverable programmer error or corrupt internal state.
 

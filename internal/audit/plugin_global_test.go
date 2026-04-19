@@ -1212,21 +1212,18 @@ type mockPluginWithFindings struct {
 	controls []compliance.Control
 }
 
-func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) []compliance.Finding {
-	return m.findings
-}
-
-func (m *mockPluginWithFindings) GetControls() []compliance.Control {
-	return m.controls
-}
-
-func (m *mockPluginWithFindings) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
 	ids := make([]string, len(m.controls))
 	for i, c := range m.controls {
 		ids[i] = c.ID
 	}
 
-	return ids
+	return m.findings, ids, nil
+}
+
+func (m *mockPluginWithFindings) GetControls() []compliance.Control {
+	return m.controls
 }
 
 func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control, error) {
@@ -1246,22 +1243,15 @@ type mockPanickingPlugin struct {
 }
 
 // RunChecks panics unconditionally to simulate a misbehaving plugin.
-func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
+//
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
 	panic("test panic")
 }
 
 // GetControls returns the controls configured on the mock.
 func (m *mockPanickingPlugin) GetControls() []compliance.Control {
 	return m.controls
-}
-
-func (m *mockPanickingPlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
-	ids := make([]string, len(m.controls))
-	for i, c := range m.controls {
-		ids[i] = c.ID
-	}
-
-	return ids
 }
 
 // GetControlByID returns the control matching the given ID.

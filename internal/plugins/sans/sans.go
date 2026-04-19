@@ -20,12 +20,23 @@ var unknown = checkResult{Result: false, Known: false}
 // Plugin implements the compliance.Plugin interface for SANS plugin.
 type Plugin struct {
 	controls []compliance.Control
+	// severityByID maps control ID -> severity for O(1) lookups during finding
+	// construction (previously O(n) linear scan over controls).
+	severityByID map[string]string
 }
 
 // NewPlugin creates a new SANS compliance plugin.
 func NewPlugin() *Plugin {
+	controls := allControls()
+
+	severityByID := make(map[string]string, len(controls))
+	for _, c := range controls {
+		severityByID[c.ID] = c.Severity
+	}
+
 	return &Plugin{
-		controls: allControls(),
+		controls:     controls,
+		severityByID: severityByID,
 	}
 }
 
@@ -44,220 +55,238 @@ func (sp *Plugin) Description() string {
 	return "SANS Firewall Checklist compliance checks for firewall security"
 }
 
-// RunChecks performs SANS compliance checks against the device configuration.
-// Each helper returns a checkResult. When Known is false the check is skipped
-// because the data needed to determine compliance is not available in config.xml.
-func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
-	var findings []compliance.Finding
+// sansCheckEntry describes a single SANS check and the finding text to emit
+// when it fails. failOnTrue inverts the polarity: for most checks Result==false
+// indicates a non-compliant posture, but a few (dangerous ports, ICMP on WAN,
+// DNS zone transfers) are flagged when Result==true.
+type sansCheckEntry struct {
+	controlID      string
+	checkFn        func(*common.CommonDevice) checkResult
+	failOnTrue     bool
+	title          string
+	description    string
+	recommendation string
+	component      string
+}
 
-	// SANS-FW-001: Default deny — finding when missing.
-	if cr := sp.checkDefaultDeny(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-001",
-			"Missing Default Deny Policy (SANS)",
-			"Firewall should implement a default deny policy for all traffic",
-			"Configure firewall with default deny policy and explicit allow rules for necessary traffic",
-			"firewall-rules"))
+// sansChecks returns the full table of SANS checks. Controls that cannot be
+// evaluated from config.xml (e.g., SANS-FW-010/011 advisory controls) are
+// intentionally absent — they never return Known=true and therefore produce
+// neither findings nor evaluated entries.
+func (sp *Plugin) sansChecks() []sansCheckEntry {
+	return []sansCheckEntry{
+		{
+			controlID:      "SANS-FW-001",
+			checkFn:        sp.checkDefaultDeny,
+			title:          "Missing Default Deny Policy (SANS)",
+			description:    "Firewall should implement a default deny policy for all traffic",
+			recommendation: "Configure firewall with default deny policy and explicit allow rules for necessary traffic",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-002", checkFn: sp.checkExplicitRules,
+			title:          "Non-Explicit Firewall Rules",
+			description:    "Firewall contains pass rules without descriptions",
+			recommendation: "Replace any catch-all or overly permissive rules with explicit, documented rules",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-003", checkFn: sp.checkZoneSeparation,
+			title:          "Insufficient Network Zone Separation",
+			description:    "Firewall does not enforce proper separation between different security zones",
+			recommendation: "Configure firewall rules to enforce proper network zone separation and access controls",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-004", checkFn: sp.checkComprehensiveLogging,
+			title:          "Insufficient Firewall Logging",
+			description:    "Firewall does not have comprehensive logging enabled",
+			recommendation: "Enable comprehensive logging for all firewall rules and security events",
+			component:      "syslog-config",
+		},
+		{
+			controlID: "SANS-FW-005", checkFn: sp.checkRulesetOrdering,
+			title:          "Improper Ruleset Ordering",
+			description:    "Block/reject rules do not precede pass rules for proper anti-spoofing ordering",
+			recommendation: "Reorder rules so block/reject rules appear before pass rules",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-006", checkFn: sp.checkAppLayerFiltering,
+			title:          "No Application Layer Filtering Detected",
+			description:    "No application-layer proxy packages are installed",
+			recommendation: "Install and configure an application-layer proxy such as HAProxy or Squid",
+			component:      "packages",
+		},
+		{
+			controlID: "SANS-FW-007", checkFn: sp.checkStatefulInspection,
+			title:          "Stateful Inspection Not Enforced",
+			description:    "TCP pass rules exist without stateful inspection enabled",
+			recommendation: "Set StateType to 'keep state' on all TCP pass rules",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-008", checkFn: sp.checkFirmwareCurrency,
+			title:          "Firmware Version Not Identified",
+			description:    "Firmware version is not set in the device configuration",
+			recommendation: "Ensure firmware is updated and version is recorded in configuration",
+			component:      "system-firmware",
+		},
+		{
+			controlID: "SANS-FW-009", checkFn: sp.checkDMZConfiguration,
+			title:          "No DMZ Interface Detected",
+			description:    "No DMZ or OPT interface is configured for network segmentation",
+			recommendation: "Configure a DMZ interface to isolate public-facing services",
+			component:      "interfaces",
+		},
+		{
+			controlID: "SANS-FW-012", checkFn: sp.checkAntiSpoofing,
+			title:          "Anti-Spoofing/Bogon Filtering Not Enabled on WAN",
+			description:    "WAN interface does not have BlockPrivate and BlockBogons enabled",
+			recommendation: "Enable BlockPrivate and BlockBogons on all WAN interfaces",
+			component:      "interfaces",
+		},
+		{
+			controlID: "SANS-FW-013", checkFn: sp.checkSourceRouting,
+			title:          "Source Routing Not Disabled",
+			description:    "IP source routing is not disabled via sysctl",
+			recommendation: "Set net.inet.ip.sourceroute=0 and net.inet.ip.accept_sourceroute=0 in sysctl",
+			component:      "sysctl",
+		},
+		{
+			controlID: "SANS-FW-014", checkFn: sp.checkDangerousPorts,
+			failOnTrue:     true,
+			title:          "Dangerous Service Ports Allowed on WAN",
+			description:    "WAN pass rules allow traffic on known dangerous service ports",
+			recommendation: "Block NetBIOS, SNMP, Telnet, NFS and X11 ports on WAN interfaces",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-015", checkFn: sp.checkSecureRemoteAccess,
+			title:          "Insecure Remote Access Configuration",
+			description:    "SSH is not enabled or telnet access is permitted by firewall rules",
+			recommendation: "Enable SSH and block telnet (port 23) on all interfaces",
+			component:      "system-ssh",
+		},
+		{
+			controlID: "SANS-FW-016", checkFn: sp.checkFTPIsolation,
+			title:          "FTP Server Not Isolated to DMZ",
+			description:    "FTP inbound rules do not target a DMZ interface",
+			recommendation: "Route FTP traffic to servers on a DMZ interface",
+			component:      "nat-rules",
+		},
+		{
+			controlID: "SANS-FW-017", checkFn: sp.checkMailRestriction,
+			title:          "Unrestricted SMTP Traffic",
+			description:    "SMTP pass rules do not target specific destination IPs",
+			recommendation: "Restrict SMTP rules to target only designated mail server IPs",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-018", checkFn: sp.checkICMPFiltering,
+			failOnTrue:     true,
+			title:          "ICMP Allowed on WAN",
+			description:    "ICMP pass rules exist on WAN interfaces",
+			recommendation: "Block ICMP on WAN interfaces to prevent reconnaissance",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-019", checkFn: sp.checkNATMasquerading,
+			title:          "NAT/IP Masquerading Not Configured",
+			description:    "Outbound NAT is disabled or not configured",
+			recommendation: "Enable outbound NAT to mask internal IP addresses",
+			component:      "nat-config",
+		},
+		{
+			controlID: "SANS-FW-020", checkFn: sp.checkDNSZoneTransfer,
+			failOnTrue:     true,
+			title:          "DNS Zone Transfers Not Restricted on WAN",
+			description:    "TCP port 53 pass rules on WAN allow unrestricted DNS zone transfers",
+			recommendation: "Restrict TCP port 53 to authorized DNS servers only",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-021", checkFn: sp.checkEgressFiltering,
+			title:          "Egress Filtering Not Enforced",
+			description:    "Outbound pass rules do not restrict source addresses",
+			recommendation: "Configure outbound rules to restrict source to internal networks",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-022", checkFn: sp.checkCriticalServerProtection,
+			title:          "Critical Server Protection Insufficient",
+			description:    "No WAN-to-LAN deny rules detected to protect internal servers",
+			recommendation: "Add explicit deny rules for WAN-to-LAN traffic to protect critical servers",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-023", checkFn: sp.checkDefaultCredentials,
+			failOnTrue:     true,
+			title:          "Default User Accounts Active",
+			description:    "Default user accounts (admin/root) are still active",
+			recommendation: "Disable or rename default accounts and set strong passwords",
+			component:      "users",
+		},
+		{
+			controlID: "SANS-FW-024", checkFn: sp.checkTCPStateEnforcement,
+			title:          "TCP State Enforcement Missing",
+			description:    "TCP pass rules exist without state tracking configured",
+			recommendation: "Set StateType on all TCP pass rules to enforce connection state tracking",
+			component:      "firewall-rules",
+		},
+		{
+			controlID: "SANS-FW-025", checkFn: sp.checkFirewallHA,
+			title:          "Firewall High Availability Not Configured",
+			description:    "No HA/pfsync configuration detected",
+			recommendation: "Configure CARP/pfsync high availability for fault tolerance",
+			component:      "high-availability",
+		},
+	}
+}
+
+// RunChecks performs SANS compliance checks against the device configuration in
+// a single traversal. Returns (findings, evaluated, err). Each check is invoked
+// exactly once — its result determines both whether a finding is emitted and
+// whether the control ID is appended to evaluated.
+//
+// err is currently always nil; reserved for future unrecoverable conditions.
+//
+//nolint:gocritic // nonamedreturns enforced project-wide; docstring clarifies return shape.
+func (sp *Plugin) RunChecks(
+	device *common.CommonDevice,
+) ([]compliance.Finding, []string, error) {
+	table := sp.sansChecks()
+
+	findings := make([]compliance.Finding, 0, len(table))
+	evaluated := make([]string, 0, len(table))
+
+	for _, entry := range table {
+		cr := entry.checkFn(device)
+		if !cr.Known {
+			continue
+		}
+
+		evaluated = append(evaluated, entry.controlID)
+
+		failed := !cr.Result
+		if entry.failOnTrue {
+			failed = cr.Result
+		}
+
+		if !failed {
+			continue
+		}
+
+		findings = append(findings, sp.finding(
+			entry.controlID,
+			entry.title,
+			entry.description,
+			entry.recommendation,
+			entry.component,
+		))
 	}
 
-	// SANS-FW-002: Explicit rules — finding when unclear rules exist.
-	if cr := sp.checkExplicitRules(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-002",
-			"Non-Explicit Firewall Rules",
-			"Firewall contains pass rules without descriptions",
-			"Replace any catch-all or overly permissive rules with explicit, documented rules",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-003: Zone separation — finding when insufficient.
-	if cr := sp.checkZoneSeparation(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-003",
-			"Insufficient Network Zone Separation",
-			"Firewall does not enforce proper separation between different security zones",
-			"Configure firewall rules to enforce proper network zone separation and access controls",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-004: Comprehensive logging — finding when missing.
-	if cr := sp.checkComprehensiveLogging(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-004",
-			"Insufficient Firewall Logging",
-			"Firewall does not have comprehensive logging enabled",
-			"Enable comprehensive logging for all firewall rules and security events",
-			"syslog-config"))
-	}
-
-	// SANS-FW-005: Ruleset ordering — finding when misordered.
-	if cr := sp.checkRulesetOrdering(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-005",
-			"Improper Ruleset Ordering",
-			"Block/reject rules do not precede pass rules for proper anti-spoofing ordering",
-			"Reorder rules so block/reject rules appear before pass rules",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-006: App layer filtering — finding when missing.
-	if cr := sp.checkAppLayerFiltering(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-006",
-			"No Application Layer Filtering Detected",
-			"No application-layer proxy packages are installed",
-			"Install and configure an application-layer proxy such as HAProxy or Squid",
-			"packages"))
-	}
-
-	// SANS-FW-007: Stateful inspection — finding when missing.
-	if cr := sp.checkStatefulInspection(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-007",
-			"Stateful Inspection Not Enforced",
-			"TCP pass rules exist without stateful inspection enabled",
-			"Set StateType to 'keep state' on all TCP pass rules",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-008: Firmware currency — finding when missing.
-	if cr := sp.checkFirmwareCurrency(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-008",
-			"Firmware Version Not Identified",
-			"Firmware version is not set in the device configuration",
-			"Ensure firmware is updated and version is recorded in configuration",
-			"system-firmware"))
-	}
-
-	// SANS-FW-009: DMZ configuration — finding when missing.
-	if cr := sp.checkDMZConfiguration(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-009",
-			"No DMZ Interface Detected",
-			"No DMZ or OPT interface is configured for network segmentation",
-			"Configure a DMZ interface to isolate public-facing services",
-			"interfaces"))
-	}
-
-	// SANS-FW-012: Anti-spoofing/bogon filtering — finding when missing.
-	if cr := sp.checkAntiSpoofing(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-012",
-			"Anti-Spoofing/Bogon Filtering Not Enabled on WAN",
-			"WAN interface does not have BlockPrivate and BlockBogons enabled",
-			"Enable BlockPrivate and BlockBogons on all WAN interfaces",
-			"interfaces"))
-	}
-
-	// SANS-FW-013: Source routing prevention — finding when missing.
-	if cr := sp.checkSourceRouting(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-013",
-			"Source Routing Not Disabled",
-			"IP source routing is not disabled via sysctl",
-			"Set net.inet.ip.sourceroute=0 and net.inet.ip.accept_sourceroute=0 in sysctl",
-			"sysctl"))
-	}
-
-	// SANS-FW-014: Dangerous port blocking — finding when dangerous ports exposed.
-	if cr := sp.checkDangerousPorts(device); cr.Known && cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-014",
-			"Dangerous Service Ports Allowed on WAN",
-			"WAN pass rules allow traffic on known dangerous service ports",
-			"Block NetBIOS, SNMP, Telnet, NFS and X11 ports on WAN interfaces",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-015: Secure remote access — finding when insecure.
-	if cr := sp.checkSecureRemoteAccess(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-015",
-			"Insecure Remote Access Configuration",
-			"SSH is not enabled or telnet access is permitted by firewall rules",
-			"Enable SSH and block telnet (port 23) on all interfaces",
-			"system-ssh"))
-	}
-
-	// SANS-FW-016: FTP server isolation — finding when not isolated.
-	if cr := sp.checkFTPIsolation(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-016",
-			"FTP Server Not Isolated to DMZ",
-			"FTP inbound rules do not target a DMZ interface",
-			"Route FTP traffic to servers on a DMZ interface",
-			"nat-rules"))
-	}
-
-	// SANS-FW-017: Mail traffic restriction — finding when unrestricted.
-	if cr := sp.checkMailRestriction(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-017",
-			"Unrestricted SMTP Traffic",
-			"SMTP pass rules do not target specific destination IPs",
-			"Restrict SMTP rules to target only designated mail server IPs",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-018: ICMP filtering — finding when allowed on WAN.
-	if cr := sp.checkICMPFiltering(device); cr.Known && cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-018",
-			"ICMP Allowed on WAN",
-			"ICMP pass rules exist on WAN interfaces",
-			"Block ICMP on WAN interfaces to prevent reconnaissance",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-019: NAT/IP masquerading — finding when not configured.
-	if cr := sp.checkNATMasquerading(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-019",
-			"NAT/IP Masquerading Not Configured",
-			"Outbound NAT is disabled or not configured",
-			"Enable outbound NAT to mask internal IP addresses",
-			"nat-config"))
-	}
-
-	// SANS-FW-020: DNS zone transfer restriction — finding when unrestricted.
-	if cr := sp.checkDNSZoneTransfer(device); cr.Known && cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-020",
-			"DNS Zone Transfers Not Restricted on WAN",
-			"TCP port 53 pass rules on WAN allow unrestricted DNS zone transfers",
-			"Restrict TCP port 53 to authorized DNS servers only",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-021: Egress filtering — finding when missing.
-	if cr := sp.checkEgressFiltering(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-021",
-			"Egress Filtering Not Enforced",
-			"Outbound pass rules do not restrict source addresses",
-			"Configure outbound rules to restrict source to internal networks",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-022: Critical server protection — finding when missing.
-	if cr := sp.checkCriticalServerProtection(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-022",
-			"Critical Server Protection Insufficient",
-			"No WAN-to-LAN deny rules detected to protect internal servers",
-			"Add explicit deny rules for WAN-to-LAN traffic to protect critical servers",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-023: Default credential reset — finding when defaults exist.
-	if cr := sp.checkDefaultCredentials(device); cr.Known && cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-023",
-			"Default User Accounts Active",
-			"Default user accounts (admin/root) are still active",
-			"Disable or rename default accounts and set strong passwords",
-			"users"))
-	}
-
-	// SANS-FW-024: TCP state enforcement — finding when missing.
-	if cr := sp.checkTCPStateEnforcement(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-024",
-			"TCP State Enforcement Missing",
-			"TCP pass rules exist without state tracking configured",
-			"Set StateType on all TCP pass rules to enforce connection state tracking",
-			"firewall-rules"))
-	}
-
-	// SANS-FW-025: Firewall HA — finding when not configured.
-	if cr := sp.checkFirewallHA(device); cr.Known && !cr.Result {
-		findings = append(findings, sp.finding("SANS-FW-025",
-			"Firewall High Availability Not Configured",
-			"No HA/pfsync configuration detected",
-			"Configure CARP/pfsync high availability for fault tolerance",
-			"high-availability"))
-	}
-
-	return findings
+	return findings, evaluated, nil
 }
 
 // GetControls returns all SANS controls. The returned slice is a deep copy to
@@ -265,48 +294,6 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 // reference types (References, Tags, Metadata).
 func (sp *Plugin) GetControls() []compliance.Control {
 	return compliance.CloneControls(sp.controls)
-}
-
-// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
-// given the device configuration. Controls that return Unknown (Known=false)
-// are excluded — they cannot be assessed from config.xml data alone.
-func (sp *Plugin) EvaluatedControlIDs(device *common.CommonDevice) []string {
-	checks := map[string]func(*common.CommonDevice) checkResult{
-		"SANS-FW-001": sp.checkDefaultDeny,
-		"SANS-FW-002": sp.checkExplicitRules,
-		"SANS-FW-003": sp.checkZoneSeparation,
-		"SANS-FW-004": sp.checkComprehensiveLogging,
-		"SANS-FW-005": sp.checkRulesetOrdering,
-		"SANS-FW-006": sp.checkAppLayerFiltering,
-		"SANS-FW-007": sp.checkStatefulInspection,
-		"SANS-FW-008": sp.checkFirmwareCurrency,
-		"SANS-FW-009": sp.checkDMZConfiguration,
-		"SANS-FW-012": sp.checkAntiSpoofing,
-		"SANS-FW-013": sp.checkSourceRouting,
-		"SANS-FW-014": sp.checkDangerousPorts,
-		"SANS-FW-015": sp.checkSecureRemoteAccess,
-		"SANS-FW-016": sp.checkFTPIsolation,
-		"SANS-FW-017": sp.checkMailRestriction,
-		"SANS-FW-018": sp.checkICMPFiltering,
-		"SANS-FW-019": sp.checkNATMasquerading,
-		"SANS-FW-020": sp.checkDNSZoneTransfer,
-		"SANS-FW-021": sp.checkEgressFiltering,
-		"SANS-FW-022": sp.checkCriticalServerProtection,
-		"SANS-FW-023": sp.checkDefaultCredentials,
-		"SANS-FW-024": sp.checkTCPStateEnforcement,
-		"SANS-FW-025": sp.checkFirewallHA,
-	}
-
-	var evaluated []string
-	for _, ctrl := range sp.controls {
-		if checkFn, exists := checks[ctrl.ID]; exists {
-			if cr := checkFn(device); cr.Known {
-				evaluated = append(evaluated, ctrl.ID)
-			}
-		}
-	}
-
-	return evaluated
 }
 
 // GetControlByID returns a specific control by ID.
@@ -329,17 +316,11 @@ func (sp *Plugin) ValidateConfiguration() error {
 	return nil
 }
 
-// controlSeverity returns the severity for a control ID from the control
-// definitions. This ensures findings derive severity from the single source
-// of truth (the control metadata) rather than hard-coding literals.
+// controlSeverity returns the severity for a control ID from the pre-built
+// severityByID map populated in NewPlugin. Returns "" when the ID is unknown.
+// O(1) — replaces the historical O(n) linear scan over sp.controls.
 func (sp *Plugin) controlSeverity(id string) string {
-	for _, c := range sp.controls {
-		if c.ID == id {
-			return c.Severity
-		}
-	}
-
-	return ""
+	return sp.severityByID[id]
 }
 
 // finding constructs a compliance.Finding with consistent structure.

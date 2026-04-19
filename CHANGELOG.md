@@ -17,6 +17,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **compliance,plugins**: Internal compliance plugin interface refactored:
+  `RunChecks` now returns `(findings, evaluated, err)` in a single pass;
+  `EvaluatedControlIDs` removed. Saves one full traversal per audit on blue
+  mode (roughly ~2x wall-clock for 10MB configs with 5000 rules — confirmed
+  by `BenchmarkFirewallPlugin_DoublePassEmulation` at 514µs vs single-pass
+  at 258µs on the same 5000-rule fixture). Call-count + benchmark regression
+  tests added. `controlSeverity` linear scan replaced with `severityByID`
+  map across firewall/sans/stig (O(1) lookup). `GetControls` defensive-clone
+  contract clarified on the interface; caller double-clone in
+  `PluginRegistry.RunComplianceChecks` dropped. Fixes PERF-H1/H2/L4, adds
+  TEST-H4.
+- **sanitizer**: Sanitizer performance: defer XML-path and reflection-path
+  materialization to the leaf (ShouldRedact call). Previously, each
+  StartElement / slice element allocated a full dotted path string;
+  now we maintain a `[]string` stack and `strings.Join` only when a rule
+  lookup is about to happen. ~90% of tokens now skip the join entirely.
+  Also: builtin rule slice cached via `sync.Once` in `builtinRules()`
+  instead of rebuilding on every `NewRuleEngine` call. Fixes PERF-M1,
+  PERF-M2, PERF-M4.
+- **diff**: Reuse already-scored `Change` fields in `computeRiskSummary`
+  instead of re-constructing `[]security.ChangeInput`. Introduces
+  `security.SummarizeScored` which aggregates pre-scored risks without
+  re-running pattern matching. Eliminates ~2x `ChangeInput` allocation on
+  large diffs (10k+ changes). Fixes PERF-M6.
+- **converter**: `strings.Builder` with `Grow()` pre-sizing at three
+  call sites in `internal/converter/hybrid_generator.go` (previously
+  `output += "\n\n" + auditSection`). The streaming path now writes
+  the audit separator and body as direct `io.WriteString` calls on the
+  target writer. Reduces peak memory on 2MB+ markdown reports. Fixes PERF-M7.
 - **parser**: Document the cancellation contract on `peekRootElementBounded`
   in `pkg/parser/factory.go`. The function returns `ctx.Err()` immediately on
   cancellation, but its internal goroutine only exits when the next read

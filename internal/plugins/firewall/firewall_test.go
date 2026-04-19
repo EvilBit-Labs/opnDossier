@@ -124,7 +124,8 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			findings := firewallPlugin.RunChecks(tt.config)
+			findings, _, err := firewallPlugin.RunChecks(tt.config)
+			require.NoError(t, err)
 
 			assert.Len(t, findings, len(tt.expectedFindingIDs), "Expected %d findings, got %d: %v",
 				len(tt.expectedFindingIDs), len(findings), getFindings(findings))
@@ -157,7 +158,8 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 
 func TestFirewallPlugin_RunChecks_NilDevice(t *testing.T) {
 	firewallPlugin := firewall.NewPlugin()
-	findings := firewallPlugin.RunChecks(nil)
+	findings, _, err := firewallPlugin.RunChecks(nil)
+	require.NoError(t, err)
 
 	// Nil device produces findings for verifiable checks where nil means "not configured".
 	// FIREWALL-056 (NAT reflection) returns true for nil (safe default) so no finding.
@@ -281,7 +283,8 @@ func TestFirewallPlugin_RunChecks_AutoConfigBackup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			findings := firewallPlugin.RunChecks(tt.config)
+			findings, _, err := firewallPlugin.RunChecks(tt.config)
+			require.NoError(t, err)
 			found := false
 			for _, finding := range findings {
 				if finding.Reference == "FIREWALL-002" {
@@ -356,7 +359,8 @@ func TestFirewallPlugin_RunChecks_CustomHostname(t *testing.T) {
 					Hostname: tt.hostname,
 				},
 			}
-			findings := firewallPlugin.RunChecks(config)
+			findings, _, err := firewallPlugin.RunChecks(config)
+			require.NoError(t, err)
 			found := false
 			for _, finding := range findings {
 				if finding.Reference == "FIREWALL-004" {
@@ -530,7 +534,8 @@ func TestFirewallPlugin_FindingSeverityMatchesControl(t *testing.T) {
 		},
 	}
 
-	findings := firewallPlugin.RunChecks(device)
+	findings, _, err := firewallPlugin.RunChecks(device)
+	require.NoError(t, err)
 	require.NotEmpty(t, findings, "expected at least one finding")
 
 	for _, finding := range findings {
@@ -1606,7 +1611,7 @@ func TestFirewallPlugin_DNSRebindProtection_EvaluableWhenConfigured(t *testing.T
 
 	// When Unbound is enabled AND the MVC <privateaddress> element was present
 	// in config.xml, FIREWALL-007 is evaluable. This is the positive counterpart
-	// to the EvaluatedControlIDs test whose device has Unbound disabled.
+	// to the evaluated-slice test whose device has Unbound disabled.
 	device := &common.CommonDevice{
 		DNS: common.DNSConfig{
 			Unbound: common.UnboundConfig{
@@ -1615,7 +1620,9 @@ func TestFirewallPlugin_DNSRebindProtection_EvaluableWhenConfigured(t *testing.T
 			},
 		},
 	}
-	assert.Contains(t, fp.EvaluatedControlIDs(device), "FIREWALL-007")
+	_, evaluated, err := fp.RunChecks(device)
+	require.NoError(t, err)
+	assert.Contains(t, evaluated, "FIREWALL-007")
 }
 
 func TestFirewallPlugin_DNSRebindProtection_UnknownWhenAbsent(t *testing.T) {
@@ -1632,7 +1639,9 @@ func TestFirewallPlugin_DNSRebindProtection_UnknownWhenAbsent(t *testing.T) {
 			},
 		},
 	}
-	assert.NotContains(t, fp.EvaluatedControlIDs(device), "FIREWALL-007")
+	_, evaluated, err := fp.RunChecks(device)
+	require.NoError(t, err)
+	assert.NotContains(t, evaluated, "FIREWALL-007")
 }
 
 func TestFirewallPlugin_HAConfiguration(t *testing.T) {
@@ -1741,7 +1750,8 @@ func TestFirewallPlugin_EvaluatedControlIDs(t *testing.T) {
 		},
 	}
 
-	evaluated := fp.EvaluatedControlIDs(device)
+	_, evaluated, err := fp.RunChecks(device)
+	require.NoError(t, err)
 
 	// Verify some known evaluable controls are present.
 	for _, id := range []string{
@@ -1782,7 +1792,8 @@ func assertFindingPresence(
 ) {
 	t.Helper()
 
-	findings := fp.RunChecks(config)
+	findings, _, err := fp.RunChecks(config)
+	require.NoError(t, err)
 	found := false
 
 	for _, f := range findings {

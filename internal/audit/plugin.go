@@ -281,10 +281,14 @@ func (pr *PluginRegistry) RunComplianceChecks(
 
 		// Run checks for this plugin inside a recovery boundary so that a
 		// panicking plugin (especially a dynamically-loaded one) cannot crash
-		// the entire audit process. On panic, findings remains nil and the
-		// plugin is retained in the result with zero findings.
-		var findings []compliance.Finding
-		var panicked bool
+		// the entire audit process. On panic, findings/evaluated remain nil
+		// and the plugin is retained in the result with zero findings.
+		var (
+			findings  []compliance.Finding
+			evaluated []string
+			runErr    error
+			panicked  bool
+		)
 
 		func() {
 			defer func() {
@@ -308,7 +312,7 @@ func (pr *PluginRegistry) RunComplianceChecks(
 					}
 				}
 			}()
-			findings = p.RunChecks(device)
+			findings, evaluated, runErr = p.RunChecks(device)
 		}()
 
 		// When a plugin panicked, its internal state may be corrupt.
@@ -323,6 +327,10 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			result.Compliance[pluginName] = make(map[string]bool)
 
 			continue
+		}
+
+		if runErr != nil {
+			return nil, fmt.Errorf("plugin %q RunChecks failed: %w", pluginName, runErr)
 		}
 
 		// Normalize findings: derive missing Severity from control metadata
@@ -340,31 +348,31 @@ func (pr *PluginRegistry) RunComplianceChecks(
 		result.PluginFindings[pluginName] = findings
 		result.Findings = append(result.Findings, findings...)
 
-		// Track plugin information — deep-clone controls so PluginInfo
-		// consumers cannot mutate the plugin's internal state.
+		// Track plugin information. GetControls is contractually required to
+		// return a defensive deep copy (see compliance.Plugin) so we assign it
+		// directly without an additional CloneControls call — dropping the
+		// historical double-clone on every audit.
 		result.PluginInfo[pluginName] = PluginInfo{
 			Name:        p.Name(),
 			Version:     p.Version(),
 			Description: p.Description(),
-			Controls:    compliance.CloneControls(p.GetControls()),
+			Controls:    p.GetControls(),
 		}
 
 		// Initialize compliance tracking for this plugin.
 		// Only controls the plugin can evaluate are initialized (to true/compliant).
 		// Controls absent from the map are UNCONFIRMED — not evaluable from the
 		// available configuration data.
-		result.Compliance[pluginName] = make(map[string]bool)
-
-		evaluatedIDs := p.EvaluatedControlIDs(device)
-		for _, id := range evaluatedIDs {
+		result.Compliance[pluginName] = make(map[string]bool, len(evaluated))
+		for _, id := range evaluated {
 			result.Compliance[pluginName][id] = true // Default evaluated controls to compliant
 		}
 
 		// Update compliance status based on findings — flip evaluated controls to false.
 		// Inventory findings (Type: "inventory") are informational observations, not
-		// compliance failures. Their referenced controls are not in EvaluatedControlIDs
-		// and thus not in the compliance map, so the flip would be a no-op. We skip
-		// them explicitly for clarity and to guard against accidental map pollution.
+		// compliance failures. Their referenced controls are not in the evaluated
+		// slice and thus not in the compliance map, so the flip would be a no-op. We
+		// skip them explicitly for clarity and to guard against accidental map pollution.
 		for _, finding := range findings {
 			if finding.Type == "inventory" {
 				continue

@@ -616,7 +616,10 @@ type Plugin interface {
     Name() string
     Version() string
     Description() string
-    RunChecks(device *common.CommonDevice) []Finding
+    // Single-pass evaluation: returns findings, the IDs of controls this
+    // plugin was able to evaluate on the provided device, and err.
+    RunChecks(device *common.CommonDevice) (findings []Finding, evaluated []string, err error)
+    // GetControls MUST return a defensive deep copy — callers do not clone again.
     GetControls() []Control
     GetControlByID(id string) (*Control, error)
     ValidateConfiguration() error

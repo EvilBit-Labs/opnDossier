@@ -134,7 +134,7 @@ See [GOTCHAS.md §2.2](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTC
 The audit engine draws a clean line between **severity** (triage priority) and **compliance status** (pass/fail). Several subtle rules follow from that separation:
 
 - **Info severity does not bypass compliance.** A finding with `Severity == "info"` that references a control still flips that control to non-compliant. Severity only affects presentation ordering and summary counts.
-- **Inventory controls are excluded from the compliance map.** Controls with `Type: "inventory"` are omitted from `EvaluatedControlIDs` entirely and surface only in the "Configuration Notes" section of the report.
+- **Inventory controls are excluded from the compliance map.** Controls with `Type: "inventory"` are intentionally omitted from the `evaluated` slice returned by `RunChecks` and surface only in the "Configuration Notes" section of the report.
 - **Unrecognized severity strings** are counted in a private `unknown` bucket by `countSeverities`. Callers that have access to a logger should emit a warning when `counts.unknown > 0`.
 
 See [GOTCHAS.md §2.4](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#24-info-severity-does-not-bypass-compliance) for the canonical statement of these rules.

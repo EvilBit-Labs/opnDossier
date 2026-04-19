@@ -18,6 +18,9 @@ const (
 // Plugin implements the compliance.Plugin interface for STIG plugin.
 type Plugin struct {
 	controls []compliance.Control
+	// severityByID maps control ID -> severity for O(1) lookups during finding
+	// construction (previously O(n) linear scan over controls).
+	severityByID map[string]string
 }
 
 // NewPlugin creates a new STIG compliance plugin.
@@ -127,6 +130,11 @@ func NewPlugin() *Plugin {
 		},
 	}
 
+	p.severityByID = make(map[string]string, len(p.controls))
+	for _, c := range p.controls {
+		p.severityByID[c.ID] = c.Severity
+	}
+
 	return p
 }
 
@@ -145,9 +153,25 @@ func (sp *Plugin) Description() string {
 	return "STIG (Security Technical Implementation Guide) compliance checks for firewall security"
 }
 
-// RunChecks performs STIG compliance checks.
-func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
-	var findings []compliance.Finding
+// RunChecks performs STIG compliance checks in a single traversal. Returns
+// (findings, evaluated, err). All 10 STIG controls can be evaluated from
+// config.xml data, so every control ID is appended to evaluated regardless of
+// pass/fail — this matches the semantics of the previous EvaluatedControlIDs
+// implementation that unconditionally returned all IDs.
+//
+// err is currently always nil; reserved for future unrecoverable conditions.
+//
+//nolint:gocritic // nonamedreturns enforced project-wide; docstring clarifies return shape.
+func (sp *Plugin) RunChecks(
+	device *common.CommonDevice,
+) ([]compliance.Finding, []string, error) {
+	findings := make([]compliance.Finding, 0, len(sp.controls))
+
+	// Pre-build evaluated with every control ID — STIG evaluates them all.
+	evaluated := make([]string, 0, len(sp.controls))
+	for _, c := range sp.controls {
+		evaluated = append(evaluated, c.ID)
+	}
 
 	// V-206694: Default deny policy
 	if !sp.hasDefaultDenyPolicy(device) {
@@ -267,7 +291,7 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 		})
 	}
 
-	return findings
+	return findings, evaluated, nil
 }
 
 // GetControls returns all STIG controls. The returned slice is a deep copy to
@@ -275,19 +299,6 @@ func (sp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
 // reference types (References, Tags, Metadata).
 func (sp *Plugin) GetControls() []compliance.Control {
 	return compliance.CloneControls(sp.controls)
-}
-
-// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate.
-// All 10 STIG controls can be evaluated from config.xml data: the original 4
-// check firewall rules/services/syslog, V-206701 checks rate-limiting fields,
-// V-206680/679/678/681 check syslog enablement, V-206711 checks IDS presence.
-func (sp *Plugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
-	ids := make([]string, len(sp.controls))
-	for i, c := range sp.controls {
-		ids[i] = c.ID
-	}
-
-	return ids
 }
 
 // GetControlByID returns a specific control by ID.
@@ -310,17 +321,11 @@ func (sp *Plugin) ValidateConfiguration() error {
 	return nil
 }
 
-// controlSeverity returns the severity for a control ID from the control
-// definitions. This ensures findings derive severity from the single source
-// of truth (the control metadata) rather than hard-coding literals.
+// controlSeverity returns the severity for a control ID from the pre-built
+// severityByID map populated in NewPlugin. Returns "" when the ID is unknown.
+// O(1) — replaces the historical O(n) linear scan over sp.controls.
 func (sp *Plugin) controlSeverity(id string) string {
-	for _, c := range sp.controls {
-		if c.ID == id {
-			return c.Severity
-		}
-	}
-
-	return ""
+	return sp.severityByID[id]
 }
 
 // hasDefaultDenyPolicy checks whether the device's firewall implements a default deny

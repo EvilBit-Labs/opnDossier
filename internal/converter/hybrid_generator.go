@@ -7,12 +7,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"gopkg.in/yaml.v3"
 )
+
+// auditSectionSeparator is written between the base report body and the
+// appended audit section when compliance data is present.
+const auditSectionSeparator = "\n\n"
 
 // Generator interface for creating documentation in various formats.
 type Generator interface {
@@ -231,11 +236,18 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 		return "", err
 	}
 
-	// Append audit section when compliance data is present
+	// Append audit section when compliance data is present. Use strings.Builder
+	// with Grow() pre-sizing instead of += concatenation so we do not copy the
+	// (potentially 2MB+) report body once per append (PERF-M7).
 	if target.ComplianceResults != nil {
 		auditSection := g.builder.BuildAuditSection(target)
 		if auditSection != "" {
-			report += "\n\n" + auditSection
+			var b strings.Builder
+			b.Grow(len(report) + len(auditSectionSeparator) + len(auditSection))
+			b.WriteString(report)
+			b.WriteString(auditSectionSeparator)
+			b.WriteString(auditSection)
+			return b.String(), nil
 		}
 	}
 
@@ -278,11 +290,23 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 			return err
 		}
 
-		// Append audit section when compliance data is present
+		// Append audit section when compliance data is present. In this
+		// non-streaming fallback we still buffer once, but we stream each
+		// segment directly to the writer to avoid the += copy of the
+		// accumulated report body (PERF-M7).
 		if target.ComplianceResults != nil {
 			auditSection := g.builder.BuildAuditSection(target)
 			if auditSection != "" {
-				output += "\n\n" + auditSection
+				if _, writeErr := io.WriteString(w, output); writeErr != nil {
+					return writeErr
+				}
+				if _, writeErr := io.WriteString(w, auditSectionSeparator); writeErr != nil {
+					return writeErr
+				}
+				if _, writeErr := io.WriteString(w, auditSection); writeErr != nil {
+					return writeErr
+				}
+				return nil
 			}
 		}
 
@@ -305,11 +329,16 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		return err
 	}
 
-	// Append audit section when compliance data is present
+	// Append audit section when compliance data is present. Write the
+	// separator and the audit body as two direct writes to w rather than
+	// concatenating a new string first (PERF-M7).
 	if target.ComplianceResults != nil {
 		auditSection := g.builder.BuildAuditSection(target)
 		if auditSection != "" {
-			if _, writeErr := io.WriteString(w, "\n\n"+auditSection); writeErr != nil {
+			if _, writeErr := io.WriteString(w, auditSectionSeparator); writeErr != nil {
+				return fmt.Errorf("failed to write audit section: %w", writeErr)
+			}
+			if _, writeErr := io.WriteString(w, auditSection); writeErr != nil {
 				return fmt.Errorf("failed to write audit section: %w", writeErr)
 			}
 		}

@@ -20,21 +20,30 @@ type Plugin interface {
 	// Description returns a brief description of the compliance standard
 	Description() string
 
-	// RunChecks performs compliance checks against the device configuration
-	// Returns standardized findings that can be processed by the plugin manager
-	RunChecks(device *common.CommonDevice) []Finding
+	// RunChecks performs compliance checks against the device configuration in a
+	// single traversal. Returns:
+	//   - findings: standardized findings produced by the evaluation.
+	//   - evaluated: IDs of controls this plugin was able to evaluate against
+	//     the provided device. Controls returned by GetControls() but NOT in
+	//     this list are reported as UNKNOWN in the audit report.
+	//   - err: a non-nil error aborts the audit for this plugin and is surfaced
+	//     to the caller. Plugins SHOULD return (findings, evaluated, nil) on
+	//     the happy path; use err only for unrecoverable conditions.
+	//
+	// Implementations MUST produce the evaluated slice in the same pass that
+	// produces findings — do not re-run checks to rebuild evaluated. This
+	// contract is why the legacy separate EvaluatedControlIDs method was
+	// removed: two traversals doubled wall-clock cost for blue-mode audits.
+	RunChecks(device *common.CommonDevice) (findings []Finding, evaluated []string, err error)
 
-	// GetControls returns all controls defined by this compliance standard
+	// GetControls returns all controls defined by this compliance standard.
+	// Implementations MUST return a defensive deep copy so callers cannot
+	// mutate plugin-internal state (see compliance.CloneControls). Callers
+	// therefore do NOT clone again.
 	GetControls() []Control
 
 	// GetControlByID returns a specific control by its ID
 	GetControlByID(id string) (*Control, error)
-
-	// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
-	// given the provided device configuration. Controls returned by GetControls()
-	// but NOT in this list will be reported as UNKNOWN in the audit report.
-	// Return nil to indicate no controls are evaluable.
-	EvaluatedControlIDs(device *common.CommonDevice) []string
 
 	// ValidateConfiguration validates the plugin's configuration
 	ValidateConfiguration() error

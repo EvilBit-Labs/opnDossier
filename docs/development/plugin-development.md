@@ -27,8 +27,12 @@ type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks (panic-safe)
-    GetControls() []compliance.Control   // Return all controls
+    // Single-pass evaluation (panic-safe): returns findings, the set of
+    // control IDs the plugin could evaluate on this device, and err.
+    // Plugins MUST produce findings and evaluated in the same traversal.
+    RunChecks(device *common.CommonDevice) (findings []compliance.Finding, evaluated []string, err error)
+    // GetControls MUST return a defensive deep copy — callers do not clone again.
+    GetControls() []compliance.Control
     GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
 }
@@ -138,10 +142,17 @@ func (cp *CustomPlugin) controlSeverity(id string) common.Severity {
     }
     return ""
 }
-func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
-    var findings []compliance.Finding
-    // Implement your compliance checks here
-    // Example:
+func (cp *CustomPlugin) RunChecks(
+    device *common.CommonDevice,
+) ([]compliance.Finding, []string, error) {
+    var (
+        findings  []compliance.Finding
+        evaluated []string
+    )
+
+    // Implement your compliance checks here. Produce both findings and
+    // evaluated in the same single traversal.
+    evaluated = append(evaluated, "CUSTOM-001")
     findings = append(findings, compliance.Finding{
         Type:           "compliance",
         Severity:       cp.controlSeverity("CUSTOM-001"),
@@ -153,7 +164,8 @@ func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Find
         References:     []string{"CUSTOM-001"},
         Tags:           []string{"custom", "security", "compliance"},
     })
-    return findings
+
+    return findings, evaluated, nil
 }
 ```
 
@@ -170,7 +182,7 @@ import (
 type MyDynamicPlugin struct{}
 
 // Implement compliance.Plugin methods...
-// RunChecks(device *common.CommonDevice) []compliance.Finding
+// RunChecks(device *common.CommonDevice) (findings []compliance.Finding, evaluated []string, err error)
 
 var Plugin compliance.Plugin = &MyDynamicPlugin{}
 ```

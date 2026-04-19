@@ -137,7 +137,8 @@ func TestRunChecks(t *testing.T) {
 
 	// Test with empty config (should pass some checks, fail others)
 	emptyConfig := &common.CommonDevice{}
-	findings := p.RunChecks(emptyConfig)
+	findings, _, err := p.RunChecks(emptyConfig)
+	require.NoError(t, err)
 
 	// With empty config:
 	// - Default deny policy: pass (conservative — no rules = default deny)
@@ -176,7 +177,8 @@ func TestRunChecksWithProblematicConfig(t *testing.T) {
 		// No logging configured
 	}
 
-	findings := p.RunChecks(problematicConfig)
+	findings, _, err := p.RunChecks(problematicConfig)
+	require.NoError(t, err)
 
 	// Should have findings for all 10 controls:
 	// Original 4: default deny, permissive rules, unnecessary services, logging
@@ -554,7 +556,7 @@ func TestModelIntegration(t *testing.T) {
 
 	// Should not panic with empty device
 	assert.NotPanics(t, func() {
-		_ = p.RunChecks(device)
+		_, _, _ = p.RunChecks(device) //nolint:errcheck // panic-safety test; no assertion on return values
 	})
 }
 
@@ -598,7 +600,8 @@ func TestComplexScenarios(t *testing.T) {
 		// No unnecessary services
 	}
 
-	findings := p.RunChecks(mixedConfig)
+	findings, _, err := p.RunChecks(mixedConfig)
+	require.NoError(t, err)
 
 	// Should detect:
 	// 1. Missing default deny (any-to-any rule overrides the explicit deny)

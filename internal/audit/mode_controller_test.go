@@ -32,8 +32,15 @@ func (m *mockCompliancePlugin) Description() string {
 	return m.description
 }
 
-func (m *mockCompliancePlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
-	return []compliance.Finding{}
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockCompliancePlugin) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
+	controls := m.GetControls()
+	ids := make([]string, len(controls))
+	for i, c := range controls {
+		ids[i] = c.ID
+	}
+
+	return []compliance.Finding{}, ids, nil
 }
 
 func (m *mockCompliancePlugin) GetControls() []compliance.Control {
@@ -42,15 +49,6 @@ func (m *mockCompliancePlugin) GetControls() []compliance.Control {
 
 func (m *mockCompliancePlugin) GetControlByID(_ string) (*compliance.Control, error) {
 	return nil, compliance.ErrControlNotFound
-}
-
-func (m *mockCompliancePlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
-	ids := make([]string, len(m.GetControls()))
-	for i, c := range m.GetControls() {
-		ids[i] = c.ID
-	}
-
-	return ids
 }
 
 func (m *mockCompliancePlugin) ValidateConfiguration() error {

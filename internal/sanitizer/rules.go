@@ -3,6 +3,7 @@ package sanitizer
 import (
 	"slices"
 	"strings"
+	"sync"
 )
 
 // Mode represents the sanitization aggressiveness level.
@@ -81,17 +82,14 @@ type RuleEngine struct {
 
 // NewRuleEngine creates a RuleEngine configured for the given Mode.
 // The engine is populated with the package's builtin rules and a default Mapper.
-// Field patterns are pre-lowercased at construction time to avoid redundant
-// allocations on every fieldNameMatches call.
+// Field patterns are pre-lowercased once at first call via sync.Once (see
+// cachedBuiltinRules); subsequent calls share the immutable slice without
+// re-allocating. The Mapper is fresh per engine — mapping namespaces stay
+// per-invocation, but the rule definitions do not change between runs.
+// See issue #150.
 func NewRuleEngine(mode Mode) *RuleEngine {
-	rules := builtinRules()
-	for i := range rules {
-		for j, pat := range rules[i].FieldPatterns {
-			rules[i].FieldPatterns[j] = strings.ToLower(pat)
-		}
-	}
 	engine := &RuleEngine{
-		rules:  rules,
+		rules:  cachedBuiltinRules(),
 		mapper: NewMapper(),
 		mode:   mode,
 	}
@@ -545,6 +543,39 @@ func builtinRules() []Rule {
 			},
 		},
 	}
+}
+
+// builtinRulesCache holds the pre-lowercased, immutable rule slice used by
+// every RuleEngine. Rules themselves never mutate after construction —
+// NewRuleEngine previously re-ran strings.ToLower over every FieldPattern on
+// every call, which was wasted work for batch sanitization (thousands of
+// files × ~80 patterns). The sync.Once path captures the canonical rule
+// ordering (authserver_config before password, email before hostname — see
+// GOTCHAS §19.1) and preserves it for all subsequent calls.
+//
+//nolint:gochecknoglobals // Module-wide immutable cache, sync.Once guarded.
+var (
+	builtinRulesOnce  sync.Once
+	builtinRulesCache []Rule
+)
+
+// cachedBuiltinRules returns the shared builtin rule slice, building and
+// lowercasing it on first call. The returned slice MUST be treated as
+// read-only by callers — ShouldRedactField / ShouldRedactValue only read
+// rule fields, and no external callers mutate Rule values. If a future
+// change needs per-engine mutation, deep-clone at that site; do not mutate
+// the shared slice.
+func cachedBuiltinRules() []Rule {
+	builtinRulesOnce.Do(func() {
+		rules := builtinRules()
+		for i := range rules {
+			for j, pat := range rules[i].FieldPatterns {
+				rules[i].FieldPatterns[j] = strings.ToLower(pat)
+			}
+		}
+		builtinRulesCache = rules
+	})
+	return builtinRulesCache
 }
 
 // authServerFieldFromPath extracts the authserver field type from a dotted path.

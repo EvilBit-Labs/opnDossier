@@ -44,7 +44,7 @@ When a data race occurs in a test touching global state, the Go race detector ma
 Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") participate in the compliance map normally — they can PASS or FAIL. Severity only affects presentation priority (summary counts, sort order), NOT compliance status. The compliance flip in `RunComplianceChecks` is never skipped based on severity.
 
 - **Gotcha:** A finding with `Severity == "info"` that references a control still flips that control to non-compliant. This is intentional — severity is triage priority, not compliance gating.
-- **Gotcha:** Inventory controls (`Type: "inventory"`) are excluded from `EvaluatedControlIDs` entirely and do not appear in the compliance map. They only appear in "Configuration Notes."
+- **Gotcha:** Inventory controls (`Type: "inventory"`) are intentionally excluded from the `evaluated` slice returned by `RunChecks` and do not appear in the compliance map. They only appear in "Configuration Notes."
 - **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`.
 
 ### 2.5 Dynamic Plugin Trust Model
@@ -299,6 +299,15 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 - **Known current paths:** OPNsense `KeaDhcp4` already uses map-style subnet containers, but those maps hold config metadata, not credentials. No currently-shipped schema path puts a secret behind a struct-valued map.
 - **Why warn instead of fix:** Supporting struct-valued maps via reflection requires reconstructing each element in place (read → recurse into a copy → `SetMapIndex` with the mutated copy). That work is scheduled under todo #151 (tag-based redaction) which will subsume this gap by annotating sensitive fields directly and driving redaction from tags instead of field-name heuristics. The warning is the bridge until #151 lands.
 - **Regression tests:** `TestSanitizeStruct_MapStructValues_WarnsAndSkips` and `TestSanitizeStruct_MapStructValues_NilLoggerNoPanic` in `internal/sanitizer/sanitizer_reflect_test.go` pin both the warning path and the nil-logger nil-safety invariant. If a future enhancement starts handling struct-valued maps, those tests must be updated (or replaced) to reflect the new behavior — do not delete them blind.
+
+### 14.5 `SanitizeXML` Buffers the Full Input via `io.ReadAll`
+
+`SanitizeXML` in `internal/sanitizer/sanitizer.go` calls `io.ReadAll(io.LimitReader(r, maxSanitizeInputSize+1))` before token-streaming the XML through `xml.NewDecoder`. This buffers the entire payload (up to the 100MB cap) in memory rather than streaming directly from the reader. This is a documented, intentional tradeoff — not a bug — and is filed here for visibility so future contributors do not re-file the same concern or "fix" it without understanding the tradeoff.
+
+- **Why buffer:** The `maxSanitizeInputSize+1` size check is simpler to express with the full payload in memory (`LimitReader` + length comparison). A streaming path via `xml.NewDecoder(r)` would save the buffer but complicates the ">10MB rejection" gate.
+- **Cost:** Peak residency equals input size, capped at 100MB. For typical 2-10MB OPNsense configs this is trivial on real hardware.
+- **When to revisit:** Only if benchmarks at ≥100MB input scale show memory pressure, or if a use case requires sanitizing inputs larger than the current cap. Until then, keep as-is.
+- **Reference:** todo #183 (filed 2026-04-19 from comprehensive review PERF-L2). Issue #187 will add benchmark context.
 
 ## 15. Liberal Boolean and Integer Parsing
 
