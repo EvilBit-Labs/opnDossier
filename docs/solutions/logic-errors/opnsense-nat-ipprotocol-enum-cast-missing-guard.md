@@ -37,9 +37,9 @@ related_docs:
 
 **Prose-only GOTCHAS documentation was not a sufficient tripwire.** `GOTCHAS.md §5.2` correctly described the required `IsValid()` pattern since before NATS-145 (the pfSense converter had adopted it; the `DeviceType` enum had adopted it). It explicitly named `NATOutboundMode`, `LAGGProtocol`, and `VIPMode` as callsites requiring the guard. But it did not enumerate the NAT rule `IPProtocol` paths, and there was no regression test that would fail when a new cast site was added without a guard. The documentation told contributors the rule; it did not enforce it.
 
-**NATS-144's parser audit (PR #575) did not look inside converter rule-loops.** The NATS-144 pass was scoped to the registry, factory, and per-device parser entry points — godoc completeness, `internal/` import boundary, coverage thresholds. It stopped at the top-level `ConvertDocument` signature and did not descend into the inner `convertOutboundNATRules` / `convertInboundNATRules` loops where the bare casts lived. (session history)
+**NATS-144's parser audit ([PR #575](https://github.com/EvilBit-Labs/opnDossier/pull/575)) did not look inside converter rule-loops.** The NATS-144 pass was scoped to the registry, factory, and per-device parser entry points — godoc completeness, `internal/` import boundary, coverage thresholds. It stopped at the top-level `ConvertDocument` signature and did not descend into the inner `convertOutboundNATRules` / `convertInboundNATRules` loops where the bare casts lived.
 
-**NATS-145's initial planning phase declared the problem solved prematurely.** Planning research checked the six most visible enum-cast sites in the OPNsense converter and reported "all 6 casts already have `IsValid()` guards" — accurate for the sites it checked, but the search targeted top-level switch/convert patterns, not inner per-rule mapping loops. The two NAT rule paths at lines 373 and 429 were missed. The PR was scoped as "audit-only: godoc completeness" on that basis. (session history)
+**NATS-145's initial planning phase declared the problem solved prematurely.** The planning document ([`docs/plans/2026-04-18-003-refactor-audit-converters-conversion-warning-plan.md`](../../plans/2026-04-18-003-refactor-audit-converters-conversion-warning-plan.md)) checked the six most visible enum-cast sites in the OPNsense converter and reported "all 6 casts already have `IsValid()` guards" — accurate for the sites it checked, but the search targeted top-level switch/convert patterns, not inner per-rule mapping loops. The two NAT rule paths (in `convertOutboundNATRules` and `convertInboundNATRules`) were missed. The PR was scoped as "audit-only: godoc completeness" on that basis.
 
 ## Solution
 
@@ -97,7 +97,7 @@ if r.IPProtocol != "" && !ipProto.IsValid() {
 }
 ```
 
-The canonical pfSense reference is `pkg/parser/pfsense/converter_security.go` (firewall rule `IPProtocol` at line 72, outbound NAT rule `IPProtocol` at line 165, inbound NAT rule `IPProtocol` at line 237) — all three had the guard before NATS-145 opened.
+The canonical pfSense reference is `pkg/parser/pfsense/converter_security.go` — `convertFirewallRules` (firewall rule `IPProtocol`), `convertNAT` (outbound mode + rule `IPProtocol` via `convertOutboundNATRules`), and `convertInboundNATRules` (inbound rule `IPProtocol`) all had the `IsValid()` guard before NATS-145 opened.
 
 ## Why This Works
 
@@ -112,9 +112,9 @@ The two-step pattern provides two invariants simultaneously:
 
 **Regression test as tripwire.** `TestConverter_EnumCast_EmitsWarning` in `pkg/parser/opnsense/converter_enum_cast_test.go` is a table-driven test with one row per guarded enum callsite. The two new rows — `"nat outbound rule ip protocol"` and `"nat inbound rule ip protocol"` — exercise the fixed code directly. Any future bare cast added to the OPNsense converter that omits the guard has no corresponding row, making the omission visible at PR review time. `TestConverter_EnumCast_EmptyStringDoesNotWarn` protects the empty-string exemption from accidental removal. Equivalent tests exist in the pfSense package.
 
-**Audit technique: asymmetry detection between parallel implementations.** The correctness reviewer at 0.88 confidence found this bug by comparing guard coverage across the OPNsense and pfSense converters. Both converters implement the same contract (XML schema → `CommonDevice`) and expose the same `CommonDevice.NAT.*` fields. When one side has a guard and the other does not, that asymmetry is a red flag. When reviewing any new converter code, enumerate every `T(xmlString)` cast and verify its partner in the sibling converter has equivalent coverage. (session history)
+**Audit technique: asymmetry detection between parallel implementations.** The bug surfaced during code review when guard coverage was compared across the OPNsense and pfSense converters. Both implement the same contract (XML schema → `CommonDevice`) and expose the same `CommonDevice.NAT.*` fields. When one side has a guard and the other does not, that asymmetry is a red flag. When reviewing any new converter code, enumerate every `T(xmlString)` cast and verify its partner in the sibling converter has equivalent coverage.
 
-**Scope decision: fix in-audit rather than defer.** The audit was nominally "audit-only," but the `AGENTS.md` zero-tolerance-for-tech-debt rule — "Fix all issues encountered, including pre-existing ones — never dismiss as 'not our problem'" — applied. Filing a follow-up todo would have left the bug in production while documentation accumulated; fixing in-scope closed the gap immediately. The fix landed in the same PR that surfaced it. (auto memory [claude])
+**Scope decision: fix in-audit rather than defer.** The audit was nominally "audit-only," but the `AGENTS.md` "Code Quality Policy" rule — "Zero tolerance for tech debt. Never dismiss warnings, lint failures, or CI errors as 'pre-existing' or 'not from our changes'" — applied. Filing a follow-up todo would have left the bug in production while documentation accumulated; fixing in-scope closed the gap immediately. The fix landed in the same PR that surfaced it.
 
 **`GOTCHAS.md §5.2` updated with regression-test cross-references and the NATS-145 discovery history.** Future contributors who add a new enum cast are now instructed to add a corresponding row to the table-driven test in the same PR. The history note prevents the institutional-knowledge loss that caused the original gap.
 
