@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
 - **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
 - **parser**: Audit and harden public API surface - NATS-144 ([#575](https://github.com/EvilBit-Labs/opnDossier/pull/575))
+- **parser,model**: API shape enforcement for v1.5 — compile-time `var _ parser.DeviceParser = (*Parser)(nil)` assertions in `pkg/parser/api_shape_test.go` plus `go doc -all` goldie snapshot tests in `pkg/parser/api_snapshot_test.go` covering `pkg/parser`, `pkg/parser/opnsense`, `pkg/parser/pfsense`, and `pkg/model`. Golden fixtures live under `pkg/parser/testdata/api-snapshots/`. Regenerate with `go test ./pkg/parser/... -run TestPublicAPISnapshot -update` after intentional API changes. Release checklist now requires reviewing the fixture diffs before tagging.
 
 ### Changed
 

@@ -433,7 +433,7 @@ See [docs/development/public-api.md](docs/development/public-api.md) for the ful
 
 ### Quick Start
 
-For consumers that already have a parsed schema document (for example, configuration generators that build one in-memory), call `ConvertDocument` directly. No blank imports, no factory wiring.
+For consumers that already have a parsed schema document (for example, configuration generators that build one in-memory), call `ConvertDocument` directly. This is the idiomatic consumer entry point — no blank imports, no factory wiring. See [docs/development/public-api.md § Idiomatic consumer entry point](docs/development/public-api.md#idiomatic-consumer-entry-point) for the full contract.
 
 ```go
 package main
@@ -474,9 +474,9 @@ func main() {
 
 Use `pkg/parser/pfsense` and `pkg/schema/pfsense` for pfSense configurations.
 
-### Auto-Detection via the Factory
+### Auto-Detection via the Factory (escape hatch)
 
-When you have raw XML bytes of unknown provenance, use `pkg/parser.Factory`. The factory reads the root element and dispatches to the correct device parser. This path requires two blank imports — device parsers self-register from their `init()` functions, and Go only runs `init()` for imported packages:
+When you have raw XML bytes of unknown provenance — a reader but no pre-parsed DTO — use `pkg/parser.Factory`. The factory is the auto-detection escape hatch: it peeks the XML root element and dispatches to the correct device parser. It is stable, but treat it as a convenience wrapper around `ConvertDocument` rather than the primary path. The factory requires two blank imports because device parsers self-register from their `init()` functions, and Go only runs `init()` for imported packages:
 
 ```go
 import (

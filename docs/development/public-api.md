@@ -23,6 +23,25 @@ These packages are intended for direct consumption by other Go modules. Their ex
 | `pkg/parser/opnsense` | OPNsense-specific `Parser`, `ConvertDocument(*schema.OpnSenseDocument)`, and `ErrNilDocument`. Self-registers with the global registry on blank import.                                                                       |
 | `pkg/parser/pfsense`  | pfSense equivalent. Same shape, same self-registration.                                                                                                                                                                       |
 
+#### Idiomatic consumer entry point
+
+`opnsense.ConvertDocument(*schema.OpnSenseDocument)` and `pfsense.ConvertDocument(*pfsense.Document)` are the **idiomatic, primary** public-API entry points for Go consumers that already have a parsed vendor DTO. Parse the XML once (with `encoding/xml`, `parser.NewSecureXMLDecoder`, or your own decoder), then call `ConvertDocument` as many times as you need. No blank imports required — the caller references the concrete package directly, so the registry is not involved.
+
+`parser.Factory.CreateDevice(ctx, reader, deviceTypeOverride, validateMode)` is the **auto-detection escape hatch** — the path you use when you have a `reader` but no pre-parsed DTO. The factory peeks the XML root element, dispatches to the registered parser for that device type, and returns a converted `CommonDevice`. `Factory` is stable and covered by the same semver commitments as the rest of `pkg/parser`, but consumers should treat it as a convenience wrapper over `ConvertDocument` rather than the canonical entry point. Auto-detection requires blank imports of the device parser packages so their `init()` functions can self-register (see [Registration Contract](#registration-contract-blank-imports)).
+
+##### Error-semantics difference
+
+The two paths surface different errors for related failure modes:
+
+| Condition                              | `Factory.CreateDevice` error                                                                                                                              | `ConvertDocument` error                                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Unrecognized XML root element          | `"unsupported device type: root element <X> is not recognized; supported: ..."` (plus the `"ensure parser packages ..."` hint when the registry is empty) | N/A — `ConvertDocument` is typed to a specific DTO and never sees the raw XML root.                      |
+| Caller supplied a nil DTO              | N/A — `Factory` always parses its own DTO from the reader.                                                                                                | `ErrNilDocument` wrapped via `fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)`. Check with `errors.Is`. |
+| XML decode / validation failure        | Wrapped decode or validation error from the injected `OPNsenseXMLDecoder` (or the pfSense internal decoder) with element-path context.                    | N/A — `ConvertDocument` receives a pre-parsed DTO; the caller owns decode errors.                        |
+| Schema or DTO content fails conversion | Same conversion-warning + error path as `ConvertDocument` (the factory delegates after parsing).                                                          | Conversion errors surfaced directly from the converter.                                                  |
+
+Consumers that already have a DTO in hand should call `ConvertDocument` and handle `errors.Is(err, ErrNilDocument)` explicitly. Consumers that receive raw XML from a reader should call `Factory.CreateDevice` and handle the `"unsupported device type"` and `"ensure parser packages are imported"` strings.
+
 ### Public but vendor-tracking
 
 These packages expose XML data transfer objects that mirror OPNsense and pfSense on-disk formats. They are importable and useful — for example, config generators or schema-aware tooling need the exact XML shape — but they track the upstream firewall schema, so field changes follow OPNsense/pfSense releases rather than opnDossier's own cadence.
@@ -146,6 +165,35 @@ Notes on fields that are **not** in this table:
 - `model.IPsecConfig.KeyPairs` and `model.IPsecConfig.PreSharedKeys` currently carry UUID references to the OPNsense `Ipsec/KeyPairs` and `Ipsec/PreSharedKey` MVC models, not raw key material. They are intentionally omitted from the table above. If a future OPNsense schema revision ever stores raw key bytes in these fields, they must be added here and to the CLI redaction logic in the same PR.
 - pfSense `IPsecPhase1.PreSharedKey` (a scalar raw key on the pfSense XML schema) is intentionally not mapped into `model.IPsecPhase1Tunnel`; see `pkg/parser/pfsense/converter_services.go` and the `TestConverter_IPsecPhase1_PreSharedKeyExclusion` regression test.
 
+## API Shape Enforcement
+
+The stability commitments above are enforced by two mechanisms in addition to human review:
+
+### Compile-time interface assertions
+
+`pkg/parser/api_shape_test.go` contains `var _ Interface = (*Impl)(nil)` assertions for every public interface / concrete-type pair in `pkg/parser`, `pkg/parser/opnsense`, and `pkg/parser/pfsense`. Removing a method from an interface, or changing a method signature on a concrete type so it no longer satisfies the interface, breaks the build immediately — before any test runs. Extend this file whenever a new public implementation / interface pair lands.
+
+### API snapshot tests (goldie)
+
+`pkg/parser/api_snapshot_test.go` captures the full `go doc -all` output of each public package into a golden fixture under `pkg/parser/testdata/api-snapshots/`:
+
+- `pkg-parser.golden` — `go doc -all ./pkg/parser`
+- `pkg-parser-opnsense.golden` — `go doc -all ./pkg/parser/opnsense`
+- `pkg-parser-pfsense.golden` — `go doc -all ./pkg/parser/pfsense`
+- `pkg-model.golden` — `go doc -all ./pkg/model`
+
+Any accidental change to the public surface — a renamed type, a new exported method, a rewritten doc comment, a deleted constant — shows up as a diff in one of these fixtures during code review. **This is the authoritative baseline for v1.5 and forward.**
+
+When an intentional API change lands, regenerate the fixtures:
+
+```bash
+go test ./pkg/parser/... -run TestPublicAPISnapshot -update
+```
+
+Then review the diff carefully — everything new in the snapshot becomes a stability commitment. The release checklist in [RELEASING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md) requires a snapshot diff review before any tag is pushed.
+
+Packages outside `pkg/` (everything under `cmd/` and `internal/`) are not snapshot-tracked; they can change without regeneration.
+
 ## Revision History
 
 | Date       | Change                                                                                                                                                                                |
@@ -154,5 +202,7 @@ Notes on fields that are **not** in this table:
 | 2026-04-19 | Add "Current Regime" section (v1.5 as the first semver-committed release), inline the secret-bearing field inventory, and document the OpenVPN TLS drop invariant.                    |
 | 2026-04-19 | Rename `pkg/parser.XMLDecoder` to `pkg/parser.OPNsenseXMLDecoder` (breaking within the v1.5 free-change window) to reflect that the interface is bound to `*schema.OpnSenseDocument`. |
 | 2026-04-19 | Rename `CommonDevice.ComplianceChecks` -> `ComplianceResults` (field + JSON tag); see CHANGELOG.                                                                                      |
+| 2026-04-19 | Declare `ConvertDocument` the idiomatic consumer entry point and `Factory.CreateDevice` the auto-detection escape hatch; document error-semantics difference between the two paths.   |
+| 2026-04-19 | Add API shape enforcement section — `var _ Interface = (*Impl)(nil)` compile-time assertions plus `go doc -all` goldie snapshot tests capturing the v1.5 public-API baseline.         |
 
 Every change to this document must add a row to the Revision History table with date (YYYY-MM-DD) and a one-line description.
