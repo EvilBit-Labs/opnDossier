@@ -202,8 +202,11 @@ for _, w := range warnings {
     logger.Warn("conversion warning", "field", w.Field, "message", w.Message)
 }
 
-// With validation
-device, warnings, err := factory.CreateDevice(context.Background(), file, "", true)
+// With validation — rewind the reader first; the previous CreateDevice consumed it.
+if _, err := file.Seek(0, io.SeekStart); err != nil {
+    return fmt.Errorf("rewind config.xml: %w", err)
+}
+device, warnings, err = factory.CreateDevice(context.Background(), file, "", true)
 if err != nil {
     return fmt.Errorf("parse and validate failed: %w", err)
 }
@@ -371,7 +374,10 @@ type ConversionWarning struct {
     // Message is a human-readable description of the issue.
     Message string
     // Severity indicates the importance of the warning.
-    Severity analysis.Severity
+    // NOTE: ConversionWarning.Severity is `pkg/model.Severity` (string alias)
+    // — NOT `analysis.Severity`. Use the `common.Severity*` constants exported
+    // from `pkg/model` when constructing warnings.
+    Severity common.Severity
 }
 ```
 
@@ -703,6 +709,7 @@ type ComplianceSummary struct {
     HighFindings     int                            `json:"highFindings"`
     MediumFindings   int                            `json:"mediumFindings"`
     LowFindings      int                            `json:"lowFindings"`
+    InfoFindings     int                            `json:"infoFindings"`
     PluginCount      int                            `json:"pluginCount"`
     Compliance       map[string]PluginCompliance    `json:"compliance"`
 }
@@ -715,6 +722,7 @@ type ComplianceSummary struct {
 - `HighFindings` (int): Count of high severity findings
 - `MediumFindings` (int): Count of medium severity findings
 - `LowFindings` (int): Count of low severity findings
+- `InfoFindings` (int): Count of info severity findings
 - `PluginCount` (int): Number of plugins executed
 - `Compliance` (map[string]PluginCompliance): Per-plugin compliance status
 

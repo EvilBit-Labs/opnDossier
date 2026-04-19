@@ -145,4 +145,7 @@ This assurance case is maintained as a living document. It is updated when:
 - Dependencies change significantly
 - Security incidents occur
 
-The project maintains continuous assurance through automated CI checks (golangci-lint, govulncheck, Trivy via [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml); CodeQL via GitHub default-setup code scanning) that run on every PR, every push to `main`, and on a weekly schedule.
+The project maintains continuous assurance through two separately-managed scan streams:
+
+- **Workflow-based scans** (`golangci-lint`, `govulncheck`, Trivy) run from [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) on every PR, every push to `main`, and on a weekly schedule.
+- **CodeQL** runs via GitHub's repository-level default-setup code scanning. Its cadence and trigger set are managed by GitHub (not by a workflow in this repo) — typically on every push and PR, at a schedule GitHub controls. Advanced-setup CodeQL in a workflow would conflict with the default setup and is intentionally absent.

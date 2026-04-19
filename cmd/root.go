@@ -51,12 +51,15 @@ var lightweightCommands = map[string]bool{ //nolint:gochecknoglobals // Static c
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra root command
 	Use:   "opnDossier",
-	Short: "opnDossier: A CLI tool for processing OPNsense configuration files.",
-	Long: `opnDossier is a command-line interface (CLI) tool designed to process OPNsense firewall
-configuration files (config.xml) and convert them into human-readable formats,
-primarily Markdown. This tool is built to assist network administrators and
-security professionals in documenting, auditing, and understanding their
-OPNsense configurations more effectively.
+	Short: "opnDossier: A CLI tool for processing OPNsense and pfSense configuration files.",
+	Long: `opnDossier is a command-line interface (CLI) tool designed to process OPNsense
+and pfSense firewall configuration files (config.xml) and convert them into
+human-readable formats, primarily Markdown. This tool is built to assist
+network administrators and security professionals in documenting, auditing,
+and understanding their firewall configurations more effectively.
+
+opnDossier auto-detects the device type from the config.xml root element;
+use --device-type to force a parser (see shell completion for supported values).
 
 WORKFLOW EXAMPLES:
   # Basic conversion workflow

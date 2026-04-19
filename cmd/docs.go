@@ -10,9 +10,13 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-// defaultDocsOutputDir is the default output directory for Cobra-generated markdown docs.
-// It is relative to the repo root so that `just generate-cli-docs` from any working
-// directory produces a consistent location under docs/cli/.
+// defaultDocsOutputDir is the default output directory for Cobra-generated
+// markdown docs. It is resolved relative to the current working directory
+// (NOT the module root), matching Cobra's `doc.GenMarkdownTreeCustom`
+// behavior. The `just generate-cli-docs` recipe invokes `opnDossier docs`
+// from the repo root so the files land under `docs/cli/`; running the
+// command from any other directory writes to `./docs/cli/` relative to
+// that directory.
 const defaultDocsOutputDir = "docs/cli/"
 
 // docsCmd generates markdown reference pages for every opnDossier command using
@@ -56,6 +60,23 @@ func runGenerateMarkdownDocs(cmd *cobra.Command, args []string) error {
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
+	}
+
+	// Prune stale `opnDossier*.md` pages left behind by removed or renamed
+	// commands. Cobra's generator only adds/overwrites; without this sweep,
+	// `docs/cli/` drifts from the real CLI surface. Match only pages this
+	// command owns so hand-authored files in the same directory are left
+	// alone. The Glob pattern is a compile-time constant, so filepath.Glob
+	// cannot return ErrBadPattern here — but errcheck still insists on the
+	// return value being inspected.
+	stale, globErr := filepath.Glob(filepath.Join(outputDir, "opnDossier*.md"))
+	if globErr != nil {
+		return fmt.Errorf("enumerate stale doc pages under %s: %w", outputDir, globErr)
+	}
+	for _, file := range stale {
+		if err := os.Remove(file); err != nil {
+			return fmt.Errorf("prune stale doc page %s: %w", file, err)
+		}
 	}
 
 	// Identity linkHandler: Cobra's generated cross-link targets (e.g.,
