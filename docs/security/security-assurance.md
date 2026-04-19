@@ -24,24 +24,28 @@ opnDossier is an OPNsense configuration parser, auditor, and reporting tool. Its
 
 ### 2.2 Threat Actors
 
-| Actor                      | Motivation                                             | Capability                               |
-| -------------------------- | ------------------------------------------------------ | ---------------------------------------- |
-| Malicious config author    | Exploit the parser to gain code execution or cause DoS | Can craft arbitrary config.xml content   |
-| Insider with report access | Extract sensitive data from generated reports          | Can access report output files           |
-| Supply chain attacker      | Compromise a dependency to inject malicious code       | Can publish malicious Go module versions |
+| Actor                      | Motivation                                                                                   | Capability                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Malicious config author    | Exploit the parser to gain code execution or cause DoS                                       | Can craft arbitrary config.xml content                      |
+| Insider with report access | Extract sensitive data from generated reports                                                | Can access report output files                              |
+| Supply chain attacker      | Compromise a dependency to inject malicious code                                             | Can publish malicious Go module versions                    |
+| Malicious plugin author    | Stomp validator, exfiltrate credentials, inject backdoor via plugin init() before preflight | Can supply .so plugin files when --plugin-dir is enabled    |
 
 ### 2.3 Attack Vectors
 
 | ID   | Vector                                                                  | Target SR        |
 | ---- | ----------------------------------------------------------------------- | ---------------- |
-| AV-1 | XXE or entity expansion in crafted config.xml                           | SR-2, SR-6       |
-| AV-2 | Deeply nested XML elements cause stack overflow or resource exhaustion  | SR-1, SR-6       |
-| AV-3 | Extremely large config.xml causes memory exhaustion                     | SR-6             |
-| AV-4 | CLI argument with path traversal writes reports to unintended locations | SR-3             |
-| AV-5 | Crafted XML triggers panic in parser or schema mapping                  | SR-1             |
-| AV-6 | Error messages include raw credential values from config                | SR-5             |
-| AV-7 | Compromised Go module introduces malicious code                         | SR-4             |
-| AV-8 | Crafted IPsec XML elements exploit pfSense IPsec parser paths           | SR-1, SR-2, SR-6 |
+| AV-1  | XXE or entity expansion in crafted config.xml                               | SR-2, SR-6       |
+| AV-2  | Deeply nested XML elements cause stack overflow or resource exhaustion      | SR-1, SR-6       |
+| AV-3  | Extremely large config.xml causes memory exhaustion                         | SR-6             |
+| AV-4  | CLI argument with path traversal writes reports to unintended locations     | SR-3             |
+| AV-5  | Crafted XML triggers panic in parser or schema mapping                      | SR-1             |
+| AV-6  | Error messages include raw credential values from config                    | SR-5             |
+| AV-7  | Compromised Go module introduces malicious code                             | SR-4             |
+| AV-8  | Crafted IPsec XML elements exploit pfSense IPsec parser paths               | SR-1, SR-2, SR-6 |
+| AV-9  | Malicious plugin init() stomps validator before preflight                   | SR-4             |
+| AV-10 | OpenVPN TLS/StaticKeys HMAC keys leaked via sanitizer gap                   | SR-5             |
+| AV-11 | Group/world-writable plugin file or directory exploited to swap plugin .so  | SR-4             |
 
 ## 3. Trust Boundaries
 
@@ -50,10 +54,12 @@ graph TD
     subgraph Untrusted["Untrusted Zone"]
         XML["config.xml<br/>(any content)"]
         CLI["CLI Arguments<br/>(paths, flags)"]
+        Plugins["Dynamic Plugins<br/>(full process privileges)"]
     end
 
     XML -->|Trust Boundary| Parser
     CLI -->|Trust Boundary| Cobra
+    Plugins -->|Trust Boundary| PluginPreflight
 
     subgraph Trusted["opnDossier (Trusted Zone)"]
         Cobra["CLI / Cobra<br/>- validates args<br/>- typed flags"]
@@ -62,6 +68,7 @@ graph TD
         Report["Report Gen<br/>- formats output<br/>- sanitizes"]
         Audit["Audit Engine<br/>- compliance checks<br/>- findings"]
         Export["Export Layer<br/>- file write<br/>- overwrite protection"]
+        PluginPreflight["Plugin Preflight<br/>- symlink rejection<br/>- permission checks<br/>- SHA-256 audit log"]
 
         Cobra --> Parser
         Parser --> Schema
@@ -69,10 +76,11 @@ graph TD
         Schema --> Audit
         Report --> Export
         Audit --> Export
+        PluginPreflight --> Audit
     end
 ```
 
-All data crossing the trust boundary (config.xml content, CLI arguments, output paths) is treated as untrusted and validated before use.
+Dynamic plugins execute with full process privileges inside the opnDossier process when `--plugin-dir` is enabled (opt-in only). Plugin loading is preflight-hardened (symlink rejection, permission checks, SHA-256 audit log) but plugins are not sandboxed or signature-verified. All data crossing the trust boundary (config.xml content, CLI arguments, output paths, plugin .so files) is treated as untrusted and validated before use.
 
 ## 4. Secure Design Principles (Saltzer and Schroeder)
 
@@ -83,7 +91,7 @@ All data crossing the trust boundary (config.xml content, CLI arguments, output 
 | **Complete mediation**          | Every XML element is mapped to typed Go structs. Every CLI argument is validated by Cobra. Every output path is checked for overwrite conflicts.                                                                                                                                                                                                                                                           |
 | **Open design**                 | Fully open source (Apache-2.0). Security does not depend on obscurity. All security mechanisms are publicly documented.                                                                                                                                                                                                                                                                                    |
 | **Separation of privilege**     | Parser, schema, audit, and export are separate packages with distinct responsibilities. Parse errors cannot bypass audit safety checks.                                                                                                                                                                                                                                                                    |
-| **Least privilege**             | The tool reads config.xml files and writes reports; it never modifies source configurations, executes commands, or makes network connections. No elevated permissions required.                                                                                                                                                                                                                            |
+| **Least privilege**             | The tool reads config.xml files and writes reports; it never modifies source configurations or makes network connections. No elevated permissions required. Dynamic plugins (when `--plugin-dir` is enabled) run with full process privileges inside the opnDossier process, but loading is opt-in and requires explicit operator action.                                                                  |
 | **Least common mechanism**      | No shared mutable state between report generations. Each invocation operates on its own parsed data. No global caches that could leak information between runs.                                                                                                                                                                                                                                            |
 | **Psychological acceptability** | CLI follows standard conventions via Cobra. Error messages are descriptive and actionable. Default behavior is safe (no overwrite, no network, offline-first).                                                                                                                                                                                                                                             |
 
@@ -108,7 +116,8 @@ All data crossing the trust boundary (config.xml content, CLI arguments, output 
 | CWE-502 | Deserialization of untrusted data   | Config.xml is parsed by Go's `encoding/xml` into strictly typed structs, not arbitrary deserialization.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Mitigated |
 | CWE-400 | Resource exhaustion                 | `parser.NewSecureXMLDecoder()` wraps input with `io.LimitReader` (10 MB default). Entity map cleared to prevent expansion. Both OPNsense and pfSense parsers share this hardening.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Mitigated |
 | CWE-611 | XXE (XML External Entity)           | `parser.NewSecureXMLDecoder()` sets `dec.Entity = map[string]string{}`, disabling all entity resolution. Go's `encoding/xml` does not support DTD processing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Mitigated |
-| CWE-312 | Cleartext storage of sensitive data | Credentials are redacted via two mechanisms: (1) The `sanitize` command uses field-pattern matching to redact credentials in configuration files (device-specific field names like pfSense `<bcrypt-hash>` and `<pre-shared-key>` require explicit patterns in `internal/sanitizer/rules.go`). (2) Report serialization (JSON/YAML output via `ToJSON`/`ToYAML`) redacts sensitive fields including certificate private keys (`Certificate.PrivateKey`), CA private keys (`CertificateAuthority.PrivateKey`), and SNMP community strings. IPsec pre-shared keys are excluded from the common model entirely (`json:"-"` tag on `pfsense.IPsecPhase1.PreSharedKey`) and a conversion warning is emitted when a PSK is present, providing defense-in-depth. The sanitizer also covers PSKs at the XML level via the `"psk"` substring pattern. The serialization redaction is implemented using conditional deep-copy logic that only processes entries with non-empty sensitive values, ensuring both security and performance. This prevents accidental exposure of private keys in exported reports even when users don't explicitly use the `sanitize` command. Implementation details are documented in AGENTS.md §5.25. | Mitigated |
+| CWE-312 | Cleartext storage of sensitive data | Credentials are redacted via two mechanisms: (1) The `sanitize` command uses field-pattern matching to redact credentials in configuration files (device-specific field names like pfSense `<bcrypt-hash>` and `<pre-shared-key>` require explicit patterns in `internal/sanitizer/rules.go`). OpenVPN TLS/StaticKeys HMAC keys (`<tls>` and `<StaticKeys>` elements) are now detected via path-anchored patterns (`openvpn.tls`, `openvpn.statickeys`) and the `IsOpenVPNStaticKey` value detector to avoid false positives with non-OpenVPN `<tls>` elements in Suricata IDS and IPsec charon syslog configurations. (2) Report serialization (JSON/YAML output via `ToJSON`/`ToYAML`) redacts sensitive fields including certificate private keys (`Certificate.PrivateKey`), CA private keys (`CertificateAuthority.PrivateKey`), and SNMP community strings. IPsec pre-shared keys are excluded from the common model entirely (`json:"-"` tag on `pfsense.IPsecPhase1.PreSharedKey`) and a conversion warning is emitted when a PSK is present, providing defense-in-depth. The sanitizer also covers PSKs at the XML level via the `"psk"` substring pattern. The serialization redaction is implemented using conditional deep-copy logic that only processes entries with non-empty sensitive values, ensuring both security and performance. This prevents accidental exposure of private keys in exported reports even when users don't explicitly use the `sanitize` command. Implementation details are documented in AGENTS.md §5.25. | Mitigated |
+| CWE-732 | Incorrect permission assignment     | Dynamic plugin loader preflight (when `--plugin-dir` is enabled) rejects group/world-writable plugin files and directories via `os.FileMode.Perm()&0o022` check (POSIX only). Symlinks are rejected via `os.Lstat` to prevent `plugin.Open` from following attacker-controlled links. Absolute paths are required so audit logs unambiguously identify loaded artifacts. Each load attempt produces a structured audit log (INFO for accepted, WARN for rejected) with fields: plugin name, path, SHA-256, mode, owner UID, mtime, size, verdict, reason. SHA-256 is computed with a 64 MiB cap to prevent memory exhaustion. On Windows, permission-bit checks are skipped (NTFS permissions do not map to POSIX mode bits) but symlink and absolute-path checks still run. Phase B follow-ups (owner UID check, configurable size cap, path denylist, filename allowlist, SHA-256 manifest, sandboxing) tracked for post-v1.5. See GOTCHAS §2.5.                                                                                                                                                                                                                                                       | Mitigated |
 
 ### 5.2 OWASP Top 10 (Where Applicable)
 
@@ -149,3 +158,8 @@ The project maintains continuous assurance through two separately-managed scan s
 
 - **Workflow-based scans** (`golangci-lint`, `govulncheck`, Trivy) run from [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) on every PR, every push to `main`, and on a weekly schedule.
 - **CodeQL** runs via GitHub's repository-level default-setup code scanning. Its cadence and trigger set are managed by GitHub (not by a workflow in this repo) — typically on every push and PR, at a schedule GitHub controls. Advanced-setup CodeQL in a workflow would conflict with the default setup and is intentionally absent.
+
+## References
+
+- [GOTCHAS.md §2.5 — Dynamic Plugin Trust Model](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#25-dynamic-plugin-trust-model)
+- [docs/user-guide/commands/audit.md — Dynamic Plugin Security](../user-guide/commands/audit.md#dynamic-plugin-security)
