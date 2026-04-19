@@ -37,6 +37,7 @@ type Plugin interface {
 **Note:** The audit engine wraps `RunChecks()` calls in panic recovery, so a panicking plugin will not crash the audit process. However, plugins should still handle errors properly and return appropriate values (findings slice, evaluated control IDs, and error) rather than panicking, as panic recovery is a safety mechanism, not a substitute for good error handling.
 
 `RunChecks` returns three values:
+
 - **findings**: The slice of compliance findings produced by the evaluation
 - **evaluated**: IDs of controls this plugin evaluated against the provided device (controls returned by `GetControls()` but NOT in this list are reported as UNKNOWN in the audit report)
 - **err**: A non-nil error aborts the audit for this plugin; use only for unrecoverable conditions (typically return nil on the happy path)
