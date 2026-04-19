@@ -137,10 +137,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **parser**: Liberal boolean parsing for OPNsense config.xml ([#558](https://github.com/EvilBit-Labs/opnDossier/pull/558)) ([#577](https://github.com/EvilBit-Labs/opnDossier/pull/577))
 
-<<<<<<< HEAD
-
-||||||| parent of 8d91140 (feat(security): Phase 5 round 1 — sanitizer OpenVPN gap, pfSense validator hardening, plugin-dir trust model, plugin loader Phase A)
-=======
 ### Security
 
 - Sanitizer now redacts OpenVPN `<tls>` and `<StaticKeys>` XML elements
@@ -166,7 +162,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   into centralized logs, revealing customer compliance posture. Fixes
   SEC-M5 / QUAL-M8.
 
->>>>>>> 8d91140 (feat(security): Phase 5 round 1 — sanitizer OpenVPN gap, pfSense validator hardening, plugin-dir trust model, plugin loader Phase A)
 ## [1.4.0] - 2026-04-03
 
 ### Added
