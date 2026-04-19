@@ -67,7 +67,8 @@ var ValidateFunc func(doc *pfsense.Document) error
 
 // Parser implements the DeviceParser interface for pfSense configuration files.
 // It manages its own XML decoding because the shared OPNsenseXMLDecoder returns
-// *schema.OpnSenseDocument which is incompatible with pfsense.Document.
+// *opnsense.OpnSenseDocument (pkg/schema/opnsense), which is incompatible with
+// pfsense.Document.
 type Parser struct {
 	maxInputSize int64
 }
