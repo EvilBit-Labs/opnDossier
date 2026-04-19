@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -83,7 +82,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, handler, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
+	result, handler, err := generateOutputByFormat(ctx, device, opt, logger)
 	if err != nil {
 		t.Errorf("Unexpected error for markdown: %v", err)
 	}
@@ -98,7 +97,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test JSON format - programmatic generation should succeed
 	opt.Format = converter.FormatJSON
-	jsonResult, jsonHandler, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
+	jsonResult, jsonHandler, err := generateOutputByFormat(ctx, device, opt, logger)
 	if err != nil {
 		t.Errorf("JSON format should succeed with programmatic generator: %v", err)
 	}
@@ -113,7 +112,7 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 
 	// Test unknown format (should return an error)
 	opt.Format = converter.Format("unknown")
-	_, unknownHandler, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
+	_, unknownHandler, err := generateOutputByFormat(ctx, device, opt, logger)
 	if err == nil {
 		t.Errorf("Expected error for unknown format, got nil")
 	} else if !errors.Is(err, ErrUnsupportedOutputFormat) {

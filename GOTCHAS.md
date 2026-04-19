@@ -176,10 +176,10 @@ Only `blue` mode runs `RunComplianceChecks`. Red mode ignores `SelectedPlugins` 
 
 ### 8.4 Red Mode Stub Implementations
 
-`generateRedReport` in `mode_controller.go` calls five analysis methods (`addWANExposedServices`, `addWeakNATRules`, `addAdminPortals`, `addAttackSurfaces`, `addEnumerationData`) that are all placeholder stubs. Each method writes fabricated metadata (e.g., `"exposed_services_count": 0`, `"admin_portals_found": 1`) without inspecting the actual `CommonDevice` configuration. A CLI warning is emitted in `cmd/audit.go` `PreRunE` when `--mode red` is selected.
+`generateRedReport` in `mode_controller.go` calls five analysis methods (`addWANExposedServices`, `addWeakNATRules`, `addAdminPortals`, `addAttackSurfaces`, `addEnumerationData`) that are all placeholder stubs. Each method writes an explicit stub marker via the shared `stubMarker()` helper — `{"not_implemented": true, "stub": true}` — under a predictable key (`wan_exposed_services`, `weak_nat_rules`, `admin_portals`, `attack_surfaces`, `enumeration_data`). No fabricated counters are emitted, so downstream consumers can programmatically distinguish stub output from real analysis. A CLI warning is emitted in `cmd/audit.go` `PreRunE` when `--mode red` is selected.
 
-- **Gotcha:** Red mode reports look structurally complete (all metadata keys present, no errors) but contain no real analysis. Do not use red mode output for actual security assessments.
-- **Gotcha:** When implementing real red mode analysis, each stub method must be replaced individually. The fabricated metadata keys (e.g., `"wan_exposure_scan_completed"`) are not covered by tests asserting specific values, so changing them will not break CI — but consumers relying on the metadata schema should be updated simultaneously.
+- **Gotcha:** Red mode reports still look structurally complete (marker keys present, no errors). Do not use red mode output for actual security assessments.
+- **Gotcha:** When implementing real red mode analysis, each stub method must be replaced individually. `TestRedModeMetadata_MarksStubsExplicitly` in `internal/audit/mode_controller_test.go` is a table-driven test asserting on the marker shape — remove the relevant row when a stub is replaced with a real implementation.
 - **Prevention:** The `PreRunE` warning in `cmd/audit.go` alerts users at invocation time. Remove the warning once the red mode pipeline is fully implemented.
 
 ## 9. Dupl Linter Bidirectional Firing
@@ -414,3 +414,20 @@ The one-shot lock is the enforcement point against a dynamically loaded complian
 - **Gotcha:** Test code that needs to swap validators across subtests uses the `ResetValidatorForTesting` / `ValidatorForTesting` helpers defined in `pkg/parser/pfsense/export_test.go`. These live in `_test.go` and therefore are NOT part of the public API — never promote them to a plain `.go` file.
 - **Gotcha:** The exported `SetValidator` is safe to call from any goroutine; concurrent writers race to win the `sync.Once`, but only one does. Readers never see a torn value because the holder is `atomic.Pointer[...]` — verified by `TestPfSense_SetValidator_Race` under `-race`.
 - **Regression tests:** `TestPfSense_SetValidator_CannotBeOverwritten` pins the stomp-protection invariant; `TestPfSense_SetValidator_Race` pins the concurrent-writer safety. Both live in `pkg/parser/pfsense/parser_test.go`. If either fails, the §20 defense has regressed.
+
+## 21. Config Flat→Nested Deprecation
+
+### 21.1 Flat Fields Scheduled for v2.0 Removal
+
+`internal/config/Config` exposes five top-level fields that are marked `// Deprecated:` in Go source and slated for removal in v2.0: `Verbose`, `Debug`, `Quiet`, `Theme`, `Format`. They are still read by multiple `cmd/*` and `internal/*` consumers (accessors `IsVerbose`, `IsDebug`, `IsQuiet`, `GetTheme`, `GetFormat`) so that v1.x YAML configs continue to load unchanged.
+
+- **End-user migration path (YAML):** when v2.0 removes the flat keys, operators with `.opnDossier.yaml` files that currently set `verbose: true`, `debug: true`, `quiet: true`, or `format: yaml` at the top level must move those values under the nested keys. Examples:
+  - `verbose: true` / `debug: true` → `logging: { level: debug }`
+  - `quiet: true` → `logging: { level: error }`
+  - `format: yaml` → `export: { format: yaml }`
+  - `theme: <value>` → remains at the top level until a nested `display.theme` is introduced before v2.0.
+- **Runtime warning:** `config.LoadConfigWithViper` now populates `Config.DeprecationWarnings()` whenever a user explicitly sets one of the deprecated keys via YAML, env var, or CLI flag. Callers (today: `cmd/root.go` is the intended owner) should drain this slice and emit a WARN per entry exactly once at startup.
+- **Detection boundary:** `detectDeprecatedFieldUsage` uses `viper.InConfig(key)` for YAML presence and `viper.IsSet(key)` for env/flag overrides. Defaults (unset values) are intentionally not reported — otherwise every run would warn, because viper seeds defaults for the flat keys.
+- **Go API consumers:** treat `cfg.Verbose`, `cfg.Debug`, `cfg.Quiet`, `cfg.Theme`, `cfg.Format` as read-only for the rest of the v1.x series. New code should read the nested structs or the accessor methods; the accessors carry `//nolint:staticcheck` SA1019 directives internally so their deprecation contract is a one-sided signal to external callers, not noise for the package itself.
+- **Lint exclusions:** `.golangci.yml` excludes SA1019 under `internal/config/(config|config_coverage|validation)_test.go` because those tests exist specifically to exercise the deprecated surface. Any NEW callers should either migrate to the nested API or add a line-level `//nolint:staticcheck` with a "why" comment; do NOT broaden the file-level exclusion.
+- **Removal checklist (v2.0):** (1) delete the flat fields from `Config`; (2) delete `detectDeprecatedFieldUsage` + `DeprecationWarnings`; (3) delete the accessors or rewrite them to read from the nested struct; (4) drop the `.golangci.yml` test-file exclusion; (5) drop the individual `//nolint:staticcheck` directives in `cmd/config_show.go`, `cmd/context_test.go`, and `internal/config/validation.go`; (6) update CHANGELOG `### Removed` with the user-facing migration instructions from §21.1.

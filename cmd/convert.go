@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -296,7 +295,6 @@ RELATED:
 				// Build options for conversion with precedence: CLI flags > env vars > config > defaults
 				eff := buildEffectiveFormat(format, cmdConfig)
 				opt := buildConversionOptions(eff, cmdConfig)
-				auditOpts := buildAuditOptions()
 
 				// Convert using the new markdown generator
 				ctxLogger.Debug(
@@ -311,7 +309,7 @@ RELATED:
 
 				// Generate output based on format. The resolved FormatHandler is reused below
 				// for the file extension — a second registry lookup would be redundant.
-				output, handler, err := generateOutputByFormat(timeoutCtx, device, opt, auditOpts, ctxLogger)
+				output, handler, err := generateOutputByFormat(timeoutCtx, device, opt, ctxLogger)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
@@ -468,24 +466,6 @@ func buildConversionOptions(
 	return opt
 }
 
-// buildAuditOptions constructs an audit.Options value from the shared CLI flag globals.
-// TODO(#457): Remove — shared audit globals are no longer bound to CLI flags.
-func buildAuditOptions() audit.Options {
-	opts := audit.Options{
-		AuditMode:       sharedAuditMode,
-		SelectedPlugins: sharedSelectedPlugins,
-	}
-
-	// Plugin directory: CLI flag is the source. When set, mark as explicit
-	// so that a missing directory produces an error instead of being silently skipped.
-	if sharedPluginDir != "" {
-		opts.PluginDir = sharedPluginDir
-		opts.ExplicitPluginDir = true
-	}
-
-	return opts
-}
-
 // determineOutputPath determines the output file path with smart naming and overwrite protection.
 // It handles the following scenarios:
 // 1. If outputFile is specified, use it (with overwrite protection)
@@ -564,7 +544,6 @@ func generateOutputByFormat(
 	ctx context.Context,
 	device *common.CommonDevice,
 	opt converter.Options,
-	auditOpts audit.Options,
 	logger *logging.Logger,
 ) (string, converter.FormatHandler, error) {
 	// Validate format via registry once and reuse the resolved handler.
@@ -578,18 +557,8 @@ func generateOutputByFormat(
 		)
 	}
 
-	// TODO(#457): Remove audit parameter — unreachable since audit flags were
-	// removed from convert. The auditOpts.AuditMode is always empty.
-	if auditOpts.AuditMode != "" {
-		output, err := handleAuditMode(ctx, device, auditOpts, opt, logger)
-		if err != nil {
-			return "", nil, err
-		}
-		return output, handler, nil
-	}
-
-	// Use programmatic generator for all formats
-	// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
+	// Use programmatic generator for all formats.
+	// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively.
 	output, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
 	if err != nil {
 		return "", nil, err

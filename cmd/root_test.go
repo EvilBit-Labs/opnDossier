@@ -288,6 +288,7 @@ func TestSetupLightweightContext_DefaultInvocation_CreatesContextWithConfigAndLo
 	require.NotNil(t, cmdCtx.Logger, "Logger should be set")
 
 	// Verify default config values
+	//nolint:staticcheck // SA1019: intentional read of deprecated Config.Format field for backward-compat default coverage.
 	assert.Equal(t, "markdown", cmdCtx.Config.Format)
 
 	// Verify command has a context set

@@ -70,16 +70,16 @@ type ModeConfig struct {
 }
 
 // ValidateModeConfig validates the mode configuration.
+//
+// Mode-name validation delegates to ParseReportMode (the SSOT for valid mode
+// names) so only one switch exists over the ReportMode enum.
 func (mc *ModeController) ValidateModeConfig(config *ModeConfig) error {
 	if config == nil {
 		return ErrModeConfigNil
 	}
 
-	switch config.Mode {
-	case ModeBlue, ModeRed:
-		// Valid modes
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedMode, config.Mode)
+	if _, err := ParseReportMode(string(config.Mode)); err != nil {
+		return err
 	}
 
 	// Normalize plugin names to lowercase for case-insensitive matching,
@@ -311,42 +311,58 @@ func (r *Report) addStructuredConfigurationTables() {
 	r.Metadata["table_count"] = 5
 }
 
+// stubMarker returns the canonical "not yet implemented" metadata value for
+// red-mode stub analysis methods. Emitting an explicit marker (rather than
+// fabricated non-zero counters) guarantees consumers cannot confuse stub
+// output for real analysis. See GOTCHAS §8.4.
+func stubMarker() map[string]any {
+	return map[string]any{
+		"not_implemented": true,
+		"stub":            true,
+	}
+}
+
 // addWANExposedServices adds WAN-exposed services analysis to the red team report.
+//
+// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
 func (r *Report) addWANExposedServices() {
-	// Add placeholder WAN exposure analysis
-	r.Metadata["wan_exposure_scan_completed"] = true
-	r.Metadata["exposed_services_count"] = 0
+	r.Metadata["wan_exposed_services"] = stubMarker()
 }
 
 // addWeakNATRules adds weak NAT rules analysis to the red team report.
+//
+// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
 func (r *Report) addWeakNATRules() {
-	// Add placeholder weak NAT analysis
-	r.Metadata["weak_nat_scan_completed"] = true
-	r.Metadata["weak_nat_rules_count"] = 0
+	r.Metadata["weak_nat_rules"] = stubMarker()
 }
 
 // addAdminPortals adds admin portals analysis to the red team report.
+//
+// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
 func (r *Report) addAdminPortals() {
-	// Add placeholder admin portal analysis
-	r.Metadata["admin_portal_scan_completed"] = true
-	r.Metadata["admin_portals_found"] = 1
+	r.Metadata["admin_portals"] = stubMarker()
 }
 
 // addAttackSurfaces adds attack surfaces analysis to the red team report.
+//
+// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
 func (r *Report) addAttackSurfaces() {
-	// Add placeholder attack surface analysis
-	r.Metadata["attack_surface_scan_completed"] = true
-	r.Metadata["attack_vectors_identified"] = 0
+	r.Metadata["attack_surfaces"] = stubMarker()
 }
 
 // addEnumerationData adds enumeration data to the red team report.
+//
+// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
 func (r *Report) addEnumerationData() {
-	// Add placeholder enumeration data
-	r.Metadata["enumeration_completed"] = true
-	r.Metadata["enumeration_targets"] = []string{"services", "ports"}
+	r.Metadata["enumeration_data"] = stubMarker()
 }
 
 // ParseReportMode parses a string into a ReportMode, returning an error if invalid.
+//
+// This is the single source of truth (SSOT) for valid ReportMode names. All
+// mode-name validation elsewhere in the package (including
+// ModeController.ValidateModeConfig) must delegate here so new modes only need
+// to be added in this switch.
 func ParseReportMode(s string) (ReportMode, error) {
 	mode := ReportMode(strings.ToLower(s))
 	switch mode {

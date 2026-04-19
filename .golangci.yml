@@ -105,6 +105,14 @@ linters:
       # forbidigo rule needs broader scope, switch to per-rule scoping.
       - path-except: 'cmd/.*\.go$'
         linters: [forbidigo]
+      # SA1019 deprecation warnings are expected in these test files — they
+      # exist specifically to exercise the deprecated config.Config flat
+      # fields (Verbose, Debug, Quiet, Theme, Format) until v2.0 removal.
+      # See GOTCHAS §21 "Config Flat→Nested Deprecation" and CHANGELOG
+      # Unreleased/Deprecated for removal tracking.
+      - path: 'internal/config/(config_test|config_coverage_test|validation_test)\.go$'
+        linters: [staticcheck]
+        text: 'SA1019:'
   disable:
     - gomodguard # Disabled: maybe someday, but not important right now
     - gocyclo # Disabled in favor of cyclop

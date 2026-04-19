@@ -151,7 +151,15 @@ func handlerForFormat(format string) (FormatHandler, error) {
 //
 // For streaming output, writing directly to a file/socket/HTTP response, or
 // composing with io.Copy / io.MultiWriter, see GenerateToWriter.
-func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice, opts Options) (string, error) {
+func (g *HybridGenerator) Generate(ctx context.Context, data *common.CommonDevice, opts Options) (string, error) {
+	// Honor ctx at entry so a pre-canceled ctx aborts before any work is done.
+	// Per-subsystem boundary checks are applied inside the format-specific
+	// generators (e.g., between report body and audit section in markdown).
+	// Full ctx propagation through the builder layer is deferred to v1.6.
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+
 	if data == nil {
 		return "", ErrNilDevice
 	}
@@ -165,7 +173,12 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 		return "", err
 	}
 
-	return handler.Generate(g, data, opts)
+	// Post-validation boundary: cancellation between validation and dispatch.
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+
+	return handler.Generate(ctx, g, data, opts)
 }
 
 // GenerateToWriter writes documentation directly to the provided io.Writer.
@@ -188,11 +201,19 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 // For an in-memory string — for example to embed in another structure, feed a
 // templating system, or return from an API handler — see Generate.
 func (g *HybridGenerator) GenerateToWriter(
-	_ context.Context,
+	ctx context.Context,
 	w io.Writer,
 	data *common.CommonDevice,
 	opts Options,
 ) error {
+	// Honor ctx at entry so a pre-canceled ctx aborts before any work is done.
+	// Per-subsystem boundary checks are applied inside the format-specific
+	// generators (e.g., between report body and audit section in markdown).
+	// Full ctx propagation through the builder layer is deferred to v1.6.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if data == nil {
 		return ErrNilDevice
 	}
@@ -206,12 +227,25 @@ func (g *HybridGenerator) GenerateToWriter(
 		return err
 	}
 
-	return handler.GenerateToWriter(g, w, data, opts)
+	// Post-validation boundary: cancellation between validation and dispatch.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	return handler.GenerateToWriter(ctx, g, w, data, opts)
 }
 
 // generateMarkdown generates markdown output using the programmatic builder.
 // Not safe for concurrent use — MarkdownBuilder is per-instance, not shared.
-func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Options) (string, error) {
+//
+// ctx is checked at the per-subsystem boundary between report body composition
+// and the compliance audit section append. The builder itself does not yet
+// receive ctx — full propagation is deferred to v1.6.
+func (g *HybridGenerator) generateMarkdown(
+	ctx context.Context,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
 	g.logger.Debug("Using programmatic markdown generation")
 
 	if g.builder == nil {
@@ -236,6 +270,11 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 		return "", err
 	}
 
+	// Per-subsystem boundary: between report body and audit section.
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+
 	// Append audit section when compliance data is present. Use strings.Builder
 	// with Grow() pre-sizing instead of += concatenation so we do not copy the
 	// (potentially 2MB+) report body once per append (PERF-M7).
@@ -255,7 +294,13 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 }
 
 // generateMarkdownToWriter writes markdown output directly to the writer.
+//
+// ctx is checked at the per-subsystem boundary between report body composition
+// and the compliance audit section append (in both the streaming and
+// non-streaming fallback paths). The builder itself does not yet receive ctx —
+// full propagation is deferred to v1.6.
 func (g *HybridGenerator) generateMarkdownToWriter(
+	ctx context.Context,
 	w io.Writer,
 	data *common.CommonDevice,
 	opts Options,
@@ -287,6 +332,11 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		}
 
 		if err != nil {
+			return err
+		}
+
+		// Per-subsystem boundary: between report body and audit section (fallback path).
+		if err := ctx.Err(); err != nil {
 			return err
 		}
 
@@ -329,6 +379,11 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		return err
 	}
 
+	// Per-subsystem boundary: between report body and audit section (streaming path).
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	// Append audit section when compliance data is present. Write the
 	// separator and the audit body as two direct writes to w rather than
 	// concatenating a new string first (PERF-M7).
@@ -348,10 +403,19 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 }
 
 // generateJSON generates JSON output by serializing the model.
-func (g *HybridGenerator) generateJSON(data *common.CommonDevice, opts Options) (string, error) {
+//
+// ctx is checked between export preparation and marshaling — the
+// per-subsystem boundary for JSON is coarse because marshaling is a
+// single opaque encoding step.
+func (g *HybridGenerator) generateJSON(ctx context.Context, data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating JSON output")
 
 	target := prepareForExport(data, opts.Redact)
+
+	// Per-subsystem boundary: between export preparation and marshaling.
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 
 	jsonBytes, err := json.MarshalIndent(
 		target,
@@ -367,10 +431,20 @@ func (g *HybridGenerator) generateJSON(data *common.CommonDevice, opts Options) 
 // generateJSONToWriter writes JSON output directly to the writer.
 // Note: JSON marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonDevice, opts Options) error {
+func (g *HybridGenerator) generateJSONToWriter(
+	ctx context.Context,
+	w io.Writer,
+	data *common.CommonDevice,
+	opts Options,
+) error {
 	g.logger.Debug("Generating JSON output to writer")
 
 	target := prepareForExport(data, opts.Redact)
+
+	// Per-subsystem boundary: between export preparation and encoding.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
@@ -381,10 +455,17 @@ func (g *HybridGenerator) generateJSONToWriter(w io.Writer, data *common.CommonD
 }
 
 // generateYAML generates YAML output by serializing the model.
-func (g *HybridGenerator) generateYAML(data *common.CommonDevice, opts Options) (string, error) {
+//
+// ctx is checked between export preparation and marshaling.
+func (g *HybridGenerator) generateYAML(ctx context.Context, data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating YAML output")
 
 	target := prepareForExport(data, opts.Redact)
+
+	// Per-subsystem boundary: between export preparation and marshaling.
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 
 	yamlData, err := yaml.Marshal(target)
 	if err != nil {
@@ -396,10 +477,20 @@ func (g *HybridGenerator) generateYAML(data *common.CommonDevice, opts Options) 
 // generateYAMLToWriter writes YAML output directly to the writer.
 // Note: YAML marshaling requires the full document, so this doesn't provide
 // the same streaming benefits as markdown generation.
-func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonDevice, opts Options) error {
+func (g *HybridGenerator) generateYAMLToWriter(
+	ctx context.Context,
+	w io.Writer,
+	data *common.CommonDevice,
+	opts Options,
+) error {
 	g.logger.Debug("Generating YAML output to writer")
 
 	target := prepareForExport(data, opts.Redact)
+
+	// Per-subsystem boundary: between export preparation and encoding.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
 	encoder := yaml.NewEncoder(w)
 	encoder.SetIndent(2) //nolint:mnd // Standard YAML indentation
@@ -410,12 +501,24 @@ func (g *HybridGenerator) generateYAMLToWriter(w io.Writer, data *common.CommonD
 }
 
 // generatePlainText generates plain text output by rendering markdown first, then stripping formatting.
-func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Options) (string, error) {
+//
+// ctx is threaded through generateMarkdown; an additional boundary is checked
+// between markdown rendering and formatting stripping.
+func (g *HybridGenerator) generatePlainText(
+	ctx context.Context,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
 	g.logger.Debug("Generating plain text output")
 
-	markdown, err := g.generateMarkdown(data, opts)
+	markdown, err := g.generateMarkdown(ctx, data, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate markdown for plain text conversion: %w", err)
+	}
+
+	// Per-subsystem boundary: between markdown rendering and strip-formatting.
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 
 	return StripMarkdownFormatting(markdown)
@@ -423,13 +526,14 @@ func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Opti
 
 // generatePlainTextToWriter writes plain text output directly to the writer.
 func (g *HybridGenerator) generatePlainTextToWriter(
+	ctx context.Context,
 	w io.Writer,
 	data *common.CommonDevice,
 	opts Options,
 ) error {
 	g.logger.Debug("Generating plain text output to writer")
 
-	output, err := g.generatePlainText(data, opts)
+	output, err := g.generatePlainText(ctx, data, opts)
 	if err != nil {
 		return err
 	}
@@ -439,12 +543,20 @@ func (g *HybridGenerator) generatePlainTextToWriter(
 }
 
 // generateHTML generates HTML output by rendering markdown first, then converting via goldmark.
-func (g *HybridGenerator) generateHTML(data *common.CommonDevice, opts Options) (string, error) {
+//
+// ctx is threaded through generateMarkdown; an additional boundary is checked
+// between markdown rendering and HTML conversion.
+func (g *HybridGenerator) generateHTML(ctx context.Context, data *common.CommonDevice, opts Options) (string, error) {
 	g.logger.Debug("Generating HTML output")
 
-	markdown, err := g.generateMarkdown(data, opts)
+	markdown, err := g.generateMarkdown(ctx, data, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate markdown for HTML conversion: %w", err)
+	}
+
+	// Per-subsystem boundary: between markdown rendering and HTML conversion.
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 
 	return RenderMarkdownToHTML(markdown)
@@ -452,13 +564,14 @@ func (g *HybridGenerator) generateHTML(data *common.CommonDevice, opts Options) 
 
 // generateHTMLToWriter writes HTML output directly to the writer.
 func (g *HybridGenerator) generateHTMLToWriter(
+	ctx context.Context,
 	w io.Writer,
 	data *common.CommonDevice,
 	opts Options,
 ) error {
 	g.logger.Debug("Generating HTML output to writer")
 
-	output, err := g.generateHTML(data, opts)
+	output, err := g.generateHTML(ctx, data, opts)
 	if err != nil {
 		return err
 	}

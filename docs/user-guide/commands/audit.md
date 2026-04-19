@@ -54,7 +54,7 @@ When no `--plugins` flag is specified, all available plugins are run by default.
 ### Red
 
 !!! warning "Experimental"
-    Red team mode is not yet fully implemented. Its analysis methods are placeholder stubs that return static metadata. Results will be incomplete and should not be relied upon for real assessments. A CLI warning is emitted when this mode is selected.
+    Red team mode is not yet fully implemented. Its analysis methods are placeholder stubs. Each stub emits a structured marker under its metadata key (for example, `wan_exposed_services: {not_implemented: true, stub: true}`) rather than fabricated counters, so downstream consumers can programmatically distinguish stub output from real analysis. Results should not be relied upon for real assessments. A CLI warning is emitted when this mode is selected.
 
 Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services.
 

@@ -107,6 +107,10 @@ func buildConfigValues(cfg *config.Config) []ConfigValue {
 	// Build values list with source detection
 	// Source detection logic: if a value differs from the default, it came from
 	// file, env, or flag. Without access to viper internals, we indicate "configured".
+	// Deprecated flat-field reads below are intentional: `config-show` surfaces
+	// the v1.x config surface so users see their own YAML keys mirrored back.
+	// Remove these lines when the fields are removed in v2.0.
+	//nolint:staticcheck // SA1019: intentional read of deprecated Config.{Verbose,Quiet,Theme,Format} fields for backward-compat display.
 	values := []ConfigValue{
 		// Flat fields
 		{Key: "input_file", Value: cfg.InputFile, Source: detectSource(cfg.InputFile, "")},

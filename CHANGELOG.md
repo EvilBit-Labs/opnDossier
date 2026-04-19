@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Red-mode stub analysis methods now emit `not_implemented: true` +
+  `stub: true` markers instead of fabricated non-zero counters. Output
+  is structurally honest; consumers cannot confuse stub data for real
+  analysis. (#111)
+- `audit.ValidateModeConfig` delegates to `ParseReportMode` as single
+  source of truth for valid mode names. (#176)
 - Removed `logging.Logger.WithContext(ctx)` — was a no-op with a TODO,
   misleadingly suggested context propagation to the logger. Revisit when
   an observability backend (OpenTelemetry) is chosen.
@@ -49,6 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `output += "\n\n" + auditSection`). The streaming path now writes
   the audit separator and body as direct `io.WriteString` calls on the
   target writer. Reduces peak memory on 2MB+ markdown reports. Fixes PERF-M7.
+- **converter**: `HybridGenerator.Generate` / `GenerateToWriter` now
+  honor ctx cancellation at entry and per-subsystem boundaries.
+  Previously, ctx was silently dropped (signature
+  `Generate(_ context.Context, ...)`), leaving CI timeouts and user
+  cancellations unable to abort long-running generation on pathological
+  inputs. Full ctx propagation through the builder is tracked
+  separately for v1.6. (#135)
 - **parser**: Document the cancellation contract on `peekRootElementBounded`
   in `pkg/parser/factory.go`. The function returns `ctx.Err()` immediately on
   cancellation, but its internal goroutine only exits when the next read
@@ -83,6 +96,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **tooling**: Phase 1 — infrastructure and pre-commit quality gates
 - **security,deps,docs**: Phase 2 round 1 — security workflow, deps audit, pre-push hook
 - **ci,release,docs**: Phase 2 round 2 — CI matrix, coverage gate, docker snapshot, action pin
+
+### Deprecated
+
+- `internal/config.Config` flat fields (`Verbose`, `Debug`, `Quiet`,
+  `Theme`, `Format`) marked as Deprecated. Use the nested
+  `Display`/`Logging`/`Export` struct paths instead (migration:
+  `verbose`/`debug` → `logging.level: debug`, `quiet` → `logging.level: error`,
+  `format` → `export.format`; `theme` stays at the top level until a nested
+  `display.theme` is introduced). Flat fields scheduled for removal in v2.0.
+  Users setting any of these keys in YAML, env, or CLI flags now receive a
+  one-time WARN per deprecated key at startup via
+  `config.Config.DeprecationWarnings()`. See GOTCHAS §21 "Config
+  Flat→Nested Deprecation" for the full migration checklist. (#179)
+
+### Removed
+
+- Dead `sharedAuditMode`, `sharedSelectedPlugins`, `sharedPluginDir`
+  package-level globals in cmd/shared_flags.go. Not bound to any flag;
+  the `if auditOpts.AuditMode != ""` branch in cmd/convert.go was
+  unreachable in production. Closes TODO(#457).
 
 ### Fixed
 

@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"testing"
+	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -713,6 +715,91 @@ func TestHybridGenerator_GenerateToWriter_RedactJSONYAML(t *testing.T) {
 				"original device must not be mutated")
 			assert.Equal(t, "ha-secret", doc.HighAvailability.Password,
 				"original device must not be mutated")
+		})
+	}
+}
+
+// largeFixture returns a CommonDevice populated with n firewall rules.
+// Used to materially exercise the cancellation path: with n in the thousands,
+// an uninterruptible generation run takes noticeably longer than the timing
+// budget asserted below, so a false pass is not possible.
+func largeFixture(n int) *common.CommonDevice {
+	rules := make([]common.FirewallRule, 0, n)
+	for range n {
+		rules = append(rules, common.FirewallRule{
+			UUID:        "uuid-stub",
+			Type:        common.FirewallRuleType("pass"),
+			Description: "synthetic rule for cancellation test",
+			Protocol:    "tcp",
+		})
+	}
+	return &common.CommonDevice{
+		System:        common.System{Hostname: "cancel-test"},
+		FirewallRules: rules,
+	}
+}
+
+// TestHybridGenerator_Generate_RespectsCanceledContext verifies that
+// Generate aborts quickly when handed a pre-canceled ctx. A fast timing
+// bound also guards against regressions where ctx is dropped and the
+// generator runs to completion before returning an unrelated error.
+func TestHybridGenerator_Generate_RespectsCanceledContext(t *testing.T) {
+	t.Parallel()
+
+	// Every public format should honor ctx — exercise all of them.
+	formats := []Format{FormatMarkdown, FormatJSON, FormatYAML, FormatText, FormatHTML}
+	for _, format := range formats {
+		t.Run(string(format), func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel() // pre-canceled
+
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := largeFixture(10_000)
+			opts := DefaultOptions().WithFormat(format)
+
+			start := time.Now()
+			_, err = gen.Generate(ctx, doc, opts)
+			dur := time.Since(start)
+
+			require.ErrorIs(t, err, context.Canceled,
+				"pre-canceled ctx must surface as context.Canceled")
+			assert.Less(t, dur, 50*time.Millisecond,
+				"cancellation must abort promptly, got %v", dur)
+		})
+	}
+}
+
+// TestHybridGenerator_GenerateToWriter_RespectsCanceledContext is the
+// streaming-path sibling of the test above.
+func TestHybridGenerator_GenerateToWriter_RespectsCanceledContext(t *testing.T) {
+	t.Parallel()
+
+	formats := []Format{FormatMarkdown, FormatJSON, FormatYAML, FormatText, FormatHTML}
+	for _, format := range formats {
+		t.Run(string(format), func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel() // pre-canceled
+
+			gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+			require.NoError(t, err)
+
+			doc := largeFixture(10_000)
+			opts := DefaultOptions().WithFormat(format)
+
+			start := time.Now()
+			err = gen.GenerateToWriter(ctx, io.Discard, doc, opts)
+			dur := time.Since(start)
+
+			require.ErrorIs(t, err, context.Canceled,
+				"pre-canceled ctx must surface as context.Canceled")
+			assert.Less(t, dur, 50*time.Millisecond,
+				"cancellation must abort promptly, got %v", dur)
 		})
 	}
 }

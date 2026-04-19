@@ -15,7 +15,9 @@ func TestGetCommandContext_ValidContext(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 	cmd.SetContext(context.Background())
 
-	expectedCfg := &config.Config{Verbose: true}
+	expectedCfg := &config.Config{
+		Verbose: true,
+	}
 	expectedLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)
 
@@ -99,7 +101,9 @@ func TestSetCommandContext_ExistingContext(t *testing.T) {
 	cmd.SetContext(existingCtx)
 
 	cmdCtx := &CommandContext{
-		Config: &config.Config{Verbose: true},
+		Config: &config.Config{
+			Verbose: true,
+		},
 	}
 
 	SetCommandContext(cmd, cmdCtx)
@@ -110,6 +114,7 @@ func TestSetCommandContext_ExistingContext(t *testing.T) {
 	// And also have the CommandContext
 	result := GetCommandContext(cmd)
 	require.NotNil(t, result)
+	//nolint:staticcheck // SA1019: exercising deprecated flat field for backward-compat coverage.
 	assert.True(t, result.Config.Verbose)
 }
 
@@ -127,7 +132,9 @@ func TestCommandContext_FieldAccess(t *testing.T) {
 		Logger: logger,
 	}
 
+	//nolint:staticcheck // SA1019: exercising deprecated flat fields (Verbose, Quiet) for backward-compat coverage.
 	assert.True(t, cmdCtx.Config.Verbose)
+	//nolint:staticcheck // SA1019: exercising deprecated flat fields (Verbose, Quiet) for backward-compat coverage.
 	assert.False(t, cmdCtx.Config.Quiet)
 	assert.Equal(t, "test.md", cmdCtx.Config.OutputFile)
 	assert.NotNil(t, cmdCtx.Logger)
