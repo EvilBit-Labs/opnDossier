@@ -26,6 +26,10 @@ Finally, opnDossier has explicit **ethical constraints**: no telemetry, no dark 
 - **[golangci-lint](https://golangci-lint.run/usage/install/)** - Go linter (latest version recommended)
 - **[pre-commit](https://pre-commit.com/)** - Git hook framework
 
+#### Go Support Policy
+
+opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI exercises both versions on every PR via a `stable` + `oldstable` matrix. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
+
 ### Getting Started
 
 1. Fork the repository on GitHub
@@ -37,10 +41,16 @@ Finally, opnDossier has explicit **ethical constraints**: no telemetry, no dark 
    cd opnDossier
    ```
 
-3. Install dependencies and set up pre-commit hooks:
+3. Install dependencies and set up git hooks:
 
    ```bash
    just install
+   ```
+
+   This installs the `pre-commit`, `commit-msg`, and `pre-push` hooks. To install manually:
+
+   ```bash
+   pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
    ```
 
 4. Run tests to ensure everything works:
@@ -54,6 +64,43 @@ Finally, opnDossier has explicit **ethical constraints**: no telemetry, no dark 
    ```bash
    just ci-check
    ```
+
+## Git Hooks
+
+The project uses a two-tier hook system enforced via `pre-commit`:
+
+### Fast Pre-Commit Hooks (Every Commit)
+
+These hooks run on every commit and must be fast:
+
+- **Formatters**: `gofumpt`, `mdformat`
+- **Lint config verification**: `actionlint`, `yamllint`
+- **golangci-lint fmt and --fix**: Auto-fixable issues only
+
+The pre-commit hooks focus on automatic fixes and style enforcement that can execute in under a few seconds.
+
+### Slow Pre-Push Hook (Once Per Push)
+
+The pre-push hook runs the full `just ci-check` suite once before `git push` completes:
+
+- `just check` - Verify build and dependencies
+- `just format-check` - Verify all code is formatted
+- `just lint` - Full golangci-lint run
+- `just test` - Unit tests
+- `just test-integration` - Integration tests
+- `just test-race` - Race detector
+
+**Why pre-push for the full suite?** The complete test suite is too slow to run on every commit, and `test-race` (the Go race detector) cannot be hosted reliably on GitHub Actions runners. The pre-push hook is the enforcement point for the race detector and the full quality bar, catching issues locally before they reach CI.
+
+### Escape Hatch
+
+If you need to bypass the pre-push hook in an emergency (for example, a hotfix where the full suite is orthogonal to the change), use:
+
+```bash
+git push --no-verify
+```
+
+**`--no-verify` is for emergencies only, not routine use.** CI does not mirror `test-race`, so bypassing the pre-push hook means no one else will catch race conditions before merge. Any failure that prompts you to reach for `--no-verify` should be filed as a bug or todo afterward.
 
 ## Development Workflow
 
@@ -283,7 +330,7 @@ git commit -s -m "feat(parser): add support for new XML element"
 3. **Review process**:
 
    - All PRs require at least one review (human or CodeRabbit)
-   - CI must pass (golangci-lint, gofumpt, tests, CodeQL, Grype)
+   - CI must pass (golangci-lint, gofumpt, tests, govulncheck, CodeQL, Trivy)
    - Documentation updates may be requested
 
 ## Go Development Standards

@@ -118,14 +118,14 @@ Most OWASP Top 10 categories target web applications and are not applicable to a
 | -------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
 | A03: Injection             | Partial -- XML parsing | Go's `encoding/xml` maps to typed structs; no dynamic query construction                          |
 | A04: Insecure Design       | Applicable             | Secure design principles applied throughout (see Section 4)                                       |
-| A06: Vulnerable Components | Applicable             | Grype and Snyk in CI, Dependabot for automated updates, OSSF Scorecard                            |
+| A06: Vulnerable Components | Applicable             | govulncheck, CodeQL, and Trivy in CI, Dependabot for automated updates, OSSF Scorecard            |
 | A09: Security Logging      | Partial                | Parse/audit errors logged via `charmbracelet/log`; security events reported via GitHub Advisories |
 
 ## 6. Supply Chain Security
 
 | Measure             | Implementation                                                            |
 | ------------------- | ------------------------------------------------------------------------- |
-| Dependency auditing | Grype and Snyk run in CI; CodeQL for static analysis                      |
+| Dependency auditing | govulncheck (Go vulnerability database), CodeQL (semantic analysis), and Trivy (filesystem scan + misconfiguration detection) run in CI via `.github/workflows/security.yml` on push/PR and weekly |
 | Dependency updates  | Dependabot configured for automated PRs                                   |
 | Pinned toolchain    | Go version pinned via `mise` and `go.mod`                                 |
 | Reproducible builds | `go.sum` committed; `CGO_ENABLED=0` static builds                         |
@@ -145,4 +145,4 @@ This assurance case is maintained as a living document. It is updated when:
 - Dependencies change significantly
 - Security incidents occur
 
-The project maintains continuous assurance through automated CI checks (golangci-lint, CodeQL, Grype, Snyk) that run on every commit.
+The project maintains continuous assurance through automated CI checks (golangci-lint, govulncheck, CodeQL, Trivy) that run on every commit.
