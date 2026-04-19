@@ -29,23 +29,22 @@ jobs:
           version: v2.11.3
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Test - Run tests across platforms and Go versions
+  # Test - Run tests across platforms
   #
-  # Support policy: opnDossier supports the current and previous stable Go
-  # releases (N and N-1), matching Go's upstream release policy. The matrix
-  # below exercises both `stable` and `oldstable`; mise still drives lint,
-  # format, and the rest of the toolchain — `actions/setup-go` is layered on
-  # top of mise here purely to override the Go toolchain for this job.
+  # Go version: single toolchain (pinned in mise.toml via `go = "1.26.2"`).
+  # The codebase uses Go 1.26 language features (go.mod sets `go 1.26`), so
+  # `oldstable` / N-1 (Go 1.25) cannot compile the module. A Go-version matrix
+  # would be DOA. The OS matrix below is the only axis that meaningfully
+  # varies.
   # ─────────────────────────────────────────────────────────────────────────
   test:
-    name: Test (${{ matrix.os }}, ${{ matrix.go-version }})
+    name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: [stable, oldstable]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -55,26 +54,13 @@ jobs:
           cache: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Go (${{ matrix.go-version }})
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache: true
-
-      # NOTE: Invoke `go` directly rather than `just test` / `just ci-smoke`.
-      # The justfile recipes shell out via `mise exec -- go`, which would pin
-      # the toolchain to the mise-managed version and defeat the N/N-1 matrix.
-      # Running `go` directly lets `actions/setup-go` (which runs after
-      # mise-action and therefore wins PATH order) drive the toolchain.
       - name: Run tests (Unix)
         if: runner.os != 'Windows'
-        run: go test ./...
+        run: just test
 
       - name: Run tests (Windows) # I don't remember why this is necessary, but I believe it was due to the speed of tests on the Windows runners
         if: runner.os == 'Windows'
-        run: |
-          go build -trimpath -ldflags="-s -w -X main.version=dev" -v ./...
-          go test -count=1 -failfast -short -timeout 5m ./cmd/... ./internal/config/...
+        run: just ci-smoke
 
   # ─────────────────────────────────────────────────────────────────────────
   # Integration Tests - E2E testing with real config files
