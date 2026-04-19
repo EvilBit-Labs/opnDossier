@@ -699,7 +699,7 @@ func TestConverter_ComputedFieldsNil(t *testing.T) {
 	assert.Nil(t, device.Statistics)
 	assert.Nil(t, device.Analysis)
 	assert.Nil(t, device.SecurityAssessment)
-	assert.Nil(t, device.ComplianceChecks)
+	assert.Nil(t, device.ComplianceResults)
 }
 
 // --- Conversion Warning tests ---

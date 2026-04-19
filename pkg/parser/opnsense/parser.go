@@ -18,8 +18,8 @@
 //
 // This package has no internal/ dependencies in production code; it depends
 // only on other public pkg/ packages plus the standard library. The
-// [parser.XMLDecoder] is injected at construction so this package can stay
-// on the public pkg/ side of the import boundary while still using the
+// [parser.OPNsenseXMLDecoder] is injected at construction so this package can
+// stay on the public pkg/ side of the import boundary while still using the
 // internal/cfgparser decoder when wired from the CLI layer.
 package opnsense
 
@@ -37,13 +37,13 @@ import (
 // files. The XML decoder is injected at construction to keep this package
 // free of internal/ imports.
 type Parser struct {
-	decoder parser.XMLDecoder
+	decoder parser.OPNsenseXMLDecoder
 }
 
 // NewParser returns a new OPNsense Parser backed by the given XML decoder.
 // The decoder is typically cfgparser.NewXMLParser(), wired at the application
 // layer.
-func NewParser(decoder parser.XMLDecoder) *Parser {
+func NewParser(decoder parser.OPNsenseXMLDecoder) *Parser {
 	return &Parser{decoder: decoder}
 }
 
@@ -86,7 +86,7 @@ func toCommonDevice(doc *schema.OpnSenseDocument) (*common.CommonDevice, []commo
 
 // NewParserFactory returns a new DeviceParser configured for OPNsense devices.
 // It satisfies the factory function signature required by DeviceParserRegistry.
-func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+func NewParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
 	return NewParser(decoder)
 }
 

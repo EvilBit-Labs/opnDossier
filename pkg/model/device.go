@@ -64,11 +64,27 @@ func ParseDeviceType(s string) DeviceType {
 	}
 }
 
-// CommonDevice is the platform-agnostic root struct for a firewall device
-// configuration. Parsers produce CommonDevice values by converting platform-
-// specific XML schemas (OPNsense, pfSense) into this normalized form. All
-// downstream consumers (processor, builder, plugins, diff engine, JSON/YAML
-// exporters) operate against this type rather than XML-shaped DTOs.
+// CommonDevice is the platform-agnostic device model. It flows through
+// the following pipeline stages:
+//
+//	device config file (XML) -> xml.Unmarshal -> vendor DTO
+//	  -> parser / converter -> CommonDevice
+//	  -> enrichment (statistics, compliance results, etc.)
+//	  -> redact / sanitize
+//	  -> reporting (JSON / YAML / markdown / etc.)
+//
+// Fields are partitioned into two groups:
+//
+//   - Parser-populated: set by the parser/converter stage from the
+//     vendor DTO. These reflect the original configuration.
+//   - Enrichment-populated: set by a later pipeline stage (currently
+//     prepareForExport) for JSON/YAML exports. Not set by the parser
+//     or converter.
+//
+// Parsers produce CommonDevice values by converting platform-specific XML
+// schemas (OPNsense, pfSense) into this normalized form. All downstream
+// consumers (processor, builder, plugins, diff engine, JSON/YAML exporters)
+// operate against this type rather than XML-shaped DTOs.
 //
 // Has* methods report whether specific configuration sections are populated,
 // and NATSummary returns a convenience snapshot of NAT configuration with
@@ -156,8 +172,10 @@ type CommonDevice struct {
 	// Revision contains configuration revision metadata.
 	Revision Revision `json:"revision" yaml:"revision,omitempty"`
 
-	// Computed/enrichment fields — populated by prepareForExport in the converter
-	// package for JSON/YAML exports. Not set by the parser or converter directly.
+	// --- Enrichment-populated fields below ---
+	// The fields below are populated by prepareForExport in the converter
+	// package for JSON/YAML exports, or by the audit handler for compliance
+	// results. They are not set by the parser or converter stage directly.
 
 	// Statistics contains calculated statistics about the device configuration.
 	Statistics *Statistics `json:"statistics,omitempty" yaml:"statistics,omitempty"`
@@ -167,8 +185,8 @@ type CommonDevice struct {
 	SecurityAssessment *SecurityAssessment `json:"securityAssessment,omitempty" yaml:"securityAssessment,omitempty"`
 	// PerformanceMetrics contains performance-related metrics.
 	PerformanceMetrics *PerformanceMetrics `json:"performanceMetrics,omitempty" yaml:"performanceMetrics,omitempty"`
-	// ComplianceChecks contains compliance audit results from plugin-based checks.
-	ComplianceChecks *ComplianceResults `json:"complianceChecks,omitempty" yaml:"complianceChecks,omitempty"`
+	// ComplianceResults contains compliance audit results from plugin-based checks.
+	ComplianceResults *ComplianceResults `json:"complianceResults,omitempty" yaml:"complianceResults,omitempty"`
 }
 
 // HasDHCP reports whether the device has any DHCP configuration.

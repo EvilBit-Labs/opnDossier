@@ -18,11 +18,17 @@ import (
 // root-element detection and parsing.
 const DefaultMaxInputSize = 10 * 1024 * 1024 // 10MB
 
-// XMLDecoder parses raw XML input into an OpnSenseDocument. Implementations
-// must handle charset detection, entity expansion protection, and input size
-// limits. The cfgparser.XMLParser in internal/cfgparser provides the default
-// implementation used by the CLI.
-type XMLDecoder interface {
+// OPNsenseXMLDecoder parses raw XML input into an OPNsense
+// [schema.OpnSenseDocument]. The name is OPNsense-specific because the return
+// type is bound to the OPNsense schema — pfSense and other device parsers
+// cannot use this interface directly and must manage their own XML decoding
+// (see [github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense] for the
+// canonical example).
+//
+// Implementations must handle charset detection, entity expansion protection,
+// and input size limits. The cfgparser.XMLParser in internal/cfgparser
+// provides the default implementation used by the CLI.
+type OPNsenseXMLDecoder interface {
 	// Parse reads XML from r and returns a parsed OpnSenseDocument.
 	Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
 	// ParseAndValidate reads XML from r, parses it, and applies semantic validation.
@@ -41,20 +47,25 @@ type DeviceParser interface {
 }
 
 // Factory detects device type and delegates to the appropriate DeviceParser.
-// The XMLDecoder is injected at construction to keep pkg/ free of internal/
-// imports. The registry defaults to DefaultRegistry() unless overridden via
-// NewFactoryWithRegistry (e.g., for isolated tests).
+// The OPNsenseXMLDecoder is injected at construction to keep pkg/ free of
+// internal/ imports. The registry defaults to DefaultRegistry() unless
+// overridden via NewFactoryWithRegistry (e.g., for isolated tests).
+//
+// Note: The injected decoder is only consumed by parsers whose output is
+// [schema.OpnSenseDocument] (i.e., the OPNsense parser). Non-OPNsense parsers
+// registered via [Register] accept the decoder for signature compatibility
+// but must manage their own XML decoding.
 type Factory struct {
-	xmlDecoder XMLDecoder
+	xmlDecoder OPNsenseXMLDecoder
 	registry   *DeviceParserRegistry
 }
 
-// NewFactory returns a new Factory that uses the given XMLDecoder for parsing
-// and the global DefaultRegistry() for parser lookup.
+// NewFactory returns a new Factory that uses the given OPNsenseXMLDecoder for
+// parsing and the global DefaultRegistry() for parser lookup.
 // Pass cfgparser.NewXMLParser() from internal/cfgparser at the call site.
-func NewFactory(decoder XMLDecoder) *Factory {
+func NewFactory(decoder OPNsenseXMLDecoder) *Factory {
 	if decoder == nil {
-		panic("parser: NewFactory requires a non-nil XMLDecoder")
+		panic("parser: NewFactory requires a non-nil OPNsenseXMLDecoder")
 	}
 
 	return &Factory{xmlDecoder: decoder, registry: DefaultRegistry()}
@@ -63,9 +74,9 @@ func NewFactory(decoder XMLDecoder) *Factory {
 // NewFactoryWithRegistry returns a Factory that uses a custom registry instead
 // of the global singleton. This is primarily useful for tests that need
 // isolated registry state without polluting the global registry.
-func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Factory {
+func NewFactoryWithRegistry(decoder OPNsenseXMLDecoder, reg *DeviceParserRegistry) *Factory {
 	if decoder == nil {
-		panic("parser: NewFactoryWithRegistry requires a non-nil XMLDecoder")
+		panic("parser: NewFactoryWithRegistry requires a non-nil OPNsenseXMLDecoder")
 	}
 
 	if reg == nil {
@@ -84,7 +95,9 @@ func (f *Factory) ensureInitialized() error {
 	}
 
 	if f.xmlDecoder == nil {
-		return errors.New("parser: Factory has nil XMLDecoder; use parser.NewFactory to construct a Factory")
+		return errors.New(
+			"parser: Factory has nil OPNsenseXMLDecoder; use parser.NewFactory to construct a Factory",
+		)
 	}
 
 	if f.registry == nil {

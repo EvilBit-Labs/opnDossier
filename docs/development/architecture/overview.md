@@ -72,28 +72,28 @@ When `pkg/` packages need functionality from `internal/` packages, use **interfa
 2. **Inject the concrete implementation at the `cmd/` layer** where both `pkg/` and `internal/` packages are accessible
 3. **Use the interface type** in `pkg/` package constructors and fields
 
-#### Canonical Example: XMLDecoder
+#### Canonical Example: OPNsenseXMLDecoder
 
-The `pkg/parser.XMLDecoder` interface demonstrates this pattern:
+The `pkg/parser.OPNsenseXMLDecoder` interface demonstrates this pattern:
 
 ```go
 // pkg/parser/factory.go
-type XMLDecoder interface {
+type OPNsenseXMLDecoder interface {
     Parse(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
     ParseAndValidate(ctx context.Context, r io.Reader) (*schema.OpnSenseDocument, error)
 }
 
-func NewFactory(decoder XMLDecoder) *Factory {
+func NewFactory(decoder OPNsenseXMLDecoder) *Factory {
     return &Factory{xmlDecoder: decoder, registry: DefaultRegistry()}
 }
 
 // NewFactoryWithRegistry allows test isolation with a custom registry.
-func NewFactoryWithRegistry(decoder XMLDecoder, reg *DeviceParserRegistry) *Factory {
+func NewFactoryWithRegistry(decoder OPNsenseXMLDecoder, reg *DeviceParserRegistry) *Factory {
     return &Factory{xmlDecoder: decoder, registry: reg}
 }
 ```
 
-Application code in `cmd/` wires the concrete implementation:
+The name is OPNsense-specific because the return type is bound to the OPNsense schema — pfSense and other device parsers cannot consume this interface directly and must manage their own XML decoding (see `pkg/parser/pfsense`). Application code in `cmd/` wires the concrete implementation:
 
 ```go
 // cmd/convert.go
@@ -104,21 +104,21 @@ This allows `pkg/parser` to use XML parsing functionality from `internal/cfgpars
 
 ### Structural Typing for Sub-Packages
 
-Go's structural typing allows `pkg/` sub-packages to define their own interface that `internal/` types satisfy without importing them. In **PR #437**, the OPNsense parser was refactored to use the exported `parser.XMLDecoder` interface directly instead of a local `xmlDecoder` interface. This change was made because:
+Go's structural typing allows `pkg/` sub-packages to define their own interface that `internal/` types satisfy without importing them. In **PR #437**, the OPNsense parser was refactored to use the exported `parser.OPNsenseXMLDecoder` interface directly instead of a local `xmlDecoder` interface. This change was made because:
 
-1. The `parser.XMLDecoder` interface is already exported in the public API
+1. The `parser.OPNsenseXMLDecoder` interface is already exported in the public API
 2. The local interface was redundant and added unnecessary indirection
 3. Using the exported interface enables better type safety and documentation
 4. It clarifies the dependency contract for external consumers
 
 ```go
 // pkg/parser/opnsense/parser.go
-func NewParser(decoder parser.XMLDecoder) *Parser {
+func NewParser(decoder parser.OPNsenseXMLDecoder) *Parser {
     return &Parser{decoder: decoder}
 }
 ```
 
-The `internal/cfgparser.XMLParser` type satisfies the `parser.XMLDecoder` interface through structural compatibility, without requiring an explicit import of `internal/cfgparser`.
+The `internal/cfgparser.XMLParser` type satisfies the `parser.OPNsenseXMLDecoder` interface through structural compatibility, without requiring an explicit import of `internal/cfgparser`.
 
 ### Unexporting Types Pattern
 
@@ -218,7 +218,7 @@ For the full registry pattern (thread safety, self-registration, factory integra
 - **Warning Generation**: Accumulates conversion warnings for incomplete or problematic configuration elements (empty firewall rule fields, missing NAT rule data, gateway issues, user/certificate problems, HA configuration warnings)
 - **Analysis Integration**: Delegates to `internal/analysis/` for `ComputeStatistics()` and `ComputeAnalysis()` (shared, not mirrored)
 - **Audit Report Rendering**: Delegates compliance audit report rendering to `internal/converter/builder/` via `BuildAuditSection()` and `WriteAuditSection()` methods
-- **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceChecks` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML, text, HTML) through the standard generation pipeline
+- **Audit Mode Integration**: In audit mode, `cmd/audit_handler.go` maps `audit.Report` to `common.ComplianceResults` and populates the `ComplianceResults` field on a shallow copy of `CommonDevice`, enabling multi-format output (markdown, JSON, YAML, text, HTML) through the standard generation pipeline
 
 #### Output Renderer Component
 
@@ -306,7 +306,7 @@ This hierarchical structure provides:
 - **Extensibility**: New features can be added to appropriate domains
 - **Validation**: Domain-specific validation rules improve data integrity
 - **API Evolution**: JSON tags enable better REST API integration
-- **Compliance Data**: `CommonDevice.ComplianceChecks` is a rich nested structure containing `Mode`, `Findings`, a `PluginResults` map with per-plugin `PluginComplianceResult` instances, `Summary`, and `Metadata`.
+- **Compliance Data**: The `ComplianceResults` field (renamed from `ComplianceChecks` in v1.5; JSON tag also renamed to `complianceResults`) is a rich nested structure containing `Mode`, `Findings`, a `PluginResults` map with per-plugin `PluginComplianceResult` instances, `Summary`, and `Metadata`.
 
 ### Type Safety with Enums
 
@@ -408,7 +408,7 @@ graph TD
 - **`pkg/schema/opnsense/`** — XML DTO layer. Carries `xml:""` tags and mirrors the OPNsense config.xml structure. This layer is untouched by downstream consumers.
 - **`pkg/parser/opnsense/`** — Contains `parser.go` and `converter.go`. Reads schema DTOs and emits `*common.CommonDevice` with conversion warnings. **Converts OPNsense XML string values to typed enum constants** (e.g., `"pass"` → `common.RuleTypePass`, `"automatic"` → `common.OutboundAutomatic`). This is the only package that imports `pkg/schema/opnsense/`.
 - **`pkg/schema/pfsense/`** — XML DTO layer for pfSense. Follows **copy-on-write pattern**: reuses OPNsense types where XML structures are identical (e.g., `Interface`, `Destination`, `Source`, `Outbound`), forks locally at divergence points (e.g., `InboundRule` uses `<target>` instead of `<internalip>`, `FilterRule` adds pfSense-specific fields like `ID`, `Tag`, `OS`, `AssociatedRuleID`, `IPsec` contains Phase1/Phase2 arrays with BoolFlag fields). Documented in `pkg/schema/pfsense/README.md`.
-- **`pkg/parser/pfsense/`** — Contains `parser.go`, `converter.go`, and subsystem converters (`converter_services.go`). Manages its own XML decoding via `parser.NewSecureXMLDecoder()` (pfSense parser doesn't use `internal/cfgparser.NewXMLParser()` because the shared `XMLDecoder` interface returns `*schema.OpnSenseDocument`). Converts pfSense-specific VPN subsystems (OpenVPN and IPsec with Phase1/Phase2 tunnels and mobile client) to `*common.CommonDevice`. Emits `*common.CommonDevice` with conversion warnings.
+- **`pkg/parser/pfsense/`** — Contains `parser.go`, `converter.go`, and subsystem converters (`converter_services.go`). Manages its own XML decoding via `parser.NewSecureXMLDecoder()` (pfSense parser doesn't use `internal/cfgparser.NewXMLParser()` because the shared `OPNsenseXMLDecoder` interface returns `*schema.OpnSenseDocument`). Converts pfSense-specific VPN subsystems (OpenVPN and IPsec with Phase1/Phase2 tunnels and mobile client) to `*common.CommonDevice`. Emits `*common.CommonDevice` with conversion warnings.
 - **`pkg/model/`** — Device-agnostic domain model. No XML tags. Defines typed string enums for firewall rules (`RuleType`, `Direction`, `IPProtocol`), NAT configurations (`OutboundMode`), and network elements (`LAGGProtocol`, `VIPMode`). All consumer code (processor, converter, audit, diff, compliance plugins) operates on `CommonDevice`. Includes `ConversionWarning` type for non-fatal issues and `ComplianceResults` type (with nested `ComplianceFinding`, `PluginComplianceResult`, `ComplianceControl`, `ComplianceResultSummary`, `CompliancePluginInfo`, `ComplianceAttackSurface`) for compliance audit data representation. VPN model includes `IPsecConfig` with `Phase1Tunnels`, `Phase2Tunnels`, and `MobileClient` fields for platform-agnostic IPsec representation. Adds `DeviceType.DisplayName()` method for dynamic report headers (e.g., "OPNsense" vs "pfSense").
 - **`internal/analysis/`** — Shared analysis logic and canonical finding types. Provides detection functions (`DetectDeadRules`, `DetectUnusedInterfaces`, `DetectSecurityIssues`, `DetectPerformanceIssues`, `DetectConsistency`), statistics computation (`ComputeStatistics`), analysis aggregation (`ComputeAnalysis`), and rule comparison (`RulesEquivalent`). **Uses typed constants for rule type comparisons** (e.g., `rule.Type == common.RuleTypeBlock`) instead of string literals. Used by both `internal/converter` and `internal/processor` to eliminate duplicated logic.
 - **`pkg/parser/factory.go`** — `Factory` and `DeviceParser` interface. Uses the `DeviceParserRegistry` for device type dispatch. Auto-detects the device type from the XML root element or uses the `--device-type` flag to bypass auto-detection. Returns 3 values: device model, warnings slice, and error.
@@ -440,7 +440,7 @@ Key pfSense types that differ from OPNsense:
 
 The pfSense parser operates independently from the OPNsense parser:
 
-- **Self-contained XML decoding**: Uses `parser.NewSecureXMLDecoder()` directly instead of `internal/cfgparser.NewXMLParser()` because the shared `XMLDecoder` interface is typed to return `*schema.OpnSenseDocument`
+- **Self-contained XML decoding**: Uses `parser.NewSecureXMLDecoder()` directly instead of `internal/cfgparser.NewXMLParser()` because the shared `OPNsenseXMLDecoder` interface is typed to return `*schema.OpnSenseDocument`
 - **Shared security hardening**: Both parsers use the same `NewSecureXMLDecoder()` and `CharsetReader()` from `pkg/parser/xmlutil.go` for XXE protection, input size limits, and charset handling (UTF-8, US-ASCII, ISO-8859-1, Windows-1252)
 - **Registry-based registration**: Self-registers via `init()` in `pkg/parser/pfsense/parser.go` to handle `<pfsense>` root elements
 

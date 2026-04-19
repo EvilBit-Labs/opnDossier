@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[breaking]** Renamed `CommonDevice.ComplianceChecks` -> `CommonDevice.ComplianceResults`
+  to match the `ComplianceResults` type name. JSON tag also renames
+  (`complianceChecks` -> `complianceResults`). Affects `pkg/model` public API
+  from v1.5; pre-v1.5 consumers had no semver commitment.
+  See `docs/development/public-api.md` § Current Regime.
+- **[breaking]** Renamed `pkg/parser.XMLDecoder` -> `pkg/parser.OPNsenseXMLDecoder`
+  to reflect that the interface is typed to `*schema.OpnSenseDocument` and
+  cannot be used for pfSense parsing. Affects `pkg/parser` public API from
+  v1.5; pre-v1.5 consumers had no semver commitment.
 - **mergify**: Upgrade configuration to current format ([#543](https://github.com/EvilBit-Labs/opnDossier/pull/543))
 - Update labeling instructions and configuration settings in `.coderabbit.yaml`
 - Add OPNsense/pfSense XML data structure research ([#547](https://github.com/EvilBit-Labs/opnDossier/pull/547))

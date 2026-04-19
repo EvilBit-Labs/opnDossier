@@ -117,7 +117,7 @@ type DeviceParserRegistry struct {
 }
 
 // ConstructorFunc is the factory function signature for creating DeviceParser instances.
-type ConstructorFunc = func(XMLDecoder) DeviceParser
+type ConstructorFunc = func(OPNsenseXMLDecoder) DeviceParser
 
 // Register adds a constructor for the given device type. Device type names are
 // normalized to lowercase with whitespace trimmed. Panics on duplicate registration,
@@ -143,7 +143,7 @@ Parser packages register themselves via `init()` functions:
 
 ```go
 // In pkg/parser/opnsense/parser.go
-func NewParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+func NewParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
     return NewParser(decoder)
 }
 
@@ -216,7 +216,7 @@ if err != nil {
 
 The underlying `XMLParser` (`internal/cfgparser/`) supports UTF-8, US-ASCII, ISO-8859-1 (Latin1), and Windows-1252 encodings. Input is limited to 10MB by default (`DefaultMaxInputSize`).
 
-**Breaking Change:** `ParserFactory` / `NewParserFactory()` were renamed to `Factory` / `NewFactory()` to comply with Go naming conventions (`revive` stutters rule). The `internal/model/` re-export layer was removed; import `pkg/parser` directly. `NewFactory()` now requires an `XMLDecoder` argument.
+**Breaking Change:** `ParserFactory` / `NewParserFactory()` were renamed to `Factory` / `NewFactory()` to comply with Go naming conventions (`revive` stutters rule). The `internal/model/` re-export layer was removed; import `pkg/parser` directly. `NewFactory()` now requires an `OPNsenseXMLDecoder` argument (renamed from `XMLDecoder` in v1.5 to reflect that it returns `*schema.OpnSenseDocument`).
 
 | Old                         | New                                           |
 | --------------------------- | --------------------------------------------- |
@@ -808,7 +808,7 @@ External Go projects can register custom device parsers by:
 
    ```go
    type CustomParser struct {
-       decoder parser.XMLDecoder
+       decoder parser.OPNsenseXMLDecoder
    }
 
    func (p *CustomParser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
@@ -823,7 +823,7 @@ External Go projects can register custom device parsers by:
 2. **Export a factory function** matching the `ConstructorFunc` signature:
 
    ```go
-   func NewCustomParserFactory(decoder parser.XMLDecoder) parser.DeviceParser {
+   func NewCustomParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
        return &CustomParser{decoder: decoder}
    }
    ```

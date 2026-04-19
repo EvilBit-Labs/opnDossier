@@ -481,7 +481,7 @@ factory := parser.NewFactory(myXMLDecoder)
 device, warnings, err := factory.CreateDevice(ctx, reader, model.DeviceTypeUnknown, false)
 ```
 
-`myXMLDecoder` must satisfy `parser.XMLDecoder`. Consumers typically wrap `encoding/xml` themselves using `parser.NewSecureXMLDecoder`, which applies opnDossier's XML-bomb and XXE hardening. If no parser packages are imported, `CreateDevice` returns an error containing the substring `"ensure parser packages are imported"` — that hint is covered by a regression test and safe for tooling to match on.
+`myXMLDecoder` must satisfy `parser.OPNsenseXMLDecoder`. The interface is typed to `*schema.OpnSenseDocument`, so the OPNsense parser is the only bundled consumer — the pfSense parser accepts the decoder for signature compatibility but manages its own XML decoding. Consumers typically wrap `encoding/xml` themselves using `parser.NewSecureXMLDecoder`, which applies opnDossier's XML-bomb and XXE hardening. If no parser packages are imported, `CreateDevice` returns an error containing the substring `"ensure parser packages are imported"` — that hint is covered by a regression test and safe for tooling to match on.
 
 ### Handling `ConversionWarning`
 

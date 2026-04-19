@@ -171,7 +171,7 @@ func TestValidateDeviceType_CustomRegisteredType(t *testing.T) {
 	// Use a unique name to avoid collisions with other tests on the global registry.
 	const customType = "customfirewall-validate-test"
 
-	parser.DefaultRegistry().Register(customType, func(_ parser.XMLDecoder) parser.DeviceParser {
+	parser.DefaultRegistry().Register(customType, func(_ parser.OPNsenseXMLDecoder) parser.DeviceParser {
 		return nil // placeholder; only testing validation, not parsing
 	})
 
@@ -227,7 +227,7 @@ func TestResolveDeviceType_CustomRegisteredType(t *testing.T) {
 	// Register a custom type not in the built-in enum.
 	const customType = "customfirewall-resolve-test"
 
-	parser.DefaultRegistry().Register(customType, func(_ parser.XMLDecoder) parser.DeviceParser {
+	parser.DefaultRegistry().Register(customType, func(_ parser.OPNsenseXMLDecoder) parser.DeviceParser {
 		return nil
 	})
 

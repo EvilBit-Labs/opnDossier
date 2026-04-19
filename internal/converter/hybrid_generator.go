@@ -49,7 +49,7 @@ type reportGenerator interface {
 	SetIncludeTunables(v bool)
 	// SetFailuresOnly configures whether only non-compliant controls are shown in audit reports.
 	SetFailuresOnly(v bool)
-	// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
+	// BuildAuditSection builds the compliance audit section from the device's ComplianceResults.
 	BuildAuditSection(data *common.CommonDevice) string
 	// BuildStandardReport generates a standard configuration report.
 	BuildStandardReport(data *common.CommonDevice) (string, error)
@@ -243,7 +243,7 @@ func (g *HybridGenerator) generateMarkdown(data *common.CommonDevice, opts Optio
 	}
 
 	// Append audit section when compliance data is present
-	if target.ComplianceChecks != nil {
+	if target.ComplianceResults != nil {
 		auditSection := g.builder.BuildAuditSection(target)
 		if auditSection != "" {
 			report += "\n\n" + auditSection
@@ -290,7 +290,7 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		}
 
 		// Append audit section when compliance data is present
-		if target.ComplianceChecks != nil {
+		if target.ComplianceResults != nil {
 			auditSection := g.builder.BuildAuditSection(target)
 			if auditSection != "" {
 				output += "\n\n" + auditSection
@@ -317,7 +317,7 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 	}
 
 	// Append audit section when compliance data is present
-	if target.ComplianceChecks != nil {
+	if target.ComplianceResults != nil {
 		auditSection := g.builder.BuildAuditSection(target)
 		if auditSection != "" {
 			if _, writeErr := io.WriteString(w, "\n\n"+auditSection); writeErr != nil {

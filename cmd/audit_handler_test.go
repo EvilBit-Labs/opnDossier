@@ -684,7 +684,7 @@ func TestHandleAuditMode_EndToEnd(t *testing.T) {
 	assert.Contains(t, result, "stig")
 
 	// handleAuditMode must NOT mutate the input device (immutability rule)
-	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
+	assert.Nil(t, device.ComplianceResults, "input device should not be mutated")
 }
 
 // TestHandleAuditMode_BlueModeNoPluginsRunsAll verifies that bare blue mode
@@ -716,12 +716,12 @@ func TestHandleAuditMode_BlueModeNoPluginsRunsAll(t *testing.T) {
 	result, err := handleAuditMode(context.Background(), device, auditOpts, opt, logger)
 	require.NoError(t, err)
 
-	// Parse JSON and verify complianceChecks is populated with plugin results
+	// Parse JSON and verify complianceResults is populated with plugin results
 	var parsed map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result), &parsed))
 
-	checks, ok := parsed["complianceChecks"].(map[string]any)
-	require.True(t, ok, "complianceChecks should be an object")
+	checks, ok := parsed["complianceResults"].(map[string]any)
+	require.True(t, ok, "complianceResults should be an object")
 	assert.Equal(t, "blue", checks["mode"])
 
 	// pluginResults must contain all three built-in plugins
@@ -734,7 +734,7 @@ func TestHandleAuditMode_BlueModeNoPluginsRunsAll(t *testing.T) {
 	}
 
 	// Input device must not be mutated (immutability rule)
-	assert.Nil(t, device.ComplianceChecks, "input device should not be mutated")
+	assert.Nil(t, device.ComplianceResults, "input device should not be mutated")
 }
 
 // TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.
@@ -780,12 +780,12 @@ func TestHandleAuditMode_StructuredFormats(t *testing.T) {
 			var parsed map[string]any
 			require.NoError(t, tt.unmarshal([]byte(result), &parsed))
 
-			// Verify complianceChecks key is present
-			assert.Contains(t, parsed, "complianceChecks")
+			// Verify complianceResults key is present
+			assert.Contains(t, parsed, "complianceResults")
 
 			// Verify compliance data has content
-			checks, ok := parsed["complianceChecks"].(map[string]any)
-			require.True(t, ok, "complianceChecks should be an object")
+			checks, ok := parsed["complianceResults"].(map[string]any)
+			require.True(t, ok, "complianceResults should be an object")
 			assert.Equal(t, "blue", checks["mode"])
 		})
 	}

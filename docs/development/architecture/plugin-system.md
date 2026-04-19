@@ -144,11 +144,11 @@ See [GOTCHAS.md §2.4](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTC
 Audit compliance results flow from the plugin registry into the standard multi-format export pipeline:
 
 1. `cmd/audit_handler.go` calls `mapAuditReportToComplianceResults()` to convert `audit.Report` into `common.ComplianceResults`.
-2. `handleAuditMode()` creates a shallow copy of `CommonDevice` and sets its `ComplianceChecks` field to the mapped results.
+2. `handleAuditMode()` creates a shallow copy of `CommonDevice` and sets its `ComplianceResults` field to the mapped results.
 3. The enriched device is passed to `generateWithProgrammaticGenerator()`, which dispatches to the `FormatHandler` from `DefaultRegistry` (markdown, JSON, YAML, text, or HTML).
-4. For markdown, `BuildAuditSection()` in `internal/converter/builder/` renders per-plugin sections, findings tables, and summary. For structured formats, `ComplianceChecks` is serialized directly.
+4. For markdown, `BuildAuditSection()` in `internal/converter/builder/` renders per-plugin sections, findings tables, and summary. For structured formats, `ComplianceResults` is serialized directly.
 
-This is the same pipeline described in detail in [pipelines.md — Audit-to-Export Mapping](pipelines.md#audit-to-export-mapping); the plugin system simply populates the `ComplianceChecks` field before that pipeline runs.
+This is the same pipeline described in detail in [pipelines.md — Audit-to-Export Mapping](pipelines.md#audit-to-export-mapping); the plugin system simply populates the `ComplianceResults` field before that pipeline runs.
 
 ## Further Reading
 

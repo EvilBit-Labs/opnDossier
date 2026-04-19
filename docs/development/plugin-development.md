@@ -482,7 +482,7 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 
    ```go
    func init() {
-       parser.Register("fortinet", func(dec parser.XMLDecoder) parser.DeviceParser {
+       parser.Register("fortinet", func(dec parser.OPNsenseXMLDecoder) parser.DeviceParser {
            return &FortinetParser{}
        })
    }
@@ -505,11 +505,11 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 
 ### Key Types
 
-| Type                     | Description                                                                                           |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `parser.DeviceParser`    | Interface: `Parse()` and `ParseAndValidate()` returning `(*CommonDevice, []ConversionWarning, error)` |
-| `parser.ConstructorFunc` | Factory signature: `func(XMLDecoder) DeviceParser`                                                    |
-| `parser.XMLDecoder`      | XML parsing backend injected by the Factory; external parsers that handle their own XML may ignore it |
+| Type                        | Description                                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parser.DeviceParser`       | Interface: `Parse()` and `ParseAndValidate()` returning `(*CommonDevice, []ConversionWarning, error)`                                                                            |
+| `parser.ConstructorFunc`    | Factory signature: `func(OPNsenseXMLDecoder) DeviceParser`                                                                                                                       |
+| `parser.OPNsenseXMLDecoder` | XML parsing backend injected by the Factory; returns `*schema.OpnSenseDocument`, so external parsers that target non-OPNsense schemas accept it for signature compatibility only |
 
 ### Registration Rules
 

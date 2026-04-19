@@ -220,7 +220,7 @@ func TestMarkdownBuilder_WriteAuditSection(t *testing.T) {
 
 	b := builder.NewMarkdownBuilder()
 	data := &common.CommonDevice{
-		ComplianceChecks: &common.ComplianceResults{
+		ComplianceResults: &common.ComplianceResults{
 			Mode: "blue",
 			Findings: []common.ComplianceFinding{
 				{Severity: "high", Title: "Test Finding", Component: "firewall", Recommendation: "Fix it"},
@@ -247,11 +247,11 @@ func TestMarkdownBuilder_WriteAuditSection(t *testing.T) {
 	}
 }
 
-func TestMarkdownBuilder_WriteAuditSection_NilComplianceChecks(t *testing.T) {
+func TestMarkdownBuilder_WriteAuditSection_NilComplianceResults(t *testing.T) {
 	t.Parallel()
 
 	b := builder.NewMarkdownBuilder()
-	data := &common.CommonDevice{ComplianceChecks: nil}
+	data := &common.CommonDevice{ComplianceResults: nil}
 
 	var buf bytes.Buffer
 	err := b.WriteAuditSection(&buf, data)
@@ -260,7 +260,7 @@ func TestMarkdownBuilder_WriteAuditSection_NilComplianceChecks(t *testing.T) {
 	}
 
 	if buf.String() != "" {
-		t.Error("WriteAuditSection with nil ComplianceChecks should produce empty output")
+		t.Error("WriteAuditSection with nil ComplianceResults should produce empty output")
 	}
 }
 
@@ -1100,7 +1100,7 @@ func createTestDocumentWithAllFeatures() *common.CommonDevice {
 		PfsyncInterface: "em2",
 		PfsyncPeerIP:    "192.168.100.2",
 	}
-	doc.ComplianceChecks = &common.ComplianceResults{
+	doc.ComplianceResults = &common.ComplianceResults{
 		Mode: "blue",
 		Findings: []common.ComplianceFinding{
 			{Severity: "high", Title: "Test Finding", Component: "firewall", Recommendation: "Fix it"},
