@@ -406,14 +406,17 @@ git checkout -b fix/issue-description
 opnDossier treats vulnerability management as a first-class workflow concern.
 
 - **Run scans locally**:
-  - `just scan` - run vulnerability scanning
-  - `just sbom` - generate SBOM artifacts
-- **CI requirements**:
-  - CI runs Grype scans for both the repository filesystem and Go module dependencies (`go.mod`).
-    - Severity thresholds are stricter on `main` (filesystem cutoff is `>= medium`) than on feature branches (filesystem cutoff is `>= high`).
+  - `just scan` - run `gosec` source-code security analysis
+  - `just sbom` - generate SBOM artifacts (CycloneDX + SPDX)
+- **CI requirements** (see [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml)):
+  - **govulncheck** scans the Go module graph against the Go vulnerability database.
+  - **Trivy** performs a filesystem dependency and misconfiguration scan, reporting `CRITICAL`, `HIGH`, and `MEDIUM` findings.
+  - **CodeQL** semantic static analysis runs via GitHub's repository-level default-setup code scanning (Security → Code scanning), mandated by org policy; advanced-setup CodeQL in a workflow would conflict.
+  - `govulncheck` + Trivy run on every PR, every push to `main`, and on a weekly schedule.
 - **Where results live**:
-  - SARIF uploads appear in the GitHub Security tab (Code Scanning).
-  - SBOM and vulnerability report artifacts are attached to workflow runs.
+  - CodeQL and Trivy SARIF uploads appear in the GitHub Security tab (Code Scanning).
+  - `govulncheck` failures appear in the workflow summary.
+  - SBOMs are published as release artifacts via `.github/workflows/sbom.yml` and GoReleaser.
 
 ### Secure Coding Principles
 
@@ -876,7 +879,7 @@ This project maintains the OSSF Best Practices passing badge. All contributions 
 ### Every PR Must
 
 - Sign off commits with `git commit -s` (DCO enforced by GitHub App)
-- Pass CI (golangci-lint, gofumpt, tests, CodeQL, Grype) before merge
+- Pass CI (golangci-lint, gofumpt, tests, govulncheck, CodeQL, Trivy) before merge
 - Include tests for new functionality — this is policy, not optional
 - Be reviewed (human or CodeRabbit) for correctness, safety, and style
 - Not introduce `panic()` in library code, unchecked errors, or unvalidated input

@@ -55,6 +55,8 @@ Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") pa
 - **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched remotely.
 - **Prevention:** Restrict filesystem permissions on the plugin directory. Only load plugins built from reviewed source code. In shared or CI environments, avoid pointing `--plugin-dir` at world-writable directories.
 
+**See also:** [docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md](docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md) — fault-isolation pattern that contains panics from the untrusted plugins described here.
+
 ## 3. Data Processing
 
 ### 3.1 Map Iteration Order
@@ -106,6 +108,8 @@ When converting XML schema `string` fields to typed enums (e.g., `common.Firewal
 - **Regression tests:** `TestConverter_EnumCast_EmitsWarning` in `pkg/parser/opnsense/converter_enum_cast_test.go` and `pkg/parser/pfsense/converter_enum_cast_test.go` cover every known callsite. When adding a new enum cast, add a row to the table-driven test in the same PR — otherwise the §5.2 defense is invisible.
 - **History:** The NATS-145 audit (2026-04-18) discovered two unguarded `IPProtocol` casts in OPNsense `convertOutboundNATRules` and `convertInboundNATRules` that had been silently passing invalid values through for months. Both were fixed in the same audit with the canonical `if field != "" && !cast.IsValid() { addWarning }` pattern.
 
+**See also:** [docs/solutions/logic-errors/opnsense-nat-ipprotocol-enum-cast-missing-guard.md](docs/solutions/logic-errors/opnsense-nat-ipprotocol-enum-cast-missing-guard.md) — full postmortem of the NATS-145 bare-cast audit, including regression-test patterns for new enum callsites.
+
 ### 5.3 PreRunE Test Commands Must Bind to Real Globals
 
 When testing `PreRunE` with a temporary `cobra.Command`, bind its flags to the **same** package-level variables the real command uses (e.g., `tempCmd.Flags().StringVar(&auditMode, ...)`). If you bind to local variables instead, `PreRunE` reads stale globals and tests pass vacuously. Always set values via `cmd.Flags().Set()` (not direct assignment) to exercise real pflag parsing.
@@ -115,6 +119,8 @@ When testing `PreRunE` with a temporary `cobra.Command`, bind its flags to the *
 ### 6.1 GID/UID Zero is Valid
 
 Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator check is `gid < 0` / `uid < 0`, correctly allowing zero. Error messages must say "non-negative integer", not "positive integer".
+
+**See also:** [docs/solutions/architecture-issues/file-split-refactor-gotchas.md](docs/solutions/architecture-issues/file-split-refactor-gotchas.md) — the validator file-split refactor where this "non-negative integer" fix was applied alongside pre-existing helper issues.
 
 ## 7. Parser Registry
 
@@ -127,6 +133,8 @@ Unix GID 0 (wheel/root group) and UID 0 (root user) are valid. The validator che
 - **Fix:** Add the blank import to the test file or production file using `parser.NewFactory()`
 - **Detection:** Any new test file using `parser.NewFactory()` that sees an empty registry is missing the blank import
 
+**See also:** [docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md](docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md) — the registry pattern whose init-time self-registration is what the blank import activates.
+
 ## 8. Audit Command
 
 ### 8.1 Mode/Plugin Coupling
@@ -135,6 +143,8 @@ Only `blue` mode runs `RunComplianceChecks`. Red mode ignores `SelectedPlugins` 
 
 - **Gotcha:** Adding plugin support to red mode requires wiring `RunComplianceChecks` into `generateRedReport` in `mode_controller.go` AND removing the `--plugins`+non-blue-mode rejection guard in `cmd/audit.go` `PreRunE`.
 - **Gotcha:** `--plugins` accepts any name at the CLI level — validation is deferred to `ValidateModeConfig` post-init, which checks against the live `PluginRegistry`. Dynamic plugins loaded via `--plugin-dir` are included automatically when `--plugins` is omitted (the "all available" default).
+
+**See also:** [docs/solutions/logic-errors/cli-prerun-validation-timing-dynamic-plugins.md](docs/solutions/logic-errors/cli-prerun-validation-timing-dynamic-plugins.md) — why plugin-name validation moved from `PreRunE` to post-init and how dynamic `.so` plugins now pass the CLI parse gate.
 
 ### 8.2 Concurrent Generation, Serial Emission
 
@@ -277,6 +287,8 @@ Both OPNsense and pfSense emit the same liberal truthy vocabulary (`1|on|yes|tru
 - **Rule:** Any pfSense struct forked from opnsense that changes a field to `BoolFlag` needs this pattern.
 - **Scope:** The same pointer-receiver caveat applies to `shared.FlexBool` and `shared.FlexInt` — their `MarshalXML` methods are also pointer-receiver. Any struct embedding one of these types that is subsequently marshaled by value (not pointer) will silently fall back to Go's default `bool`/`int` serialization, producing `<tag>true</tag>` or `<tag>42</tag>` instead of the canonical form. Use the same alias + pointer-receiver `MarshalXML` workaround on the parent struct.
 
+**See also:** [docs/solutions/runtime-errors/liberal-boolean-xml-parsing-opnsense-pfsense.md](docs/solutions/runtime-errors/liberal-boolean-xml-parsing-opnsense-pfsense.md) — full rollout of `BoolFlag`/`FlexBool`/`FlexInt` across OPNsense + pfSense schema, including the issue #558 `<tag>0</tag>` fix.
+
 ## 16. pfSense IPsec Enabled Flag
 
 ### 16.1 Phase 1 Is the Gate
@@ -305,6 +317,8 @@ Downstream consumers (e.g., `builder_vpn.go`) short-circuit to "No IPsec configu
 
 - **Symptom:** `*narrowOnlyBuilder does not implement reportGenerator (missing method X)`
 - **Fix:** Add a no-op method to `narrowOnlyBuilder` in `hybrid_generator_test.go`.
+
+**See also:** [docs/solutions/logic-errors/documentation-code-drift-interface-refactoring.md](docs/solutions/logic-errors/documentation-code-drift-interface-refactoring.md) — the `ReportBuilder` → `SectionBuilder`/`TableWriter`/`ReportComposer` split that produced this coupling and its documentation-drift aftermath.
 
 ## 18. Kea DHCP4 Schema Version Pinning
 

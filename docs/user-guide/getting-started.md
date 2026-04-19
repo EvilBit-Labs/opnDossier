@@ -32,7 +32,7 @@ go install github.com/EvilBit-Labs/opnDossier@latest
 opndossier version
 ```
 
-**Expected result:** a version string such as `opnDossier v0.9.0`.
+**Expected result:** a version string such as `opnDossier v1.4.0`.
 
 If you see `command not found`, ensure the Go bin directory (typically `$HOME/go/bin`) is in your `PATH`.
 

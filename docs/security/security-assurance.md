@@ -145,4 +145,4 @@ This assurance case is maintained as a living document. It is updated when:
 - Dependencies change significantly
 - Security incidents occur
 
-The project maintains continuous assurance through automated CI checks (golangci-lint, govulncheck, Trivy in `security.yml`; CodeQL via GitHub default-setup code scanning) that run on every PR and push.
+The project maintains continuous assurance through automated CI checks (golangci-lint, govulncheck, Trivy via [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml); CodeQL via GitHub default-setup code scanning) that run on every PR, every push to `main`, and on a weekly schedule.

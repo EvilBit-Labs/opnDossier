@@ -6,7 +6,7 @@ This document has been consolidated. See the canonical location:
 
 The canonical document covers:
 
-- Security scanning (CodeQL, Grype, Snyk)
+- Security scanning (govulncheck, CodeQL, Trivy)
 - License compliance (FOSSA)
 - Supply chain security (SLSA Level 3, Cosign, SBOM)
 - Code quality (golangci-lint, testing standards)
