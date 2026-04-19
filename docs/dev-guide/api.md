@@ -81,7 +81,8 @@ config := cmdCtx.Config
 | `--timestamps`  | bool   | false    | Include timestamps in logs         |
 | `--minimal`     | bool   | false    | Minimal output mode                |
 
-> **Note:** `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
+> [!NOTE]
+> `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
 
 ## Parser Package (internal/cfgparser)
 
@@ -683,11 +684,11 @@ type ComplianceResult struct {
 
 **Fields:**
 
-- `Findings` ([]compliance.Finding): Aggregated findings from all plugins
-- `PluginFindings` (map[string][]compliance.Finding): Findings grouped by plugin name
-- `Compliance` (map[string]map[string]bool): Compliance status per plugin per control
+- `Findings` (`[]compliance.Finding`): Aggregated findings from all plugins
+- `PluginFindings` (`map[string][]compliance.Finding`): Findings grouped by plugin name
+- `Compliance` (`map[string]map[string]bool`): Compliance status per plugin per control
 - `Summary` (`*ComplianceSummary`): Summary statistics with severity breakdown
-- `PluginInfo` (map[string]PluginInfo): Metadata about executed plugins
+- `PluginInfo` (`map[string]PluginInfo`): Metadata about executed plugins
 
 #### ComplianceSummary
 
