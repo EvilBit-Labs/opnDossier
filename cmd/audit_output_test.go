@@ -98,8 +98,8 @@ func TestEmitAuditResult_MultiFileConfigOutputFileIgnored(t *testing.T) {
 
 // TestDeriveAuditOutputPath verifies per-input filename derivation for multi-file audit.
 func TestDeriveAuditOutputPath(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	tests := []struct {
 		name      string
 		inputFile string
@@ -123,8 +123,8 @@ func TestDeriveAuditOutputPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
+			// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+			// See GOTCHAS §1.1.
 			got := deriveAuditOutputPath(tt.inputFile, tt.fileExt)
 			assert.Equal(t, tt.want, got)
 		})
@@ -135,8 +135,8 @@ func TestDeriveAuditOutputPath(t *testing.T) {
 // basename but different parent directories produce distinct output paths,
 // preventing overwrite prompts or silent clobbering during multi-file audit.
 func TestDeriveAuditOutputPath_BasenameCollision(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	pathA := deriveAuditOutputPath("site-a/config.xml", ".md")
 	pathB := deriveAuditOutputPath("site-b/config.xml", ".md")
 
@@ -153,8 +153,8 @@ func TestDeriveAuditOutputPath_BasenameCollision(t *testing.T) {
 // (e.g., /prod/site-a/config.xml and /dr/site-a/config.xml both resolving to
 // "site-a-config-audit.md").
 func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	pathA := deriveAuditOutputPath("prod/site-a/config.xml", ".md")
 	pathB := deriveAuditOutputPath("dr/site-a/config.xml", ".md")
 
@@ -180,8 +180,8 @@ func TestDeriveAuditOutputPath_SameParentBasenameCollision(t *testing.T) {
 // Skipped on Windows because Unix-style absolute paths (/tmp/...) are not
 // recognized as absolute by filepath.IsAbs on Windows.
 func TestDeriveAuditOutputPath_AbsoluteVsRelativeCollision(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	if runtime.GOOS == "windows" {
 		t.Skip("Unix-style absolute path tests not applicable on Windows")
 	}
@@ -208,8 +208,8 @@ func TestDeriveAuditOutputPath_AbsoluteVsRelativeCollision(t *testing.T) {
 // distinct output filenames. Without lossless separator encoding, "a-b/c/config.xml"
 // and "a/b-c/config.xml" would both flatten to the same name.
 func TestDeriveAuditOutputPath_SeparatorPlacementCollision(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	// Two-level collision: dash in first segment vs dash in second segment.
 	pathA := deriveAuditOutputPath("a-b/c/config.xml", ".md")
 	pathB := deriveAuditOutputPath("a/b-c/config.xml", ".md")
@@ -243,8 +243,8 @@ func TestDeriveAuditOutputPath_SeparatorPlacementCollision(t *testing.T) {
 //
 //nolint:dupl // Structurally similar to BoundaryUnderscoreCollision but tests mid-segment underscores.
 func TestDeriveAuditOutputPath_UnderscoreCollision(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	// Two-level collision: underscore in first segment vs second segment.
 	pathA := deriveAuditOutputPath("a_b/c/config.xml", ".md")
 	pathB := deriveAuditOutputPath("a/b_c/config.xml", ".md")
@@ -287,8 +287,8 @@ func TestDeriveAuditOutputPath_UnderscoreCollision(t *testing.T) {
 //
 //nolint:dupl // Structurally similar to UnderscoreCollision but tests boundary underscores.
 func TestDeriveAuditOutputPath_BoundaryUnderscoreCollision(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	// Trailing underscore in first segment vs leading underscore in second segment.
 	pathA := deriveAuditOutputPath("a_/b/config.xml", ".md")
 	pathB := deriveAuditOutputPath("a/_b/config.xml", ".md")
