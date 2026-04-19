@@ -290,11 +290,22 @@ func (pr *PluginRegistry) RunComplianceChecks(
 			defer func() {
 				if r := recover(); r != nil {
 					panicked = true
-					logger.Error("plugin panicked during RunChecks",
-						"plugin", pluginName,
-						"panic", r,
-						"stack", string(debug.Stack()),
-					)
+					// Gate stack dumps behind verbose logging — function names
+					// in stack traces can leak internal plugin paths (e.g.,
+					// "acmecorp-pci-plugin.RunChecks") into centralized logs,
+					// revealing a customer's compliance posture.
+					if logger.IsVerbose() {
+						logger.Error("plugin panicked during RunChecks",
+							"plugin", pluginName,
+							"panic", r,
+							"stack", string(debug.Stack()),
+						)
+					} else {
+						logger.Error("plugin panicked during RunChecks",
+							"plugin", pluginName,
+							"panic", r,
+						)
+					}
 				}
 			}()
 			findings = p.RunChecks(device)

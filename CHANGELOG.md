@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **sanitizer**: `Sanitizer.SetLogger` plus a reflection-path warning when `SanitizeStruct` encounters a `map[K]struct{...}` or `map[K]*struct{...}` value. Go does not allow in-place mutation of such map values, so the walker has always skipped them silently — the warning surfaces the gap so a future schema that routes secrets through a struct-valued map is detected at runtime rather than shipped as cleartext. The raw-XML `SanitizeXML` path is unaffected. Full redaction of struct-valued maps is scheduled under tag-based redaction (todo #151).
 - **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
 - **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
 - **parser**: Audit and harden public API surface - NATS-144 ([#575](https://github.com/EvilBit-Labs/opnDossier/pull/575))
@@ -16,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **parser**: Document the cancellation contract on `peekRootElementBounded`
+  in `pkg/parser/factory.go`. The function returns `ctx.Err()` immediately on
+  cancellation, but its internal goroutine only exits when the next read
+  unblocks. Library consumers supplying readers that can block indefinitely
+  (sockets, fifos, long-polling HTTP bodies) must cancel the context to
+  release the goroutine — CLI consumers using `*os.File` are unaffected.
+  No safety-net watchdog was added because `peekRootElementBounded` does not
+  own the reader it receives; closing a caller-owned reader from inside the
+  helper would corrupt caller state. Addresses todo #147 (SEC-M4, CWE-401).
 - **[breaking]** Renamed `CommonDevice.ComplianceChecks` -> `CommonDevice.ComplianceResults`
   to match the `ComplianceResults` type name. JSON tag also renames
   (`complianceChecks` -> `complianceResults`). Affects `pkg/model` public API
@@ -65,6 +75,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   footguns from the comprehensive review. Phase B hardening (owner
   verification, size cap, path denylist, filename allowlist, optional
   SHA-256 manifest) is tracked for v1.6.
+- `debug.Stack()` dumps at `internal/audit/plugin.go:275-287`,
+  `cmd/audit.go:302-313`, and `internal/processor/processor.go:91` are
+  now gated behind `logger.IsVerbose()`. Function names in stack dumps
+  can leak internal plugin paths (e.g. `acmecorp-pci-plugin.RunChecks`)
+  into centralized logs, revealing customer compliance posture. Fixes
+  SEC-M5 / QUAL-M8.
 
 ## [1.4.0] - 2026-04-03
 

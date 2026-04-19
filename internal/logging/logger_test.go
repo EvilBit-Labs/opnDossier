@@ -390,6 +390,46 @@ func TestNewWithInvalidConfig(t *testing.T) {
 	}
 }
 
+func TestLoggerIsVerbose(t *testing.T) {
+	tests := []struct {
+		name     string
+		level    string
+		expected bool
+	}{
+		{"debug is verbose", "debug", true},
+		{"info is not verbose", "info", false},
+		{"warn is not verbose", "warn", false},
+		{"error is not verbose", "error", false},
+		{"empty level defaults to info (not verbose)", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+
+			logger, err := New(Config{
+				Level:  tt.level,
+				Format: "text",
+				Output: &buf,
+			})
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expected, logger.IsVerbose())
+		})
+	}
+}
+
+func TestLoggerIsVerboseNilSafe(t *testing.T) {
+	// Guard rails: IsVerbose() must never panic on a nil receiver or a
+	// zero-value Logger, since the three debug.Stack() gate sites call it
+	// from panic-recovery paths where the logger might be partially set up.
+	var nilLogger *Logger
+	assert.False(t, nilLogger.IsVerbose(), "nil logger should report non-verbose")
+
+	zero := &Logger{}
+	assert.False(t, zero.IsVerbose(), "zero-value logger should report non-verbose")
+}
+
 func BenchmarkLogger(b *testing.B) {
 	var buf bytes.Buffer
 

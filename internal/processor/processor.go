@@ -88,7 +88,14 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				logger.Error("validation panic recovered", "panic", r, "stack", string(debug.Stack()))
+				// Gate stack dumps behind verbose logging — function names in
+				// stack traces can leak internal plugin/validator paths into
+				// centralized logs.
+				if logger.IsVerbose() {
+					logger.Error("validation panic recovered", "panic", r, "stack", string(debug.Stack()))
+				} else {
+					logger.Error("validation panic recovered", "panic", r)
+				}
 				validationErrors = append(validationErrors, ValidationError{
 					Field:   "configuration",
 					Message: fmt.Sprintf("validation panicked: %v", r),

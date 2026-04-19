@@ -160,6 +160,46 @@ func TestFactory_ContextCancelled_BlockingReader(t *testing.T) {
 	}
 }
 
+// TestFactory_ContextCancelled_HungReader_FastReturn documents the
+// cancellation contract on peekRootElementBounded: even when the supplied
+// reader is hung (io.Pipe with no writer), CreateDevice must return
+// context.Canceled promptly after ctx is cancelled. The 100ms budget is the
+// regression threshold — this asserts the outer select{} picks up ctx.Done()
+// without waiting for the inner goroutine to unblock, which is the behavior
+// callers rely on when wiring up network-sourced readers.
+func TestFactory_ContextCancelled_HungReader_FastReturn(t *testing.T) {
+	t.Parallel()
+
+	pr, pw := io.Pipe()
+	t.Cleanup(func() { _ = pw.Close() })
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(ctx, pr, common.DeviceTypeUnknown, false)
+		done <- err
+	}()
+
+	// Let the goroutine reach the blocking Read call.
+	time.Sleep(10 * time.Millisecond)
+
+	cancelledAt := time.Now()
+	cancel()
+
+	const maxReturnLatency = 100 * time.Millisecond
+	select {
+	case err := <-done:
+		elapsed := time.Since(cancelledAt)
+		require.ErrorIs(t, err, context.Canceled)
+		require.Lessf(t, elapsed, maxReturnLatency,
+			"CreateDevice returned %v after cancel; cancellation contract requires <%v",
+			elapsed, maxReturnLatency)
+	case <-time.After(maxReturnLatency):
+		t.Fatalf("CreateDevice did not return within %v of context cancellation", maxReturnLatency)
+	}
+}
+
 func TestFactory_MalformedXML(t *testing.T) {
 	t.Parallel()
 

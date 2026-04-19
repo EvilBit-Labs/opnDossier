@@ -142,3 +142,15 @@ func (l *Logger) WithFields(keyvals ...any) *Logger {
 func (l *Logger) Sub(subsystem string) *Logger {
 	return &Logger{Logger: l.With("subsystem", subsystem)}
 }
+
+// IsVerbose reports whether the logger is configured at debug level or more
+// verbose. Use this to gate expensive diagnostics (e.g., full stack dumps via
+// runtime/debug.Stack) behind operator opt-in, so centralized logs never leak
+// internal details like plugin paths or function names at default verbosity.
+func (l *Logger) IsVerbose() bool {
+	if l == nil || l.Logger == nil {
+		return false
+	}
+
+	return l.GetLevel() <= log.DebugLevel
+}
