@@ -4,6 +4,14 @@
 version = "0.2.87"
 backend = "aqua:nektos/act"
 
+[tools.act."platforms.linux-arm64"]
+checksum = "sha256:c17a9fe2428a4824f61248ceb8e93db8de95d9163b0f2651ec5ccea0e6f4edc8"
+url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Linux_arm64.tar.gz"
+
+[tools.act."platforms.linux-arm64-musl"]
+checksum = "sha256:c17a9fe2428a4824f61248ceb8e93db8de95d9163b0f2651ec5ccea0e6f4edc8"
+url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Linux_arm64.tar.gz"
+
 [tools.act."platforms.linux-x64"]
 checksum = "sha256:9bbfca7d779f71746233ec65e47fdcb12c4c976c1c97ec085956976fcabee866"
 url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Linux_x86_64.tar.gz"
@@ -23,6 +31,14 @@ url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Linux_x86_64.
 [tools.act."platforms.macos-arm64"]
 checksum = "sha256:dab0091c6f8229f955b83e3822aa24375f7a2852279d5a262446361cc3559d88"
 url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Darwin_arm64.tar.gz"
+
+[tools.act."platforms.macos-x64"]
+checksum = "sha256:41077f98142b02e0bb45b181f57a068f6af86ce887d578a4da1a901b1d8f240a"
+url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Darwin_x86_64.tar.gz"
+
+[tools.act."platforms.macos-x64-baseline"]
+checksum = "sha256:41077f98142b02e0bb45b181f57a068f6af86ce887d578a4da1a901b1d8f240a"
+url = "https://github.com/nektos/act/releases/download/v0.2.87/act_Darwin_x86_64.tar.gz"
 
 [tools.act."platforms.windows-x64"]
 checksum = "sha256:bb7c654b27d79fb98947e22ff846408ef8f93aab90dba6af3656b503b8811966"
@@ -124,6 +140,11 @@ checksum = "sha256:4c3e7af8372d3ca3296e62fa56f23fcbb5721cc6ac1827900d398f110d7cd
 url = "https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-darwin-amd64"
 provenance = "cosign"
 
+[tools.cosign."platforms.macos-x64-baseline"]
+checksum = "sha256:4c3e7af8372d3ca3296e62fa56f23fcbb5721cc6ac1827900d398f110d7cd280"
+url = "https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-darwin-amd64"
+provenance = "cosign"
+
 [tools.cosign."platforms.windows-x64"]
 checksum = "sha256:9b85a88ebff2d9dd30ff4984a6f61f2cedc232dd87d81fa7f2ff3c0ed96c241c"
 url = "https://github.com/sigstore/cosign/releases/download/v3.0.6/cosign-windows-amd64.exe"
@@ -137,6 +158,14 @@ provenance = "cosign"
 [[tools.git-cliff]]
 version = "2.12.0"
 backend = "aqua:orhun/git-cliff"
+
+[tools.git-cliff."platforms.linux-arm64"]
+checksum = "sha256:a2d262b389aed349e0564aaaa38a44015c98a951048923b086d6cf732f6dbbaf"
+url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-aarch64-unknown-linux-musl.tar.gz"
+
+[tools.git-cliff."platforms.linux-arm64-musl"]
+checksum = "sha256:a2d262b389aed349e0564aaaa38a44015c98a951048923b086d6cf732f6dbbaf"
+url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-aarch64-unknown-linux-musl.tar.gz"
 
 [tools.git-cliff."platforms.linux-x64"]
 checksum = "sha256:c89a7bc55f3c51f391938aa3fa560125109695c1930d927879daea68dd786420"
@@ -158,6 +187,14 @@ url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.
 checksum = "sha256:2ae72a0061bee98d0e375f2ea8e0f4b23b4915ac2e37fa45a705066de49b43a0"
 url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-aarch64-apple-darwin.tar.gz"
 
+[tools.git-cliff."platforms.macos-x64"]
+checksum = "sha256:fd4bce35ea8a6f3af6ac4891073781ca24c654c36c83c865bc30bab332c05a14"
+url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-x86_64-apple-darwin.tar.gz"
+
+[tools.git-cliff."platforms.macos-x64-baseline"]
+checksum = "sha256:fd4bce35ea8a6f3af6ac4891073781ca24c654c36c83c865bc30bab332c05a14"
+url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-x86_64-apple-darwin.tar.gz"
+
 [tools.git-cliff."platforms.windows-x64"]
 checksum = "sha256:f2b8c692d9488c3313d7786e2099976151c10fd8f76580b12d045bb9683a8379"
 url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.12.0-x86_64-pc-windows-msvc.zip"
@@ -170,10 +207,21 @@ url = "https://github.com/orhun/git-cliff/releases/download/v2.12.0/git-cliff-2.
 version = "0.7.1"
 backend = "github:anchore/quill"
 
+[tools."github:anchore/quill"."platforms.linux-arm64"]
+checksum = "sha256:b3d5bbc006f1aa0387e06349db1a988597ce348913e6e8d38d4bfb34cc93e78d"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939409"
+
+[tools."github:anchore/quill"."platforms.linux-arm64-musl"]
+checksum = "sha256:b3d5bbc006f1aa0387e06349db1a988597ce348913e6e8d38d4bfb34cc93e78d"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939409"
+
 [tools."github:anchore/quill"."platforms.linux-x64"]
 checksum = "sha256:e58c6f86378a22507c1123e24412afd4ee2d3bb32ebd94d6059827dc0c1b3fbf"
 url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_amd64.tar.gz"
 url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939435"
+provenance = "github-attestations"
 
 [tools."github:anchore/quill"."platforms.linux-x64-baseline"]
 checksum = "sha256:e58c6f86378a22507c1123e24412afd4ee2d3bb32ebd94d6059827dc0c1b3fbf"
@@ -194,6 +242,16 @@ url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939435"
 checksum = "sha256:086cfb3fc69a305d55d9aa5131bed7739d706bbd8bab78c18d011e7260111e96"
 url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939432"
+
+[tools."github:anchore/quill"."platforms.macos-x64"]
+checksum = "sha256:af17fae8d8dd1c8c13ef8ca541ee8205ff28a1a6e0e7cf93f636f9fc14f18ed5"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939436"
+
+[tools."github:anchore/quill"."platforms.macos-x64-baseline"]
+checksum = "sha256:af17fae8d8dd1c8c13ef8ca541ee8205ff28a1a6e0e7cf93f636f9fc14f18ed5"
+url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939436"
 
 [tools."github:anchore/quill"."platforms.windows-x64"]
 checksum = "sha256:aa078a209228ef1a4a96a5b06ab40edc8a3454d055f34be9a351cc74ac898b85"
@@ -241,6 +299,10 @@ url = "https://dl.google.com/go/go1.26.2.darwin-arm64.tar.gz"
 checksum = "sha256:bc3f1500d9968c36d705442d90ba91addf9271665033748b82532682e90a7966"
 url = "https://dl.google.com/go/go1.26.2.darwin-amd64.tar.gz"
 
+[tools.go."platforms.macos-x64-baseline"]
+checksum = "sha256:bc3f1500d9968c36d705442d90ba91addf9271665033748b82532682e90a7966"
+url = "https://dl.google.com/go/go1.26.2.darwin-amd64.tar.gz"
+
 [tools.go."platforms.windows-x64"]
 checksum = "sha256:98eb3570bade15cb826b0909338df6cc6d2cf590bc39c471142002db3832b708"
 url = "https://dl.google.com/go/go1.26.2.windows-amd64.zip"
@@ -265,9 +327,20 @@ backend = "go:golang.org/x/perf/cmd/benchstat"
 version = "2.11.4"
 backend = "aqua:golangci/golangci-lint"
 
+[tools.golangci-lint."platforms.linux-arm64"]
+checksum = "sha256:3bcfa2e6f3d32b2bf5cd75eaa876447507025e0303698633f722a05331988db4"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-arm64.tar.gz"
+provenance = "github-attestations"
+
+[tools.golangci-lint."platforms.linux-arm64-musl"]
+checksum = "sha256:3bcfa2e6f3d32b2bf5cd75eaa876447507025e0303698633f722a05331988db4"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-arm64.tar.gz"
+provenance = "github-attestations"
+
 [tools.golangci-lint."platforms.linux-x64"]
 checksum = "sha256:200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-x64-baseline"]
 checksum = "sha256:200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1"
@@ -284,6 +357,16 @@ url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golan
 [tools.golangci-lint."platforms.macos-arm64"]
 checksum = "sha256:02db2a2dae8b26812e53b0688a6f617e3ef1f489790e829ea22862cf76945675"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-arm64.tar.gz"
+
+[tools.golangci-lint."platforms.macos-x64"]
+checksum = "sha256:c900d4048db75d1edfd550fd11cf6a9b3008e7caa8e119fcddbc700412d63e60"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-amd64.tar.gz"
+provenance = "github-attestations"
+
+[tools.golangci-lint."platforms.macos-x64-baseline"]
+checksum = "sha256:c900d4048db75d1edfd550fd11cf6a9b3008e7caa8e119fcddbc700412d63e60"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-amd64.tar.gz"
+provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.windows-x64"]
 checksum = "sha256:4932cfca5e75bf60fe1c576edf459e5e809e6644664a068185d64b84af3fad9e"
@@ -337,6 +420,11 @@ checksum = "sha256:b8525b87b2cc722efd8dc5cd2af95d9f3a6e69dcb73990131e18e1d2372cf
 url = "https://github.com/goreleaser/goreleaser/releases/download/v2.15.3/goreleaser_Darwin_all.tar.gz"
 provenance = "github-attestations"
 
+[tools.goreleaser."platforms.macos-x64-baseline"]
+checksum = "sha256:b8525b87b2cc722efd8dc5cd2af95d9f3a6e69dcb73990131e18e1d2372cf579"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.15.3/goreleaser_Darwin_all.tar.gz"
+provenance = "github-attestations"
+
 [tools.goreleaser."platforms.windows-x64"]
 checksum = "sha256:8722fdebfc23e10a36356ddd59af0c1f52c4120ca847afd091bd34e09d8aae8c"
 url = "https://github.com/goreleaser/goreleaser/releases/download/v2.15.3/goreleaser_Windows_x86_64.zip"
@@ -380,6 +468,10 @@ checksum = "sha256:d21b20df01ec9b9762b0ef08e56ae8dccf3738770edeafa8d2b3a750aee06
 url = "https://github.com/casey/just/releases/download/1.49.0/just-1.49.0-aarch64-apple-darwin.tar.gz"
 
 [tools.just."platforms.macos-x64"]
+checksum = "sha256:e0b83a9352952ab25e5cf13f6cb03dd1872416e5d89388b56d6ca58f11b0a3a8"
+url = "https://github.com/casey/just/releases/download/1.49.0/just-1.49.0-x86_64-apple-darwin.tar.gz"
+
+[tools.just."platforms.macos-x64-baseline"]
 checksum = "sha256:e0b83a9352952ab25e5cf13f6cb03dd1872416e5d89388b56d6ca58f11b0a3a8"
 url = "https://github.com/casey/just/releases/download/1.49.0/just-1.49.0-x86_64-apple-darwin.tar.gz"
 
@@ -457,6 +549,11 @@ checksum = "sha256:d51250a32fa5d9f0799c7bcb71720c27b10a3afd4a7de288120f96085d508
 url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.14.4+20260414-x86_64-apple-darwin-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
+[tools.python."platforms.macos-x64-baseline"]
+checksum = "sha256:d51250a32fa5d9f0799c7bcb71720c27b10a3afd4a7de288120f96085d508a5a"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.14.4+20260414-x86_64-apple-darwin-install_only_stripped.tar.gz"
+provenance = "github-attestations"
+
 [tools.python."platforms.windows-x64"]
 checksum = "sha256:a976991dcd085c1bb5d9a8084823a6bc8b7f9b079d8c432574a6ddd68c3a6fe1"
 url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.14.4+20260414-x86_64-pc-windows-msvc-install_only_stripped.tar.gz"
@@ -507,6 +604,11 @@ url = "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-aarch64-apple
 provenance = "github-attestations"
 
 [tools.uv."platforms.macos-x64"]
+checksum = "sha256:0a4bc8fcde4974ea3560be21772aeecab600a6f43fa6e58169f9fa7b3b71d302"
+url = "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-x86_64-apple-darwin.tar.gz"
+provenance = "github-attestations"
+
+[tools.uv."platforms.macos-x64-baseline"]
 checksum = "sha256:0a4bc8fcde4974ea3560be21772aeecab600a6f43fa6e58169f9fa7b3b71d302"
 url = "https://github.com/astral-sh/uv/releases/download/0.11.7/uv-x86_64-apple-darwin.tar.gz"
 provenance = "github-attestations"
