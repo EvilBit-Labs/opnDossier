@@ -311,16 +311,15 @@ func runAudit(cmd *cobra.Command, args []string) error {
 					// Gate stack dumps behind verbose logging — function names
 					// in stack traces can leak internal plugin paths into
 					// centralized logs, revealing compliance posture.
-					ctxLogger := cmdLogger.WithContext(timeoutCtx)
-					if ctxLogger.IsVerbose() {
-						ctxLogger.Error(
+					if cmdLogger.IsVerbose() {
+						cmdLogger.Error(
 							"goroutine panicked during audit processing",
 							"input_file", fp,
 							"panic", r,
 							"stack", string(debug.Stack()),
 						)
 					} else {
-						ctxLogger.Error(
+						cmdLogger.Error(
 							"goroutine panicked during audit processing",
 							"input_file", fp,
 							"panic", r,
@@ -381,8 +380,8 @@ func generateAuditOutput(
 	cmdLogger *logging.Logger,
 	cmdConfig *config.Config,
 ) (string, error) {
-	// Create context-aware logger for this goroutine with input file field
-	ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", fp)
+	// Create logger for this goroutine with input file field
+	ctxLogger := cmdLogger.WithFields("input_file", fp)
 
 	// Sanitize the file path
 	cleanPath := filepath.Clean(fp)

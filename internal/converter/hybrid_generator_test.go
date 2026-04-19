@@ -351,6 +351,12 @@ func TestHybridGenerator_GenerateToWriter_NilBuilder(t *testing.T) {
 // exercising the !ok path in GetBuilder's type assertion.
 type narrowOnlyBuilder struct{}
 
+// Compile-time assertion that narrowOnlyBuilder satisfies reportGenerator.
+// Makes the GOTCHAS §17.1/§17.2 three-way coupling (reportGenerator <-
+// ReportComposer <- narrowOnlyBuilder) explicit rather than relying on the
+// implicit assignment-site check in NewHybridGenerator.
+var _ reportGenerator = (*narrowOnlyBuilder)(nil)
+
 func (n *narrowOnlyBuilder) SetIncludeTunables(_ bool)                       {}
 func (n *narrowOnlyBuilder) SetFailuresOnly(_ bool)                          {}
 func (n *narrowOnlyBuilder) BuildAuditSection(_ *common.CommonDevice) string { return "" }

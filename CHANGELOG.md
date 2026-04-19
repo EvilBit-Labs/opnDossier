@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed `logging.Logger.WithContext(ctx)` — was a no-op with a TODO,
+  misleadingly suggested context propagation to the logger. Revisit when
+  an observability backend (OpenTelemetry) is chosen.
 - **compliance,plugins**: Internal compliance plugin interface refactored:
   `RunChecks` now returns `(findings, evaluated, err)` in a single pass;
   `EvaluatedControlIDs` removed. Saves one full traversal per audit on blue

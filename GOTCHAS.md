@@ -45,7 +45,7 @@ Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") pa
 
 - **Gotcha:** A finding with `Severity == "info"` that references a control still flips that control to non-compliant. This is intentional — severity is triage priority, not compliance gating.
 - **Gotcha:** Inventory controls (`Type: "inventory"`) are intentionally excluded from the `evaluated` slice returned by `RunChecks` and do not appear in the compliance map. They only appear in "Configuration Notes."
-- **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`.
+- **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`. Two call sites cover this today: the per-plugin loop in `internal/audit/mode_controller.go` (`generateBlueReport`) warns per plugin, and the aggregate path in `RunComplianceChecks` logs a WARN via the `unknownSeverityCount` returned from `calculateSummary` in `internal/audit/plugin.go`. When adding a new caller that aggregates findings across plugins, surface the unknown count the same way — either by propagating the return value from `calculateSummary`/`countSeverities` or by logging directly.
 
 ### 2.5 Dynamic Plugin Trust Model
 

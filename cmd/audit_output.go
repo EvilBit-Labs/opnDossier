@@ -35,7 +35,7 @@ func emitAuditResult(
 	cmdConfig *config.Config,
 	multiFile bool,
 ) error {
-	ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", result.inputFile)
+	ctxLogger := cmdLogger.WithFields("input_file", result.inputFile)
 
 	// Build conversion options to determine file extension
 	eff := buildEffectiveFormat(format, cmdConfig)

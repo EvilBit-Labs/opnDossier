@@ -230,8 +230,8 @@ RELATED:
 					return
 				}
 
-				// Create context-aware logger for this goroutine with input file field
-				ctxLogger := cmdLogger.WithContext(timeoutCtx).WithFields("input_file", fp)
+				// Create logger for this goroutine with input file field
+				ctxLogger := cmdLogger.WithFields("input_file", fp)
 
 				// Sanitize the file path
 				cleanPath := filepath.Clean(fp)
@@ -299,9 +299,6 @@ RELATED:
 				auditOpts := buildAuditOptions()
 
 				// Convert using the new markdown generator
-				var output string
-				var fileExt string
-
 				ctxLogger.Debug(
 					"Converting with options",
 					"format",
@@ -312,25 +309,16 @@ RELATED:
 					opt.Sections,
 				)
 
-				// Generate output based on format
-				output, err = generateOutputByFormat(timeoutCtx, device, opt, auditOpts, ctxLogger)
+				// Generate output based on format. The resolved FormatHandler is reused below
+				// for the file extension — a second registry lookup would be redundant.
+				output, handler, err := generateOutputByFormat(timeoutCtx, device, opt, auditOpts, ctxLogger)
 				if err != nil {
 					ctxLogger.Error("Failed to convert", "error", err)
 					errs <- fmt.Errorf("failed to convert from %s: %w", fp, err)
 					return
 				}
 
-				// Determine file extension from the registry
-				handler, err := converter.DefaultRegistry.Get(string(opt.Format))
-				if err != nil {
-					ctxLogger.Error("format passed validation but registry lookup failed",
-						"format", opt.Format, "error", err)
-					errs <- fmt.Errorf("internal error determining file extension for %q: %w", opt.Format, err)
-
-					return
-				}
-
-				fileExt = handler.FileExtension()
+				fileExt := handler.FileExtension()
 
 				ctxLogger.Debug("Conversion completed successfully")
 
@@ -567,23 +555,22 @@ func determineOutputPath(inputFile, outputFile, fileExt string, cfg *config.Conf
 
 // generateOutputByFormat generates the document output in the requested format using the programmatic generator.
 // Supported formats are "markdown" (or "md"), "json", "yaml" (or "yml"), "text" (or "txt"), and "html" (or "htm").
-// It returns the rendered output string, or an error if the format is unsupported or generation fails.
+// It returns the rendered output, the resolved FormatHandler (for file-extension lookups), or an error
+// if the format is unsupported or generation fails.
+//
+// The handler is resolved via a single DefaultRegistry.Get call — callers should NOT perform their own
+// lookup, as that would duplicate work and invent an impossible-by-construction error branch.
 func generateOutputByFormat(
 	ctx context.Context,
 	device *common.CommonDevice,
 	opt converter.Options,
 	auditOpts audit.Options,
 	logger *logging.Logger,
-) (string, error) {
-	// TODO(#457): Remove audit parameter — unreachable since audit flags were
-	// removed from convert. The auditOpts.AuditMode is always empty.
-	if auditOpts.AuditMode != "" {
-		return handleAuditMode(ctx, device, auditOpts, opt, logger)
-	}
-
-	// Validate format via registry before generating
-	if _, err := converter.DefaultRegistry.Get(string(opt.Format)); err != nil {
-		return "", fmt.Errorf(
+) (string, converter.FormatHandler, error) {
+	// Validate format via registry once and reuse the resolved handler.
+	handler, err := converter.DefaultRegistry.Get(string(opt.Format))
+	if err != nil {
+		return "", nil, fmt.Errorf(
 			"%w: %q (supported: %s)",
 			ErrUnsupportedOutputFormat,
 			opt.Format,
@@ -591,9 +578,23 @@ func generateOutputByFormat(
 		)
 	}
 
+	// TODO(#457): Remove audit parameter — unreachable since audit flags were
+	// removed from convert. The auditOpts.AuditMode is always empty.
+	if auditOpts.AuditMode != "" {
+		output, err := handleAuditMode(ctx, device, auditOpts, opt, logger)
+		if err != nil {
+			return "", nil, err
+		}
+		return output, handler, nil
+	}
+
 	// Use programmatic generator for all formats
 	// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively
-	return generateWithProgrammaticGenerator(ctx, device, opt, logger)
+	output, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
+	if err != nil {
+		return "", nil, err
+	}
+	return output, handler, nil
 }
 
 // generateWithProgrammaticGenerator creates and uses a generator that produces output using the programmatic Markdown builder.

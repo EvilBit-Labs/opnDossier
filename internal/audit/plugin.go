@@ -129,7 +129,7 @@ func (pr *PluginRegistry) ListPlugins() []string {
 // Per-plugin failures are collected in the returned LoadResult and aggregated into
 // the returned error via errors.Join.
 func (pr *PluginRegistry) LoadDynamicPlugins(
-	ctx context.Context,
+	_ context.Context,
 	dir string,
 	explicitDir bool,
 	logger *logging.Logger,
@@ -138,7 +138,7 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 		return LoadResult{}, errors.New("nil logger provided to LoadDynamicPlugins")
 	}
 
-	ctxLogger := logger.WithContext(ctx)
+	ctxLogger := logger
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -386,8 +386,17 @@ func (pr *PluginRegistry) RunComplianceChecks(
 		}
 	}
 
-	// Calculate summary
-	result.Summary = pr.calculateSummary(result)
+	// Calculate summary. Surface unknown-severity findings (see GOTCHAS §2.4)
+	// so operators notice plugins producing severities outside the known set.
+	summary, unknownSeverityCount := pr.calculateSummary(result)
+	result.Summary = summary
+
+	if unknownSeverityCount > 0 {
+		logger.Warn(
+			"Compliance summary contains findings with unrecognized severity",
+			"unknownCount", unknownSeverityCount,
+		)
+	}
 
 	return result, nil
 }
@@ -515,8 +524,14 @@ func countSeverities(findings []compliance.Finding) severityCounts {
 	return counts
 }
 
-// calculateSummary calculates compliance summary statistics.
-func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *ComplianceSummary {
+// calculateSummary calculates compliance summary statistics and returns the
+// number of findings with unrecognized severity values so the caller can
+// decide how to surface them (for example, a WARN log entry). Returning the
+// count keeps `calculateSummary` free of logger dependencies and keeps the API
+// testable.
+//
+//nolint:gocritic // unnamedResult retained; project-wide nonamedreturns disables the typical fix.
+func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) (*ComplianceSummary, int) {
 	counts := countSeverities(result.Findings)
 
 	summary := &ComplianceSummary{
@@ -550,7 +565,7 @@ func (pr *PluginRegistry) calculateSummary(result *ComplianceResult) *Compliance
 		}
 	}
 
-	return summary
+	return summary, counts.unknown
 }
 
 // computePerPluginSummary calculates compliance summary statistics for a single plugin.

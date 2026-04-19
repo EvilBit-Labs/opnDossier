@@ -179,8 +179,8 @@ RELATED:
 
 		inputFile := args[0]
 
-		// Create context-aware logger with input file field
-		ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", inputFile)
+		// Create logger with input file field
+		ctxLogger := cmdLogger.WithFields("input_file", inputFile)
 
 		// Create a timeout context for processing
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)
