@@ -12,18 +12,18 @@ import (
 	"github.com/nao1215/markdown"
 )
 
-// BuildAuditSection builds the compliance audit section from the device's ComplianceChecks.
-// If ComplianceChecks is nil, it returns an empty string.
+// BuildAuditSection builds the compliance audit section from the device's ComplianceResults.
+// If ComplianceResults is nil, it returns an empty string.
 //
 // When Controls data is available for a plugin, a unified "Plugin Results" table is rendered
 // with a Status column (PASS/FAIL). When b.failuresOnly is true, only FAIL rows are included.
 // When Controls is empty but Findings exist, the legacy findings table is rendered as a fallback.
 func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
-	if data == nil || data.ComplianceChecks == nil {
+	if data == nil || data.ComplianceResults == nil {
 		return ""
 	}
 
-	cc := data.ComplianceChecks
+	cc := data.ComplianceResults
 
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)

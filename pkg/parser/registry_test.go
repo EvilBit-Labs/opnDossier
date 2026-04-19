@@ -34,7 +34,7 @@ func (m *mockDeviceParser) ParseAndValidate(
 	return &common.CommonDevice{}, nil, nil
 }
 
-// mockXMLDecoder is a minimal XMLDecoder implementation for testing.
+// mockXMLDecoder is a minimal OPNsenseXMLDecoder implementation for testing.
 type mockXMLDecoder struct{}
 
 // Parse returns an empty OpnSenseDocument with no error.
@@ -49,7 +49,7 @@ func (m *mockXMLDecoder) ParseAndValidate(_ context.Context, _ io.Reader) (*sche
 
 // mockConstructor returns a ConstructorFunc that produces a mockDeviceParser.
 func mockConstructor() ConstructorFunc {
-	return func(_ XMLDecoder) DeviceParser {
+	return func(_ OPNsenseXMLDecoder) DeviceParser {
 		return &mockDeviceParser{}
 	}
 }

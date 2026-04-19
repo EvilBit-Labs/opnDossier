@@ -24,7 +24,25 @@ const (
 	DirectionAny FirewallDirection = "any"
 )
 
-// IPProtocol represents the IP address family.
+// IPProtocol is the shared firewall-rule IP-protocol enum across device types.
+//
+// Consumers writing switch statements on IPProtocol for OPNsense-only contexts
+// should be aware that IPProtocolInet46 is pfSense-specific (a single rule that
+// matches both IPv4 and IPv6). OPNsense does not emit this value — if it appears
+// on an OPNsense device, it is a bug upstream in the parser or converter.
+//
+// Recommended switch pattern for consumers that need to handle every value:
+//
+//	switch p {
+//	case model.IPProtocolInet:
+//	    // IPv4
+//	case model.IPProtocolInet6:
+//	    // IPv6
+//	case model.IPProtocolInet46:
+//	    // pfSense dual-stack rule (IPv4 + IPv6)
+//	default:
+//	    // unknown / unset
+//	}
 type IPProtocol string
 
 const (
@@ -32,7 +50,12 @@ const (
 	IPProtocolInet IPProtocol = "inet"
 	// IPProtocolInet6 represents the IPv6 address family.
 	IPProtocolInet6 IPProtocol = "inet6"
-	// IPProtocolInet46 matches both IPv4 and IPv6 traffic (pfSense-specific).
+	// IPProtocolInet46 is pfSense-specific: a single firewall rule that matches
+	// both IPv4 and IPv6 traffic (dual-stack). OPNsense does not emit this value;
+	// seeing it on an OPNsense device indicates an upstream parser or converter
+	// bug. Consumers writing OPNsense-only switch statements can safely treat
+	// this case as unreachable, but should still handle it defensively (e.g., log
+	// and fall through to a default) rather than panic.
 	IPProtocolInet46 IPProtocol = "inet46"
 )
 

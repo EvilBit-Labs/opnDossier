@@ -16,12 +16,12 @@ The module path is `github.com/EvilBit-Labs/opnDossier`.
 
 These packages are intended for direct consumption by other Go modules. Their exported identifiers follow the stability rules in the next section.
 
-| Import path           | Purpose                                                                                                                                                                                                               |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pkg/model`           | Platform-agnostic `CommonDevice` domain model plus `ConversionWarning`, `Severity`, `DeviceType`, and the subsystem structs reachable from `CommonDevice` (firewall rules, NAT, DHCP, VPN, certificates, etc.).       |
-| `pkg/parser`          | Factory, `XMLDecoder` interface, `DeviceParser` interface, and the `DeviceParserRegistry` used for device-type dispatch. Includes `NewSecureXMLDecoder` and `CharsetReader` for consumers wiring their own XML layer. |
-| `pkg/parser/opnsense` | OPNsense-specific `Parser`, `ConvertDocument(*schema.OpnSenseDocument)`, and `ErrNilDocument`. Self-registers with the global registry on blank import.                                                               |
-| `pkg/parser/pfsense`  | pfSense equivalent. Same shape, same self-registration.                                                                                                                                                               |
+| Import path           | Purpose                                                                                                                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pkg/model`           | Platform-agnostic `CommonDevice` domain model plus `ConversionWarning`, `Severity`, `DeviceType`, and the subsystem structs reachable from `CommonDevice` (firewall rules, NAT, DHCP, VPN, certificates, etc.).               |
+| `pkg/parser`          | Factory, `OPNsenseXMLDecoder` interface, `DeviceParser` interface, and the `DeviceParserRegistry` used for device-type dispatch. Includes `NewSecureXMLDecoder` and `CharsetReader` for consumers wiring their own XML layer. |
+| `pkg/parser/opnsense` | OPNsense-specific `Parser`, `ConvertDocument(*schema.OpnSenseDocument)`, and `ErrNilDocument`. Self-registers with the global registry on blank import.                                                                       |
+| `pkg/parser/pfsense`  | pfSense equivalent. Same shape, same self-registration.                                                                                                                                                                       |
 
 ### Public but vendor-tracking
 
@@ -148,9 +148,11 @@ Notes on fields that are **not** in this table:
 
 ## Revision History
 
-| Date       | Change                                                                                                                                                                 |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-04-18 | Initial publication as part of NATS-146 (cross-repo integration verification). Establishes the public API classification, stability policy, and blank-import contract. |
-| 2026-04-19 | Add "Current Regime" section (v1.5 as the first semver-committed release), inline the secret-bearing field inventory, and document the OpenVPN TLS drop invariant.     |
+| Date       | Change                                                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-18 | Initial publication as part of NATS-146 (cross-repo integration verification). Establishes the public API classification, stability policy, and blank-import contract.                |
+| 2026-04-19 | Add "Current Regime" section (v1.5 as the first semver-committed release), inline the secret-bearing field inventory, and document the OpenVPN TLS drop invariant.                    |
+| 2026-04-19 | Rename `pkg/parser.XMLDecoder` to `pkg/parser.OPNsenseXMLDecoder` (breaking within the v1.5 free-change window) to reflect that the interface is bound to `*schema.OpnSenseDocument`. |
+| 2026-04-19 | Rename `CommonDevice.ComplianceChecks` -> `ComplianceResults` (field + JSON tag); see CHANGELOG.                                                                                      |
 
 Every change to this document must add a row to the Revision History table with date (YYYY-MM-DD) and a one-line description.

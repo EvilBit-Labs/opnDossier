@@ -767,15 +767,15 @@ func TestCommonDevice_EnrichmentFieldsOptional(t *testing.T) {
 		t.Errorf("SecurityAssessment.OverallScore = %d, want 75", got.SecurityAssessment.OverallScore)
 	}
 
-	// Analysis, PerformanceMetrics, ComplianceChecks should remain nil.
+	// Analysis, PerformanceMetrics, ComplianceResults should remain nil.
 	if got.Analysis != nil {
 		t.Error("Analysis should be nil when not set")
 	}
 	if got.PerformanceMetrics != nil {
 		t.Error("PerformanceMetrics should be nil when not set")
 	}
-	if got.ComplianceChecks != nil {
-		t.Error("ComplianceChecks should be nil when not set")
+	if got.ComplianceResults != nil {
+		t.Error("ComplianceResults should be nil when not set")
 	}
 }
 

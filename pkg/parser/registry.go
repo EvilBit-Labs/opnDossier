@@ -10,8 +10,9 @@
 // Top-level types a consumer interacts with:
 //
 //   - Factory and its constructors [NewFactory] / [NewFactoryWithRegistry]
-//   - XMLDecoder (dependency injected at construction; opnDossier's CLI wires
-//     internal/cfgparser.NewXMLParser, external consumers provide their own)
+//   - OPNsenseXMLDecoder (dependency injected at construction; opnDossier's
+//     CLI wires internal/cfgparser.NewXMLParser, external consumers provide
+//     their own)
 //   - DeviceParser (the device-specific parser contract)
 //   - DeviceParserRegistry and the package-level [Register] / [DefaultRegistry]
 //
@@ -48,9 +49,11 @@ import (
 )
 
 // ConstructorFunc is the factory function signature for creating DeviceParser
-// instances. The XMLDecoder parameter allows injection of the XML parsing
-// backend. External parsers that manage their own XML decoding may ignore it.
-type ConstructorFunc = func(XMLDecoder) DeviceParser
+// instances. The OPNsenseXMLDecoder parameter allows injection of the XML
+// parsing backend. The parameter is consumed by the OPNsense parser; non-
+// OPNsense parsers accept it for signature compatibility but must manage
+// their own XML decoding.
+type ConstructorFunc = func(OPNsenseXMLDecoder) DeviceParser
 
 // DeviceParserRegistry manages registered DeviceParser constructors, keyed by
 // the lowercase XML root element name of the device type they handle.

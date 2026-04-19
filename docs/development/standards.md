@@ -494,7 +494,7 @@ When adding `io.Writer` support alongside string-returning APIs, split responsib
 
 Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser packages (e.g., `_ ".../pkg/parser/opnsense"` and `_ ".../pkg/parser/pfsense"`). Without it, the registry is empty. See **[GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#71-blank-import-requirement)** for symptoms and fixes.
 
-Both parsers share XML security hardening via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` (LimitReader, XXE protection, charset handling). The pfSense parser manages its own XML decoding because `XMLDecoder` returns `*schema.OpnSenseDocument`; validation is injected via `pfsense.ValidateFunc` (set in `cmd/root.go`).
+Both parsers share XML security hardening via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` (LimitReader, XXE protection, charset handling). The pfSense parser manages its own XML decoding because `OPNsenseXMLDecoder` returns `*schema.OpnSenseDocument`; validation is injected via `pfsense.ValidateFunc` (set in `cmd/root.go`).
 
 ### File Write Safety
 
@@ -667,9 +667,9 @@ common "github.com/EvilBit-Labs/opnDossier/pkg/model"             // use common.
 
 Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema import as `schema` to avoid collision. `cmd/` files that use the parser factory import `"github.com/EvilBit-Labs/opnDossier/pkg/parser"` (no alias needed).
 
-`parser.NewFactory(decoder)` requires an `XMLDecoder` argument — wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `XMLDecoder` interface is defined in `pkg/parser/factory.go`.
+`parser.NewFactory(decoder)` requires an `OPNsenseXMLDecoder` argument — wire with `parser.NewFactory(cfgparser.NewXMLParser())` at the call site. The `OPNsenseXMLDecoder` interface is defined in `pkg/parser/factory.go`.
 
-**pfSense parser independence:** The pfSense parser in `pkg/parser/pfsense/` manages its own XML decoding because `XMLDecoder.Parse()` returns `*schema.OpnSenseDocument`, which is incompatible with `pfsense.Document`. Security hardening is shared via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go`.
+**pfSense parser independence:** The pfSense parser in `pkg/parser/pfsense/` manages its own XML decoding because `OPNsenseXMLDecoder.Parse()` returns `*schema.OpnSenseDocument`, which is incompatible with `pfsense.Document`. Security hardening is shared via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go`.
 
 ### Report Serialization Redaction
 
@@ -740,12 +740,12 @@ See [`pkg/schema/pfsense/README.md`](https://github.com/EvilBit-Labs/opnDossier/
 
 **Compliance results model:**
 
-- `CommonDevice.ComplianceChecks` uses `*ComplianceResults`. Types mirror `audit`/`analysis`/`compliance` shapes but live in `common` to avoid circular deps
+- `CommonDevice.ComplianceResults` uses `*ComplianceResults`. Types mirror `audit`/`analysis`/`compliance` shapes but live in `common` to avoid circular deps
 - Populated by `mapAuditReportToComplianceResults()` in `cmd/audit_handler.go`, not by `prepareForExport()` (pass-through only)
 
 **Audit report rendering:**
 
-- `handleAuditMode()` in `cmd/audit_handler.go` maps `audit.Report` → `device.ComplianceChecks`, creates a shallow copy (immutability), then delegates to `generateWithProgrammaticGenerator()`
+- `handleAuditMode()` in `cmd/audit_handler.go` maps `audit.Report` → `device.ComplianceResults`, creates a shallow copy (immutability), then delegates to `generateWithProgrammaticGenerator()`
 - `ComplianceResultSummary` int fields use `json:"field"` (no `omitempty`) — zero values must serialize
 - Plugin names and metadata keys iterated in sorted order (`slices.Sorted(maps.Keys(...))`)
 
