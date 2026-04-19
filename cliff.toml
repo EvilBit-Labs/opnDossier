@@ -1,16 +1,33 @@
 # git-cliff ~ configuration for opnDossier
 # https://git-cliff.org/docs/configuration
+#
+# Template format: Keep a Changelog 1.1.0 (https://keepachangelog.com/en/1.1.0/)
+#
+# Commit-type → section mapping:
+#   feat                 → Added
+#   fix                  → Fixed
+#   fix(security)/security → Security
+#   perf, refactor, chore, docs, style, ci, test → Changed
+#   <anything with "deprecate"> → Deprecated
+#   <anything with "remove">    → Removed
+#   revert               → Changed (noted as revert)
+#   BREAKING CHANGE:     → Changed (also prefixed with [**breaking**] in the bullet)
 
 [changelog]
 header = """
-# Changelog\n
-All notable changes to this project will be documented in this file.\n
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 """
 body = """
 {% if version %}\
     ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else %}\
-    ## [unreleased]
+    ## [Unreleased]
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | striptags | trim | upper_first }}
@@ -36,24 +53,41 @@ commit_preprocessors = [
   { pattern = '\(#([0-9]+)\)', replace = "([#${1}](https://github.com/EvilBit-Labs/opnDossier/pull/${1}))" },
 ]
 commit_parsers = [
-  { message = "^feat", group = "<!-- 0 -->Features" },
-  { message = "^fix\\(security\\)", group = "<!-- 8 -->Security" },
-  { message = "^fix", group = "<!-- 1 -->Bug Fixes" },
-  { message = "^refactor", group = "<!-- 2 -->Refactor" },
-  { message = "^doc", group = "<!-- 3 -->Documentation" },
-  { message = "^perf", group = "<!-- 4 -->Performance" },
-  { message = "^style", group = "<!-- 5 -->Styling" },
-  { message = "^test", group = "<!-- 6 -->Testing" },
+  # Skip administrative/noise commits first.
   { message = "^chore\\(release\\): prepare for", skip = true },
   { message = "^chore\\(deps.*\\)", skip = true },
   { message = "^chore\\(pr\\)", skip = true },
   { message = "^chore\\(pull\\)", skip = true },
+  { message = "^chore\\(ci\\): update", skip = true },
   { message = "^Merge pull request", skip = true },
   { message = "^Merge branch", skip = true },
-  { message = "^chore\\(ci\\): update", skip = true },
-  { message = "^chore|^ci", group = "<!-- 7 -->Miscellaneous Tasks" },
-  { body = "BREAKING CHANGE:", group = "<!-- 9 -->Breaking Changes" },
-  { message = "^revert", group = "<!-- 10 -->Revert" },
+
+  # Security — must win over generic "fix".
+  { message = "^fix\\(security\\)", group = "<!-- 4 -->Security" },
+  { message = "^security", group = "<!-- 4 -->Security" },
+
+  # Removed / Deprecated — scoped conventions checked before generic types.
+  # Match explicit `deprecate(...)` / `remove(...)` commit types, or conventional
+  # scopes that include those words (e.g., `feat(deprecate): ...`).
+  { message = "^deprecate", group = "<!-- 2 -->Deprecated" },
+  { message = "^\\w+\\(deprecat[^)]*\\)", group = "<!-- 2 -->Deprecated" },
+  { message = "^remove", group = "<!-- 3 -->Removed" },
+  { message = "^\\w+\\(remove[^)]*\\)", group = "<!-- 3 -->Removed" },
+
+  # Keep-a-Changelog core buckets.
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^fix", group = "<!-- 5 -->Fixed" },
+  { message = "^perf", group = "<!-- 1 -->Changed" },
+  { message = "^refactor", group = "<!-- 1 -->Changed" },
+  { message = "^docs?", group = "<!-- 1 -->Changed" },
+  { message = "^style", group = "<!-- 1 -->Changed" },
+  { message = "^test", group = "<!-- 1 -->Changed" },
+  { message = "^revert", group = "<!-- 1 -->Changed" },
+  { message = "^chore|^ci", group = "<!-- 1 -->Changed" },
+
+  # Breaking-change marker in commit body — still appears in its mapped section,
+  # but anything flagged with BREAKING CHANGE: that hasn't matched above lands in Changed.
+  { body = "BREAKING CHANGE:", group = "<!-- 1 -->Changed" },
 ]
 filter_commits = false
 tag_pattern = "v[0-9].*"

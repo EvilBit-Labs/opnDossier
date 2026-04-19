@@ -248,14 +248,12 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 }
 
 // performComplianceCheck performs compliance-related checks of the configuration.
-// TODO: Extended Compliance Rules - Add additional compliance checks for:
-//   - Certificate management and expiration monitoring
-//   - Backup and disaster recovery configuration
-//   - Network segmentation best practices
-//   - Security framework compliance (STIG, NIST, SANS, etc.)
-//   - Regulatory compliance requirements (PCI-DSS, HIPAA, etc.)
 //
-// Note: Password policy and audit logging compliance checks are implemented below.
+// This is a reference implementation covering a narrow slice of checks
+// (administrative users, time synchronization, and audit logging). Real
+// compliance evaluation runs through the plugin system in pkg/plugins and the
+// `audit blue` mode — extend those rather than this example when adding new
+// compliance rules.
 func (p *ExampleProcessor) performComplianceCheck(
 	ctx context.Context,
 	cfg *common.CommonDevice,

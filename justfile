@@ -321,8 +321,14 @@ docs-test:
 
 # Generate model reference documentation
 [group('docs')]
-generate-docs:
+generate-docs: generate-cli-docs
     @{{ mise_exec }} go run tools/docgen/main.go
+
+# Generate markdown CLI reference from Cobra command tree
+# Output lands in docs/cli/ and is committed so mkdocs builds on a fresh clone.
+[group('docs')]
+generate-cli-docs:
+    @{{ mise_exec }} go run . docs docs/cli/
 
 # Regenerate VHS terminal demo GIFs from tape files
 [group('docs')]
