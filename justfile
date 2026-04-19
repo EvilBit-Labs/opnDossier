@@ -221,7 +221,6 @@ bench-compare:
         exit 1; \
     fi
     @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-current.txt
-    @{{ mise_exec }} go install golang.org/x/perf/cmd/benchstat@latest
     @{{ mise_exec }} benchstat .benchmark-baseline.txt .benchmark-current.txt
 
 # Run startup time benchmarks

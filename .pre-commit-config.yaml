@@ -44,3 +44,36 @@ repos:
           - mdformat-front-matters
         types: [markdown]
         exclude: \.golden\.md$
+
+  # Go linting — mirrors `just lint` / CI lint job. Uses local hooks that
+  # delegate to the mise-pinned golangci-lint (mise.toml → 2.11.4) to keep a
+  # single source of truth for the toolchain version. The upstream
+  # `golangci/golangci-lint` pre-commit repo builds the binary via `go install`,
+  # which strips module metadata and causes `config verify` to reject newer
+  # linter settings (e.g., `funcorder`, `embeddedstructfieldcheck`) even at the
+  # same tag. Calling the mise release binary avoids that drift.
+  - repo: local
+    hooks:
+      - id: golangci-lint-config-verify
+        name: golangci-lint config verify
+        description: Validate .golangci.yml against the configured linter schema.
+        entry: mise exec -- golangci-lint config verify
+        language: system
+        files: ^\.golangci\.(yml|yaml|toml|json)$
+        pass_filenames: false
+      - id: golangci-lint-fmt
+        name: golangci-lint fmt
+        description: Apply golangci-lint formatters (gofumpt, goimports, gci, golines).
+        entry: mise exec -- golangci-lint fmt
+        language: system
+        types: [go]
+        require_serial: true
+        pass_filenames: false
+      - id: golangci-lint-full
+        name: golangci-lint run
+        description: Run all configured linters against the full module.
+        entry: mise exec -- golangci-lint run --fix
+        language: system
+        types: [go]
+        require_serial: true
+        pass_filenames: false

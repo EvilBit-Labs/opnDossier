@@ -18,8 +18,8 @@ import (
 )
 
 func TestValidAuditModes(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	completions, directive := ValidAuditModes(nil, nil, "")
 
 	assert.Len(t, completions, 2)
@@ -32,8 +32,8 @@ func TestValidAuditModes(t *testing.T) {
 }
 
 func TestValidAuditPlugins(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	completions, directive := ValidAuditPlugins(nil, nil, "")
 
 	assert.Len(t, completions, 3)
@@ -50,8 +50,8 @@ func TestValidAuditPlugins(t *testing.T) {
 // registered in the audit registry has a corresponding entry in the
 // pluginDescriptions map used for shell completion descriptions.
 func TestPluginDescriptionsSyncWithRegistry(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	registryNames := registryPluginNames()
 	for _, name := range registryNames {
 		_, ok := pluginDescriptions[name]
@@ -63,8 +63,8 @@ func TestPluginDescriptionsSyncWithRegistry(t *testing.T) {
 // TestMapAuditReportToComplianceResults verifies the mapping function
 // correctly converts audit.Report data into common.ComplianceResults.
 func TestMapAuditReportToComplianceResults(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	tests := []struct {
 		name   string
 		report *audit.Report
@@ -469,7 +469,8 @@ func TestMapAuditReportToComplianceResults(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+			// See GOTCHAS §1.1.
 			result := mapAuditReportToComplianceResults(tt.report)
 			if tt.report == nil {
 				assert.Nil(t, result, "nil report should return nil result")
@@ -651,8 +652,8 @@ func TestMapControls_JSONRoundTrip(t *testing.T) {
 // generator pipeline. It asserts that the rendered output contains
 // the audit section from the builder layer.
 func TestHandleAuditMode_EndToEnd(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	logger, err := logging.New(logging.Config{Level: "warn"})
 	require.NoError(t, err)
 
@@ -738,8 +739,8 @@ func TestHandleAuditMode_BlueModeNoPluginsRunsAll(t *testing.T) {
 
 // TestHandleAuditMode_StructuredFormats verifies that audit data appears in JSON and YAML output.
 func TestHandleAuditMode_StructuredFormats(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	tests := []struct {
 		name      string
 		format    converter.Format
@@ -751,8 +752,8 @@ func TestHandleAuditMode_StructuredFormats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
+			// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+			// See GOTCHAS §1.1.
 			logger, err := logging.New(logging.Config{Level: "warn"})
 			require.NoError(t, err)
 
@@ -796,8 +797,8 @@ func TestHandleAuditMode_StructuredFormats(t *testing.T) {
 // (ValidateModeConfig via GenerateReport). PreRunE acceptance is tested separately
 // in TestAuditCmdPreRunEDynamicPluginAccepted.
 func TestHandleAuditMode_UnknownPluginRejectedPostInit(t *testing.T) {
-	t.Parallel()
-
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	logger, err := logging.New(logging.Config{Level: "warn"})
 	require.NoError(t, err)
 

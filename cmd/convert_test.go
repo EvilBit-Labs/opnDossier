@@ -129,7 +129,8 @@ func TestBuildEffectiveFormat(t *testing.T) {
 }
 
 func TestNormalizeFormat(t *testing.T) {
-	t.Parallel()
+	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+	// See GOTCHAS §1.1.
 	tests := []struct {
 		name     string
 		input    string
@@ -151,7 +152,8 @@ func TestNormalizeFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
+			// See GOTCHAS §1.1.
 			result := normalizeFormat(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})

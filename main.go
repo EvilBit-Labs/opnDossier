@@ -31,7 +31,13 @@ func init() {
 
 // main starts the opnDossier CLI tool, executing the root command and exiting with status code 1 if an error occurs.
 func main() {
-	// Automatically set GOMAXPROCS to match Linux container CPU quota.
+	// Align GOMAXPROCS with the Linux container CPU quota (Docker / Kubernetes
+	// / cgroup-limited environments). Without this, runtime.NumCPU reports the
+	// host CPU count, which oversizes the audit/convert concurrency semaphores
+	// in cmd/audit.go and cmd/convert.go and leads to CPU throttling under
+	// container limits. Using the explicit maxprocs.Set call (rather than the
+	// `_ "go.uber.org/automaxprocs"` blank import) lets us surface the error
+	// instead of silently logging through the library's default logger.
 	// The undo function is discarded — there is no need to restore the
 	// previous value since the process exits after the CLI completes.
 	if _, err := maxprocs.Set(); err != nil {
