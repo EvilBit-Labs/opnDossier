@@ -11,7 +11,7 @@ The `cmd/` package uses package-level global variables for CLI flags (required b
 - **Problem:** Concurrent tests modifying `sharedDeviceType`, `sharedAuditMode`, or the `rootCmd` flag set will cause non-deterministic data races.
 - **Symptom:** `just test-race` fails with "DATA RACE" reports in the `cmd` package.
 - **Solution:** Remove `t.Parallel()` from the parent test and all subtests that interact with global flags. Use `t.Cleanup()` to restore original global values after the test.
-- **Enforcement:** The `pre-push` hook in `.pre-commit-config.yaml` runs `just ci-check` (which includes `test-race`) before every push. CI cannot host the race detector reliably on GitHub runners, so this local hook is the enforcement point — a regression that reintroduces a `cmd/` data race will be caught on `git push`, not in CI. See [CONTRIBUTING.md § Git Hooks: Commit vs Push](CONTRIBUTING.md#git-hooks-commit-vs-push) for install steps and the `--no-verify` escape hatch.
+- **Enforcement:** The `.golangci.yml` `forbidigo` rule forbids `t.Parallel()` anywhere in `cmd/` — catches the regression at lint time (GOTCHAS §12). The race detector itself runs only locally via `just test-race` (or `just ci-check`); CI cannot host it reliably, and a prior pre-push `just ci-check` hook broke non-interactive push clients. See [CONTRIBUTING.md § Git Hooks](CONTRIBUTING.md#git-hooks) for the current setup.
 
 ### 1.2 Race Detector Collateral
 
@@ -435,3 +435,14 @@ The one-shot lock is the enforcement point against a dynamically loaded complian
 - **Go API consumers:** treat `cfg.Verbose`, `cfg.Debug`, `cfg.Quiet`, `cfg.Theme`, `cfg.Format` as read-only for the rest of the v1.x series. New code should read the nested structs or the accessor methods; the accessors carry `//nolint:staticcheck` SA1019 directives internally so their deprecation contract is a one-sided signal to external callers, not noise for the package itself.
 - **Lint exclusions:** `.golangci.yml` excludes SA1019 under `internal/config/(config|config_coverage|validation)_test.go` because those tests exist specifically to exercise the deprecated surface. Any NEW callers should either migrate to the nested API or add a line-level `//nolint:staticcheck` with a "why" comment; do NOT broaden the file-level exclusion.
 - **Removal checklist (v2.0):** (1) delete the flat fields from `Config`; (2) delete `detectDeprecatedFieldUsage` + `DeprecationWarnings`; (3) delete the accessors or rewrite them to read from the nested struct; (4) drop the `.golangci.yml` test-file exclusion; (5) drop the individual `//nolint:staticcheck` directives in `cmd/config_show.go`, `cmd/context_test.go`, and `internal/config/validation.go`; (6) update CHANGELOG `### Removed` with the user-facing migration instructions from §21.1.
+
+## 22. Documentation Drift
+
+### 22.1 Keep the Device Support Matrix in Sync
+
+`docs/user-guide/device-support-matrix.md` is a user-facing support statement, not an internal implementation note. Any change that adds, removes, or materially changes OPNsense or pfSense coverage for a feature area must update that page in the same PR.
+
+- **Gotcha:** It is easy to update parser or audit coverage and forget the matrix, especially when the code change looks "internal."
+- **User impact:** The matrix is where operators check whether a missing report section means "not configured" or "not yet supported." If it drifts, users can misread gaps as product behavior.
+- **Rule:** When support changes, update the matrix wording from the user point of view and keep the support table aligned with the current product behavior.
+- **Prevention:** Treat `docs/user-guide/device-support-matrix.md` as part of the definition of done for platform coverage changes.

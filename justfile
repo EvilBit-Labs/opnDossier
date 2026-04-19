@@ -56,7 +56,7 @@ alias i := install
 [group('setup')]
 install:
     @mise install
-    @{{ mise_exec }} pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+    @{{ mise_exec }} pre-commit install --hook-type pre-commit --hook-type commit-msg
     @{{ mise_exec }} go mod tidy
 
 
