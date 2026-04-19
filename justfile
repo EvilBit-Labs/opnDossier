@@ -66,7 +66,7 @@ setup: install
 
 # Update all dependencies
 [group('setup')]
-update-deps: _update-go _update-python _update-precommit
+update-deps: _mise-update _update-go _update-python _update-precommit
 
 [private]
 _update-go:
@@ -83,6 +83,10 @@ _update-python:
 _update-precommit: _update-python
     @{{ mise_exec }} pre-commit autoupdate
 
+[private]
+_mise-update:
+    @mise upgrade --bump
+    @mise install
 
 # Install security and SBOM tools (cyclonedx-gomod, gosec)
 [group('setup')]
