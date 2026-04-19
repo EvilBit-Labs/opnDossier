@@ -1,10 +1,15 @@
 #
 # Security scanning workflow for opnDossier
 #
-# Runs continuous vulnerability and static-analysis scans:
+# Runs continuous vulnerability scans:
 # - govulncheck: Go vulnerability database scan across the module graph
-# - CodeQL: GitHub semantic code analysis for Go
 # - Trivy (filesystem): SCA + misconfiguration scan of the working tree
+#
+# CodeQL is intentionally NOT in this workflow. The repository uses GitHub's
+# default-setup code scanning (Security → Code scanning), which is mandated by
+# org policy. Advanced-setup CodeQL runs via a workflow would conflict with
+# the default setup — GitHub rejects the SARIF upload with "advanced
+# configurations cannot be processed when default setup is enabled."
 #
 # Triggers on pushes to main, all pull requests, and weekly on Mondays 06:00 UTC.
 # Findings are uploaded to the GitHub Security tab as SARIF where supported.
@@ -41,38 +46,6 @@ jobs:
 
       - name: Run govulncheck
         run: mise exec -- govulncheck ./...
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # CodeQL — semantic static analysis for Go
-  # ─────────────────────────────────────────────────────────────────────────
-  codeql:
-    name: CodeQL (Go)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
-        with:
-          install: true
-          cache: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
-        with:
-          languages: go
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
-        with:
-          category: "/language:go"
 
   # ─────────────────────────────────────────────────────────────────────────
   # Trivy (filesystem) — dependency + misconfiguration scan
