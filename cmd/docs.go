@@ -58,14 +58,11 @@ func runGenerateMarkdownDocs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 	}
 
-	// linkHandler preserves Cobra's default cross-link targets unchanged. The
-	// targets GenMarkdownTree emits (e.g., "opnDossier_audit.md") already match
-	// the file names it writes under docs/cli/, so an identity mapping is what
-	// keeps the MkDocs site's internal links resolvable. Stripping the
-	// "opnDossier_" prefix here would break every cross-reference.
-	linkHandler := func(name string) string {
-		return name
-	}
+	// Identity linkHandler: Cobra's generated cross-link targets (e.g.,
+	// "opnDossier_audit.md") already match the files written under docs/cli/,
+	// so an identity mapping keeps the MkDocs site's internal links resolvable.
+	// Stripping the "opnDossier_" prefix would break every cross-reference.
+	linkHandler := func(name string) string { return name }
 
 	// filePrepender injects an MkDocs-friendly front-matter banner so the page
 	// reads as an auto-generated reference rather than human-authored prose.

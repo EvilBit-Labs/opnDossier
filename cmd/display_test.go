@@ -116,6 +116,15 @@ func captureStderr(t *testing.T, fn func()) string {
 	return output
 }
 
+// TestDisplayCmdLongAndExample guards against silent collapse of the Long
+// description or the dedicated Cobra Example field on the display command.
+// Both must remain populated so --help, man pages, and generated markdown docs
+// stay useful.
+func TestDisplayCmdLongAndExample(t *testing.T) {
+	assert.NotEmpty(t, displayCmd.Long, "displayCmd.Long should not be empty")
+	assert.NotEmpty(t, displayCmd.Example, "displayCmd.Example should not be empty")
+}
+
 func TestCaptureStderrRestoresOnPanic(t *testing.T) {
 	originalStderr := os.Stderr
 	defer func() {
