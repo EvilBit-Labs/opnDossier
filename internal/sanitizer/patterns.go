@@ -227,12 +227,37 @@ func IsCertificate(s string) bool {
 
 // IsPrivateKey reports whether s appears to be a private key in PEM format.
 // It returns true when s matches PEM structure and contains the "PRIVATE KEY" label,
-// and false otherwise.
+// or when s carries the OpenVPN static-key envelope (which is PEM-shaped but does
+// not use the "PRIVATE KEY" label). Returns false otherwise.
 func IsPrivateKey(s string) bool {
 	if IsPEM(s) {
-		return strings.Contains(s, "PRIVATE KEY")
+		if strings.Contains(s, "PRIVATE KEY") {
+			return true
+		}
+		// OpenVPN static keys (used for --tls-auth / --tls-crypt) ship in a
+		// PEM-shaped envelope whose label is "OpenVPN Static key V1" rather
+		// than "PRIVATE KEY". Fall through to the dedicated detector so
+		// these HMAC keys match the private_key rule's value-detector path
+		// even when the field name does not trigger redaction.
+		return IsOpenVPNStaticKey(s)
 	}
-	return false
+	return IsOpenVPNStaticKey(s)
+}
+
+// openVPNStaticKeyMarker is the begin marker used by OpenVPN's static-key
+// envelope (see `openvpn --genkey secret` output). The end marker mirrors
+// this string with "BEGIN" replaced by "END".
+const openVPNStaticKeyMarker = "-----BEGIN OpenVPN Static key V1-----"
+
+// IsOpenVPNStaticKey reports whether s contains the OpenVPN static-key
+// envelope ("-----BEGIN OpenVPN Static key V1-----"). These keys are used
+// for --tls-auth / --tls-crypt HMAC and are not covered by the standard PEM
+// "PRIVATE KEY" label, so they require a dedicated detector.
+func IsOpenVPNStaticKey(s string) bool {
+	if s == "" {
+		return false
+	}
+	return strings.Contains(s, openVPNStaticKeyMarker)
 }
 
 // Immutable keyword lookup tables, hoisted to package level to avoid per-call allocation.
@@ -243,6 +268,10 @@ var (
 		"password", "passwd", "pass", "secret", "key", "token",
 		"credential", "auth", "prv", "private", "bindpw",
 		"bcrypt-hash", "sha512-hash",
+		// OpenVPN: `<tls>` holds the --tls-auth/--tls-crypt HMAC key on
+		// <openvpn-server>/<openvpn-client>; `<StaticKeys>` holds MVC
+		// static-key material. See GOTCHAS §11.3.
+		"statickeys", "tls_crypt", "tls_auth",
 	}
 	apiKeywords = []string{"apikey", "api_key", "api-key", "accesskey", "secretkey"}
 	pskKeywords = []string{"psk", "preshared", "pre-shared", "ipsecpsk"}

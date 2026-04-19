@@ -31,11 +31,14 @@ from parser.NewSecureXMLDecoder.
 # Validation injection
 
 Semantic validation lives in internal/validator, which pkg/ cannot import
-directly. ValidateFunc is the injection point: set it once at startup
+directly. SetValidator is the injection point: call it once at startup
 from cmd/ (or an equivalent composition root) to wire validation into
-Parser.ParseAndValidate. When ValidateFunc is nil, ParseAndValidate falls back
-to structural parsing only, which is the safe default for library consumers that
-do not want to couple to opnDossier's validator.
+Parser.ParseAndValidate. The installed validator is locked in by a sync.Once
+— subsequent calls are silently ignored, which prevents a dynamically loaded
+plugin's init() from overwriting the CLI-installed validator (see GOTCHAS.md
+§20). When no validator has been installed, ParseAndValidate falls back to
+structural parsing only, which is the safe default for library consumers that do
+not want to couple to opnDossier's validator.
 
 # Dependencies
 
@@ -49,12 +52,6 @@ VARIABLES
 var ErrNilDocument = errors.New("pfsense converter: received nil document")
     ErrNilDocument is returned when ToCommonDevice receives a nil document.
 
-var ValidateFunc func(doc *pfsense.Document) error
-    ValidateFunc is a function that validates a parsed pfSense document and
-    returns an error if validation fails. Set this package-level variable from
-    the cmd layer to inject internal/validator without violating pkg/ purity.
-    When nil, ParseAndValidate falls back to structural parsing only.
-
 
 FUNCTIONS
 
@@ -67,6 +64,22 @@ func NewParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser
     NewParserFactory returns a new DeviceParser configured for pfSense
     devices. It satisfies the factory function signature required by
     DeviceParserRegistry.
+
+func SetValidator(fn func(doc *pfsense.Document) error)
+    SetValidator installs fn as the pfSense semantic validator used by
+    Parser.ParseAndValidate. Only the first call per process has any effect;
+    subsequent calls are silently ignored. This one-shot semantics is the
+    enforcement point against a dynamically loaded plugin's init() stomping the
+    CLI-installed validator (see GOTCHAS.md §20).
+
+    Passing a nil fn locks the slot in the "no validator" state — equivalent to
+    never calling SetValidator, except that future SetValidator calls are still
+    ignored. Parser.ParseAndValidate falls back to structural parsing only when
+    no validator is installed.
+
+    SetValidator is safe to call from any goroutine; concurrent callers race
+    to be the one the sync.Once picks, but only one wins and the others are
+    silently dropped.
 
 
 TYPES
@@ -95,7 +108,7 @@ func (p *Parser) ParseAndValidate(
 ) (*common.CommonDevice, []common.ConversionWarning, error)
     ParseAndValidate reads a pfSense XML configuration from r, runs structural
     parsing and semantic validation, and returns a platform-agnostic
-    CommonDevice along with any non-fatal conversion warnings. If ValidateFunc
-    has not been set (e.g., by cmd/root.go), falls back to structural parsing
-    only.
+    CommonDevice along with any non-fatal conversion warnings. If no validator
+    has been installed via SetValidator (e.g., by cmd/root.go), falls back to
+    structural parsing only.
 

@@ -18,21 +18,21 @@ opndossier audit [flags] <config.xml> [config2.xml ...]
 
 ## Flags
 
-| Flag                 | Short | Default        | Description                                                                                                     |
-| -------------------- | ----- | -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--mode`             |       | `blue`         | Audit mode: `blue`, `red`                                                                                       |
-| `--plugins`          |       |                | Comma-separated compliance plugins to run: `stig`, `sans`, `firewall` (blue mode only)                          |
-| `--plugin-dir`       |       |                | Directory containing dynamic `.so` compliance plugins                                                           |
-| `--output`           | `-o`  | stdout         | Output file path                                                                                                |
-| `--format`           | `-f`  | `markdown`     | Output format: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `html` (`htm`)                        |
-| `--failures-only`    |       | `false`        | Show only failing controls in blue mode plugin results tables                                                   |
-| `--force`            |       | `false`        | Overwrite existing output file without prompt                                                                   |
-| `--comprehensive`    |       | `false`        | Generate detailed comprehensive report                                                                          |
-| `--redact`           |       | `false`        | Redact sensitive fields (passwords, keys, community strings)                                                    |
-| `--wrap`             |       | terminal width | Set text wrap width in columns                                                                                  |
-| `--no-wrap`          |       | `false`        | Disable text wrapping                                                                                           |
-| `--include-tunables` |       | `false`        | Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables) |
-| `--section`          |       | all            | Comma-separated list of sections to include: `system`, `network`, `firewall`, `services`, `security`            |
+| Flag                 | Short | Default        | Description                                                                                                                                                                            |
+| -------------------- | ----- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--mode`             |       | `blue`         | Audit mode: `blue`, `red`                                                                                                                                                              |
+| `--plugins`          |       |                | Comma-separated compliance plugins to run: `stig`, `sans`, `firewall` (blue mode only)                                                                                                 |
+| `--plugin-dir`       |       |                | Directory containing dynamic `.so` compliance plugins. Plugins run with full process privileges; signatures are not verified. See [Dynamic Plugin Security](#dynamic-plugin-security). |
+| `--output`           | `-o`  | stdout         | Output file path                                                                                                                                                                       |
+| `--format`           | `-f`  | `markdown`     | Output format: `markdown` (`md`), `json`, `yaml` (`yml`), `text` (`txt`), `html` (`htm`)                                                                                               |
+| `--failures-only`    |       | `false`        | Show only failing controls in blue mode plugin results tables                                                                                                                          |
+| `--force`            |       | `false`        | Overwrite existing output file without prompt                                                                                                                                          |
+| `--comprehensive`    |       | `false`        | Generate detailed comprehensive report                                                                                                                                                 |
+| `--redact`           |       | `false`        | Redact sensitive fields (passwords, keys, community strings)                                                                                                                           |
+| `--wrap`             |       | terminal width | Set text wrap width in columns                                                                                                                                                         |
+| `--no-wrap`          |       | `false`        | Disable text wrapping                                                                                                                                                                  |
+| `--include-tunables` |       | `false`        | Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)                                                                        |
+| `--section`          |       | all            | Comma-separated list of sections to include: `system`, `network`, `firewall`, `services`, `security`                                                                                   |
 
 For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
 
@@ -80,6 +80,31 @@ opndossier audit config.xml --mode blue --plugin-dir /opt/plugins
 ```
 
 See the [Plugin Development Guide](../../development/plugin-development.md) for details on creating compliance plugins.
+
+## Dynamic Plugin Security
+
+!!! warning "Trust model"
+    `--plugin-dir` is opt-in and the loader is deliberately minimal. Treat every `.so` file the same way you would treat an unsigned executable.
+
+When `--plugin-dir` is supplied (or the default `./plugins` directory exists), opnDossier loads every `.so` file in that directory via Go's standard `plugin.Open()` mechanism. A stderr warning is emitted each time `--plugin-dir` is non-empty.
+
+The loader accepts the following trade-offs by design:
+
+- **Full process privileges.** A loaded plugin executes inside the opnDossier process with the same user, file-system, and network permissions. There is no sandbox, privilege separation, or capability restriction.
+- **No signature verification.** The loader performs no checksum, signature, or provenance check on `.so` files. Any file ending in `.so` in the plugin directory will be loaded and executed.
+- **Symlinks are followed.** `plugin.Open()` follows symlinks, so a link planted in the plugin directory can point at an attacker-controlled file elsewhere on disk.
+- **Opt-in only.** Plugins are never fetched from remote sources. Loading requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory in the working directory.
+
+Before enabling `--plugin-dir`:
+
+- Restrict filesystem permissions on the plugin directory so only trusted operators can drop files in it. Avoid world-writable paths, `/tmp`, and shared CI scratch directories.
+- Review plugin source code and build plugins from known-good checkouts.
+- Keep the plugin directory out of paths that untrusted processes (user shells on a shared host, CI runners accepting external PRs) can write to.
+- Pin plugin builds to the same Go toolchain and module set as the opnDossier binary — a version mismatch is caught at load time, but only after the `.so` has been mapped into the process.
+
+Planned hardening (e.g. stricter symlink handling and load-time provenance checks) is tracked as Phase A of the plugin sandboxing work. Until then, the guidance above is the full mitigation.
+
+**Further reading:** [Plugin Development Guide — Security Model](../../development/plugin-development.md#security-model) and [GOTCHAS §2.5 — Dynamic Plugin Trust Model](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#25-dynamic-plugin-trust-model).
 
 ## Output Formats
 

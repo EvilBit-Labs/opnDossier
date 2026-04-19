@@ -320,10 +320,17 @@ func initializeDefaultLogger() {
 
 // wirePfSenseValidator injects the internal/validator validation function into
 // the pfSense parser package. This bridges pkg/ → internal/ without violating
-// public package purity (§5.24): the function variable lives in pkg/, the
+// public package purity (§5.24): the injection point lives in pkg/, the
 // implementation lives in internal/, and the wiring happens here in cmd/.
+//
+// The call goes through [pfparser.SetValidator], which is guarded by a
+// sync.Once. This MUST run before any dynamic plugin is loaded (via
+// audit.InitializePlugins / plugin.Open) — plugin.Open fires the plugin's
+// init() at load time, and the sync.Once is our enforcement point against
+// a malicious plugin stomping the validator (see GOTCHAS.md §20). init()
+// executes before main(), so this init() call reliably wins the race.
 func wirePfSenseValidator() {
-	pfparser.ValidateFunc = func(doc *pfsense.Document) error {
+	pfparser.SetValidator(func(doc *pfsense.Document) error {
 		errs := validator.ValidatePfSenseDocument(doc)
 		if len(errs) == 0 {
 			return nil
@@ -336,7 +343,7 @@ func wirePfSenseValidator() {
 		}
 
 		return fmt.Errorf("pfSense validation failed (%d errors): %s", len(errs), strings.Join(msgs, "; "))
-	}
+	})
 }
 
 // createFallbackLogger returns a minimal stderr-backed logger and reports the failure.

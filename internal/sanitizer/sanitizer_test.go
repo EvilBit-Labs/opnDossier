@@ -222,6 +222,117 @@ func TestSanitizeXML_Email(t *testing.T) {
 	}
 }
 
+// TestSanitizeXML_OpenVPNStaticKey verifies the sanitizer redacts OpenVPN
+// TLS auth / static-key material across the XML element names OPNsense emits
+// (<tls> on legacy server/client configs and <StaticKeys> on the MVC model).
+// Regression coverage for SEC-H1 / todos #104 + #127: prior to the fix the
+// `sanitize` subcommand leaked the raw HMAC key needed to forge OpenVPN
+// handshakes. Tests run in all three sanitizer modes because the private_key
+// rule is active in every mode.
+func TestSanitizeXML_OpenVPNStaticKey(t *testing.T) {
+	const staticKeyBody = "-----BEGIN OpenVPN Static key V1-----\n" +
+		"abc123def456789001234567890abcdef\n" +
+		"-----END OpenVPN Static key V1-----"
+
+	type fixture struct {
+		name string
+		xml  string
+	}
+
+	fixtures := []fixture{
+		{
+			name: "legacy_openvpn_server_tls",
+			xml: "<opnsense><openvpn><openvpn-server><tls>" +
+				staticKeyBody +
+				"</tls></openvpn-server></openvpn></opnsense>",
+		},
+		{
+			name: "legacy_openvpn_client_tls",
+			xml: "<opnsense><openvpn><openvpn-client><tls>" +
+				staticKeyBody +
+				"</tls></openvpn-client></openvpn></opnsense>",
+		},
+		{
+			name: "mvc_openvpn_statickeys",
+			xml: "<opnsense><OPNsense><OpenVPN><StaticKeys>" +
+				staticKeyBody +
+				"</StaticKeys></OpenVPN></OPNsense></opnsense>",
+		},
+		{
+			name: "tls_crypt_alias",
+			xml: "<opnsense><openvpn><openvpn-server><tls_crypt>" +
+				staticKeyBody +
+				"</tls_crypt></openvpn-server></openvpn></opnsense>",
+		},
+	}
+
+	for _, mode := range ValidModes() {
+		for _, fx := range fixtures {
+			t.Run(string(mode)+"_"+fx.name, func(t *testing.T) {
+				s := NewSanitizer(mode)
+				var output bytes.Buffer
+				if err := s.SanitizeXML(strings.NewReader(fx.xml), &output); err != nil {
+					t.Fatalf("SanitizeXML() error = %v", err)
+				}
+				result := output.String()
+				if strings.Contains(result, "BEGIN OpenVPN Static key") {
+					t.Errorf("mode=%q fixture=%q leaked OpenVPN envelope: %s", mode, fx.name, result)
+				}
+				if strings.Contains(result, "abc123def456") {
+					t.Errorf("mode=%q fixture=%q leaked key body: %s", mode, fx.name, result)
+				}
+				if !strings.Contains(result, "[REDACTED-PRIVATE-KEY]") {
+					t.Errorf("mode=%q fixture=%q missing redaction marker: %s", mode, fx.name, result)
+				}
+			})
+		}
+	}
+}
+
+// TestSanitizeXML_OpenVPN_TLS_NoFalsePositives guards against over-broad
+// redaction of the `tls` substring. The <tls> wrapper on Suricata eveLog
+// and the <tls> log-level enum under the IPsec strongSwan daemon syslog
+// (both in pkg/schema/opnsense/security.go) must survive sanitization —
+// they carry no secrets and redacting them would break downstream parsing.
+func TestSanitizeXML_OpenVPN_TLS_NoFalsePositives(t *testing.T) {
+	// Suricata eveLog.tls wraps boolean-ish enable/extended children.
+	suricataXML := `<opnsense><OPNsense><IDS><general><eveLog><tls>` +
+		`<enable>1</enable><extended>1</extended><sessionResumption>1</sessionResumption>` +
+		`</tls></eveLog></general></IDS></OPNsense></opnsense>`
+
+	// IPsec charon syslog daemon.tls carries a log-level string (0-5).
+	ipsecXML := `<opnsense><OPNsense><IPsec><charon><syslog><daemon>` +
+		`<tls>1</tls></daemon></syslog></charon></IPsec></OPNsense></opnsense>`
+
+	cases := []struct {
+		name string
+		in   string
+		want []string // substrings that must survive
+	}{
+		{"suricata_evelog_tls_children", suricataXML, []string{"<enable>1</enable>", "<extended>1</extended>"}},
+		{"ipsec_syslog_daemon_tls", ipsecXML, []string{"<tls>1</tls>"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := NewSanitizer(ModeAggressive)
+			var output bytes.Buffer
+			if err := s.SanitizeXML(strings.NewReader(tc.in), &output); err != nil {
+				t.Fatalf("SanitizeXML() error = %v", err)
+			}
+			result := output.String()
+			if strings.Contains(result, "[REDACTED-PRIVATE-KEY]") {
+				t.Errorf("non-OpenVPN <tls> element was over-redacted as private key: %s", result)
+			}
+			for _, want := range tc.want {
+				if !strings.Contains(result, want) {
+					t.Errorf("expected %q to survive sanitization, got: %s", want, result)
+				}
+			}
+		})
+	}
+}
+
 func TestSanitizeXML_PSK(t *testing.T) {
 	input := `<ipsec><psk>mysharedsecret</psk></ipsec>`
 

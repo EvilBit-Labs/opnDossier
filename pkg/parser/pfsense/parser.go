@@ -29,11 +29,15 @@
 // # Validation injection
 //
 // Semantic validation lives in internal/validator, which pkg/ cannot import
-// directly. [ValidateFunc] is the injection point: set it once at startup
+// directly. [SetValidator] is the injection point: call it once at startup
 // from cmd/ (or an equivalent composition root) to wire validation into
-// [Parser.ParseAndValidate]. When [ValidateFunc] is nil, ParseAndValidate
-// falls back to structural parsing only, which is the safe default for
-// library consumers that do not want to couple to opnDossier's validator.
+// [Parser.ParseAndValidate]. The installed validator is locked in by a
+// [sync.Once] — subsequent calls are silently ignored, which prevents a
+// dynamically loaded plugin's init() from overwriting the CLI-installed
+// validator (see GOTCHAS.md §20). When no validator has been installed,
+// ParseAndValidate falls back to structural parsing only, which is the safe
+// default for library consumers that do not want to couple to opnDossier's
+// validator.
 //
 // # Dependencies
 //
@@ -48,6 +52,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
+	"sync/atomic"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
@@ -57,13 +63,67 @@ import (
 // errMissingRoot is returned when the XML document lacks a <pfsense> root element.
 var errMissingRoot = errors.New("invalid XML: missing pfsense root element")
 
-// ValidateFunc is a function that validates a parsed pfSense document and
-// returns an error if validation fails. Set this package-level variable from
-// the cmd layer to inject internal/validator without violating pkg/ purity.
-// When nil, ParseAndValidate falls back to structural parsing only.
+// validateFuncType is the wire type stored inside validateFuncHolder. A named
+// type is required because atomic.Pointer[T] wants a concrete T, not a
+// function literal, and we need to store a heap-addressable value.
+type validateFuncType func(doc *pfsense.Document) error
+
+// validateFuncHolder holds the currently installed pfSense semantic validator,
+// or a nil pointer when no validator has been installed. It is unexported so
+// that dynamically loaded plugin init() code cannot reassign it (see GOTCHAS.md
+// §20). Writes are gated by setValidatorOnce; reads happen from
+// [Parser.ParseAndValidate]. The atomic.Pointer provides a data-race-free
+// read/write channel between the write side (SetValidator) and the read side
+// (ParseAndValidate, potentially running on many goroutines).
 //
-//nolint:gochecknoglobals // injection point — set once at startup from cmd/
-var ValidateFunc func(doc *pfsense.Document) error
+//nolint:gochecknoglobals // injection point — set once at startup via SetValidator
+var validateFuncHolder atomic.Pointer[validateFuncType]
+
+// setValidatorOnce ensures the validator is installed at most once per process.
+// Subsequent SetValidator calls are silently ignored. This is the enforcement
+// point that prevents a malicious dynamic plugin's init() from stomping the
+// CLI-installed validator.
+//
+//nolint:gochecknoglobals // enforcement point paired with validateFuncHolder
+var setValidatorOnce sync.Once
+
+// SetValidator installs fn as the pfSense semantic validator used by
+// [Parser.ParseAndValidate]. Only the first call per process has any effect;
+// subsequent calls are silently ignored. This one-shot semantics is the
+// enforcement point against a dynamically loaded plugin's init() stomping
+// the CLI-installed validator (see GOTCHAS.md §20).
+//
+// Passing a nil fn locks the slot in the "no validator" state — equivalent
+// to never calling SetValidator, except that future SetValidator calls are
+// still ignored. [Parser.ParseAndValidate] falls back to structural parsing
+// only when no validator is installed.
+//
+// SetValidator is safe to call from any goroutine; concurrent callers race
+// to be the one the sync.Once picks, but only one wins and the others are
+// silently dropped.
+func SetValidator(fn func(doc *pfsense.Document) error) {
+	setValidatorOnce.Do(func() {
+		// Always store a non-nil pointer so later SetValidator calls can be
+		// distinguished from the never-called state, even when fn is nil.
+		// loadValidator dereferences the pointer and returns the (possibly
+		// nil) function value, which ParseAndValidate nil-checks before
+		// invoking.
+		wrapped := validateFuncType(fn)
+		validateFuncHolder.Store(&wrapped)
+	})
+}
+
+// loadValidator returns the currently installed validator, or nil if none
+// has been installed (or a nil fn was explicitly passed to SetValidator).
+// Callers read the return value exactly once; the returned function is
+// safe to invoke without additional synchronization.
+func loadValidator() validateFuncType {
+	p := validateFuncHolder.Load()
+	if p == nil {
+		return nil
+	}
+	return *p
+}
 
 // Parser implements the DeviceParser interface for pfSense configuration files.
 // It manages its own XML decoding because the shared OPNsenseXMLDecoder returns
@@ -93,8 +153,9 @@ func (p *Parser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, 
 
 // ParseAndValidate reads a pfSense XML configuration from r, runs structural
 // parsing and semantic validation, and returns a platform-agnostic CommonDevice
-// along with any non-fatal conversion warnings. If ValidateFunc has not been
-// set (e.g., by cmd/root.go), falls back to structural parsing only.
+// along with any non-fatal conversion warnings. If no validator has been
+// installed via [SetValidator] (e.g., by cmd/root.go), falls back to
+// structural parsing only.
 func (p *Parser) ParseAndValidate(
 	ctx context.Context,
 	r io.Reader,
@@ -104,8 +165,8 @@ func (p *Parser) ParseAndValidate(
 		return nil, nil, fmt.Errorf("pfsense parser: %w", err)
 	}
 
-	if ValidateFunc != nil {
-		if vErr := ValidateFunc(doc); vErr != nil {
+	if v := loadValidator(); v != nil {
+		if vErr := v(doc); vErr != nil {
 			return nil, nil, fmt.Errorf("pfsense validation: %w", vErr)
 		}
 	}

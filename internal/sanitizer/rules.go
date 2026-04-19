@@ -311,8 +311,25 @@ func builtinRules() []Rule {
 			Description: "Redacts private keys",
 			Category:    CategoryCrypto,
 			Modes:       allModes,
+			// Path-anchored OpenVPN patterns: "openvpn-server.tls" and
+			// "openvpn-client.tls" catch the legacy <openvpn-server><tls>
+			// and <openvpn-client><tls> elements (--tls-auth / --tls-crypt
+			// HMAC keys) without colliding with the IPsec strongSwan
+			// syslog enum at IPsec.charon.syslog.daemon.tls or the
+			// Suricata eveLog.tls.* wrapper (both in pkg/schema/opnsense/
+			// security.go). The MVC <OpenVPN><StaticKeys> element becomes
+			// "openvpn.statickeys" after lowercasing — anchored by the
+			// parent <OpenVPN> container.
+			//
+			// tls_crypt / tls_auth are additive aliases for forward
+			// compatibility with schema evolution (pfSense and OpenVPN
+			// MVC variants); both names are unambiguous and never appear
+			// on non-OpenVPN structs.
 			FieldPatterns: []string{
 				"privatekey", "private_key", "prv", "privkey", "key",
+				"openvpn.tls", "openvpn-server.tls", "openvpn-client.tls",
+				"openvpn.statickeys", "statickeys",
+				"tls_crypt", "tls_auth",
 			},
 			ValueDetector: IsPrivateKey,
 			Redactor: func(_ *Mapper, _, _ string) string {

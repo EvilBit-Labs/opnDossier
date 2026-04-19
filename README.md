@@ -575,6 +575,10 @@ opnDossier is designed with security as a first-class concern:
 - **Secure by design** - Input validation, sanitization, and SBOM generation
 - **Automated scanning** - Daily vulnerability scans and dependency audits in CI/CD
 
+### Dynamic plugin trust model
+
+Dynamic compliance plugins are opt-in. The `--plugin-dir` flag on `opnDossier audit` loads every `.so` file in the directory via Go's standard `plugin.Open()` mechanism; those plugins run with full opnDossier process privileges and are not signature-verified. Only point `--plugin-dir` at directories whose contents you build, review, and control — never at a world-writable path. A stderr warning is emitted whenever `--plugin-dir` is supplied. For the full threat model and hardening guidance, see [audit command — Dynamic Plugin Security](docs/user-guide/commands/audit.md#dynamic-plugin-security).
+
 For security vulnerabilities, please see our [security policy](SECURITY.md).
 
 ## License

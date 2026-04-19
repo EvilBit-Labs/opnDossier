@@ -44,7 +44,7 @@ func init() {
 	setFlagAnnotation(auditCmd.Flags(), "plugins", []string{"audit"})
 
 	auditCmd.Flags().
-		StringVar(&auditPluginDir, "plugin-dir", "", "Directory containing dynamic .so compliance plugins")
+		StringVar(&auditPluginDir, "plugin-dir", "", pluginDirFlagUsage)
 	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{"audit"})
 
 	auditCmd.Flags().
@@ -130,6 +130,12 @@ var auditCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr,
 				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
 		}
+
+		// Warn when --plugin-dir is supplied — dynamic .so plugins execute with
+		// full process privileges and no signature verification (GOTCHAS §2.5).
+		// Mirrors the red-mode precedent above so the user sees the risk at the
+		// moment they opt into dynamic plugin loading.
+		warnPluginDirTrustModel(os.Stderr, auditPluginDir)
 
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.

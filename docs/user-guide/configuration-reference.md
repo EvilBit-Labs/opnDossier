@@ -50,12 +50,12 @@ The `audit` command is the dedicated entry point for security audit and complian
 
 ### Audit-Specific Flags
 
-| Setting            | CLI Flag          | Type     | Default  | Description                                                                                                 |
-| ------------------ | ----------------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------- |
-| Audit mode         | `--mode`          | string   | `"blue"` | Audit mode: `blue` (defensive audit with compliance), `red` (attack surface)                                |
-| Compliance plugins | `--plugins`       | string[] | `[]`     | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.   |
-| Plugin directory   | `--plugin-dir`    | string   | `""`     | Directory containing dynamic `.so` compliance plugins. Failed plugin loads are non-fatal (warnings logged). |
-| Failures only      | `--failures-only` | boolean  | `false`  | Show only failing controls in compliance tables. Only valid with `--mode blue` and markdown format.         |
+| Setting            | CLI Flag          | Type     | Default  | Description                                                                                                                                                                                                                                                           |
+| ------------------ | ----------------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Audit mode         | `--mode`          | string   | `"blue"` | Audit mode: `blue` (defensive audit with compliance), `red` (attack surface)                                                                                                                                                                                          |
+| Compliance plugins | `--plugins`       | string[] | `[]`     | Comma-separated list: `stig`, `sans`, `firewall`. Only valid with `--mode blue`. Empty = all plugins run.                                                                                                                                                             |
+| Plugin directory   | `--plugin-dir`    | string   | `""`     | Directory containing dynamic `.so` compliance plugins. Plugins run with full process privileges; signatures are not verified. See [audit -- Dynamic Plugin Security](commands/audit.md#dynamic-plugin-security). Failed plugin loads are non-fatal (warnings logged). |
+| Failures only      | `--failures-only` | boolean  | `false`  | Show only failing controls in compliance tables. Only valid with `--mode blue` and markdown format.                                                                                                                                                                   |
 
 ### Shared Output Flags
 

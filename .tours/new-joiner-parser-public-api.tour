@@ -53,9 +53,9 @@
     },
     {
       "file": "pkg/parser/pfsense/parser.go",
-      "line": 62,
-      "title": "ValidateFunc — The Safe Default Injection Point",
-      "description": "Situation: ValidateFunc is a package-level variable holding the semantic validator. Mechanism: cmd/ (or an equivalent composition root) sets this once at startup to plug internal/validator into the public package without breaking the pkg/ import boundary. When nil, ParseAndValidate falls back to structural parsing only. Implication: Library consumers get a safe no-validator default; the CLI gets full validation. Gotcha: The nil fallback is a feature, not a bug — it's what lets external modules consume the parser without pulling in opnDossier's validator."
+      "line": 104,
+      "title": "SetValidator — The One-Shot Injection Point",
+      "description": "Situation: SetValidator is the public entry point for installing the pfSense semantic validator, guarded by a sync.Once over an atomic.Pointer. Mechanism: cmd/ calls SetValidator during its own init() to plug internal/validator in before any dynamic plugin is loaded; any subsequent caller (including a malicious plugin's init() fired by plugin.Open) hits the Once's already-ran branch and its fn is silently dropped. When no validator has been installed, ParseAndValidate falls back to structural parsing only. Implication: Library consumers get a safe no-validator default; the CLI gets full validation; plugin stomp attacks are closed off deterministically. Gotcha: The one-shot lock is global and process-wide — tests that need to swap validators use the ResetValidatorForTesting helper defined in export_test.go (see GOTCHAS.md §20)."
     },
     {
       "file": "pkg/parser/xmlutil.go",
@@ -71,7 +71,7 @@
     },
     {
       "title": "Next Moves",
-      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an OPNsenseXMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by setting pfsense.ValidateFunc (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall and the NATS-144 ticket for the audit that produced this public surface."
+      "description": "You can now: (1) import pkg/parser + blank-import the per-device packages you need, inject an OPNsenseXMLDecoder, and call Factory.CreateDevice; (2) add a new device type by creating a package whose init() calls parser.Register('vendorname', ConstructorFunc); (3) wire semantic validation by calling pfsense.SetValidator (and its future OPNsense equivalent, if added) from your composition root. See GOTCHAS.md §7.1 for the blank-import pitfall, §20 for the SetValidator stomp-protection contract, and the NATS-144 ticket for the audit that produced this public surface."
     }
   ]
 }

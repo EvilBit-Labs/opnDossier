@@ -362,6 +362,60 @@ func TestIsPrivateKey(t *testing.T) {
 	}
 }
 
+func TestIsOpenVPNStaticKey(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{
+			"OpenVPN static key envelope",
+			"-----BEGIN OpenVPN Static key V1-----\n" +
+				"abcdef0123456789abcdef0123456789\n" +
+				"-----END OpenVPN Static key V1-----",
+			true,
+		},
+		{
+			"OpenVPN static key embedded in surrounding text",
+			"note: key below\n-----BEGIN OpenVPN Static key V1-----\nbody\n-----END OpenVPN Static key V1-----\n",
+			true,
+		},
+		{
+			"PEM PRIVATE KEY envelope (not OpenVPN)",
+			"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg=\n-----END PRIVATE KEY-----",
+			false,
+		},
+		{
+			"PEM CERTIFICATE envelope (not OpenVPN)",
+			"-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJAKHBfpE=\n-----END CERTIFICATE-----",
+			false,
+		},
+		{"plain base64 without envelope", "SGVsbG8gV29ybGQhIHRlc3Q=", false},
+		{"short non-matching string", "tls_auth_key", false},
+		{"empty string", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsOpenVPNStaticKey(tt.input); got != tt.want {
+				t.Errorf("IsOpenVPNStaticKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestIsPrivateKey_OpenVPNStaticKey ensures the IsPrivateKey detector also
+// recognizes the OpenVPN static-key envelope so the private_key rule's
+// value-detector path catches these HMAC keys when the field name does not
+// trigger redaction (e.g., unfamiliar element names).
+func TestIsPrivateKey_OpenVPNStaticKey(t *testing.T) {
+	openVPNBlob := "-----BEGIN OpenVPN Static key V1-----\n" +
+		"abcdef0123456789\n-----END OpenVPN Static key V1-----"
+	if !IsPrivateKey(openVPNBlob) {
+		t.Error("IsPrivateKey() should return true for OpenVPN static-key envelope")
+	}
+}
+
 func TestIsBase64(t *testing.T) {
 	tests := []struct {
 		name  string

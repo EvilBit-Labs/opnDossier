@@ -55,6 +55,20 @@ Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") pa
 - **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched remotely.
 - **Prevention:** Restrict filesystem permissions on the plugin directory. Only load plugins built from reviewed source code. In shared or CI environments, avoid pointing `--plugin-dir` at world-writable directories.
 
+**Phase A hardening (v1.5).** Before `plugin.Open` is invoked, `runPluginPreflight` in `internal/audit/plugin_preflight.go` rejects the following footguns and emits a structured audit log per attempt:
+
+- **Symlinks rejected** via `os.Lstat` + `os.ModeSymlink` check. `plugin.Open` follows links, so an attacker with write access to the plugin directory could otherwise point a `.so` at anything on the filesystem.
+- **Group/world-writable plugin files rejected** when `info.Mode().Perm()&0o022 != 0` (POSIX only). Closes CWE-732 where another local account could swap the file between audits.
+- **Group/world-writable container directory rejected** via a second `os.Stat` on `filepath.Dir(path)` (POSIX only). The file bits alone are not enough — a writable parent lets an attacker unlink and replace the plugin.
+- **Absolute paths required** via `filepath.IsAbs` (cross-platform). Operators must pass a fully-qualified `--plugin-dir`; relative paths are rejected so audit logs unambiguously identify the artifact.
+- **Structured audit log per load attempt**: INFO for accepted loads, WARN for rejections, with fields `plugin`, `path`, `sha256`, `mode`, `owner_uid`, `mtime`, `size_bytes`, `verdict`, `reason`. The SHA-256 is computed with a 64 MiB read cap so a pathological `.so` cannot exhaust memory during preflight.
+
+Rejections are reported as `PluginLoadError` entries in the returned `LoadResult`, so callers see identical wiring for preflight and `plugin.Open` failures.
+
+**Phase B follow-ups (post-v1.5, tracked in todo #146):** owner-UID check (refuse `.so` whose UID does not match the process UID or a configured allowlist), hard configurable size cap (`--plugin-max-size-mb`), path denylist (`/tmp`, `/var/tmp`, `/dev/shm`, `$HOME` when EUID==0), filename allowlist (no NUL / shell metachars / path separators), optional `plugins.sha256` manifest enforcement, documented seccomp/landlock sandboxing recipe, and — aspirationally — out-of-process plugin isolation à la HashiCorp go-plugin.
+
+**Windows behaviour.** POSIX permission bits are meaningless on NTFS, so the writable-mode and writable-dir rejections are skipped at runtime when `runtime.GOOS == "windows"`. The symlink and absolute-path checks still run. The `owner_uid` audit field is emitted as `unavailable` on Windows; Phase B will introduce a SID-aware ownership check if needed.
+
 **See also:** [docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md](docs/solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md) — fault-isolation pattern that contains panics from the untrusted plugins described here.
 
 ## 3. Data Processing
@@ -223,6 +237,23 @@ When adding a new device type (e.g., pfSense), audit the XML element names for c
 - **Detection:** `sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass'` — check for unredacted sensitive values.
 - **Prevention:** When adding a new device schema, grep for credential-like fields and verify each is matched by a sanitizer rule.
 
+### 11.3 OpenVPN TLS and StaticKeys Are Credentials, Not Labels
+
+OpenVPN's `<tls>` element (under `<openvpn-server>` / `<openvpn-client>`) holds the `--tls-auth` / `--tls-crypt` HMAC key, and the MVC `<OpenVPN><StaticKeys>` element holds static-key material. Both arrive in a PEM-shaped envelope with the literal label `-----BEGIN OpenVPN Static key V1-----` — which the stock `IsPrivateKey` detector misses because the label is not `PRIVATE KEY`. The sanitizer's `private_key` rule uses path-anchored `FieldPatterns` (`openvpn.tls`, `openvpn-server.tls`, `openvpn-client.tls`, `openvpn.statickeys`, `statickeys`, `tls_crypt`, `tls_auth`) plus the `IsOpenVPNStaticKey` envelope detector to catch both the field-name and value-based paths.
+
+- **Gotcha:** The substring `tls` ALONE is not safe as a pattern. It would false-positive on:
+
+  - The Suricata IDS wrapper `opnsense.OPNsense.IDS.general.eveLog.tls.*` (a struct of enable/extended/sessionResumption/custom booleans — `pkg/schema/opnsense/security.go` L383).
+  - The IPsec strongSwan daemon log-level enum `opnsense.OPNsense.IPsec.charon.syslog.daemon.tls` (an integer 0–5 — `pkg/schema/opnsense/security.go` L443).
+
+  Always anchor OpenVPN TLS patterns to their parent element path (e.g., `openvpn-server.tls`) and verify new unambiguous OpenVPN field names (like `tls_crypt` / `tls_auth`) never collide with other device schemas before adding them bare.
+
+- **Detection:** `TestSanitizeXML_OpenVPNStaticKey` + `TestSanitizeXML_OpenVPN_TLS_NoFalsePositives` in `internal/sanitizer/sanitizer_test.go`. `TestIsOpenVPNStaticKey` in `patterns_test.go` covers the envelope detector.
+
+- **Rule-ordering impact:** None. The `private_key` rule is distinct from `authserver_config` / `password` / `email` / `hostname` and does not participate in the §19.1 ordering invariants.
+
+- **History:** SEC-H1 from the 2026-04-19 comprehensive review. Prior to the fix, `opnDossier sanitize` silently leaked raw HMAC keys sufficient to forge OpenVPN handshakes — the headline promise of the subcommand.
+
 ## 12. Git Tagging
 
 ### 12.1 Tag the Squash-Merge Commit on Main
@@ -352,3 +383,16 @@ Kea's `<pools>` element on each `<subnet4>` stores newline-separated (`\n`) IP r
 - **Problem:** If `password` is moved above `authserver_config` in the `builtinRules()` slice, `ldap_bindpw` values silently switch from pseudonymized to flat-redacted. No error or warning is emitted.
 - **Symptom:** Sanitized output shows `[REDACTED-PASSWORD]` for LDAP bind passwords instead of a pseudonymized value like `ldap-bindpw-001`.
 - **Fix:** Ensure `authserver_config` remains the first rule in `builtinRules()`. The same first-match precedence applies to `email` vs `hostname` (email must precede hostname).
+
+## 20. pfSense Validator Injection
+
+### 20.1 `SetValidator` Is Guarded by `sync.Once`
+
+`pkg/parser/pfsense.SetValidator` installs the semantic validator used by `Parser.ParseAndValidate`. The slot is unexported (`validateFuncHolder atomic.Pointer[...]`) and is written exactly once per process — the first `SetValidator` call wins, every subsequent call is silently dropped. The `atomic.Pointer` pairs with `sync.Once` so the writer side synchronizes cleanly with the concurrent reader side in `ParseAndValidate`.
+
+The one-shot lock is the enforcement point against a dynamically loaded compliance plugin's `init()` reassigning the validator after CLI setup. Because `plugin.Open` fires the loaded `.so`'s `init()` at load time — later than Go's own `init()` ordering for in-tree packages — `cmd/root.go:init` calls `SetValidator` first, commits the sync.Once, and any subsequent plugin `init()` is effectively locked out. See the comprehensive-review ticket SEC-H2 / todos #105 and #128 for the original finding.
+
+- **Gotcha:** Do NOT reintroduce a public mutable `ValidateFunc` variable. Any value that is directly assignable from plugin code re-opens the stomp hazard. The injection point MUST go through `SetValidator`.
+- **Gotcha:** Test code that needs to swap validators across subtests uses the `ResetValidatorForTesting` / `ValidatorForTesting` helpers defined in `pkg/parser/pfsense/export_test.go`. These live in `_test.go` and therefore are NOT part of the public API — never promote them to a plain `.go` file.
+- **Gotcha:** The exported `SetValidator` is safe to call from any goroutine; concurrent writers race to win the `sync.Once`, but only one does. Readers never see a torn value because the holder is `atomic.Pointer[...]` — verified by `TestPfSense_SetValidator_Race` under `-race`.
+- **Regression tests:** `TestPfSense_SetValidator_CannotBeOverwritten` pins the stomp-protection invariant; `TestPfSense_SetValidator_Race` pins the concurrent-writer safety. Both live in `pkg/parser/pfsense/parser_test.go`. If either fails, the §20 defense has regressed.
