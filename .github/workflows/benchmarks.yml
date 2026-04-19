@@ -59,8 +59,10 @@ jobs:
         if: github.event_name == 'pull_request' && hashFiles('baseline-benchmark.txt') != ''
         id: benchmark-compare
         run: |
-          # Install benchstat for comparison
-          go install golang.org/x/perf/cmd/benchstat@latest
+          # benchstat is pinned via mise.toml (go:golang.org/x/perf/cmd/benchstat)
+          # and installed by the earlier jdx/mise-action step with install: true.
+          # Invoke it through `mise exec --` so we use the pinned version rather
+          # than @latest.
 
           # Run comparison and write to file
           {
@@ -69,12 +71,12 @@ jobs:
             echo "Comparing PR benchmarks against baseline (main branch):"
             echo ""
             echo '```'
-            benchstat baseline-benchmark.txt benchmark-results.txt 2>&1 || true
+            mise exec -- benchstat baseline-benchmark.txt benchmark-results.txt 2>&1 || true
             echo '```'
           } > comparison.md
 
           # Check for significant regressions (>20% slower)
-          if benchstat baseline-benchmark.txt benchmark-results.txt 2>/dev/null | grep -E '\+[2-9][0-9]\.[0-9]+%|\+[1-9][0-9][0-9]+\.[0-9]+%' > /dev/null; then
+          if mise exec -- benchstat baseline-benchmark.txt benchmark-results.txt 2>/dev/null | grep -E '\+[2-9][0-9]\.[0-9]+%|\+[1-9][0-9][0-9]+\.[0-9]+%' > /dev/null; then
             {
               echo ""
               echo "⚠️ **Warning**: Some benchmarks show >20% regression. Please review."

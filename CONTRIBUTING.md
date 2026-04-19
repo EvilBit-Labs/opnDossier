@@ -21,6 +21,10 @@ opnDossier follows strict coding standards and development practices:
 - **Git** - Version control
 - **golangci-lint** - Linting tool
 
+#### Go Support Policy
+
+opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI exercises both versions on every PR via a `stable` + `oldstable` matrix. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
+
 ### Development Setup
 
 ```bash

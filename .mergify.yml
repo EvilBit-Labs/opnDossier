@@ -39,11 +39,16 @@ queue_rules:
     merge_conditions:
       - check-success = Lint
       - check-success = Build
-      - "check-success = Test (ubuntu-latest)"
-      - "check-success = Test (macos-latest)"
-      - "check-success = Test (windows-latest)"
+      - "check-success = Test (ubuntu-latest, stable)"
+      - "check-success = Test (ubuntu-latest, oldstable)"
+      - "check-success = Test (macos-latest, stable)"
+      - "check-success = Test (macos-latest, oldstable)"
+      - "check-success = Test (windows-latest, stable)"
+      - "check-success = Test (windows-latest, oldstable)"
       - check-success = Integration Tests
       - check-success = Coverage
+      - check-success = codecov/project
+      - check-success = codecov/patch
 
   # ─────────────────────────────────────────────────────────────────────────
   # 4. default — manually enqueued by maintainers, full CI
@@ -54,11 +59,16 @@ queue_rules:
     merge_conditions:
       - check-success = Lint
       - check-success = Build
-      - "check-success = Test (ubuntu-latest)"
-      - "check-success = Test (macos-latest)"
-      - "check-success = Test (windows-latest)"
+      - "check-success = Test (ubuntu-latest, stable)"
+      - "check-success = Test (ubuntu-latest, oldstable)"
+      - "check-success = Test (macos-latest, stable)"
+      - "check-success = Test (macos-latest, oldstable)"
+      - "check-success = Test (windows-latest, stable)"
+      - "check-success = Test (windows-latest, oldstable)"
       - check-success = Integration Tests
       - check-success = Coverage
+      - check-success = codecov/project
+      - check-success = codecov/patch
 
 pull_request_rules:
   # ─────────────────────────────────────────────────────────────────────────
@@ -127,11 +137,16 @@ merge_protections:
     success_conditions:
       - check-success = Lint
       - check-success = Build
-      - "check-success = Test (ubuntu-latest)"
-      - "check-success = Test (macos-latest)"
-      - "check-success = Test (windows-latest)"
+      - "check-success = Test (ubuntu-latest, stable)"
+      - "check-success = Test (ubuntu-latest, oldstable)"
+      - "check-success = Test (macos-latest, stable)"
+      - "check-success = Test (macos-latest, oldstable)"
+      - "check-success = Test (windows-latest, stable)"
+      - "check-success = Test (windows-latest, oldstable)"
       - check-success = Integration Tests
       - check-success = Coverage
+      - check-success = codecov/project
+      - check-success = codecov/patch
 
   # ─────────────────────────────────────────────────────────────────────────
   # 3. Lint-only for bots with workflow-only changes
