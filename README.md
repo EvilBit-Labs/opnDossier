@@ -427,7 +427,7 @@ opnDossier's `pkg/` packages are importable by other Go modules. The typical con
 
 Module path: `github.com/EvilBit-Labs/opnDossier`
 
-Go version support: current and previous stable Go releases (N and N-1), matching Go's upstream policy. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the authoritative matrix.
+Go version: 1.26 or later (see [`go.mod`](go.mod) for the pinned toolchain). The module uses Go 1.26 language features, so older toolchains cannot compile it.
 
 See [docs/development/public-api.md](docs/development/public-api.md) for the full public API classification, stability policy, and semver rules.
 
