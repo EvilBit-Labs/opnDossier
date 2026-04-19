@@ -113,6 +113,7 @@ Before creating a release, verify:
 - [ ] `action.yml` default `version:` input is bumped to the new tag
 - [ ] README GitHub Action examples (`uses:` lines) are swept to the new tag
 - [ ] README "Pinning" section SHA-pin example is updated to the new release commit SHA
+- [ ] Public-API snapshot fixtures (`pkg/*/testdata/api-snapshots/*.golden`) reviewed for unintended diffs since the last tag. These are the authoritative baseline for the semver contract — any unexplained change must be explained or reverted before tagging. See [docs/development/public-api.md § API Shape Enforcement](docs/development/public-api.md#api-shape-enforcement).
 - [ ] Documentation reflects new features/changes
 - [ ] Breaking changes are documented
 
@@ -519,6 +520,7 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 
 - [ ] CI green on `main` — `gh run list --branch main --limit 5`
 - [ ] `just ci-check` passes locally (lint, tests, race detector)
+- [ ] Review `pkg/*/testdata/api-snapshots/*.golden` diffs since the last tag for unintended public-API changes. Every new or removed line in these fixtures is a stability-tracked change — see [docs/development/public-api.md § API Shape Enforcement](docs/development/public-api.md#api-shape-enforcement). Regenerate with `go test ./pkg/parser/... -run TestPublicAPISnapshot -update` only for intentional changes.
 - [ ] Milestone closed — `gh milestone list --state open`, then close if exists
 - [ ] No uncommitted or unrelated changes on `main`
 
