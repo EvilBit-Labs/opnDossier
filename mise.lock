@@ -257,6 +257,10 @@ backend = "go:github.com/google/go-licenses"
 version = "2.25.0"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
+[[tools."go:golang.org/x/perf/cmd/benchstat"]]
+version = "0.0.0-20260409210113-8e83ce0f7b1c"
+backend = "go:golang.org/x/perf/cmd/benchstat"
+
 [[tools.golangci-lint]]
 version = "2.11.4"
 backend = "aqua:golangci/golangci-lint"

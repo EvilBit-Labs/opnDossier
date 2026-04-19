@@ -33,6 +33,7 @@ linters:
     - exptostd
     - ginkgolinter
     - fatcontext
+    - forbidigo
     - funcorder
     # - funlen - Disabled: we'll come back to this after 1.0
     - gocheckcompilerdirectives
@@ -98,6 +99,12 @@ linters:
       - path: pkg/model/
         linters: [revive]
         text: "var-naming: avoid meaningless package names"
+      # forbidigo is used solely to enforce "no t.Parallel() in cmd/" (see
+      # settings.forbidigo below and GOTCHAS §1.1). Restrict the linter to cmd/
+      # so its single rule does not leak into the rest of the tree. If a future
+      # forbidigo rule needs broader scope, switch to per-rule scoping.
+      - path-except: 'cmd/.*\.go$'
+        linters: [forbidigo]
   disable:
     - gomodguard # Disabled: maybe someday, but not important right now
     - gocyclo # Disabled in favor of cyclop
@@ -166,6 +173,19 @@ linters:
         - ^golang.org/x/tools/go/analysis.Analyzer$
         - ^google.golang.org/protobuf/.+Options$
         - ^gopkg.in/yaml.v3.Node$
+    forbidigo:
+      # Type-aware matching so we catch t.Parallel() regardless of the local
+      # variable name (t, tt, tc, etc.).
+      analyze-types: true
+      forbid:
+        # GOTCHAS §1.1: the cmd package uses package-level CLI flag globals
+        # (sharedDeviceType, sharedAuditMode, outputFile, format, force, ...).
+        # Any test that calls t.Parallel() risks a data race with sibling
+        # tests that mutate those globals. The race detector reports collateral
+        # races in unrelated utilities, so the policy is a blanket ban in cmd/.
+        # Scope is enforced by the path-except rule under linters.exclusions.
+        - pattern: '^testing\.T\.Parallel$'
+          msg: 'cmd/ tests must not call t.Parallel(): cmd uses package-level CLI flag globals that race under parallel execution. See GOTCHAS §1.1.'
     funcorder:
       struct-method: false
     funlen:
