@@ -2,7 +2,7 @@
 
 opnDossier ships as both a CLI binary and a reusable Go library. This document defines which packages under `pkg/` are part of the public API, what stability guarantees apply, and what constitutes a breaking change.
 
-See [README.md § Using as a Go Library](../../README.md#using-as-a-go-library) for import examples and the quick-start consumer flow.
+See [README.md § Using as a Go Library](https://github.com/EvilBit-Labs/opnDossier/blob/main/README.md#using-as-a-go-library) for import examples and the quick-start consumer flow.
 
 ## Package Classification
 
@@ -120,7 +120,7 @@ opnConfigGenerator maintains a `TestConsumerDependencyIsolation` test that runs 
 
 `CommonDevice` carries plaintext secrets (certificate private keys, pre-shared keys, API tokens, SNMP community strings, HA sync passwords, DHCPv6 key material). opnDossier does not export a public redaction helper in `pkg/` — the sanitizer and export-redaction code paths live in `internal/` and are wired through the CLI.
 
-Consumers who serialize `CommonDevice` to JSON, YAML, or any other format must redact these fields themselves. See the README § [Handling Secrets](../../README.md#handling-secrets-when-exporting-commondevice) for the field inventory and recommended patterns.
+Consumers who serialize `CommonDevice` to JSON, YAML, or any other format must redact these fields themselves. See the README § [Handling Secrets](https://github.com/EvilBit-Labs/opnDossier/blob/main/README.md#handling-secrets-when-exporting-commondevice) for the field inventory and recommended patterns.
 
 ## Revision History
 

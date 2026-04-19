@@ -27,28 +27,32 @@ type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks
+    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks (panic-safe)
     GetControls() []compliance.Control   // Return all controls
     GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
 }
 ```
 
-The `Finding` struct is generic and uses `Severity`, `References`, `Tags`, and `Metadata` fields:
+**Note:** The audit engine wraps `RunChecks()` calls in panic recovery, so a panicking plugin will not crash the audit process. See the [plugin panic recovery solution](../solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md) and GOTCHAS.md §2.2 for details. However, plugins should still handle errors properly and return findings or empty slices rather than panicking, as panic recovery is a safety mechanism, not a substitute for good error handling.
+
+The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields:
 
 ```go
 // compliance.Finding
-Type        string              // e.g. "compliance"
-Severity    string              // e.g. "high" — copied from control's severity
-Title       string
-Description string
+Type           string            // Category (e.g., "compliance")
+Severity       common.Severity   // Severity level: use constants like common.SeverityCritical, common.SeverityHigh, etc.
+Title          string
+Description    string
 Recommendation string
-Component   string
-Reference   string
-References  []string            // Control IDs or external references
-Tags        []string            // Arbitrary tags for filtering/categorization
-Metadata    map[string]string   // Optional extra data
+Component      string
+Reference      string            // Single control ID reference
+References     []string          // Multiple control ID references
+Tags           []string
+Metadata       map[string]string
 ```
+
+**Note:** `compliance.Finding` is a type alias for the canonical `analysis.Finding` type defined in `internal/analysis/finding.go`. This architectural change unifies finding representations across the audit, compliance, and processor modules, ensuring consistency throughout the codebase. Plugins should continue to import `github.com/EvilBit-Labs/opnDossier/internal/compliance` and use `compliance.Finding`, which remains fully compatible.
 
 ## Creating a New Plugin
 
@@ -95,7 +99,7 @@ func NewCustomPlugin() *CustomPlugin {
                 Title:       "Custom Security Control",
                 Description: "Description of the custom security control",
                 Category:    "Security",
-                Severity:    "high",
+                Severity:    string(common.SeverityHigh),
                 Rationale:   "Why this control is important",
                 Remediation: "How to fix compliance issues",
                 Tags:        []string{"custom", "security", "compliance"},
@@ -107,7 +111,7 @@ func NewCustomPlugin() *CustomPlugin {
 func (cp *CustomPlugin) Name() string        { return "custom" }
 func (cp *CustomPlugin) Version() string     { return "1.0.0" }
 func (cp *CustomPlugin) Description() string { return "Custom compliance checks for specific security requirements" }
-func (cp *CustomPlugin) GetControls() []compliance.Control { return cp.controls }
+func (cp *CustomPlugin) GetControls() []compliance.Control { return compliance.CloneControls(cp.controls) }
 func (cp *CustomPlugin) GetControlByID(id string) (*compliance.Control, error) {
     for _, control := range cp.controls {
         if control.ID == id {
@@ -122,13 +126,25 @@ func (cp *CustomPlugin) ValidateConfiguration() error {
     }
     return nil
 }
+
+// controlSeverity returns the severity for a control ID from the control
+// definitions. This ensures findings derive severity from the single source
+// of truth (the control metadata) rather than hard-coding literals.
+func (cp *CustomPlugin) controlSeverity(id string) common.Severity {
+    for _, c := range cp.controls {
+        if c.ID == id {
+            return common.Severity(c.Severity)
+        }
+    }
+    return ""
+}
 func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
     var findings []compliance.Finding
     // Implement your compliance checks here
     // Example:
     findings = append(findings, compliance.Finding{
         Type:           "compliance",
-        Severity:       "high",
+        Severity:       cp.controlSeverity("CUSTOM-001"),
         Title:          "Missing Custom Security Feature",
         Description:    "The configuration is missing required custom security feature",
         Recommendation: "Enable the custom security feature in the configuration",
@@ -168,29 +184,69 @@ go build -buildmode=plugin -o myplugin.so main.go
 ### Step 3: Plugin Registration
 
 - **Static plugins**: Register in the plugin manager as before.
-- **Dynamic plugins**: Drop `.so` files into the plugin directory (default: `./plugins`). They will be loaded automatically at startup.
+- **Dynamic plugins**: Drop `.so` files into the plugin directory. They will be loaded automatically at startup.
+
+#### Plugin Name Validation Timing
+
+Plugin name validation occurs in two phases to support dynamic plugins:
+
+1. **CLI Parsing (PreRunE)**: When `--plugin-dir` is specified, all plugin names are accepted without validation. This allows dynamic plugins to be discovered and loaded before validation.
+
+2. **Post-Initialization (ValidateModeConfig)**: After `InitializePlugins()` loads both built-in and dynamic plugins, `ValidateModeConfig()` validates plugin names against the live registry. Unknown plugin names are rejected at this stage with `ErrPluginNotFound`.
+
+**Implications for plugin authors:**
+
+- Plugin names must be registered in the registry after loading (either statically or via `.so` export).
+- Unknown plugin names will be rejected by `ValidateModeConfig` with a clear error message.
+- Shell completions reflect both built-in and dynamically loaded plugins via registry-backed completion functions.
+
+**Test coverage:** See `TestAuditCmdPreRunEDynamicPluginAccepted` and `TestHandleAuditMode_UnknownPluginRejectedPostInit` in `cmd/audit_test.go` for examples of this two-phase validation behavior.
 
 ## Dynamic Plugin Loading
 
-- The audit engine will scan a configurable directory for `.so` files and load any plugin that exports `var Plugin compliance.Plugin`.
+The audit engine scans a configurable directory for `.so` files and loads any plugin that exports `var Plugin compliance.Plugin`.
+
+### Configuration
+
+Use the `--plugin-dir` CLI flag on the `audit` command to specify a custom directory containing `.so` plugins:
+
+```sh
+opndossier audit config.xml --mode blue --plugin-dir /path/to/plugins
+```
+
+**Default behavior:** If `--plugin-dir` is not specified, the engine does not attempt to load dynamic plugins. There is no hardcoded default plugin directory.
+
+**Explicit vs. optional paths:**
+
+- **Explicit directory** (user-provided via `--plugin-dir`): If the directory does not exist, the audit fails fast with an error.
+- **Optional/default paths**: If implemented by calling code, missing directories are silently skipped (Debug log).
+
+### Load Result and Error Handling
+
+`LoadDynamicPlugins` returns `(LoadResult, error)`:
+
+- **`LoadResult`** tracks both successful (`Loaded int`) and failed (`Failed() int`) plugin counts
+- **Per-plugin failures** are collected in `LoadResult.Failures` (slice of `PluginLoadError`)
+- **Aggregate errors** are returned via `errors.Join` when one or more plugins fail to load
+- **Individual plugin load failures are non-fatal** — other plugins continue loading
+
+**CLI behavior:** The audit command surfaces load failures to users via `Warn` logs listing failed plugin filenames. The audit continues with any successfully loaded plugins.
+
+**Programmatic usage:** If using `PluginManager` programmatically:
+
+1. Call `SetPluginDir(dir, explicit)` before `InitializePlugins()`
+2. Check `GetLoadResult()` after initialization to detect any plugin load failures
+3. `LoadResult.Failures` contains individual `PluginLoadError` entries with filename and error
+
+**PluginLoadError type:** Each failure captures the `.so` filename and the underlying error. It implements the `error` interface for use with `errors.Join`.
+
+**Per-plugin load failures:** Individual plugin load errors are tracked in `LoadResult.Failures` and do not prevent other plugins from loading. Common failure causes include Go version mismatch, missing dependencies, malformed `.so` files, and duplicate plugin names. Failed plugins are skipped and do not appear in the audit results.
+
+### Requirements
+
 - Dynamic plugins must be built with the same Go version and dependencies as the main binary.
 - Both static and dynamic plugins are supported and can coexist.
-- `RunComplianceChecks` wraps each plugin's `RunChecks()` in `defer recover()` so a panicking dynamic plugin cannot crash the audit. See [panic recovery solution](../solutions/runtime-errors/plugin-panic-recovery-audit-runchecks.md) and GOTCHAS.md SS2.2.
-
-## Migrating to the CommonDevice Plugin API
-
-**Breaking change (internal API — semver stays v1.x):** The `RunChecks` method signature changed from `*model.OpnSenseDocument` to `*common.CommonDevice`.
-
-| Item      | v1.x                      | Current                |
-| --------- | ------------------------- | ---------------------- |
-| Import    | `internal/model`          | `pkg/model`            |
-| Parameter | `*model.OpnSenseDocument` | `*common.CommonDevice` |
-
-**Migration steps:**
-
-1. Replace `"github.com/EvilBit-Labs/opnDossier/internal/model"` import with `common "github.com/EvilBit-Labs/opnDossier/pkg/model"`
-2. Change `RunChecks(config *model.OpnSenseDocument)` to `RunChecks(device *common.CommonDevice)`
-3. Update field access — `CommonDevice` mirrors the full OPNsense surface area; field names follow Go domain conventions rather than XML tag names. Refer to `pkg/model/` for the full type definitions.
+- The plugin directory is scanned once during `InitializePlugins()`, not on every audit.
 
 ## Security Model
 
@@ -210,16 +266,165 @@ Dynamic plugins are loaded as Go `.so` shared objects via the standard `plugin.O
 
 ## Plugin Development Best Practices
 
-- Use unique, descriptive control IDs and titles.
+- **Control ID patterns**: Use stable, predictable identifiers. The built-in plugins use `V-XXXXXX` for STIG (matching real DISA STIG vulnerability IDs), `SANS-FW-XXX` for SANS, and `FIREWALL-XXX` for the firewall plugin. New plugins should follow a similar `PLUGIN-XXX` pattern with a prefix that identifies the standard.
 - Provide actionable remediation and clear rationale.
-- Always set `Finding.Severity` to match the control's `Severity` for correct severity breakdown in audit reports.
 - Use the `References` and `Tags` fields for all findings.
+- **Set Finding Severity**: Plugins must populate `Finding.Severity` for accurate severity breakdown in reports. Use typed constants like `common.SeverityHigh`, `common.SeverityCritical`, etc., from `pkg/model`. Use a helper function like `controlSeverity(id string) common.Severity` to look up severity from control definitions rather than hard-coding literals.
+- **Deep Copy Controls**: Implement `GetControls()` to return `compliance.CloneControls(cp.controls)` to prevent callers from mutating the plugin's internal state.
 - Write comprehensive tests for your plugin.
 - Document your controls and plugin usage.
 
+### Testing Dynamic Plugin Loading
+
+For testing code that loads dynamic plugins without requiring real `.so` files, use the `pluginLoaderFunc` injection mechanism:
+
+- Tests can create a `PluginRegistry` with `newPluginRegistryWithLoader(fakeLoader)`
+- The fake loader can return mock plugins or simulate load failures deterministically
+- This enables testing of load error handling, partial failures, and `LoadResult` aggregation without filesystem dependencies
+
+See `internal/audit/plugin_global_test.go` for examples of injecting test loaders.
+
+### Error Handling and Panic Recovery
+
+The audit engine wraps each `RunChecks()` call in panic recovery to protect the audit process from misbehaving plugins. If a plugin panics during execution:
+
+- The panic is caught and logged via the structured logger with the plugin name and panic details
+- The plugin remains in the audit results with zero findings (it is not skipped or removed)
+- Other plugins continue to execute without interruption
+- The overall audit process completes successfully
+
+**Best practices:**
+
+- Plugins should handle errors gracefully by returning appropriate findings rather than panicking
+- Use proper error checking and validation in your compliance checks
+- Return empty findings slices (`[]compliance.Finding`) for plugins that find no issues, rather than panicking
+- The panic recovery is a safety net for unexpected failures, not a substitute for proper error handling
+- For better diagnostics, log errors within your plugin and return descriptive findings instead of relying on panic recovery
+
+### Dynamic Plugin Load Failures
+
+Dynamic plugin load failures (from `.so` files) are distinct from runtime panics:
+
+- Load failures occur during `InitializePlugins()` when the registry scans the plugin directory
+- Failed plugins do not appear in the audit results at all (they are never registered)
+- The CLI surfaces load failures via `Warn` logs with failed plugin filenames
+- Programmatic callers should check `PluginManager.GetLoadResult()` after initialization
+- Per-plugin load errors are tracked in `LoadResult.Failures` and do not fail the entire load process — other plugins continue loading
+- Common load failure causes: Go version mismatch, missing dependencies, malformed `.so` files, duplicate plugin names
+
+**Validation of plugin names:** Plugin name validation is deferred to post-initialization via `ValidateModeConfig()`. This two-phase approach allows dynamic plugins to be discovered and loaded before validation. See "Plugin Name Validation Timing" above for details.
+
+### Setting Finding Severity
+
+The audit engine requires the `Finding.Severity` field to generate accurate severity breakdowns in reports. Plugins should:
+
+1. **Use typed severity constants from `pkg/model`**:
+
+   Available severity constants:
+
+   - `common.SeverityCritical` — for critical security issues
+   - `common.SeverityHigh` — for high-priority findings
+   - `common.SeverityMedium` — for medium-priority findings
+   - `common.SeverityLow` — for low-priority findings
+
+2. **Derive severity from control metadata** using a helper function that looks up the control's severity:
+
+   ```go
+   // controlSeverity returns the severity for a control ID from the control
+   // definitions. This ensures findings derive severity from the single source
+   // of truth (the control metadata) rather than hard-coding literals.
+   func (p *Plugin) controlSeverity(id string) common.Severity {
+       for _, c := range p.controls {
+           if c.ID == id {
+               return common.Severity(c.Severity)
+           }
+       }
+       return ""
+   }
+   ```
+
+3. **Set Severity on every Finding**:
+
+   ```go
+   findings = append(findings, compliance.Finding{
+       Type:           "compliance",
+       Severity:       p.controlSeverity("MY-PLUGIN-001"),
+       Title:          "Example Finding",
+       Description:    "Description of the issue",
+       Recommendation: "How to fix it",
+       Reference:      "MY-PLUGIN-001",
+   })
+   ```
+
+4. **Benefits of typed constants**: Using typed constants from `pkg/model` provides compile-time validation, prevents typos, enables IDE autocomplete, and makes refactoring safer. The compiler will catch invalid severity values before runtime.
+
+5. **Fallback behavior**: The audit engine will attempt to derive severity from referenced controls if not provided, but plugins should not rely on this behavior. Always set `Finding.Severity` explicitly.
+
+### Working with Model Enums
+
+opnDossier uses typed string enums in `pkg/model` for firewall rules, NAT configuration, network types, and other model fields. These enums provide compile-time type safety and prevent typos.
+
+**Common enum types:**
+
+- **`RuleType`** (firewall rule actions):
+
+  - `common.RuleTypePass` — allow matching traffic
+  - `common.RuleTypeBlock` — silently drop matching traffic
+  - `common.RuleTypeReject` — drop and send rejection response
+
+- **`Direction`** (firewall rule direction):
+
+  - `common.DirectionIn` — inbound traffic
+  - `common.DirectionOut` — outbound traffic
+  - `common.DirectionAny` — bidirectional
+
+- **`IPProtocol`** (IP address family):
+
+  - `common.IPProtocolInet` — IPv4
+  - `common.IPProtocolInet6` — IPv6
+
+- **`NATOutboundMode`** (NAT configuration):
+
+  - `common.OutboundAutomatic` — automatic outbound NAT
+  - `common.OutboundHybrid` — combined automatic and manual rules
+  - `common.OutboundAdvanced` — manual rules only
+  - `common.OutboundDisabled` — NAT disabled
+
+**Example usage in plugin checks:**
+
+```go
+// Check for permissive firewall rules
+for _, rule := range device.FirewallRules {
+    if rule.Type == common.RuleTypePass && 
+       rule.Source.Address == "any" && 
+       rule.Direction == common.DirectionIn {
+        // Found a permissive inbound allow rule
+    }
+}
+
+// Check NAT configuration
+if device.NAT.OutboundMode == common.OutboundAutomatic {
+    // NAT is in automatic mode
+}
+
+// Check IP protocol for IPv6 support
+for _, rule := range device.FirewallRules {
+    if rule.IPProtocol == common.IPProtocolInet6 {
+        // Found an IPv6 rule
+    }
+}
+```
+
+**Benefits:**
+
+- Compile-time validation — invalid enum values cause build failures
+- IDE autocomplete for available values
+- Refactoring support — renaming a constant updates all uses
+- Eliminates string literal typos like `"pas"` instead of `"pass"`
+
 ## Device Parser Development
 
-opnDossier supports adding new device types (e.g., pfSense, Fortinet, MikroTik) through a compile-time parser registry. This is separate from compliance plugins -- device parsers transform vendor-specific configuration files into the platform-agnostic `CommonDevice` model.
+opnDossier ships with built-in parsers for **OPNsense** and **pfSense** devices. Additional device types (e.g., Fortinet, MikroTik, Cisco ASA) can be added through a compile-time parser registry. Device parsers are separate from compliance plugins -- they transform vendor-specific configuration files into the platform-agnostic `CommonDevice` model.
 
 ### Architecture
 
@@ -234,7 +439,7 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 1. **Create a Go package** that implements the `parser.DeviceParser` interface:
 
    ```go
-   package pfsense
+   package fortinet
 
    import (
        "context"
@@ -244,15 +449,15 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
        "github.com/EvilBit-Labs/opnDossier/pkg/parser"
    )
 
-   type PfSenseParser struct{}
+   type FortinetParser struct{}
 
-   func (p *PfSenseParser) Parse(
+   func (p *FortinetParser) Parse(
        ctx context.Context, r io.Reader,
    ) (*common.CommonDevice, []common.ConversionWarning, error) {
-       // Parse pfSense XML and convert to CommonDevice
+       // Parse Fortinet config and convert to CommonDevice
    }
 
-   func (p *PfSenseParser) ParseAndValidate(
+   func (p *FortinetParser) ParseAndValidate(
        ctx context.Context, r io.Reader,
    ) (*common.CommonDevice, []common.ConversionWarning, error) {
        // Parse + validate
@@ -263,13 +468,13 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 
    ```go
    func init() {
-       parser.Register("pfsense", func(dec parser.XMLDecoder) parser.DeviceParser {
-           return &PfSenseParser{}
+       parser.Register("fortinet", func(dec parser.XMLDecoder) parser.DeviceParser {
+           return &FortinetParser{}
        })
    }
    ```
 
-   The first argument (`"pfsense"`) must match the XML root element name of the config file.
+   The first argument (`"fortinet"`) must match the XML root element name of the config file.
 
 3. **Link via blank import** in your consumer binary:
 
@@ -278,7 +483,7 @@ The `DeviceParserRegistry` in `pkg/parser/registry.go` follows the `database/sql
 
    import (
        "github.com/EvilBit-Labs/opnDossier/cmd"
-       _ "github.com/example/pfsense-parser" // self-registers at init()
+       _ "github.com/example/fortinet-parser" // self-registers at init()
    )
 
    func main() { cmd.Execute() }
@@ -315,12 +520,12 @@ device, warnings, err := factory.CreateDevice(ctx, reader, "", false)
 **Empty registry (missing blank import):** The most common mistake is forgetting the blank import. Without it, your parser's `init()` never runs and the registry stays empty. The symptom is an error like:
 
 ```text
-unsupported device type: root element <pfsense> is not recognized; supported: (none registered -- ensure parser packages are imported)
+unsupported device type: root element <fortinet> is not recognized; supported: (none registered -- ensure parser packages are imported)
 ```
 
 Fix: add `_ "your/parser/package"` to the binary's import list.
 
-**Root element mismatch:** The string passed to `parser.Register()` must exactly match the XML root element name (lowercase). If a pfSense config uses `<pfsense>` as the root element, register as `"pfsense"`, not `"pfSense"` or `"PfSense"` (the registry normalizes to lowercase, but the XML root element detection also lowercases).
+**Root element mismatch:** The string passed to `parser.Register()` must match the XML root element name. Both the registry and the XML root element detection normalize to lowercase, so `"Fortinet"` and `"fortinet"` will resolve identically. However, using lowercase consistently is recommended for clarity.
 
 **Duplicate registration:** If two packages register the same root element name, the binary will panic at startup. This is intentional -- it surfaces conflicts immediately rather than silently picking one.
 
@@ -329,14 +534,18 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 - `pkg/parser/registry.go` -- Registry implementation
 - `pkg/parser/factory.go` -- Factory with auto-detection and error handling
 - `pkg/parser/opnsense/parser.go` -- Built-in OPNsense parser (reference implementation)
+- `pkg/parser/pfsense/parser.go` -- Built-in pfSense parser
 
 ## Troubleshooting
 
 ### Compliance Plugins
 
-- **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory.
-- **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies.
+- **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory. Check `GetLoadResult()` or CLI warnings for load failures.
+- **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies. This is the most common cause of dynamic plugin load failures.
 - **Platform support:** Go plugins are supported on Linux and macOS, not Windows.
+- **Plugin appears with zero findings?** The plugin may have panicked during execution. Check the audit logs for panic details. Panicked plugins are retained in results but produce no findings. Review the plugin's error handling and ensure it returns findings properly rather than panicking.
+- **Dynamic plugin directory not found?** If you specified `--plugin-dir`, ensure the directory exists. Explicit directories fail fast if missing. Without the flag, no dynamic plugins are loaded.
+- **Duplicate plugin name?** If a dynamic plugin has the same name as a static plugin or another dynamic plugin, registration will fail. Check the load failures in `GetLoadResult()` or CLI warning logs.
 
 ### Device Parsers
 
@@ -347,7 +556,7 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 ## Examples
 
 - `internal/plugins/` contains static compliance plugin examples.
-- `pkg/parser/opnsense/parser.go` provides a reference device parser implementation.
+- `pkg/parser/opnsense/parser.go` and `pkg/parser/pfsense/parser.go` provide reference device parser implementations.
 - The dynamic plugin example above demonstrates external compliance plugins.
 
 ## Conclusion

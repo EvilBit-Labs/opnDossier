@@ -126,85 +126,63 @@ var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 
 		return nil
 	},
-	Long: `The 'convert' command processes one or more OPNsense config.xml files and transforms
-its content into structured formats. Supported output formats include Markdown (default),
-JSON, YAML, plain text, and HTML. This allows for easier readability, documentation, and
-programmatic access to your firewall configuration.
+	Long: `The 'convert' command processes one or more OPNsense config.xml files and
+transforms them into structured documentation and export formats. Use convert
+when you need a human-readable report or a machine-readable export — not when
+you need compliance analysis or structural validation.
 
-  OUTPUT FORMATS:
-  The convert command supports multiple output formats:
+OUTPUT FORMATS:
+  Select the output encoding with --format:
 
-  Basic formats (use --format flag):
-    markdown                    - Standard markdown report (default)
-    json                        - JSON format output
-    yaml                        - YAML format output
-    text                        - Plain text output (markdown without formatting)
-    html                        - Self-contained HTML report for web viewing
+    markdown  - Rendered markdown report (default)
+    json      - JSON export for programmatic access
+    yaml      - YAML export for configuration management
+    text      - Plain text (markdown without ANSI formatting)
+    html      - Self-contained HTML report
 
-  Additional options:
-    --comprehensive             - Generate detailed, comprehensive reports
+CONTENT OPTIONS:
+  --comprehensive    - Emit every section, including rarely used ones
+  --include-tunables - Include all system tunables (default suppresses defaults)
+  --section          - Restrict output to specific sections (e.g. system,firewall)
+  --wrap / --no-wrap - Control text wrapping for terminal rendering
+  --redact           - Redact passwords, SNMP community strings, private keys
 
-  For security auditing and compliance checks, use the dedicated 'audit' command:
-    opnDossier audit config.xml --mode blue
+OUTPUT DESTINATION:
+  By default, output is printed to stdout. Use --output/-o to save to a file.
+  When processing multiple input files, --output is ignored and each output
+  file is auto-named after the input (config.xml -> config.md, config.json, ...).
+  Use --force to overwrite existing files without prompting.
 
-The convert command focuses on conversion only and does not perform validation.
-To validate your configuration files before conversion, use the 'validate' command.
-
-You can either print the generated output directly to the console or save it to a
-specified output file using the '--output' or '-o' flag. Use the '--format' or '-f'
-flag to specify the output format (markdown, json, yaml, text, or html).
-
-When processing multiple files, the --output flag will be ignored, and each output
-file will be named based on its input file with the appropriate extension
-(e.g., config.xml -> config.md, config.json, config.yaml, config.txt, or config.html).
-
-Examples:
-  # Convert configuration to markdown (default)
+RELATED:
+  audit      - Convert plus compliance checks (STIG/SANS/firewall)
+  display    - Convert then render to the terminal in one step
+  validate   - Validate config.xml before conversion
+  sanitize   - Redact a config.xml before distribution`,
+	Example: `  # Convert configuration to markdown (default)
   opnDossier convert my_config.xml
 
-  # Convert 'my_config.xml' to JSON format
+  # Convert to JSON format
   opnDossier convert my_config.xml --format json
 
-  # Convert 'my_config.xml' to YAML and save to file
+  # Convert to YAML and save to a file
   opnDossier convert my_config.xml -f yaml -o documentation.yaml
 
-  # Convert 'my_config.xml' to plain text
-  opnDossier convert my_config.xml --format text
-
-  # Convert 'my_config.xml' to self-contained HTML
+  # Convert to self-contained HTML
   opnDossier convert my_config.xml --format html -o report.html
 
-  # Generate comprehensive report
+  # Generate a comprehensive report
   opnDossier convert my_config.xml --comprehensive
 
-  # Convert with specific sections
+  # Convert only specific sections
   opnDossier convert my_config.xml --section system,network
 
-  # Convert with format and text wrapping
-  opnDossier convert my_config.xml --format json --wrap 120
-
-  # Convert without text wrapping
-  opnDossier convert my_config.xml --no-wrap
-
-  # Convert multiple files to JSON format
+  # Convert multiple files to JSON (each output auto-named)
   opnDossier convert config1.xml config2.xml --format json
-
-  # Convert 'backup_config.xml' with verbose logging
-  opnDossier --verbose convert backup_config.xml -f json
-
-  # Use environment variable to set default output location
-  OPNDOSSIER_OUTPUT_FILE=./docs/network.md opnDossier convert config.xml
-
-  # Force overwrite existing file without prompt
-  opnDossier convert config.xml -o output.md --force
 
   # Redact sensitive fields (passwords, SNMP community strings, private keys)
   opnDossier convert config.xml --format json --redact
 
-  # Include all system tunables (including defaults) in the report
-  opnDossier convert config.xml --include-tunables
-
-  # Validate before converting (recommended workflow)
+  # Validate then convert (recommended workflow)
   opnDossier validate config.xml && opnDossier convert config.xml -f json -o output.json`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

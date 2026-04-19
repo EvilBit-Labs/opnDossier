@@ -64,61 +64,52 @@ var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 
 		return nil
 	},
-	Long: `The 'display' command converts an OPNsense config.xml file to markdown
-and displays it in the terminal with syntax highlighting and formatting.
-This provides an immediate, readable view of your firewall configuration
-without saving to a file.
+	Long: `The 'display' command converts an OPNsense config.xml file to markdown and
+renders it in the terminal with syntax highlighting via glamour. Use display
+for a quick, interactive read of a configuration without producing any files.
 
-The configuration is parsed without validation to ensure
-it can be displayed even with configuration inconsistencies that are
-common in production environments.
+Display parses the configuration without strict validation so that it remains
+usable on real-world configs that contain minor inconsistencies. Use the
+'validate' command when full structural validation is required.
 
-  OUTPUT FORMATS:
-  The display command renders markdown with syntax highlighting and formatting.
+RENDERING:
+  - Syntax-highlighted markdown with headers, lists, and code blocks
+  - Theme-aware colors that adapt to light/dark terminals
+  - Structured presentation of the configuration hierarchy
 
-  The output is always displayed in the terminal using glamour rendering.
+CONTENT CONTROL:
+  --theme       Force theme (light|dark|auto|none)
+  --section     Restrict output to specific sections (e.g. system,firewall)
+  --wrap N      Wrap text at N columns (auto-detected if omitted)
+  --no-wrap     Disable text wrapping (equivalent to --wrap 0)
+  --redact      Redact passwords, SNMP community strings, private keys
+  --comprehensive    Include all sections, even rarely used ones
+  --include-tunables Include all system tunables (including defaults)
 
-The output includes:
-- Syntax-highlighted markdown rendering
-- Proper formatting with headers, lists, and code blocks
-- Theme-aware colors (adapts to light/dark terminal themes)
-- Structured presentation of configuration hierarchy
-- Section filtering
-- Configurable text wrapping
-
-Examples:
-  # Display configuration
+RELATED:
+  convert    - Produce a file artifact instead of terminal output
+  validate   - Validate config.xml structure before displaying
+  audit      - Layer compliance checks on top of the rendered report`,
+	Example: `  # Display configuration with auto-detected theme and width
   opnDossier display config.xml
 
-  # Display with specific theme
+  # Force a specific theme
   opnDossier display --theme dark config.xml
-  opnDossier display --theme light config.xml
 
-  # Display with sections
+  # Restrict output to specific sections
   opnDossier display --section system,network config.xml
 
-  # Display with text wrapping
-  opnDossier display --wrap 120 config.xml
-  # When --wrap is not specified, terminal width is auto-detected (COLUMNS or default 120)
-  # Recommended wrap range: 80-120 columns
+  # Wrap at a specific column width
+  opnDossier display --wrap 100 config.xml
 
-  # Display with narrow terminal wrapping
-  opnDossier display --wrap 80 config.xml
-
-  # Display without text wrapping
+  # Disable text wrapping
   opnDossier display --no-wrap config.xml
 
-  # Display without text wrapping (using --wrap 0)
-  opnDossier display --wrap 0 config.xml
-
-  # Redact sensitive fields from terminal output
+  # Redact sensitive fields from the rendered output
   opnDossier display --redact config.xml
 
-  # Display with verbose logging to see processing details
-  opnDossier --verbose display config.xml
-
-  # Display with quiet mode (suppress processing messages)
-  opnDossier --quiet display config.xml`,
+  # Verbose logging for troubleshooting
+  opnDossier --verbose display config.xml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

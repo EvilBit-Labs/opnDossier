@@ -143,8 +143,8 @@ func TestAuditCmdHelpOutput(t *testing.T) {
 
 	// Verify the full audit mode description strings from auditCmd.Long
 	modeDescriptions := []string{
-		"blue      - Defensive audit with security findings and recommendations (default)",
-		"red       - Attacker-focused recon report highlighting attack surfaces",
+		"blue  - Defensive audit with security findings and recommendations (default)",
+		"red   - Attacker-focused recon report highlighting attack surfaces",
 	}
 
 	for _, desc := range modeDescriptions {

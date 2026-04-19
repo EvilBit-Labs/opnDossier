@@ -113,36 +113,40 @@ var sanitizeCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Long: `The 'sanitize' command redacts sensitive information from OPNsense configuration
 files, making them safe to share for troubleshooting, documentation, or public
 reporting without exposing credentials, IP addresses, or other sensitive data.
+Unlike --redact on other commands (which only affects the rendered output),
+sanitize rewrites the source config.xml itself.
 
-  SANITIZATION MODES:
-  Choose the appropriate mode based on your sharing context:
+SANITIZATION MODES:
+  Choose the mode with --mode/-m based on your sharing context:
 
-    aggressive   - Maximum redaction for public sharing (forums, GitHub issues)
-                   Redacts: passwords, keys, certificates, all IPs, MACs, emails,
-                   hostnames, usernames, domains, OTP seeds, WireGuard endpoints,
-                   tunnel addresses, subnets, Cloudflare account/zone IDs, public keys
+    aggressive  - Maximum redaction for public sharing (forums, GitHub issues).
+                  Redacts passwords, keys, certificates, all IPs, MACs, emails,
+                  hostnames, usernames, domains, OTP seeds, WireGuard endpoints,
+                  tunnel addresses, subnets, Cloudflare IDs, public keys.
 
-    moderate     - Balanced redaction for internal sharing (default)
-                   Redacts: passwords, keys, authserver values, public IPs, MACs, emails
-                   Preserves: private IPs, hostnames (for network topology analysis)
+    moderate    - Balanced redaction for internal sharing (default).
+                  Redacts passwords, keys, authserver values, public IPs, MACs,
+                  emails. Preserves private IPs and hostnames for topology analysis.
 
-    minimal      - Credentials + authserver redaction for trusted environments
-                   Redacts: passwords, secrets, API keys, PSKs, private keys, SSH keys,
-                   authserver values
-                   Preserves: certificates, all network information
+    minimal     - Credentials + authserver redaction for trusted environments.
+                  Redacts passwords, secrets, API keys, PSKs, private keys, SSH
+                  keys, and authserver values. Preserves all network information.
 
-  REFERENTIAL INTEGRITY:
-  The sanitizer maintains consistent mappings throughout the document:
-  - Same original value → same redacted value
-  - Network relationships remain visible (e.g., 192.168.1.1 → 10.0.0.1)
-  - Use --mapping flag to save the mapping file for reverse lookup
+REFERENTIAL INTEGRITY:
+  The sanitizer keeps consistent mappings inside a single run:
+    - The same original value is always replaced with the same redacted value.
+    - Network relationships remain visible (e.g. 192.168.1.1 -> 10.0.0.1).
+  Use --mapping to write a JSON reverse-lookup table alongside the output.
 
-  OUTPUT:
-  By default, sanitized output is printed to stdout. Use -o to save to a file.
-  The --mapping flag generates a JSON file documenting all original→redacted mappings.
+OUTPUT:
+  By default, sanitized XML is printed to stdout. Use --output/-o to save to a
+  file, and --force to overwrite an existing file. Sanitize never modifies the
+  input in place.
 
-Examples:
-  # Sanitize for public sharing (maximum redaction)
+RELATED:
+  convert    - Use --redact for single-pass redaction of the rendered report
+  audit      - Use --redact to keep audit output safe to share`,
+	Example: `  # Sanitize for public sharing (maximum redaction)
   opnDossier sanitize config.xml --mode aggressive -o config-sanitized.xml
 
   # Sanitize for internal sharing (default mode)
@@ -151,10 +155,10 @@ Examples:
   # Sanitize with mapping file for reverse lookup
   opnDossier sanitize config.xml -o sanitized.xml --mapping mappings.json
 
-  # Minimal redaction (credentials and authserver values)
+  # Minimal redaction (credentials and authserver values only)
   opnDossier sanitize config.xml --mode minimal
 
-  # Force overwrite existing files
+  # Force overwrite of an existing file
   opnDossier sanitize config.xml -o output.xml --force
 
   # Pipe to another command

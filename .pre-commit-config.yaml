@@ -43,7 +43,12 @@ repos:
           - mdformat-toc
           - mdformat-front-matters
         types: [markdown]
-        exclude: \.golden\.md$
+        # Exclude:
+        # - *.golden.md: golden test fixtures must match Cobra output byte-for-byte
+        # - docs/cli/: Cobra-generated CLI reference — mdformat would collapse the
+        #   indented prose blocks into single lines that then diverge from the
+        #   regenerated output on every `just generate-cli-docs` run.
+        exclude: (\.golden\.md$|^docs/cli/)
 
   # Go linting — mirrors `just lint` / CI lint job. Uses local hooks that
   # delegate to the mise-pinned golangci-lint (mise.toml → 2.11.4) to keep a
