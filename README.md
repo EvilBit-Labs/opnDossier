@@ -192,7 +192,7 @@ If you plan to contribute, install the pre-commit and commit-msg git hooks so fa
 ```bash
 just install   # runs mise install, installs hook types, tidies modules
 # or, manually:
-pre-commit install --hook-type pre-commit --hook-type commit-msg
+mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
 Run `just ci-check` manually before pushing for the full quality bar (lint, tests, race detector). See [CONTRIBUTING.md §Development Setup](CONTRIBUTING.md#development-setup) for details.

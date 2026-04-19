@@ -46,7 +46,7 @@ just test
 If you need to install the hooks manually (e.g., after cloning into a worktree or when `just install` was not run), use:
 
 ```bash
-pre-commit install --hook-type pre-commit --hook-type commit-msg
+mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
 ### Git Hooks

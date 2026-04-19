@@ -11,7 +11,7 @@ The `cmd/` package uses package-level global variables for CLI flags (required b
 - **Problem:** Concurrent tests modifying `sharedDeviceType`, `sharedAuditMode`, or the `rootCmd` flag set will cause non-deterministic data races.
 - **Symptom:** `just test-race` fails with "DATA RACE" reports in the `cmd` package.
 - **Solution:** Remove `t.Parallel()` from the parent test and all subtests that interact with global flags. Use `t.Cleanup()` to restore original global values after the test.
-- **Enforcement:** The `.golangci.yml` `forbidigo` rule forbids `t.Parallel()` anywhere in `cmd/` — catches the regression at lint time (GOTCHAS §12). The race detector itself runs only locally via `just test-race` (or `just ci-check`); CI cannot host it reliably, and a prior pre-push `just ci-check` hook broke non-interactive push clients. See [CONTRIBUTING.md § Git Hooks](CONTRIBUTING.md#git-hooks) for the current setup.
+- **Enforcement:** The `.golangci.yml` `forbidigo` rule forbids `t.Parallel()` anywhere in `cmd/` — catches the regression at lint time. The race detector itself runs only locally via `just test-race` (or `just ci-check`); CI cannot host it reliably, and a prior pre-push `just ci-check` hook broke non-interactive push clients. See [CONTRIBUTING.md § Git Hooks](CONTRIBUTING.md#git-hooks) for the current setup.
 
 ### 1.2 Race Detector Collateral
 

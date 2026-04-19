@@ -40,6 +40,39 @@ func nonGapWarnings(ws []common.ConversionWarning) []common.ConversionWarning {
 	return out
 }
 
+// TestConverter_KnownGapWarnings_Contract directly pins the known-gap
+// warning emission contract so per-feature assertions can continue to use
+// nonGapWarnings (which hides these) without masking a regression that
+// drops the warnings entirely. If the converter stops emitting them, the
+// parity test at pkg/parser/parity_test.go also fails — this local test
+// fails first and points at the fix site (emitKnownGapWarnings in
+// pkg/parser/pfsense/converter.go).
+func TestConverter_KnownGapWarnings_Contract(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	_, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	var gapWarnings []common.ConversionWarning
+	for _, w := range warnings {
+		if w.Message == pfsense.PfsenseKnownGapMessage {
+			gapWarnings = append(gapWarnings, w)
+		}
+	}
+
+	require.Len(t, gapWarnings, len(pfsense.KnownGaps()))
+
+	fields := make([]string, 0, len(gapWarnings))
+	for _, w := range gapWarnings {
+		assert.Equal(t, common.SeverityMedium, w.Severity)
+		assert.Empty(t, w.Value)
+		fields = append(fields, w.Field)
+	}
+
+	assert.ElementsMatch(t, pfsense.KnownGaps(), fields)
+}
+
 // --- Parser.Parse tests ---
 
 func TestParser_Parse(t *testing.T) {
