@@ -173,10 +173,10 @@ func (g *HybridGenerator) Generate(_ context.Context, data *common.CommonDevice,
 //     hit that Generate incurs (marshaled bytes plus their string(...) conversion
 //     both resident at once). Partial output can land in w before an error.
 //   - Markdown: sections are written incrementally ONLY when the builder
-//     implements `builder.SectionWriter` (see generateMarkdownToWriter and the
-//     SectionWriter branch in GenerateHybrid). Otherwise the fallback
-//     generates the full string via Generate and writes it in one shot —
-//     identical to Generate's memory profile.
+//     implements `builder.SectionWriter` — see the SectionWriter branch in
+//     generateMarkdownToWriter. Otherwise the fallback generates the full
+//     string via Generate and writes it in one shot — identical to Generate's
+//     memory profile.
 //   - Plain text and HTML: generatePlainTextToWriter / generateHTMLToWriter
 //     build the full string first and then write it; nothing is flushed on
 //     error.
@@ -404,6 +404,13 @@ func (g *HybridGenerator) generatePlainText(data *common.CommonDevice, opts Opti
 }
 
 // generatePlainTextToWriter writes plain text output directly to the writer.
+//
+// NOT streaming: builds the full string via generatePlainText first, then
+// writes it in one io.WriteString call. Nothing is flushed to w until the
+// whole output is ready. If generation fails, the writer is untouched. If
+// the WriteString fails partway through, partial bytes may land in w but
+// the caller has no way to know how many — treat a non-nil error as
+// "output is incomplete, discard what was written.".
 func (g *HybridGenerator) generatePlainTextToWriter(
 	w io.Writer,
 	data *common.CommonDevice,
@@ -433,6 +440,13 @@ func (g *HybridGenerator) generateHTML(data *common.CommonDevice, opts Options) 
 }
 
 // generateHTMLToWriter writes HTML output directly to the writer.
+//
+// NOT streaming: same semantics as generatePlainTextToWriter — builds the
+// full string via generateHTML first, then writes in one io.WriteString
+// call. HTML requires complete document serialization (full markdown render
+// → goldmark conversion) before any bytes can be emitted, so all-or-nothing
+// writes are the right semantic here. A non-nil error means the output is
+// incomplete; do not treat partial bytes in w as valid HTML.
 func (g *HybridGenerator) generateHTMLToWriter(
 	w io.Writer,
 	data *common.CommonDevice,

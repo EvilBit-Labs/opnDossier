@@ -25,7 +25,7 @@ opnDossier conv [file ...] [flags]
       --force              Force overwrite existing files without prompting for confirmation
   -f, --format string      Output format for conversion (markdown, json, yaml, text, html) (default "markdown")
   -h, --help               help for conv
-      --include-tunables   Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)
+      --include-tunables   Include all system tunables in the rendered report (ignored for JSON/YAML, which always include every tunable)
       --no-wrap            Disable text wrapping (alias for --wrap 0)
   -o, --output string      Output file path for saving converted configuration (default: print to console)
       --redact             Redact sensitive fields (passwords, keys, community strings) in output

@@ -34,7 +34,7 @@ related_docs:
   - docs/solutions/architecture-issues/pluggable-deviceparser-registry-pattern.md
   - docs/solutions/architecture-issues/pkg-internal-import-boundary.md
   - docs/plans/2026-04-18-002-fix-issue-558-parser-on-value.md
-  - https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#15-liberal-boolean-and-integer-parsing
+  - GOTCHAS.md#15-liberal-boolean-and-integer-parsing
 ---
 
 # Liberal Boolean Parsing for OPNsense/pfSense config.xml
