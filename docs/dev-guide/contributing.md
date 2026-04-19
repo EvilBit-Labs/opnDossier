@@ -28,7 +28,10 @@ Finally, opnDossier has explicit **ethical constraints**: no telemetry, no dark 
 
 #### Go Support Policy
 
-opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI exercises both versions on every PR via a `stable` + `oldstable` matrix. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
+opnDossier requires Go 1.26 or later. The `go 1.26` directive in `go.mod` enables language features (including `reflect.Value.Fields()` iter.Seq2, added in 1.26) that older toolchains cannot compile. CI exercises a single Go version (pinned via `mise.toml`) across Linux, macOS, and Windows.
+
+> [!NOTE]
+> Once Go 1.27 ships and 1.26 becomes `oldstable`, the N/N-1 support policy and `go-version: [stable, oldstable]` CI matrix will be reinstated — see the TODO in `.github/workflows/ci.yml` for the checklist.
 
 ### Getting Started
 
