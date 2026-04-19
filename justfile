@@ -85,7 +85,7 @@ _update-precommit: _update-python
 
 [private]
 _mise-update:
-    @mise upgrade --bump
+    @mise upgrade --bump --local
     @mise install
 
 # Install security and SBOM tools (cyclonedx-gomod, gosec)
