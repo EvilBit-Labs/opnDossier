@@ -370,7 +370,7 @@ type ConversionWarning struct {
     // Message is a human-readable description of the issue.
     Message string
     // Severity indicates the importance of the warning.
-    Severity analysis.Severity
+    Severity model.Severity
 }
 ```
 

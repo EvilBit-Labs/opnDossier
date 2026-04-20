@@ -107,7 +107,10 @@ func (e *RuleEngine) GetMapper() *Mapper {
 }
 
 // ShouldRedactField determines if a field should be redacted based on its name.
-func (e *RuleEngine) ShouldRedactField(fieldName string) (bool, *Rule) {
+// The returned Rule is a copy of the matched cache entry — callers cannot
+// mutate the shared builtin rules through it. The matched bool is the gate;
+// the Rule zero-value is returned when no rule matches.
+func (e *RuleEngine) ShouldRedactField(fieldName string) (bool, Rule) {
 	for i := range e.rules {
 		rule := &e.rules[i]
 		if !e.ruleActiveForMode(rule) {
@@ -115,15 +118,17 @@ func (e *RuleEngine) ShouldRedactField(fieldName string) (bool, *Rule) {
 		}
 		for _, pattern := range rule.FieldPatterns {
 			if fieldNameMatches(fieldName, pattern) {
-				return true, rule
+				return true, *rule
 			}
 		}
 	}
-	return false, nil
+	return false, Rule{}
 }
 
 // ShouldRedactValue determines if a value should be redacted based on its content.
-func (e *RuleEngine) ShouldRedactValue(fieldName, value string) (bool, *Rule) {
+// Returns a copied Rule by value — see ShouldRedactField for the mutation-safety
+// contract.
+func (e *RuleEngine) ShouldRedactValue(fieldName, value string) (bool, Rule) {
 	// First check field-based rules
 	if should, rule := e.ShouldRedactField(fieldName); should {
 		return true, rule
@@ -136,16 +141,16 @@ func (e *RuleEngine) ShouldRedactValue(fieldName, value string) (bool, *Rule) {
 			continue
 		}
 		if rule.ValueDetector != nil && rule.ValueDetector(value) {
-			return true, rule
+			return true, *rule
 		}
 	}
-	return false, nil
+	return false, Rule{}
 }
 
 // Redact applies the appropriate redaction for a field/value pair.
 func (e *RuleEngine) Redact(fieldName, value string) string {
 	should, rule := e.ShouldRedactValue(fieldName, value)
-	if !should || rule == nil {
+	if !should {
 		return value
 	}
 	return e.redactWithRule(rule, fieldName, value)
@@ -154,16 +159,17 @@ func (e *RuleEngine) Redact(fieldName, value string) string {
 // RedactWithRule applies a specific rule's Redactor to the given field/value pair.
 // Use this when you already have the matched rule from ShouldRedactValue to avoid
 // a redundant rule lookup (which could match a different rule than the one tracked
-// for statistics).
-func (e *RuleEngine) RedactWithRule(rule *Rule, fieldName, value string) string {
-	if rule == nil {
+// for statistics). A zero-value Rule is treated as "no rule" and the input value
+// is returned unchanged.
+func (e *RuleEngine) RedactWithRule(rule Rule, fieldName, value string) string {
+	if rule.Name == "" && rule.Redactor == nil {
 		return value
 	}
 	return e.redactWithRule(rule, fieldName, value)
 }
 
 // redactWithRule applies the given rule's Redactor, falling back to the generic mapper.
-func (e *RuleEngine) redactWithRule(rule *Rule, fieldName, value string) string {
+func (e *RuleEngine) redactWithRule(rule Rule, fieldName, value string) string {
 	if rule.Redactor != nil {
 		return rule.Redactor(e.mapper, fieldName, value)
 	}

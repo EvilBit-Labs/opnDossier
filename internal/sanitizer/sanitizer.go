@@ -257,7 +257,7 @@ func (s *Sanitizer) sanitizeCharData(content string, pathStack []string) string 
 		return redacted
 	}
 	s.stats.RedactedFields++
-	if rule != nil {
+	if rule.Name != "" {
 		s.stats.RedactionsByType[rule.Name]++
 	}
 	return redacted
@@ -278,7 +278,7 @@ func (s *Sanitizer) sanitizeValue(fieldName, value string) string {
 	redacted := s.engine.RedactWithRule(rule, fieldName, value)
 	if redacted != value {
 		s.stats.RedactedFields++
-		if rule != nil {
+		if rule.Name != "" {
 			s.stats.RedactionsByType[rule.Name]++
 		}
 	} else {
@@ -305,7 +305,7 @@ func (s *Sanitizer) sanitizeCommentContent(content string) string {
 			redacted := s.engine.RedactWithRule(rule, "comment", word)
 			if redacted != word {
 				s.stats.RedactedFields++
-				if rule != nil {
+				if rule.Name != "" {
 					s.stats.RedactionsByType[rule.Name]++
 				}
 				words[i] = redacted
