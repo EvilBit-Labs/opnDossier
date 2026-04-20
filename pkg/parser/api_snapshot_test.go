@@ -28,15 +28,23 @@ import (
 const apiSnapshotFixtureDir = "testdata/api-snapshots"
 
 // captureGoDoc runs `go doc -all <packagePath>` and returns the raw output.
-// The -all flag keeps only exported identifiers — which is exactly what we
-// want to snapshot. The command is run under the test's context so `go test`
-// timeout propagation and cancellation work correctly.
+// Go doc without `-all` already limits output to exported identifiers; `-all`
+// expands that to include unexported declarations *plus* method bodies for
+// unexported types reachable from exported APIs. The snapshot still filters
+// to the exported surface (unexported identifiers are at most structural
+// context for exported types they back), so `-all` gives the diff-friendly
+// stable shape we want to freeze.
+//
+// CombinedOutput is used so `go doc` diagnostics emitted to stderr land in
+// the failure message — otherwise a missing or mistyped package path fails
+// the test with no context. The command runs under the test's context so
+// `go test` timeout propagation and cancellation work correctly.
 func captureGoDoc(t *testing.T, packagePath string) []byte {
 	t.Helper()
 
 	cmd := exec.CommandContext(t.Context(), "go", "doc", "-all", packagePath)
-	out, err := cmd.Output()
-	require.NoErrorf(t, err, "go doc -all %s failed", packagePath)
+	out, err := cmd.CombinedOutput()
+	require.NoErrorf(t, err, "go doc -all %s failed: %s", packagePath, out)
 
 	return out
 }

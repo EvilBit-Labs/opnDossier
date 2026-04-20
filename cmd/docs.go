@@ -10,9 +10,11 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-// defaultDocsOutputDir is the default output directory for Cobra-generated markdown docs.
-// It is relative to the repo root so that `just generate-cli-docs` from any working
-// directory produces a consistent location under docs/cli/.
+// defaultDocsOutputDir is the default output directory for Cobra-generated
+// markdown docs. It is a relative path resolved against the current working
+// directory, so contributors should invoke `just generate-cli-docs` from the
+// repo root (the Justfile does). Running `opnDossier docs` from a different
+// directory will write under that directory's docs/cli/ instead.
 const defaultDocsOutputDir = "docs/cli/"
 
 // docsCmd generates markdown reference pages for every opnDossier command using
@@ -58,10 +60,11 @@ func runGenerateMarkdownDocs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 	}
 
-	// linkHandler keeps cross-links readable on the MkDocs site. Cobra's default
-	// handler appends .md to every reference — we keep that but also strip the
-	// leading "opnDossier_" prefix to match the file names that GenMarkdownTree
-	// writes.
+	// linkHandler is an identity function: GenMarkdownTreeCustom already emits
+	// cross-references as "opnDossier_foo.md" which matches the actual file
+	// names it writes, so no rewriting is needed. Kept as an explicit handler
+	// so a future change (e.g., flattening the "opnDossier_" prefix for a
+	// differently-structured MkDocs nav) has an obvious hook.
 	linkHandler := func(name string) string {
 		return name
 	}

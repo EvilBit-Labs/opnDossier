@@ -45,7 +45,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: [stable, oldstable]
+        # go.mod declares go 1.26 and the codebase uses 1.26-only features
+        # (reflect.Value.Fields iter.Seq2, for-range over int, etc.), so
+        # `oldstable` (Go 1.25) cannot compile it. The matrix sticks to
+        # `stable` until the module minimum drops back to N-1.
+        go-version: [stable]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 

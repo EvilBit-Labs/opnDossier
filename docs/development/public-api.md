@@ -25,7 +25,9 @@ These packages are intended for direct consumption by other Go modules. Their ex
 
 #### Idiomatic consumer entry point
 
-`opnsense.ConvertDocument(*schema.OpnSenseDocument)` and `pfsense.ConvertDocument(*pfsense.Document)` are the **idiomatic, primary** public-API entry points for Go consumers that already have a parsed vendor DTO. Parse the XML once (with `encoding/xml`, `parser.NewSecureXMLDecoder`, or your own decoder), then call `ConvertDocument` as many times as you need. No blank imports required — the caller references the concrete package directly, so the registry is not involved.
+`opnsense.ConvertDocument(*schema.OpnSenseDocument)` and `pfsense.ConvertDocument(*pfschema.Document)` are the **idiomatic, primary** public-API entry points for Go consumers that already have a parsed vendor DTO. Parse the XML once (with `encoding/xml`, `parser.NewSecureXMLDecoder`, or your own decoder), then call `ConvertDocument` as many times as you need. No blank imports required — the caller references the concrete package directly, so the registry is not involved.
+
+The `pfschema` alias in the signature above disambiguates the schema package (`pkg/schema/pfsense`) from the parser package (`pkg/parser/pfsense`) — both are named `pfsense` on disk, so a real consumer importing both must alias one. The OPNsense side has the same collision but uses the long-standing convention of importing `pkg/schema/opnsense` as `schema`.
 
 `parser.Factory.CreateDevice(ctx, reader, deviceTypeOverride, validateMode)` is the **auto-detection escape hatch** — the path you use when you have a `reader` but no pre-parsed DTO. The factory peeks the XML root element, dispatches to the registered parser for that device type, and returns a converted `CommonDevice`. `Factory` is stable and covered by the same semver commitments as the rest of `pkg/parser`, but consumers should treat it as a convenience wrapper over `ConvertDocument` rather than the canonical entry point. Auto-detection requires blank imports of the device parser packages so their `init()` functions can self-register (see [Registration Contract](#registration-contract-blank-imports)).
 

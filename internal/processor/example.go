@@ -251,9 +251,10 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 //
 // This is a reference implementation covering a narrow slice of checks
 // (administrative users, time synchronization, and audit logging). Real
-// compliance evaluation runs through the plugin system in pkg/plugins and the
-// `audit blue` mode — extend those rather than this example when adding new
-// compliance rules.
+// compliance evaluation runs through the plugin system under
+// `internal/plugins/` (firewall, sans, stig) invoked via the audit engine
+// and the `audit blue` mode — extend those rather than this example when
+// adding new compliance rules.
 func (p *ExampleProcessor) performComplianceCheck(
 	ctx context.Context,
 	cfg *common.CommonDevice,
