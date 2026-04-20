@@ -70,50 +70,77 @@ The `--plugins` flag requires `--mode blue`. It is rejected for red mode.
 
 ## Dynamic Plugins
 
-The `--plugin-dir` flag specifies a directory containing dynamic `.so` files that implement the `compliance.Plugin` interface (exporting `var Plugin compliance.Plugin`).
-
-- Failed dynamic plugin loads are non-fatal -- the audit continues with available plugins and logs warnings for any failures
-- When `--plugin-dir` is explicitly provided and the directory is missing, an error is returned
+The `--plugin-dir` flag specifies a directory containing dynamic `.so` files that implement the `compliance.Plugin` interface.
 
 ```bash
 opndossier audit config.xml --mode blue --plugin-dir /opt/plugins
 ```
 
-See the [Plugin Development Guide](../../development/plugin-development.md) for details on creating compliance plugins.
+- Loading is **opt-in**. Without `--plugin-dir`, no dynamic plugins are loaded.
+- Failed plugin loads are **non-fatal** — the audit continues with the plugins that did load, and each failure is recorded in the audit log.
+- If `--plugin-dir` points at a missing directory, opnDossier returns an error before running the audit.
+
+Before you use `--plugin-dir` in production, read the next section. Dynamic plugins run inside the opnDossier process with full user privileges, and opnDossier does not verify who built them.
+
+See the [Plugin Development Guide](../../development/plugin-development.md) if you need to write your own compliance plugin.
 
 ## Dynamic Plugin Security
 
-!!! warning "Trust model"
-    `--plugin-dir` is opt-in and the loader is deliberately minimal. Treat every `.so` file the same way you would treat an unsigned executable.
+!!! danger "Trust model"
+    A dynamic plugin runs with the same privileges as opnDossier itself. There is no sandbox, no signature check, and no provenance verification. Treat every `.so` file you drop into `--plugin-dir` exactly as you would treat an unsigned executable that you are about to run as the current user — because that is effectively what happens.
 
-When `--plugin-dir` is supplied, opnDossier loads every `.so` file in that directory via Go's standard `plugin.Open()` mechanism. Loading is opt-in — without `--plugin-dir`, the dynamic loader never runs. A stderr warning is emitted each time `--plugin-dir` is non-empty. The plugin directory path is normalized to an absolute path before the preflight runs so relative paths (e.g. `--plugin-dir ./plugins`) work correctly and the audit log records the canonical path.
+Every time you pass a non-empty `--plugin-dir`, opnDossier writes a warning to stderr to make the risk visible at invocation time.
 
-The loader accepts the following trade-offs by design:
+### What the loader does for you
 
-- **Full process privileges.** A loaded plugin executes inside the opnDossier process with the same user, file-system, and network permissions. There is no sandbox, privilege separation, or capability restriction.
-- **No signature verification.** The loader performs no checksum, signature, or provenance check on `.so` files. Any file ending in `.so` in the plugin directory that passes preflight will be loaded and executed.
-- **Opt-in only.** Plugins are never fetched from remote sources. Loading requires an explicit `--plugin-dir` flag.
+These restrictions are enforced automatically. A plugin file that fails any of them is rejected before it is loaded, and the rejection is written to the audit log with enough metadata (path, SHA-256, file mode, owner UID, size, verdict, reason) for a security team to investigate:
 
-### Phase A preflight
+| Check                           | Behavior                                                                                                                                                                                    | Platforms                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **Symlink rejection**           | The `.so` itself cannot be a symlink. A symlink planted in `--plugin-dir` that points at an attacker-controlled file elsewhere is refused.                                                  | All platforms             |
+| **File permission check**       | The `.so` must not be group-writable or world-writable (`mode & 0o022 == 0`).                                                                                                               | POSIX (Linux, macOS, BSD) |
+| **Directory permission check**  | The `--plugin-dir` directory itself must not be group-writable or world-writable. A locked-down `.so` inside a world-writable directory is refused because an attacker could swap the file. | POSIX (Linux, macOS, BSD) |
+| **Absolute path normalization** | A relative `--plugin-dir` (e.g. `./plugins`) is resolved to an absolute path before any check runs, so the audit log and preflight always work on a canonical path.                         | All platforms             |
+| **Size cap (64 MiB)**           | A plugin's SHA-256 is computed during the preflight with a 64 MiB read cap. A `.so` larger than 64 MiB is rejected rather than memory-mapped.                                               | All platforms             |
+| **SHA-256 audit trail**         | Every accepted or rejected load is logged with the file's SHA-256 digest, so the specific binary that ran (or was refused) is identifiable after the fact.                                  | All platforms             |
 
-Before `plugin.Open()` runs on any candidate, a preflight pass enforces the following checks and emits a structured audit log entry (INFO for accepted, WARN for rejected) with path, SHA-256, mode, owner UID, size, verdict, and reason:
+On Windows, the file and directory permission-bit checks are skipped because NTFS ACLs do not map cleanly onto POSIX mode bits. Symlink rejection, absolute-path normalization, size cap, and SHA-256 logging still apply.
 
-- **Symlinks rejected.** `os.Lstat` rejects any `.so` that is itself a symlink. This closes the attack where a link in the plugin directory points at an attacker-controlled file elsewhere on disk.
-- **Group/world-writable plugin files rejected** (POSIX only). Writable-by-other files fail preflight.
-- **Group/world-writable plugin directories rejected** (POSIX only). The containing directory must itself be write-restricted.
-- **Absolute paths required.** Relative paths that bypass normalization are rejected; `LoadDynamicPlugins` resolves `--plugin-dir` to an absolute path before preflight.
-- **SHA-256 audit trail.** The file digest is computed with a 64 MiB cap so the audit log can identify the artifact even when `plugin.Open` subsequently fails.
+### What the loader does NOT do
 
-On Windows the permission-bit checks are skipped (NTFS permissions do not map cleanly to POSIX mode bits) but symlink and absolute-path checks still run.
+- **No signature or checksum verification.** opnDossier does not check a plugin against a known-good hash, a TUF manifest, or a code-signing certificate. Any `.so` that passes the preflight will run.
+- **No sandboxing or privilege separation.** A plugin has the same file-system, network, and process privileges as the opnDossier binary. If opnDossier can read `/etc/shadow`, so can a malicious plugin.
+- **No capability restriction.** Plugins can open sockets, spawn subprocesses, read and write arbitrary files, and call any Go standard-library function.
+- **No remote fetch.** opnDossier never downloads plugins. If a `.so` appears in your plugin directory, it got there through your deployment pipeline — verify that pipeline.
 
-Before enabling `--plugin-dir`:
+### Operator responsibilities
 
-- Restrict filesystem permissions on the plugin directory so only trusted operators can drop files in it. Avoid world-writable paths, `/tmp`, and shared CI scratch directories.
-- Review plugin source code and build plugins from known-good checkouts.
-- Keep the plugin directory out of paths that untrusted processes (user shells on a shared host, CI runners accepting external PRs) can write to.
-- Pin plugin builds to the same Go toolchain and module set as the opnDossier binary — a version mismatch is caught at load time, but only after the `.so` has been mapped into the process.
+Because opnDossier's loader cannot make strong guarantees by itself, you are responsible for the rest:
 
-Phase B hardening (owner-UID check, configurable size cap, path denylist, filename allowlist, optional SHA-256 manifest, sandboxing) is tracked for post-v1.5.
+- **Own the plugin directory.** Set filesystem permissions so only trusted operators can write to it. Mode `0o755` on a directory owned by a dedicated deployment user is typical; avoid world-writable paths, `/tmp`, and any CI scratch directory that external contributors can reach.
+- **Vet the plugin source.** Build plugins from known-good checkouts that you have reviewed. Do not load plugins you received as compiled `.so` files from untrusted sources.
+- **Pin the Go toolchain.** Plugins must be built with the same Go toolchain and module versions as the opnDossier binary. A mismatch is detected at load time, but only *after* the `.so` has been mapped into the process — which means any malicious `init()` code has already executed.
+- **Review the audit log.** Every load attempt, accepted or rejected, is logged with the plugin's SHA-256. Ship these logs to your SIEM and alert on rejections.
+- **Keep `--plugin-dir` out of CI that accepts external PRs.** A contributor who can write to your plugin directory can execute arbitrary code in your audit pipeline.
+
+### Threat scenarios the preflight blocks
+
+| Scenario                                                                                              | Blocked by                     |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Attacker plants `evil.so` in `/tmp/plugins` by dropping a symlink from the plugin dir                 | Symlink rejection              |
+| Plugin file is world-writable (`mode 0o666`) and an attacker swaps it after deployment                | File permission check          |
+| Plugin file is mode `0o600` but lives in `/tmp/plugins` (world-writable dir)                          | Directory permission check     |
+| Attacker replaces a legitimate 500 KB plugin with a 1 GB plugin crafted to exhaust memory during hash | Size cap + SHA-256 audit trail |
+| Forensic investigation needs to know which binary ran on a given date                                 | SHA-256 audit trail            |
+
+### Threat scenarios the preflight does NOT block
+
+| Scenario                                                                                    | Mitigation                                                      |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Legitimate-looking plugin from an untrusted source contains a backdoor in `init()`          | Review source; build from a trusted checkout                    |
+| Deployment pipeline is compromised and pushes a signed-looking plugin                       | Sign your own plugins; verify in your pipeline                  |
+| Plugin exfiltrates data via network after load                                              | Run opnDossier without network access if you cannot vet plugins |
+| Plugin-built-for-wrong-Go-version executes malicious init() before the mismatch is detected | Pin the Go toolchain and do not load stale plugins              |
 
 **Further reading:** [Plugin Development Guide — Security Model](../../development/plugin-development.md#security-model) and [GOTCHAS §2.5 — Dynamic Plugin Trust Model](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#25-dynamic-plugin-trust-model).
 
