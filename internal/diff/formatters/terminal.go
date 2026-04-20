@@ -206,6 +206,11 @@ func (f *TerminalFormatter) formatChange(change diff.Change) error {
 			symbol = f.styles.removed.Render(symbol)
 		case diff.ChangeModified:
 			symbol = f.styles.modified.Render(symbol)
+		case diff.ChangeReordered:
+			// Reordered changes keep the default (unstyled) symbol from
+			// change.Type.Symbol() because reorders are lower-signal than
+			// add/remove/modify and should not compete with them for
+			// attention. No dedicated style is defined in terminalStyles.
 		}
 	}
 

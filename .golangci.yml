@@ -28,9 +28,7 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - exhaustive - Staged-enable: TODO sweep the 9 current findings, then
-    #   uncomment. No threshold to tune; each finding is a missing case in a
-    #   type-switch / switch-over-enum.
+    - exhaustive
     # - exhaustruct - Disabled: the project's idiom for declarative data (compliance
     #   plugin Control tables, diff/sanitizer rule lists, config validation records)
     #   is partial struct literals with intentionally zero-valued optional fields.
@@ -181,6 +179,12 @@ linters:
       check:
         - switch
         - map
+      # Any switch with a default: branch is treated as exhaustive. This
+      # matches the project's convention where partial switches on large
+      # enum-style types (e.g., reflect.Kind) include an explicit default
+      # that documents "no-op for kinds not listed" rather than listing
+      # every kind just to satisfy the linter.
+      default-signifies-exhaustive: true
     forbidigo:
       # Type-aware matching so we catch t.Parallel() regardless of the local
       # variable name (t, tt, tc, etc.).

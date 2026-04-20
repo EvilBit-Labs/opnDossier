@@ -445,6 +445,14 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, pathStack []string, sliceId
 				v.SetString(sanitized)
 			}
 		}
+
+	default:
+		// No-op for primitive kinds (bool, int family, float family,
+		// complex, uintptr, chan, func, interface, array,
+		// unsafe.Pointer). Sanitization only applies to strings, and
+		// containers (struct/slice/map) are recursed into above. The
+		// primitive no-op is intentional — adding sanitization to a
+		// bool field would not produce a meaningful redaction.
 	}
 
 	return nil
