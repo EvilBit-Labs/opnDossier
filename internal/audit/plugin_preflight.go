@@ -38,6 +38,11 @@ const (
 	// log aggregator) can filter on these verdict strings.
 	pluginVerdictAccepted = "accepted"
 	pluginVerdictRejected = "rejected"
+
+	// pluginOwnerUIDUnavailable is the audit-log value recorded for the
+	// owner UID on platforms where it cannot be extracted (Windows, or any
+	// os.FileInfo implementation that does not carry a *syscall.Stat_t).
+	pluginOwnerUIDUnavailable = "unavailable"
 )
 
 // pluginPreflightResult captures the metadata collected while validating a
@@ -79,7 +84,7 @@ func runPluginPreflight(path string) pluginPreflightResult {
 	res := pluginPreflightResult{
 		name:     filepath.Base(path),
 		path:     path,
-		ownerUID: "unavailable",
+		ownerUID: pluginOwnerUIDUnavailable,
 		verdict:  pluginVerdictRejected,
 	}
 

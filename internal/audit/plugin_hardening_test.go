@@ -656,10 +656,9 @@ func TestExtractOwnerUID_NilInfo(t *testing.T) {
 		t.Skip("extractOwnerUID is POSIX-only")
 	}
 
-	const wantUnavailable = "unavailable"
 	uid := extractOwnerUID(nil)
-	if uid != wantUnavailable {
-		t.Errorf("extractOwnerUID(nil) = %q, want %q", uid, wantUnavailable)
+	if uid != pluginOwnerUIDUnavailable {
+		t.Errorf("extractOwnerUID(nil) = %q, want %q", uid, pluginOwnerUIDUnavailable)
 	}
 }
 
@@ -680,7 +679,7 @@ func TestExtractOwnerUID_RealFile(t *testing.T) {
 	}
 
 	uid := extractOwnerUID(info)
-	if uid == "unavailable" { //nolint:goconst // local assertion, not a shared const
+	if uid == pluginOwnerUIDUnavailable {
 		t.Errorf("extractOwnerUID(realFile) = %q, want a numeric UID", uid)
 	}
 	// Assert it parses as a number.
