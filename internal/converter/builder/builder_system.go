@@ -12,141 +12,109 @@ import (
 // writeSystemSection writes the system configuration section to the markdown instance.
 func (b *MarkdownBuilder) writeSystemSection(md *markdown.Markdown, data *common.CommonDevice) {
 	sys := data.System
+	md.H2("System Configuration")
 
-	md.H2("System Configuration").
-		H3("Basic Information").
+	writeSystemBasics(md, sys)
+	writeSystemWebGUI(md, sys)
+	writeSystemSettings(md, sys)
+	writeSystemHardwareOffloading(md, sys)
+	writeSystemPowerManagement(md, sys)
+	writeSystemFeatures(md, sys)
+	writeSystemMisc(md, sys)
+
+	if len(data.Users) > 0 {
+		b.WriteUserTable(md.H3("System Users"), data.Users)
+	}
+	if len(data.Groups) > 0 {
+		b.WriteGroupTable(md.H3("System Groups"), data.Groups)
+	}
+}
+
+func writeSystemBasics(md *markdown.Markdown, sys common.System) {
+	md.H3("Basic Information").
 		PlainTextf("%s: %s", markdown.Bold("Hostname"), sys.Hostname).LF().
 		PlainTextf("%s: %s", markdown.Bold("Domain"), sys.Domain).LF()
 
 	if sys.Optimization != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Optimization"), sys.Optimization).LF()
 	}
-
 	if sys.Timezone != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Timezone"), sys.Timezone).LF()
 	}
-
 	if sys.Language != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Language"), sys.Language).LF()
 	}
+}
 
-	if sys.WebGUI.Protocol != "" {
-		md.H3("Web GUI Configuration")
-		md.PlainTextf("%s: %s", markdown.Bold("Protocol"), sys.WebGUI.Protocol).LF()
+func writeSystemWebGUI(md *markdown.Markdown, sys common.System) {
+	if sys.WebGUI.Protocol == "" {
+		return
 	}
+	md.H3("Web GUI Configuration").
+		PlainTextf("%s: %s", markdown.Bold("Protocol"), sys.WebGUI.Protocol).LF()
+}
 
+func writeSystemSettings(md *markdown.Markdown, sys common.System) {
 	md.H3("System Settings").
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("DNS Allow Override"),
-			formatters.FormatBool(sys.DNSAllowOverride),
-		).LF().
+		PlainTextf("%s: %s", markdown.Bold("DNS Allow Override"), formatters.FormatBool(sys.DNSAllowOverride)).LF().
 		PlainTextf("%s: %d", markdown.Bold("Next UID"), sys.NextUID).LF().
 		PlainTextf("%s: %d", markdown.Bold("Next GID"), sys.NextGID).LF()
 
 	if len(sys.TimeServers) > 0 {
 		md.PlainTextf("%s: %s", markdown.Bold("Time Servers"), strings.Join(sys.TimeServers, ", ")).LF()
 	}
-
 	if len(sys.DNSServers) > 0 {
 		md.PlainTextf("%s: %s", markdown.Bold("DNS Server"), strings.Join(sys.DNSServers, ", ")).LF()
 	}
+}
 
+func writeSystemHardwareOffloading(md *markdown.Markdown, sys common.System) {
 	md.H3("Hardware Offloading").
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Disable NAT Reflection"),
-			formatters.FormatBool(sys.DisableNATReflection),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Use Virtual Terminal"),
-			formatters.FormatBool(sys.UseVirtualTerminal),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Disable Console Menu"),
-			formatters.FormatBool(sys.DisableConsoleMenu),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Disable VLAN HW Filter"),
-			formatters.FormatBool(sys.DisableVLANHWFilter),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Disable Checksum Offloading"),
-			formatters.FormatBool(sys.DisableChecksumOffloading),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Disable Segmentation Offloading"),
-			formatters.FormatBool(sys.DisableSegmentationOffloading),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Disable Large Receive Offloading"),
-			formatters.FormatBool(sys.DisableLargeReceiveOffloading),
-		).LF().
-		PlainTextf("%s: %s", markdown.Bold("IPv6 Allow"), formatters.FormatBool(sys.IPv6Allow)).LF()
-
-	md.H3("Power Management").
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Powerd AC Mode"),
-			formatters.GetPowerModeDescriptionCompact(sys.PowerdACMode),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Powerd Battery Mode"),
-			formatters.GetPowerModeDescriptionCompact(sys.PowerdBatteryMode),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Powerd Normal Mode"),
-			formatters.GetPowerModeDescriptionCompact(sys.PowerdNormalMode),
-		).LF()
-
-	md.H3("System Features").
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("PF Share Forward"),
-			formatters.FormatBool(sys.PfShareForward),
-		).LF().
-		PlainTextf("%s: %s", markdown.Bold("LB Use Sticky"), formatters.FormatBool(sys.LbUseSticky)).
+		PlainTextf("%s: %s", markdown.Bold("Disable NAT Reflection"), formatters.FormatBool(sys.DisableNATReflection)).
 		LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("RRD Backup"),
-			formatters.FormatBool(sys.RrdBackup),
-		).LF().
-		PlainTextf(
-			"%s: %s",
-			markdown.Bold("Netflow Backup"),
-			formatters.FormatBool(sys.NetflowBackup),
-		)
+		PlainTextf("%s: %s", markdown.Bold("Use Virtual Terminal"), formatters.FormatBool(sys.UseVirtualTerminal)).LF().
+		PlainTextf("%s: %s", markdown.Bold("Disable Console Menu"), formatters.FormatBool(sys.DisableConsoleMenu)).LF().
+		PlainTextf("%s: %s", markdown.Bold("Disable VLAN HW Filter"), formatters.FormatBool(sys.DisableVLANHWFilter)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("Disable Checksum Offloading"), formatters.FormatBool(sys.DisableChecksumOffloading)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("Disable Segmentation Offloading"), formatters.FormatBool(sys.DisableSegmentationOffloading)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("Disable Large Receive Offloading"), formatters.FormatBool(sys.DisableLargeReceiveOffloading)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("IPv6 Allow"), formatters.FormatBool(sys.IPv6Allow)).LF()
+}
 
+func writeSystemPowerManagement(md *markdown.Markdown, sys common.System) {
+	md.H3("Power Management").
+		PlainTextf("%s: %s", markdown.Bold("Powerd AC Mode"), formatters.GetPowerModeDescriptionCompact(sys.PowerdACMode)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("Powerd Battery Mode"), formatters.GetPowerModeDescriptionCompact(sys.PowerdBatteryMode)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("Powerd Normal Mode"), formatters.GetPowerModeDescriptionCompact(sys.PowerdNormalMode)).
+		LF()
+}
+
+func writeSystemFeatures(md *markdown.Markdown, sys common.System) {
+	md.H3("System Features").
+		PlainTextf("%s: %s", markdown.Bold("PF Share Forward"), formatters.FormatBool(sys.PfShareForward)).LF().
+		PlainTextf("%s: %s", markdown.Bold("LB Use Sticky"), formatters.FormatBool(sys.LbUseSticky)).LF().
+		PlainTextf("%s: %s", markdown.Bold("RRD Backup"), formatters.FormatBool(sys.RrdBackup)).LF().
+		PlainTextf("%s: %s", markdown.Bold("Netflow Backup"), formatters.FormatBool(sys.NetflowBackup))
+}
+
+func writeSystemMisc(md *markdown.Markdown, sys common.System) {
 	if sys.Bogons.Interval != "" {
 		md.H3("Bogons Configuration").
 			PlainTextf("%s: %s", markdown.Bold("Interval"), sys.Bogons.Interval).LF()
 	}
-
 	if sys.SSH.Group != "" {
 		md.H3("SSH Configuration").
 			PlainTextf("%s: %s", markdown.Bold("Group"), sys.SSH.Group).LF()
 	}
-
 	if sys.Firmware.Version != "" {
 		md.H3("Firmware Information").
 			PlainTextf("%s: %s", markdown.Bold("Version"), sys.Firmware.Version).LF()
-	}
-
-	if len(data.Users) > 0 {
-		b.WriteUserTable(md.H3("System Users"), data.Users)
-	}
-
-	if len(data.Groups) > 0 {
-		b.WriteGroupTable(md.H3("System Groups"), data.Groups)
 	}
 }
 

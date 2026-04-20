@@ -141,6 +141,8 @@ func TestDiffCmdFlagDefaults(t *testing.T) {
 // TestValidateDiffFlags exercises the validateDiffFlags function with valid and invalid
 // flag combinations. It drives flag values through direct global mutation with cleanup
 // to verify validation behavior.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateDiffFlags(t *testing.T) {
 	tests := []struct {
 		name         string

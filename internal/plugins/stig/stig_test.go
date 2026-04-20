@@ -59,6 +59,7 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 	plugin := NewPlugin()
 

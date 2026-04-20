@@ -445,6 +445,8 @@ func TestCoreProcessor_NormalizationIdempotence(t *testing.T) {
 }
 
 // TestCoreProcessor_AnalysisFindings tests various analysis findings with table-driven tests.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestCoreProcessor_AnalysisFindings(t *testing.T) {
 	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
@@ -1151,6 +1153,8 @@ func runConcurrentWorkers(t *testing.T, n int, work func(id int) error) {
 }
 
 // TestCoreProcessor_StatisticsAccuracy tests that statistics are calculated accurately.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
@@ -1364,6 +1368,8 @@ func TestCoreProcessor_StatisticsAccuracy(t *testing.T) {
 }
 
 // TestCoreProcessor_TransformFormats tests all supported output formats.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestCoreProcessor_TransformFormats(t *testing.T) {
 	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)

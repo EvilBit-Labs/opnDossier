@@ -212,6 +212,8 @@ func TestOpnSenseDocument_XMLUnmarshalFromFile(t *testing.T) {
 }
 
 // TestOpnSenseDocument_MissingRequiredFieldsValidation tests that validation catches missing required fields.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestOpnSenseDocument_MissingRequiredFieldsValidation(t *testing.T) {
 	t.Parallel()
 

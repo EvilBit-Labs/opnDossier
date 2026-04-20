@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConfigInitCmd(t *testing.T) {
 	testLogger, err := logging.New(logging.Config{Level: "info"})
 	require.NoError(t, err)

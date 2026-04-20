@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestRulesEquivalent(t *testing.T) {
 	tests := []struct {
 		name     string

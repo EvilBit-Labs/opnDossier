@@ -158,7 +158,7 @@ func (fp *Plugin) Description() string {
 //
 // err is currently always nil — reserved for unrecoverable future conditions.
 //
-//nolint:gocritic // nonamedreturns enforced project-wide; docstring clarifies return shape.
+//nolint:gocritic,funlen // nonamedreturns enforced project-wide; length is dominated by the declarative baseEntries control table.
 func (fp *Plugin) RunChecks(
 	device *common.CommonDevice,
 ) ([]compliance.Finding, []string, error) {

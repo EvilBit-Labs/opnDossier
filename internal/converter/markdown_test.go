@@ -178,6 +178,8 @@ func TestMarkdownConverter_ConvertFromTestdataFile(t *testing.T) {
 }
 
 // TestMarkdownConverter_EdgeCases tests edge cases and error conditions.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestMarkdownConverter_EdgeCases(t *testing.T) {
 	// Set terminal to dumb for consistent test output
 	t.Setenv("TERM", "dumb")

@@ -99,6 +99,11 @@ func handleXMLError(err error, dec *xml.Decoder) error {
 }
 
 // handleStartElement processes XML StartElement tokens.
+// Length is inherent to the OPNsense schema's top-level element set — each
+// case binds a differently-typed target, so a map-based dispatch would lose
+// type safety without making the function easier to read.
+//
+//nolint:funlen // declarative per-element dispatch; adding an element adds one case
 func handleStartElement(dec *xml.Decoder, doc *schema.OpnSenseDocument, se xml.StartElement) error {
 	if se.Name.Local == "opnsense" {
 		doc.XMLName = se.Name

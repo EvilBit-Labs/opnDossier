@@ -130,6 +130,7 @@ func TestDetermineSanitizeOutputPath_ExistingFile_Force(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestSanitizeCommandIntegration(t *testing.T) {
 	// Create a test XML file
 	tmpDir := t.TempDir()

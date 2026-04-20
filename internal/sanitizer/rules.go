@@ -216,6 +216,8 @@ func fieldNameMatches(fieldName, pattern string) bool {
 //
 //   - email MUST precede hostname. Email addresses contain dots that match hostname
 //     patterns. The ordering ensures emails are mapped via MapEmail, not MapHostname.
+//
+//nolint:funlen // declarative rule table; order is load-bearing (see above)
 func builtinRules() []Rule {
 	allModes := []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 	aggressiveModerate := []Mode{ModeAggressive, ModeModerate}

@@ -7,6 +7,7 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestFilterSystemTunables(t *testing.T) {
 	t.Parallel()
 

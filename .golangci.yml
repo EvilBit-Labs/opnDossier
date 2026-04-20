@@ -43,9 +43,7 @@ linters:
     - fatcontext
     - forbidigo
     - funcorder
-    # - funlen - Staged-enable: TODO sweep current findings (49 at lines=120,
-    #   statements=80), then uncomment. Target settings are active below so the
-    #   threshold is ready the moment the linter re-activates.
+    - funlen
     - gocheckcompilerdirectives
     - gochecksumtype
     - gocognit
@@ -199,10 +197,12 @@ linters:
     funcorder:
       struct-method: false
     funlen:
-      # Raised from default 60/40 → 120/80 to accommodate existing long-but-
-      # linear functions that cyclop/gocognit do not flag (those measure
-      # branching, not length). 120 lines catches real sprawl without
-      # drowning in warnings on reasonable-length CLI handlers.
+      # 120/80 (vs. default 60/40). Sweep on 2026-04-19 cleared the baseline
+      # at these thresholds. Production code with genuine branching was
+      # refactored into helpers; test table declarations and declarative
+      # data tables (compliance.Control lists, sanitizer rule lists) carry
+      # //nolint:funlen with a reason. Can tighten to 80/50 in a follow-up
+      # once more test data is extracted to fixture files.
       lines: 120
       statements: 80
     gochecksumtype:

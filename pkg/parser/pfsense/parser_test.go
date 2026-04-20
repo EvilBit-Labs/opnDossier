@@ -1741,6 +1741,8 @@ func TestConverter_FirmwareVersion(t *testing.T) {
 
 // TestConverter_IPsec_Phase1 verifies Phase 1 (IKE SA) tunnel conversion from pfSense schema
 // to common model, including all field mappings, BoolFlag handling, and encryption algorithms.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConverter_IPsec_Phase1(t *testing.T) {
 	t.Parallel()
 
@@ -1899,6 +1901,8 @@ func TestConverter_IPsec_Phase1(t *testing.T) {
 
 // TestConverter_IPsec_Phase2 verifies Phase 2 (child SA) tunnel conversion from pfSense schema
 // to common model, including network identity netbits, NATLocalID, and hash/encryption algorithms.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConverter_IPsec_Phase2(t *testing.T) {
 	t.Parallel()
 

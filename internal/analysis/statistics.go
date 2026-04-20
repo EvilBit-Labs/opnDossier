@@ -16,22 +16,32 @@ const ServiceNameSNMP = "SNMP Daemon"
 // using the common.Statistics type suitable for serialization in JSON/YAML exports.
 // A nil cfg returns an initialized but empty Statistics.
 func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
+	stats := newStatistics()
 	if cfg == nil {
-		return &common.Statistics{
-			InterfacesByType: make(map[string]int),
-			InterfaceDetails: []common.InterfaceStatistics{},
-			RulesByInterface: make(map[string]int),
-			RulesByType:      make(map[string]int),
-			DHCPScopeDetails: []common.DHCPScopeStatistics{},
-			UsersByScope:     make(map[string]int),
-			GroupsByScope:    make(map[string]int),
-			EnabledServices:  []string{},
-			ServiceDetails:   []common.ServiceStatistics{},
-			SecurityFeatures: []string{},
-		}
+		return stats
 	}
 
-	stats := &common.Statistics{
+	populateInterfaceStats(stats, cfg)
+	populateInfrastructureStats(stats, cfg)
+	populateFirewallStats(stats, cfg)
+	populateNATAndRoutingStats(stats, cfg)
+	populateDHCPStats(stats, cfg)
+	populateUserGroupStats(stats, cfg)
+	populateServiceStats(stats, cfg)
+	populateSystemStats(stats, cfg)
+	populateSecurityFeatures(stats, cfg)
+	sortStatisticsLists(stats)
+	finalizeStatisticsSummary(stats, cfg)
+
+	return stats
+}
+
+// newStatistics returns a fully-initialized (but empty) Statistics value.
+// Factored out so the nil-cfg early return and the populated path both share
+// the same initializer — any new map/slice added here is guaranteed to be
+// non-nil on both paths.
+func newStatistics() *common.Statistics {
+	return &common.Statistics{
 		InterfacesByType: make(map[string]int),
 		InterfaceDetails: []common.InterfaceStatistics{},
 		RulesByInterface: make(map[string]int),
@@ -43,14 +53,14 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 		ServiceDetails:   []common.ServiceStatistics{},
 		SecurityFeatures: []string{},
 	}
+}
 
-	// Interface statistics
+func populateInterfaceStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.TotalInterfaces = len(cfg.Interfaces)
 	for _, iface := range cfg.Interfaces {
 		stats.InterfacesByType[iface.Type]++
-
 		dhcpScope := FindDHCPScope(cfg.DHCP, iface.Name)
-		ifStats := common.InterfaceStatistics{
+		stats.InterfaceDetails = append(stats.InterfaceDetails, common.InterfaceStatistics{
 			Name:        iface.Name,
 			Type:        iface.Type,
 			Enabled:     iface.Enabled,
@@ -59,17 +69,18 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 			HasDHCP:     dhcpScope != nil && dhcpScope.Enabled,
 			BlockPriv:   iface.BlockPrivate,
 			BlockBogons: iface.BlockBogons,
-		}
-		stats.InterfaceDetails = append(stats.InterfaceDetails, ifStats)
+		})
 	}
+}
 
-	// Network infrastructure statistics
+func populateInfrastructureStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.TotalVLANs = len(cfg.VLANs)
 	stats.TotalBridges = len(cfg.Bridges)
 	stats.TotalCertificates = len(cfg.Certificates)
 	stats.TotalCAs = len(cfg.CAs)
+}
 
-	// Firewall rule statistics
+func populateFirewallStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.TotalFirewallRules = len(cfg.FirewallRules)
 	for _, rule := range cfg.FirewallRules {
 		for _, iface := range rule.Interfaces {
@@ -77,31 +88,33 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 		}
 		stats.RulesByType[string(rule.Type)]++
 	}
+}
 
-	// NAT statistics
+func populateNATAndRoutingStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.NATMode = cfg.NAT.OutboundMode
 	stats.NATEntries = len(cfg.NAT.OutboundRules) + len(cfg.NAT.InboundRules)
-
-	// Gateway statistics
 	stats.TotalGateways = len(cfg.Routing.Gateways)
 	stats.TotalGatewayGroups = len(cfg.Routing.GatewayGroups)
+}
 
-	// DHCP statistics
+func populateDHCPStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	dhcpScopes := 0
 	for _, scope := range cfg.DHCP {
-		if scope.Enabled {
-			dhcpScopes++
-			stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, common.DHCPScopeStatistics{
-				Interface: scope.Interface,
-				Enabled:   true,
-				From:      scope.Range.From,
-				To:        scope.Range.To,
-			})
+		if !scope.Enabled {
+			continue
 		}
+		dhcpScopes++
+		stats.DHCPScopeDetails = append(stats.DHCPScopeDetails, common.DHCPScopeStatistics{
+			Interface: scope.Interface,
+			Enabled:   true,
+			From:      scope.Range.From,
+			To:        scope.Range.To,
+		})
 	}
 	stats.DHCPScopes = dhcpScopes
+}
 
-	// User and group statistics
+func populateUserGroupStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.TotalUsers = len(cfg.Users)
 	stats.TotalGroups = len(cfg.Groups)
 	for _, user := range cfg.Users {
@@ -110,25 +123,26 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 	for _, group := range cfg.Groups {
 		stats.GroupsByScope[group.Scope]++
 	}
+}
 
-	// Service statistics
+func populateServiceStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	serviceCount := 0
-
 	for _, scope := range cfg.DHCP {
-		if scope.Enabled {
-			serviceName := fmt.Sprintf("DHCP Server (%s)", strings.ToUpper(scope.Interface))
-			stats.EnabledServices = append(stats.EnabledServices, serviceName)
-			stats.ServiceDetails = append(stats.ServiceDetails, common.ServiceStatistics{
-				Name:    serviceName,
-				Enabled: true,
-				Details: map[string]string{
-					"interface": scope.Interface,
-					"from":      scope.Range.From,
-					"to":        scope.Range.To,
-				},
-			})
-			serviceCount++
+		if !scope.Enabled {
+			continue
 		}
+		serviceName := fmt.Sprintf("DHCP Server (%s)", strings.ToUpper(scope.Interface))
+		stats.EnabledServices = append(stats.EnabledServices, serviceName)
+		stats.ServiceDetails = append(stats.ServiceDetails, common.ServiceStatistics{
+			Name:    serviceName,
+			Enabled: true,
+			Details: map[string]string{
+				"interface": scope.Interface,
+				"from":      scope.Range.From,
+				"to":        scope.Range.To,
+			},
+		})
+		serviceCount++
 	}
 
 	if cfg.DNS.Unbound.Enabled {
@@ -159,9 +173,7 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 		stats.ServiceDetails = append(stats.ServiceDetails, common.ServiceStatistics{
 			Name:    "SSH Daemon",
 			Enabled: true,
-			Details: map[string]string{
-				"group": cfg.System.SSH.Group,
-			},
+			Details: map[string]string{"group": cfg.System.SSH.Group},
 		})
 		serviceCount++
 	}
@@ -171,22 +183,21 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 		stats.ServiceDetails = append(stats.ServiceDetails, common.ServiceStatistics{
 			Name:    "NTP Daemon",
 			Enabled: true,
-			Details: map[string]string{
-				"prefer": cfg.NTP.PreferredServer,
-			},
+			Details: map[string]string{"prefer": cfg.NTP.PreferredServer},
 		})
 		serviceCount++
 	}
 
 	stats.TotalServices = serviceCount
+}
 
-	// System configuration statistics
+func populateSystemStats(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.SysctlSettings = len(cfg.Sysctl)
 	stats.LoadBalancerMonitors = len(cfg.LoadBalancer.MonitorTypes)
+}
 
-	// Security features detection
-	wan := FindInterface(cfg.Interfaces, "wan")
-	if wan != nil {
+func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice) {
+	if wan := FindInterface(cfg.Interfaces, "wan"); wan != nil {
 		if wan.BlockPrivate {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
 		}
@@ -194,16 +205,17 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 		}
 	}
-
 	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
-
 	if cfg.System.DisableNATReflection {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}
+}
 
-	// Sort list fields for deterministic serialization output.
+// sortStatisticsLists enforces deterministic ordering on every slice-typed
+// field so JSON/YAML exports are byte-stable across runs.
+func sortStatisticsLists(stats *common.Statistics) {
 	slices.Sort(stats.EnabledServices)
 	slices.Sort(stats.SecurityFeatures)
 	slices.SortFunc(stats.InterfaceDetails, func(a, b common.InterfaceStatistics) int {
@@ -215,19 +227,15 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 	slices.SortFunc(stats.DHCPScopeDetails, func(a, b common.DHCPScopeStatistics) int {
 		return strings.Compare(a.Interface, b.Interface)
 	})
+}
 
-	// Calculate summary statistics
-	securityScore := ComputeSecurityScore(cfg, stats)
-	configComplexity := ComputeConfigComplexity(stats)
-
+func finalizeStatisticsSummary(stats *common.Statistics, cfg *common.CommonDevice) {
 	stats.Summary = common.StatisticsSummary{
 		TotalConfigItems:    ComputeTotalConfigItems(stats),
-		SecurityScore:       securityScore,
-		ConfigComplexity:    configComplexity,
+		SecurityScore:       ComputeSecurityScore(cfg, stats),
+		ConfigComplexity:    ComputeConfigComplexity(stats),
 		HasSecurityFeatures: len(stats.SecurityFeatures) > 0,
 	}
-
-	return stats
 }
 
 // ComputeTotalConfigItems calculates the total number of configuration items

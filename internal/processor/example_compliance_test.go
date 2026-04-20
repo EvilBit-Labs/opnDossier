@@ -11,6 +11,7 @@ import (
 
 const complianceFindingType = "compliance"
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestExampleProcessor_ComplianceChecks(t *testing.T) {
 	processor := NewExampleProcessor()
 	ctx := context.Background()

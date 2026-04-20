@@ -62,6 +62,8 @@ func TestPluginDescriptionsSyncWithRegistry(t *testing.T) {
 
 // TestMapAuditReportToComplianceResults verifies the mapping function
 // correctly converts audit.Report data into common.ComplianceResults.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestMapAuditReportToComplianceResults(t *testing.T) {
 	// Do NOT use t.Parallel() — cmd package uses package-level flag globals.
 	// See GOTCHAS §1.1.

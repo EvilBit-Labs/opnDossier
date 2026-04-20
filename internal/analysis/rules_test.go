@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestRulesEquivalent(t *testing.T) {
 	t.Parallel()
 

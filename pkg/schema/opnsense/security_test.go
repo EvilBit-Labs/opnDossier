@@ -1720,6 +1720,8 @@ func TestRule_BackwardCompatibility_EffectiveAddress(t *testing.T) {
 }
 
 // verifyCompleteRuleFields checks all fields of a Rule against expected values.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func verifyCompleteRuleFields(t *testing.T, got Rule, prefix string) {
 	t.Helper()
 
@@ -2063,6 +2065,7 @@ func TestNATRule_NewFields_XMLRoundTrip(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestNATRule_CompleteWithNewFields_XMLRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -2240,7 +2243,7 @@ func TestNATRule_BackwardCompatibility(t *testing.T) {
 	}
 }
 
-//nolint:dupl // InboundRule/Rule round-trip test loops are structurally similar by design
+//nolint:dupl,funlen // InboundRule/Rule round-trip test loops are structurally similar; length is in data
 func TestInboundRule_NewFields_XMLRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -2369,6 +2372,7 @@ func TestInboundRule_NewFields_XMLRoundTrip(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestInboundRule_CompleteWithNewFields_XMLRoundTrip(t *testing.T) {
 	t.Parallel()
 

@@ -251,6 +251,7 @@ func TestAssessServiceRisk(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestHasManagementOnWAN(t *testing.T) {
 	t.Parallel()
 

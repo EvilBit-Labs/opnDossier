@@ -287,25 +287,60 @@ func processConvertFile(
 		return convertResult{err: fmt.Errorf("%s: %w", fp, ctx.Err())}
 	}
 
-	// Create logger for this goroutine with input file field
 	ctxLogger := cmdLogger.WithFields("input_file", fp)
 
-	// Sanitize the file path
-	cleanPath := filepath.Clean(fp)
-	if !filepath.IsAbs(cleanPath) {
-		// If not an absolute path, make it relative to the current working directory
-		var err error
-
-		cleanPath, err = filepath.Abs(cleanPath)
-		if err != nil {
-			return convertResult{err: fmt.Errorf("failed to get absolute path for %s: %w", fp, err)}
-		}
+	device, err := parseConvertInput(ctx, fp, ctxLogger, cmdConfig)
+	if err != nil {
+		return convertResult{err: err}
 	}
 
-	// Read the file
+	eff := buildEffectiveFormat(format, cmdConfig)
+	opt := buildConversionOptions(eff, cmdConfig)
+	ctxLogger.Debug("Converting with options", "format", opt.Format, "theme", opt.Theme, "sections", opt.Sections)
+
+	output, handler, err := generateOutputByFormat(ctx, device, opt, ctxLogger)
+	if err != nil {
+		ctxLogger.Error("Failed to convert", "error", err)
+		return convertResult{err: fmt.Errorf("failed to convert from %s: %w", fp, err)}
+	}
+
+	ctxLogger.Debug("Conversion completed successfully")
+
+	actualOutputFile, err := determineOutputPath(fp, outputFile, handler.FileExtension(), cmdConfig, force)
+	if err != nil {
+		ctxLogger.Error("Failed to determine output path", "error", err)
+		return convertResult{err: fmt.Errorf("failed to determine output path for %s: %w", fp, err)}
+	}
+
+	if err := emitConvertOutput(ctx, cmd, ctxLogger, output, actualOutputFile); err != nil {
+		return convertResult{err: err}
+	}
+	return convertResult{}
+}
+
+// parseConvertInput cleans fp, opens the file, and parses it into a CommonDevice.
+// All parse-side logging (Debug success, Warn per conversion warning, Error
+// with detailed parse/validation context) stays here so processConvertFile
+// remains a straightforward orchestrator. Distinct from diff.go's
+// parseConfigFile which has different logging/warning semantics.
+func parseConvertInput(
+	ctx context.Context,
+	fp string,
+	ctxLogger *logging.Logger,
+	cmdConfig *config.Config,
+) (*common.CommonDevice, error) {
+	cleanPath := filepath.Clean(fp)
+	if !filepath.IsAbs(cleanPath) {
+		abs, err := filepath.Abs(cleanPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path for %s: %w", fp, err)
+		}
+		cleanPath = abs
+	}
+
 	file, err := os.Open(cleanPath)
 	if err != nil {
-		return convertResult{err: fmt.Errorf("failed to open file %s: %w", fp, err)}
+		return nil, fmt.Errorf("failed to open file %s: %w", fp, err)
 	}
 	defer func() {
 		if cerr := file.Close(); cerr != nil {
@@ -313,112 +348,61 @@ func processConvertFile(
 		}
 	}()
 
-	// Parse the XML and convert to platform-agnostic device model
 	ctxLogger.Debug("Parsing configuration file")
-
 	device, warnings, err := parser.NewFactory(cfgparser.NewXMLParser()).
 		CreateDevice(ctx, file, resolveDeviceType(), false)
 	if err != nil {
 		ctxLogger.Error("Failed to parse configuration", "error", err)
-		// Enhanced error handling for different error types
 		if cfgparser.IsParseError(err) {
 			if parseErr := cfgparser.GetParseError(err); parseErr != nil {
-				ctxLogger.Error(
-					"XML syntax error detected",
-					"line",
-					parseErr.Line,
-					"message",
-					parseErr.Message,
-				)
+				ctxLogger.Error("XML syntax error detected",
+					"line", parseErr.Line, "message", parseErr.Message)
 			}
 		}
-
 		if cfgparser.IsValidationError(err) {
 			ctxLogger.Error("Configuration validation failed")
 		}
-
-		return convertResult{err: fmt.Errorf("failed to parse configuration from %s: %w", fp, err)}
+		return nil, fmt.Errorf("failed to parse configuration from %s: %w", fp, err)
 	}
 
 	ctxLogger.Debug("Configuration parsed successfully")
-
 	if cmdConfig == nil || !cmdConfig.IsQuiet() {
 		for _, w := range warnings {
 			ctxLogger.Warn("conversion warning",
-				"field", w.Field,
-				"message", w.Message,
-				"severity", w.Severity,
-			)
+				"field", w.Field, "message", w.Message, "severity", w.Severity)
 		}
 	}
+	return device, nil
+}
 
-	// Build options for conversion with precedence: CLI flags > env vars > config > defaults
-	eff := buildEffectiveFormat(format, cmdConfig)
-	opt := buildConversionOptions(eff, cmdConfig)
-
-	// Convert using the new markdown generator
-	ctxLogger.Debug(
-		"Converting with options",
-		"format",
-		opt.Format,
-		"theme",
-		opt.Theme,
-		"sections",
-		opt.Sections,
-	)
-
-	// Generate output based on format. The resolved FormatHandler is reused below
-	// for the file extension — a second registry lookup would be redundant.
-	output, handler, err := generateOutputByFormat(ctx, device, opt, ctxLogger)
-	if err != nil {
-		ctxLogger.Error("Failed to convert", "error", err)
-
-		return convertResult{err: fmt.Errorf("failed to convert from %s: %w", fp, err)}
-	}
-
-	fileExt := handler.FileExtension()
-
-	ctxLogger.Debug("Conversion completed successfully")
-
-	// Determine output path with smart naming and overwrite protection
-	actualOutputFile, err := determineOutputPath(fp, outputFile, fileExt, cmdConfig, force)
-	if err != nil {
-		ctxLogger.Error("Failed to determine output path", "error", err)
-
-		return convertResult{err: fmt.Errorf("failed to determine output path for %s: %w", fp, err)}
-	}
-
-	// Create enhanced logger with output file information
-	var enhancedLogger *logging.Logger
+// emitConvertOutput writes the converted report to actualOutputFile when
+// non-empty, otherwise to cmd's stdout. The enhanced logger tags every log
+// line with either output_file or output_mode=stdout so CLI logs stay
+// attributable when multiple inputs run concurrently.
+func emitConvertOutput(
+	ctx context.Context,
+	cmd *cobra.Command,
+	ctxLogger *logging.Logger,
+	output, actualOutputFile string,
+) error {
 	if actualOutputFile != "" {
-		enhancedLogger = ctxLogger.WithFields("output_file", actualOutputFile)
-	} else {
-		enhancedLogger = ctxLogger.WithFields("output_mode", "stdout")
-	}
-
-	// Export or print the output
-	if actualOutputFile != "" {
+		enhancedLogger := ctxLogger.WithFields("output_file", actualOutputFile)
 		enhancedLogger.Debug("Exporting to file")
 		e := export.NewFileExporter(ctxLogger)
-
 		if err := e.Export(ctx, output, actualOutputFile); err != nil {
 			enhancedLogger.Error("Failed to export output", "error", err)
-
-			return convertResult{err: fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)}
+			return fmt.Errorf("failed to export output to %s: %w", actualOutputFile, err)
 		}
-		// Output exported successfully (no logging to avoid corrupting output)
-	} else {
-		enhancedLogger.Debug("Outputting to stdout")
-
-		if _, err := fmt.Fprint(cmd.OutOrStdout(), output); err != nil {
-			enhancedLogger.Error("Failed to write output to stdout", "error", err)
-
-			return convertResult{err: fmt.Errorf("failed to write output to stdout: %w", err)}
-		}
+		return nil
 	}
 
-	// Conversion process completed successfully (no logging to avoid corrupting output)
-	return convertResult{}
+	enhancedLogger := ctxLogger.WithFields("output_mode", "stdout")
+	enhancedLogger.Debug("Outputting to stdout")
+	if _, err := fmt.Fprint(cmd.OutOrStdout(), output); err != nil {
+		enhancedLogger.Error("Failed to write output to stdout", "error", err)
+		return fmt.Errorf("failed to write output to stdout: %w", err)
+	}
+	return nil
 }
 
 // buildEffectiveFormat determines the output format to use, giving precedence to the CLI flag, then the configuration file, and defaulting to "markdown" if neither is set.

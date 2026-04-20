@@ -183,6 +183,7 @@ func TestNewModeController(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestModeController_ValidateModeConfig(t *testing.T) {
 	t.Parallel()
 

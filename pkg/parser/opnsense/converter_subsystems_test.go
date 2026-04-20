@@ -502,6 +502,7 @@ func firstKeaScope(device *common.CommonDevice) *common.DHCPScope {
 	return nil
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 	t.Parallel()
 

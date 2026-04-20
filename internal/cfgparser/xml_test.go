@@ -183,6 +183,8 @@ func TestXMLParser_ParseSampleFiles(t *testing.T) {
 }
 
 // TestXMLParser_ParseConfigSample specifically tests the main config.xml.sample file.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestXMLParser_ParseConfigSample(t *testing.T) {
 	sampleFile := filepath.Join("testdata", "sample.config.3.xml")
 

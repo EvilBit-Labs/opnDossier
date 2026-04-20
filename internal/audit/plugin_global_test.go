@@ -18,6 +18,8 @@ import (
 )
 
 // TestGlobalPluginRegistry tests all global registry functions.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestGlobalPluginRegistry(t *testing.T) {
 	// Save and restore global state. We capture both the registry pointer
 	// and whether the singleton was already initialized so cleanup can
@@ -200,6 +202,8 @@ func assertLoadSucceededEmpty(t *testing.T, result LoadResult, err error) {
 }
 
 // TestLoadDynamicPlugins tests the LoadDynamicPlugins functionality.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestLoadDynamicPlugins(t *testing.T) {
 	t.Parallel()
 
@@ -566,6 +570,8 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 }
 
 // TestPluginRegistry_CalculateSummary tests the calculateSummary method with various scenarios.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestPluginRegistry_CalculateSummary(t *testing.T) {
 	t.Parallel()
 

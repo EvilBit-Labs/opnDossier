@@ -73,6 +73,8 @@ type sansCheckEntry struct {
 // evaluated from config.xml (e.g., SANS-FW-010/011 advisory controls) are
 // intentionally absent — they never return Known=true and therefore produce
 // neither findings nor evaluated entries.
+//
+//nolint:funlen // declarative control table; length is data, not branching
 func (sp *Plugin) sansChecks() []sansCheckEntry {
 	return []sansCheckEntry{
 		{
@@ -349,6 +351,8 @@ func (sp *Plugin) finding(id, title, description, recommendation, component stri
 }
 
 // allControls returns the full set of SANS control definitions.
+//
+//nolint:funlen // declarative control table; length is data, not branching
 func allControls() []compliance.Control {
 	return []compliance.Control{
 		{

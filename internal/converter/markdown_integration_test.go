@@ -16,6 +16,8 @@ import (
 
 // TestMarkdownBuilder_ReportContentValidation validates that programmatic report
 // generation produces correct and complete output for various configurations.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestMarkdownBuilder_ReportContentValidation(t *testing.T) {
 	tests := []struct {
 		name         string

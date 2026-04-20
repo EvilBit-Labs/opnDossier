@@ -11,6 +11,8 @@ import (
 )
 
 // TestXMLParser_ValidateRequiredElements tests validation of missing required elements.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -206,6 +208,8 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 }
 
 // TestXMLParser_ValidateInvalidEnumValues tests validation of invalid enum values.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -416,6 +420,8 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 }
 
 // TestXMLParser_ValidateCrossFieldMismatches tests cross-field validation mismatches.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestXMLParser_ValidateCrossFieldMismatches(t *testing.T) {
 	tests := []struct {
 		name           string
