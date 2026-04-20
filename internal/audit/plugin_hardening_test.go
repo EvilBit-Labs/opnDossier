@@ -496,3 +496,110 @@ func TestHashFileSizeCapped_ExceedsCap(t *testing.T) {
 		t.Errorf("expected 'exceeds size cap' error, got: %v", err)
 	}
 }
+
+// TestHashFileSizeCapped_MissingFile exercises the os.Open error path. A
+// non-existent path must propagate os.ErrNotExist wrapped in an "open" error.
+func TestHashFileSizeCapped_MissingFile(t *testing.T) {
+	t.Parallel()
+
+	_, err := hashFileSizeCapped(filepath.Join(t.TempDir(), "nope.so"), 1024)
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected os.ErrNotExist, got: %v", err)
+	}
+}
+
+// TestHashFileSizeCapped_ZeroCapReadsFull covers the size-cap-disabled branch.
+// A zero (or negative) maxBytes falls through to io.Copy, which must hash the
+// entire file contents regardless of length.
+func TestHashFileSizeCapped_ZeroCapReadsFull(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "small.so")
+	data := bytes.Repeat([]byte{0xCD}, 4096)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("failed to write fixture: %v", err)
+	}
+
+	capped, err := hashFileSizeCapped(path, 0)
+	if err != nil {
+		t.Fatalf("unexpected error with zero cap: %v", err)
+	}
+	// Recompute with the maxBytes path and compare: the digests must match
+	// because the cap-disabled path hashes the same bytes.
+	bounded, err := hashFileSizeCapped(path, 8192)
+	if err != nil {
+		t.Fatalf("unexpected error with bounded cap: %v", err)
+	}
+	if capped != bounded {
+		t.Errorf("zero-cap digest %s differs from bounded digest %s", capped, bounded)
+	}
+}
+
+// TestLoadDynamicPlugins_ImplicitMissingDirIsSilent proves that a missing
+// plugin directory is silently ignored when explicitDir=false. This is the
+// default opt-out behavior — library consumers that never set --plugin-dir
+// should not observe errors just because no plugin dir exists.
+func TestLoadDynamicPlugins_ImplicitMissingDirIsSilent(t *testing.T) {
+	t.Parallel()
+
+	registry := newPluginRegistryWithLoader(alwaysFailLoader())
+	logger := newTestLogger(t)
+
+	missing := filepath.Join(t.TempDir(), "does-not-exist")
+	result, err := registry.LoadDynamicPlugins(context.Background(), missing, false, logger)
+	if err != nil {
+		t.Fatalf("implicit missing dir must be silent, got: %v", err)
+	}
+	if result.Failed() != 0 || result.Loaded != 0 {
+		t.Errorf("expected empty LoadResult for missing implicit dir, got %+v", result)
+	}
+}
+
+// TestLoadDynamicPlugins_NonDirPathErrors covers the os.ReadDir failure
+// that is not ErrNotExist — e.g. a regular file supplied where a directory
+// is expected.
+func TestLoadDynamicPlugins_NonDirPathErrors(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "not-a-directory")
+	if err := os.WriteFile(filePath, []byte("stub"), 0o600); err != nil {
+		t.Fatalf("failed to write fixture: %v", err)
+	}
+
+	registry := newPluginRegistryWithLoader(alwaysFailLoader())
+	logger := newTestLogger(t)
+
+	_, err := registry.LoadDynamicPlugins(context.Background(), filePath, true, logger)
+	if err == nil {
+		t.Fatal("expected error when --plugin-dir points at a non-directory")
+	}
+	if !strings.Contains(err.Error(), "failed to read plugin directory") {
+		t.Errorf("expected 'failed to read plugin directory' in error, got: %v", err)
+	}
+}
+
+// TestLoadDynamicPlugins_SkipsNonSoEntries covers the .ext filter branch:
+// files without a .so suffix must not trigger preflight or loader calls.
+func TestLoadDynamicPlugins_SkipsNonSoEntries(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	writePluginFile(t, dir, "README.md", 0o600, []byte("not a plugin"))
+	writePluginFile(t, dir, "config.yaml", 0o600, []byte("not a plugin"))
+
+	registry := newPluginRegistryWithLoader(alwaysFailLoader())
+	logger := newTestLogger(t)
+
+	result, err := registry.LoadDynamicPlugins(context.Background(), dir, true, logger)
+	if err != nil {
+		t.Fatalf("non-.so files should not produce errors, got: %v", err)
+	}
+	if result.Failed() != 0 || result.Loaded != 0 {
+		t.Errorf("expected empty LoadResult when only non-.so files exist, got %+v", result)
+	}
+}
