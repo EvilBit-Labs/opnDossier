@@ -108,6 +108,39 @@ const (
 	MaxWrapWidth = 200
 )
 
+// pluginDirFlagUsage is the shared --plugin-dir help text. Every command that
+// exposes this flag must use this string so the trust-model warning stays in
+// sync. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md §"Third-Party
+// Plugin Security".
+const pluginDirFlagUsage = "Directory containing third-party .so compliance plugins (does not affect built-in stig/sans/firewall). " +
+	"Plugins run with full process privileges; signatures are not verified. " +
+	"Do not point at untrusted-writable directories. " +
+	"Linux/macOS/FreeBSD only; no-op on Windows. " +
+	"See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Third-Party Plugin Security."
+
+// pluginDirTrustModelWarning is the exact stderr warning emitted when a
+// non-empty --plugin-dir flag is supplied. It mirrors the red-mode warning
+// precedent in cmd/audit.go. Tests pin the "no signature verification" and
+// "full process privileges" substrings.
+const pluginDirTrustModelWarning = "Warning: --plugin-dir loads dynamic .so plugins with full process privileges\n" +
+	"and no signature verification. Only load plugins you trust and have reviewed.\n" +
+	"See GOTCHAS §2.5 for details.\n"
+
+// warnPluginDirTrustModel writes the dynamic-plugin trust-model warning to w
+// when pluginDir is non-empty. It is a no-op for an empty pluginDir. Commands
+// that accept a --plugin-dir flag should call this from PreRunE so every
+// invocation that opts into dynamic plugin loading sees the warning at the
+// moment the risk materializes, before any .so file is opened.
+//
+// The warning format is stable and asserted in tests. See pluginDirTrustModelWarning.
+func warnPluginDirTrustModel(w io.Writer, pluginDir string) {
+	if pluginDir == "" {
+		return
+	}
+
+	fmt.Fprint(w, pluginDirTrustModelWarning)
+}
+
 // ValidXMLFiles provides shell completion for XML configuration files.
 // It returns a list of .xml files in the current directory and subdirectories,
 // along with a completion directive for file completion.

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **sanitizer**: `Sanitizer.SetLogger` plus a reflection-path warning when `SanitizeStruct` encounters a `map[K]struct{...}` or `map[K]*struct{...}` value. Go does not allow in-place mutation of such map values, so the walker has always skipped them silently — the warning surfaces the gap so a future schema that routes secrets through a struct-valued map is detected at runtime rather than shipped as cleartext. The raw-XML `SanitizeXML` path is unaffected. Full redaction of struct-valued maps is scheduled under tag-based redaction.
 - **schema**: NATS-3 audit and harden public API surface for cross-repo consumption ([#569](https://github.com/EvilBit-Labs/opnDossier/pull/569))
 
 - **schema**: Parse OPNsense Unbound MVC and flip FIREWALL-007 polarity - NATS-77 ([#571](https://github.com/EvilBit-Labs/opnDossier/pull/571))
@@ -18,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **parser**: Document the cancellation contract on `peekRootElementBounded`
+  in `pkg/parser/factory.go`. The function returns `ctx.Err()` immediately on
+  cancellation, but its internal goroutine only exits when the next read
+  unblocks. Library consumers supplying readers that can block indefinitely
+  (sockets, fifos, long-polling HTTP bodies) must cancel the context to
+  release the goroutine — CLI consumers using `*os.File` are unaffected.
+  No safety-net watchdog was added because `peekRootElementBounded` does not
+  own the reader it receives; closing a caller-owned reader from inside the
+  helper would corrupt caller state.
+- **[breaking]** `pkg/parser/pfsense.ValidateFunc` (public var) removed; use
+  `pkg/parser/pfsense.SetValidator` instead. Free pre-v1.5 per Current Regime.
 - **mergify**: Upgrade configuration to current format ([#543](https://github.com/EvilBit-Labs/opnDossier/pull/543))
 
 - Update labeling instructions and configuration settings in .coderabbit.yaml
@@ -125,6 +137,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **parser**: Liberal boolean parsing for OPNsense config.xml ([#558](https://github.com/EvilBit-Labs/opnDossier/pull/558)) ([#577](https://github.com/EvilBit-Labs/opnDossier/pull/577))
 
+### Security
+
+- Sanitizer now redacts OpenVPN `<tls>` and `<StaticKeys>` XML elements
+  and detects the OpenVPN static-key PEM envelope. Previously, operators
+  running `opnDossier sanitize` on configs containing OpenVPN TLS-auth
+  material leaked the raw HMAC keys (SEC-H1 from comprehensive review).
+- pfSense validator protected against stomp by malicious dynamic plugin
+  `init()` code. The public `pfsense.ValidateFunc` var was removed and
+  replaced by `pfsense.SetValidator`, which installs the validator once
+  via `sync.Once` over an internal `atomic.Pointer` holder. Second and
+  subsequent calls are silently dropped. Matches OPNsense's
+  `XMLDecoder.ParseAndValidate` DI pattern. Fixes SEC-H2 from
+  comprehensive review.
+- Plugin loader preflight now rejects symlinks, group/world-writable
+  plugin files, group/world-writable container directories, and
+  relative plugin paths. Emits structured audit log per load attempt
+  (path, SHA-256, mode, owner UID, verdict). Addresses SEC-M1 / CWE-732
+  footguns from the comprehensive review. Phase B hardening (owner
+  verification, size cap, path denylist, filename allowlist, optional
+  SHA-256 manifest) is tracked for v1.6.
+- `debug.Stack()` dumps at `internal/audit/plugin.go:275-287`,
+  `cmd/audit.go:302-313`, and `internal/processor/processor.go:91` are
+  now gated behind `logger.IsVerbose()`. Function names in stack dumps
+  can leak internal plugin paths (e.g. `acmecorp-pci-plugin.RunChecks`)
+  into centralized logs, revealing customer compliance posture. Fixes
+  SEC-M5 / QUAL-M8.
 
 ## [1.4.0] - 2026-04-03
 

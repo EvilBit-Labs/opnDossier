@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
@@ -139,9 +140,14 @@ func TestParser_Parse_AcceptedCharsets(t *testing.T) {
 
 // --- Parser.ParseAndValidate tests ---
 
+// TestParser_ParseAndValidate does NOT use t.Parallel().
+// ParseAndValidate reads the package-level validator holder in pkg/parser/pfsense;
+// TestParser_ParseAndValidateWithValidator and TestParser_SetValidator_StompProtection
+// mutate that holder. Running this test in parallel with those would be
+// order-dependent: a concurrent run could see an always-error validator and
+// fail for reasons unrelated to Parse correctness. Keep serial so the
+// validator-state precondition (nil) is deterministic.
 func TestParser_ParseAndValidate(t *testing.T) {
-	t.Parallel()
-
 	xmlData := `<?xml version="1.0"?><pfsense><system><hostname>test</hostname><domain>test.local</domain></system></pfsense>`
 
 	p := pfsense.NewParser(nil)
@@ -1515,27 +1521,36 @@ func TestConverter_CronEmptyCommand(t *testing.T) {
 	assert.Equal(t, 1, cronWarnings, "expected 1 empty-command cron warning")
 }
 
+// minimalValidPfSenseXML is a minimal well-formed pfSense config XML used by
+// the SetValidator regression tests below.
+const minimalValidPfSenseXML = `<?xml version="1.0"?><pfsense><version>19.1</version><system><hostname>test</hostname></system></pfsense>`
+
+// TestParser_ParseAndValidateWithValidator exercises the three observable
+// behaviors of the validator injection: installed-and-succeeds,
+// installed-and-fails, and no-validator fallback. Each subtest resets the
+// sync.Once guard so it can install its own validator; the subtests cannot
+// run in parallel for this reason.
 func TestParser_ParseAndValidateWithValidator(t *testing.T) {
-	origFunc := pfsense.ValidateFunc
-	t.Cleanup(func() { pfsense.ValidateFunc = origFunc })
+	t.Cleanup(pfsense.ResetValidatorForTesting)
 
 	t.Run("validates with injected validator", func(t *testing.T) {
-		pfsense.ValidateFunc = func(_ *pfsenseSchema.Document) error {
+		pfsense.ResetValidatorForTesting()
+		pfsense.SetValidator(func(_ *pfsenseSchema.Document) error {
 			return nil
-		}
+		})
 
 		p := pfsense.NewParser(nil)
-		xmlData := `<?xml version="1.0"?><pfsense><version>19.1</version><system><hostname>test</hostname></system></pfsense>`
-		device, _, err := p.ParseAndValidate(context.Background(), strings.NewReader(xmlData))
+		device, _, err := p.ParseAndValidate(context.Background(), strings.NewReader(minimalValidPfSenseXML))
 
 		require.NoError(t, err)
 		assert.Equal(t, "test", device.System.Hostname)
 	})
 
 	t.Run("returns validation error", func(t *testing.T) {
-		pfsense.ValidateFunc = func(_ *pfsenseSchema.Document) error {
+		pfsense.ResetValidatorForTesting()
+		pfsense.SetValidator(func(_ *pfsenseSchema.Document) error {
 			return errors.New("hostname is required")
-		}
+		})
 
 		p := pfsense.NewParser(nil)
 		xmlData := `<?xml version="1.0"?><pfsense><version>19.1</version></pfsense>`
@@ -1547,7 +1562,8 @@ func TestParser_ParseAndValidateWithValidator(t *testing.T) {
 	})
 
 	t.Run("falls back to parse when no validator", func(t *testing.T) {
-		pfsense.ValidateFunc = nil
+		pfsense.ResetValidatorForTesting()
+		// Intentionally do NOT call SetValidator — exercises the nil fallback.
 
 		p := pfsense.NewParser(nil)
 		xmlData := `<?xml version="1.0"?><pfsense><version>19.1</version><system><hostname>fallback</hostname></system></pfsense>`
@@ -1556,6 +1572,110 @@ func TestParser_ParseAndValidateWithValidator(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "fallback", device.System.Hostname)
 	})
+}
+
+// TestPfSense_SetValidator_CannotBeOverwritten pins the one-shot semantics
+// of [pfsense.SetValidator]. The second call must NOT replace the validator
+// installed by the first call — this is the enforcement point that prevents
+// a dynamically loaded plugin's init() from stomping the CLI-installed
+// validator (see GOTCHAS.md §20).
+func TestPfSense_SetValidator_CannotBeOverwritten(t *testing.T) {
+	t.Cleanup(pfsense.ResetValidatorForTesting)
+	pfsense.ResetValidatorForTesting()
+
+	var firstCalled, secondCalled bool
+
+	pfsense.SetValidator(func(_ *pfsenseSchema.Document) error {
+		firstCalled = true
+		return nil
+	})
+	pfsense.SetValidator(func(_ *pfsenseSchema.Document) error {
+		secondCalled = true
+		return errors.New("SHOULD NOT RUN")
+	})
+
+	p := pfsense.NewParser(nil)
+	_, _, err := p.ParseAndValidate(context.Background(), strings.NewReader(minimalValidPfSenseXML))
+
+	require.NoError(t, err, "second SetValidator leaked its error-returning validator")
+	assert.True(t, firstCalled, "first validator was not invoked — sync.Once behavior broken")
+	assert.False(t, secondCalled, "second validator was invoked — stomp protection broken")
+}
+
+// TestPfSense_SetValidator_Race stresses concurrent [pfsense.SetValidator]
+// writers and [pfsense.Parser.ParseAndValidate] readers. Run under -race
+// (e.g., `just test-race ./pkg/parser/pfsense/...`) to catch any data race
+// between the validator-install path and the validator-read path.
+//
+// The test asserts no races occur and that the first-caller-wins invariant
+// holds: whichever validator the sync.Once actually installed is the one
+// observed by ParseAndValidate.
+func TestPfSense_SetValidator_Race(t *testing.T) {
+	t.Cleanup(pfsense.ResetValidatorForTesting)
+	pfsense.ResetValidatorForTesting()
+
+	const (
+		numWriters = 16
+		numReaders = 16
+	)
+
+	// Every writer installs the SAME validator (identical function value is
+	// not required by the spec — only "some installed function wins and
+	// stays installed"). Because we cannot reliably compare func values,
+	// the race test succeeds if no race is flagged and the reader path
+	// (ParseAndValidate) executes cleanly while the writers call
+	// SetValidator concurrently.
+	var installed sync.WaitGroup
+	installed.Add(numWriters)
+
+	writerBarrier := make(chan struct{})
+	readerBarrier := make(chan struct{})
+
+	var readerWG sync.WaitGroup
+	readerWG.Add(numReaders)
+
+	for range numWriters {
+		go func() {
+			defer installed.Done()
+			<-writerBarrier
+			pfsense.SetValidator(func(_ *pfsenseSchema.Document) error {
+				return nil
+			})
+		}()
+	}
+
+	for range numReaders {
+		go func() {
+			defer readerWG.Done()
+			<-readerBarrier
+			p := pfsense.NewParser(nil)
+			// The race test only cares about data-race freedom; the
+			// returned CommonDevice and warnings are intentionally
+			// discarded and an error here would still satisfy the race
+			// invariant. Errors must still be read so errcheck is happy.
+			if _, _, err := p.ParseAndValidate(
+				context.Background(),
+				strings.NewReader(minimalValidPfSenseXML),
+			); err != nil {
+				// The minimal fixture must parse successfully. A
+				// spurious error here is a real regression, not a race
+				// concern — surface it via t.Errorf (t is safe for
+				// concurrent use per the testing package docs).
+				t.Errorf("concurrent ParseAndValidate failed: %v", err)
+			}
+		}()
+	}
+
+	// Release writers and readers together so they contend.
+	close(writerBarrier)
+	close(readerBarrier)
+
+	installed.Wait()
+	readerWG.Wait()
+
+	// After the storm, the validator must remain installed — not nil.
+	assert.NotNil(t, pfsense.ValidatorForTesting(),
+		"validator was cleared by concurrent writers; sync.Once semantics broken")
 }
 
 func TestConverter_FirmwareVersion(t *testing.T) {

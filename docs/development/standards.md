@@ -494,7 +494,7 @@ When adding `io.Writer` support alongside string-returning APIs, split responsib
 
 Parser registration follows the `database/sql` model: parsers call `parser.Register(name, factory)` from `init()`. **Critical:** any file using `parser.NewFactory()` must blank-import the parser packages (e.g., `_ ".../pkg/parser/opnsense"` and `_ ".../pkg/parser/pfsense"`). Without it, the registry is empty. See **[GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#71-blank-import-requirement)** for symptoms and fixes.
 
-Both parsers share XML security hardening via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` (LimitReader, XXE protection, charset handling). The pfSense parser manages its own XML decoding because `OPNsenseXMLDecoder` returns `*schema.OpnSenseDocument`; validation is injected via `pfsense.ValidateFunc` (set in `cmd/root.go`).
+Both parsers share XML security hardening via `parser.NewSecureXMLDecoder()` in `pkg/parser/xmlutil.go` (LimitReader, XXE protection, charset handling). The pfSense parser manages its own XML decoding because `OPNsenseXMLDecoder` returns `*schema.OpnSenseDocument`; validation is injected via `pfsense.SetValidator` (called from `cmd/root.go`). `SetValidator` is guarded by a `sync.Once`, so a dynamically loaded plugin's `init()` cannot stomp the CLI-installed validator — see **[GOTCHAS.md §20](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#20-pfsense-validator-injection)**.
 
 ### File Write Safety
 

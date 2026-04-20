@@ -193,13 +193,34 @@ type peekResult struct {
 	err  error
 }
 
-// peekRootElementBounded reads just enough of r to find the first XML start
-// element, using a bounded LimitReader (capped at DefaultMaxInputSize) and a
-// TeeReader to buffer consumed bytes. It returns the root element name, a
-// reader that replays the buffered bytes followed by the remainder of r, and
-// any error. The decode loop runs in a single goroutine so the caller can
-// select on ctx.Done() to abort when the reader blocks. The reader is wrapped
-// in a ctxReader so the goroutine exits promptly after context cancellation.
+// peekRootElementBounded reads up to [DefaultMaxInputSize] bytes of r to find
+// the first XML start element. It runs the token-scanning loop in a goroutine
+// so ctx cancellation can return promptly, and uses a TeeReader to buffer the
+// consumed bytes. It returns the root element name, a reader that replays the
+// buffered bytes followed by the remainder of r, and any error.
+//
+// CANCELLATION CONTRACT: Callers must ensure the supplied ctx is eventually
+// cancelled. On ctx.Done(), this function returns ctx.Err() immediately, but
+// the inner goroutine itself only exits when the current token read unblocks.
+// The ctx-wrapped reader (see [newCtxReader]) returns ctx.Err() on a
+// subsequent Read call after the underlying blocked Read has returned; it
+// does not interrupt an already-blocked Read. If the supplied reader never
+// yields (e.g., a hung network stream) AND the ctx is never cancelled, the
+// goroutine leaks and retains up to DefaultMaxInputSize bytes in its
+// internal buffer until the process exits.
+//
+// The function deliberately does NOT install a watchdog timer that closes the
+// reader on timeout: peekRootElementBounded receives an [io.Reader] it did
+// not create and therefore does not own. Closing a caller-owned reader from
+// within this helper would corrupt caller state (the caller may legitimately
+// reuse the reader after cancellation, and not every reader is an
+// [io.Closer]). The cancellation contract is the single mechanism callers
+// use to bound goroutine lifetime.
+//
+// CLI callers wrap *os.File readers which return io.EOF promptly on EOF, so
+// the goroutine exits naturally in that path. Library consumers supplying
+// readers that can block indefinitely (sockets, fifos, long-polling HTTP
+// bodies) MUST cancel the context to release the goroutine.
 func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader, error) {
 	var buf bytes.Buffer
 

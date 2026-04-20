@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -252,4 +253,41 @@ func TestValidateDeviceType_ErrorUsesSupportedDevices(t *testing.T) {
 
 	// Error message should contain the centralized SupportedDevices() output.
 	assert.Contains(t, err.Error(), parser.DefaultRegistry().SupportedDevices())
+}
+
+// TestWarnPluginDirTrustModel_EmptyIsNoOp locks in the no-op path: when the
+// --plugin-dir flag is empty (the default), the trust-model warning must not
+// be written. Commands call this helper unconditionally from PreRunE, so a
+// silent no-op on empty input is required.
+func TestWarnPluginDirTrustModel_EmptyIsNoOp(t *testing.T) {
+	var buf bytes.Buffer
+	warnPluginDirTrustModel(&buf, "")
+
+	assert.Empty(t, buf.String(), "empty plugin-dir must not produce any output")
+}
+
+// TestWarnPluginDirTrustModel_NonEmptyEmitsWarning pins the exact warning
+// content emitted when a non-empty --plugin-dir is supplied. The test asserts
+// on the stable substrings that operators and security reviewers grep for,
+// not on the full string — wording may evolve but these signals must remain.
+func TestWarnPluginDirTrustModel_NonEmptyEmitsWarning(t *testing.T) {
+	var buf bytes.Buffer
+	warnPluginDirTrustModel(&buf, "/var/plugins")
+
+	out := buf.String()
+	assert.Contains(t, out, "--plugin-dir", "warning must identify the flag")
+	assert.Contains(t, out, "full process privileges", "warning must surface privilege risk")
+	assert.Contains(t, out, "no signature verification", "warning must surface signature risk")
+	assert.Contains(t, out, "GOTCHAS §2.5", "warning must cross-ref the trust-model doc")
+}
+
+// TestPluginDirFlagUsageContainsTrustModelHints guards the help-text constant
+// so `opnDossier audit --help` continues to surface the same risk language
+// the stderr warning emits. The flag usage is what users see at discovery
+// time (before they run the command); the stderr warning is what they see at
+// invocation. Both must stay aligned.
+func TestPluginDirFlagUsageContainsTrustModelHints(t *testing.T) {
+	assert.Contains(t, pluginDirFlagUsage, "full process privileges")
+	assert.Contains(t, pluginDirFlagUsage, "signatures are not verified")
+	assert.Contains(t, pluginDirFlagUsage, "GOTCHAS §2.5")
 }

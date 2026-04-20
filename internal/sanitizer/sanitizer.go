@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/pool"
 )
 
@@ -21,6 +22,10 @@ type Sanitizer struct {
 	engine *RuleEngine
 	mode   Mode
 	stats  *Stats
+	// logger is optional. When nil, reflection-path warnings (e.g. struct-valued
+	// maps encountered by SanitizeStruct) are silently dropped. Callers that
+	// care about observability should inject a logger via SetLogger.
+	logger *logging.Logger
 }
 
 // Stats tracks sanitization statistics.
@@ -60,6 +65,14 @@ func (s *Sanitizer) GetStats() Stats {
 // GetMapper returns the mapper for generating mapping reports.
 func (s *Sanitizer) GetMapper() *Mapper {
 	return s.engine.GetMapper()
+}
+
+// SetLogger attaches a structured logger used for reflection-path diagnostics.
+// Passing nil is valid and silences diagnostics. The logger is only consulted
+// from SanitizeStruct today — the XML path uses the package-level log fallback
+// already.
+func (s *Sanitizer) SetLogger(logger *logging.Logger) {
+	s.logger = logger
 }
 
 // maxSanitizeInputSize is the maximum allowed size in bytes for XML input
@@ -363,6 +376,53 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 		}
 
 	case reflect.Map:
+		// Guard: struct/pointer-valued maps are a known SanitizeStruct gap
+		// (see GOTCHAS §14.4). Map values are not addressable in Go, so we
+		// cannot recurse into them safely here. Log a warning so future
+		// schema additions that embed secrets behind such a path surface
+		// the gap instead of silently shipping cleartext through the
+		// reflection consumer flow. The raw-XML SanitizeXML path is
+		// unaffected — it operates on element names, not Go types.
+		elemKind := v.Type().Elem().Kind()
+		if elemKind == reflect.Struct || elemKind == reflect.Ptr {
+			if s.logger != nil {
+				s.logger.Warn(
+					"sanitize reflect: skipping map with struct/pointer values",
+					"path", path,
+					"type", v.Type().String(),
+				)
+			}
+			return nil
+		}
+		// Interface-typed maps (e.g. map[string]any) can smuggle struct/pointer
+		// values past the declared-kind check above. Inspect the concrete
+		// dynamic kind of the first such entry and emit the same warning so
+		// the gap is surfaced at runtime instead of shipping as cleartext.
+		// We break after the first match: one warning per offending map is
+		// enough signal for schema triage, and iterating every entry would
+		// be O(n) on each sanitize call.
+		if elemKind == reflect.Interface {
+			for _, key := range v.MapKeys() {
+				concrete := v.MapIndex(key)
+				for concrete.IsValid() && concrete.Kind() == reflect.Interface && !concrete.IsNil() {
+					concrete = concrete.Elem()
+				}
+				if !concrete.IsValid() {
+					continue
+				}
+				if concrete.Kind() == reflect.Struct || concrete.Kind() == reflect.Ptr {
+					if s.logger != nil {
+						s.logger.Warn(
+							"sanitize reflect: skipping interface-typed map with struct/pointer values",
+							"path", path,
+							"type", v.Type().String(),
+							"concrete_type", concrete.Type().String(),
+						)
+					}
+					return nil
+				}
+			}
+		}
 		for _, key := range v.MapKeys() {
 			mapValue := v.MapIndex(key)
 			if mapValue.Kind() == reflect.String && mapValue.CanInterface() {
@@ -375,8 +435,6 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 					v.SetMapIndex(key, reflect.ValueOf(sanitized))
 				}
 			}
-			// Note: Complex types (struct/ptr) in maps cannot be modified in place.
-			// This is a Go limitation - map values are not addressable.
 		}
 
 	case reflect.String:
