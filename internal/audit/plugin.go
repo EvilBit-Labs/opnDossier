@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	pluginlib "plugin"
+	"runtime"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -23,6 +24,22 @@ import (
 // It encapsulates the open → lookup → type-assert pipeline so that tests can
 // inject a fake loader without requiring real .so files.
 type pluginLoaderFunc func(path string) (compliance.Plugin, error)
+
+// pluginLoadingSupported reports whether the running platform implements Go's
+// plugin package. As documented at https://pkg.go.dev/plugin, only Linux,
+// macOS, and FreeBSD ship a working implementation; on Windows and plan9 the
+// standard library's plugin.Open returns "plugin: not implemented". We use
+// this guard to short-circuit LoadDynamicPlugins with a clear warning so
+// --plugin-dir is an explicit no-op on unsupported platforms instead of
+// producing one failure per .so file.
+func pluginLoadingSupported() bool {
+	switch runtime.GOOS {
+	case "linux", "darwin", "freebsd":
+		return true
+	default:
+		return false
+	}
+}
 
 // defaultPluginLoader is the production plugin loader that opens a .so file,
 // looks up the exported "Plugin" symbol, and asserts it implements compliance.Plugin.
@@ -140,11 +157,29 @@ func (pr *PluginRegistry) LoadDynamicPlugins(
 
 	ctxLogger := logger.WithContext(ctx)
 
-	// Normalize dir to an absolute path up front. The Phase A preflight
-	// rejects non-absolute paths, so a common invocation like
-	// `--plugin-dir ./plugins` would otherwise cause every plugin to fail.
-	// The audit log records the normalized absolute path for unambiguous
-	// forensics.
+	// Go's plugin package is only implemented on Linux, macOS, and FreeBSD.
+	// On every other platform (Windows, plan9, etc.), plugin.Open returns
+	// "plugin: not implemented" at runtime. Short-circuit here so the CLI
+	// emits one clear warning and returns an empty LoadResult instead of
+	// letting every candidate .so fail the pluginLoader call. The audit
+	// still runs with the static built-in plugins; --plugin-dir becomes an
+	// explicit no-op. See docs/user-guide/commands/audit.md § Dynamic
+	// Plugin Security for the platform-support policy.
+	if !pluginLoadingSupported() {
+		ctxLogger.Warn(
+			"--plugin-dir is not supported on this platform; skipping dynamic plugin loading",
+			"platform", runtime.GOOS,
+			"supported_platforms", "linux, darwin, freebsd",
+			"dir", dir,
+		)
+
+		return LoadResult{}, nil
+	}
+
+	// Normalize dir to an absolute path up front. The preflight rejects
+	// non-absolute paths, so a common invocation like `--plugin-dir ./plugins`
+	// would otherwise cause every plugin to fail. The audit log records the
+	// normalized absolute path for unambiguous forensics.
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		ctxLogger.Error("Failed to resolve absolute plugin directory", "dir", dir, "error", err)

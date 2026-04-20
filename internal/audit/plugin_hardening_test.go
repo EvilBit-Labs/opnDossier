@@ -645,6 +645,55 @@ func TestRunComplianceChecks_PanicVerboseLogging(t *testing.T) {
 	}
 }
 
+// TestPluginLoadingSupported_ReportsCurrentPlatform verifies the guard that
+// determines whether Go's plugin package is implemented on the current OS.
+// Linux, macOS, and FreeBSD support Go plugins; every other platform (notably
+// Windows) does not. The test asserts the invariant using runtime.GOOS so it
+// stays valid on whichever platform CI runs it.
+func TestPluginLoadingSupported_ReportsCurrentPlatform(t *testing.T) {
+	t.Parallel()
+
+	got := pluginLoadingSupported()
+	switch runtime.GOOS {
+	case "linux", "darwin", "freebsd":
+		if !got {
+			t.Errorf("pluginLoadingSupported() on %s = false, want true", runtime.GOOS)
+		}
+	default:
+		if got {
+			t.Errorf("pluginLoadingSupported() on %s = true, want false", runtime.GOOS)
+		}
+	}
+}
+
+// TestLoadDynamicPlugins_UnsupportedPlatformShortCircuits verifies the Windows
+// (and other unsupported-platform) no-op path. Because we cannot swap
+// runtime.GOOS at test time, this test runs only when the current platform is
+// unsupported (Windows on a Windows CI runner). On supported platforms the
+// test is skipped — the positive path (LoadDynamicPlugins actually loading)
+// is covered by the other integration tests in this file.
+func TestLoadDynamicPlugins_UnsupportedPlatformShortCircuits(t *testing.T) {
+	t.Parallel()
+
+	if pluginLoadingSupported() {
+		t.Skipf("platform %s supports Go plugins; short-circuit path not reachable here", runtime.GOOS)
+	}
+
+	dir := t.TempDir()
+	writePluginFile(t, dir, "ok.so", 0o600, []byte("stub"))
+
+	registry := newPluginRegistryWithLoader(alwaysFailLoader())
+	logger := newTestLogger(t)
+
+	result, err := registry.LoadDynamicPlugins(context.Background(), dir, true, logger)
+	if err != nil {
+		t.Fatalf("unsupported platform should not produce an error, got: %v", err)
+	}
+	if result.Loaded != 0 || result.Failed() != 0 {
+		t.Errorf("unsupported platform must return empty LoadResult, got %+v", result)
+	}
+}
+
 // TestExtractOwnerUID_NilInfo guards the nil-safety branch of the POSIX
 // owner-UID extractor. The preflight emits "unavailable" rather than
 // panicking when the caller passes a nil FileInfo (e.g., a buggy future

@@ -86,6 +86,9 @@ See the [Plugin Development Guide](../../development/plugin-development.md) if y
 
 ## Dynamic Plugin Security
 
+!!! info "Platform support"
+    **Dynamic plugin loading only works on Linux, macOS, and FreeBSD.** Go's [`plugin`](https://pkg.go.dev/plugin) package — which opnDossier uses for `--plugin-dir` — is not implemented on Windows. On Windows and other unsupported platforms, the flag is accepted for CLI parity, but `--plugin-dir` becomes a no-op: opnDossier emits a single stderr warning naming the current platform and continues the audit with the built-in compliance plugins only. No `.so` files are opened, and no spurious per-file load errors are produced. If you need compliance plugins on Windows, run opnDossier under WSL2 or in a Linux container.
+
 !!! danger "Trust model"
     A dynamic plugin runs with the same privileges as opnDossier itself. There is no sandbox, no signature check, and no provenance verification. Treat every `.so` file you drop into `--plugin-dir` exactly as you would treat an unsigned executable that you are about to run as the current user — because that is effectively what happens.
 
@@ -93,18 +96,16 @@ Every time you pass a non-empty `--plugin-dir`, opnDossier writes a warning to s
 
 ### What the loader does for you
 
-These restrictions are enforced automatically. A plugin file that fails any of them is rejected before it is loaded, and the rejection is written to the audit log with enough metadata (path, SHA-256, file mode, owner UID, size, verdict, reason) for a security team to investigate:
+These restrictions are enforced automatically on every supported platform (Linux, macOS, FreeBSD). A plugin file that fails any of them is rejected before it is loaded, and the rejection is written to the audit log with enough metadata (path, SHA-256, file mode, owner UID, size, verdict, reason) for a security team to investigate:
 
-| Check                           | Behavior                                                                                                                                                                                    | Platforms                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **Symlink rejection**           | The `.so` itself cannot be a symlink. A symlink planted in `--plugin-dir` that points at an attacker-controlled file elsewhere is refused.                                                  | All platforms             |
-| **File permission check**       | The `.so` must not be group-writable or world-writable (`mode & 0o022 == 0`).                                                                                                               | POSIX (Linux, macOS, BSD) |
-| **Directory permission check**  | The `--plugin-dir` directory itself must not be group-writable or world-writable. A locked-down `.so` inside a world-writable directory is refused because an attacker could swap the file. | POSIX (Linux, macOS, BSD) |
-| **Absolute path normalization** | A relative `--plugin-dir` (e.g. `./plugins`) is resolved to an absolute path before any check runs, so the audit log and preflight always work on a canonical path.                         | All platforms             |
-| **Size cap (64 MiB)**           | A plugin's SHA-256 is computed during the preflight with a 64 MiB read cap. A `.so` larger than 64 MiB is rejected rather than memory-mapped.                                               | All platforms             |
-| **SHA-256 audit trail**         | Every accepted or rejected load is logged with the file's SHA-256 digest, so the specific binary that ran (or was refused) is identifiable after the fact.                                  | All platforms             |
-
-On Windows, the file and directory permission-bit checks are skipped because NTFS ACLs do not map cleanly onto POSIX mode bits. Symlink rejection, absolute-path normalization, size cap, and SHA-256 logging still apply.
+| Check                           | Behavior                                                                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Symlink rejection**           | The `.so` itself cannot be a symlink. A symlink planted in `--plugin-dir` that points at an attacker-controlled file elsewhere is refused.                                                  |
+| **File permission check**       | The `.so` must not be group-writable or world-writable (`mode & 0o022 == 0`).                                                                                                               |
+| **Directory permission check**  | The `--plugin-dir` directory itself must not be group-writable or world-writable. A locked-down `.so` inside a world-writable directory is refused because an attacker could swap the file. |
+| **Absolute path normalization** | A relative `--plugin-dir` (e.g. `./plugins`) is resolved to an absolute path before any check runs, so the audit log and preflight always work on a canonical path.                         |
+| **Size cap (64 MiB)**           | A plugin's SHA-256 is computed during the preflight with a 64 MiB read cap. A `.so` larger than 64 MiB is rejected rather than memory-mapped.                                               |
+| **SHA-256 audit trail**         | Every accepted or rejected load is logged with the file's SHA-256 digest, so the specific binary that ran (or was refused) is identifiable after the fact.                                  |
 
 ### What the loader does NOT do
 

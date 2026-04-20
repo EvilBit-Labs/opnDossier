@@ -556,7 +556,7 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 
 - **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory. Check `GetLoadResult()` or CLI warnings for load failures.
 - **Go version mismatch?** All plugins and the main binary must be built with the same Go version and dependencies. This is the most common cause of dynamic plugin load failures.
-- **Platform support:** Go plugins are supported on Linux and macOS, not Windows.
+- **Platform support:** Go plugins are supported on Linux, macOS, and FreeBSD only — the `plugin` package is not implemented on Windows. Windows users can run opnDossier under WSL2 or in a Linux container if they need compliance plugins.
 - **Plugin appears with zero findings?** The plugin may have panicked during execution. Check the audit logs for panic details. Panicked plugins are retained in results but produce no findings. Review the plugin's error handling and ensure it returns findings properly rather than panicking.
 - **Dynamic plugin directory not found?** If you specified `--plugin-dir`, ensure the directory exists. Explicit directories fail fast if missing. Without the flag, no dynamic plugins are loaded.
 - **Duplicate plugin name?** If a dynamic plugin has the same name as a static plugin or another dynamic plugin, registration will fail. Check the load failures in `GetLoadResult()` or CLI warning logs.
