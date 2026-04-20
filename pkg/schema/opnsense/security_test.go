@@ -1721,7 +1721,7 @@ func TestRule_BackwardCompatibility_EffectiveAddress(t *testing.T) {
 
 // verifyCompleteRuleFields checks all fields of a Rule against expected values.
 //
-//nolint:funlen // test table or data declaration; length is in data not logic
+//nolint:funlen,cyclop // one branch per Rule field; the complexity tracks the schema's field count
 func verifyCompleteRuleFields(t *testing.T, got Rule, prefix string) {
 	t.Helper()
 
@@ -2065,7 +2065,7 @@ func TestNATRule_NewFields_XMLRoundTrip(t *testing.T) {
 	}
 }
 
-//nolint:funlen // test table or data declaration; length is in data not logic
+//nolint:funlen,cyclop // per-field field-equality assertions; branch count tracks schema field count
 func TestNATRule_CompleteWithNewFields_XMLRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -2372,7 +2372,7 @@ func TestInboundRule_NewFields_XMLRoundTrip(t *testing.T) {
 	}
 }
 
-//nolint:funlen // test table or data declaration; length is in data not logic
+//nolint:funlen,cyclop // per-field field-equality assertions; branch count tracks schema field count
 func TestInboundRule_CompleteWithNewFields_XMLRoundTrip(t *testing.T) {
 	t.Parallel()
 

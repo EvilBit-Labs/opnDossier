@@ -137,12 +137,16 @@ linters:
     - gochecknoglobals # Disabled: causes issues with cobra commands
   settings:
     cyclop:
-      # Current (2026-04-19): max-complexity=50 preserves the pre-sweep
-      # baseline (green CI). Target after sweep: 25, which matches the
-      # skill's recommended adjusted threshold (Go default is 15). Probed:
-      # 7 findings at 25, concentrated in ~10 files. When the sweep drops
-      # this to 25, update the comment and the rationale below.
-      max-complexity: 50
+      # 25 (vs. Go default 15). Sweep on 2026-04-19 cleared the baseline
+      # at this threshold after the nestif/gocognit/funlen sweeps
+      # refactored the hot spots. The remaining 6 findings were the
+      # declarative XML dispatch (handleStartElement), flat field-check
+      # chains over the OPNsense DHCPv6 schema (HasDHCPv6Config,
+      # buildDHCPv6Items), and per-field test-equality assertions — each
+      # carries //nolint:cyclop with a scoped reason. Can tighten to 15
+      # once more schema-level dispatches move to reflection-based
+      # dispatch, but that is a larger refactor than this sweep.
+      max-complexity: 25
       package-average: 10.0
     gocritic:
       enabled-tags:

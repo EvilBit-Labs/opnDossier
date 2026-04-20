@@ -246,6 +246,8 @@ func HasAdvancedDHCPConfig(dhcp common.DHCPScope) bool {
 }
 
 // HasDHCPv6Config checks if any DHCPv6 fields are populated in a DHCPScope.
+//
+//nolint:cyclop // flat disjunction over 27 DHCPv6 schema fields; each || is one branch but the intent is a single "any field populated?" check
 func HasDHCPv6Config(dhcp common.DHCPScope) bool {
 	if dhcp.AdvancedV6 == nil {
 		return false
@@ -348,6 +350,8 @@ func buildAdvancedDHCPItems(dhcp common.DHCPScope) []string {
 }
 
 // buildDHCPv6Items builds a list of DHCPv6 configuration items for display.
+//
+//nolint:cyclop // per-field presence checks over 28 DHCPv6 schema fields; factoring by subsystem (Track6/IDAssoc/Auth/KeyInfo) would obscure the field ordering that matches the OPNsense UI form
 func buildDHCPv6Items(dhcp common.DHCPScope) []string {
 	if dhcp.AdvancedV6 == nil {
 		return make([]string, 0)
