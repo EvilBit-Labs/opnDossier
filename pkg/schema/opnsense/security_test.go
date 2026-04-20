@@ -1121,29 +1121,10 @@ func TestRule_FloatingRules_XMLRoundTrip(t *testing.T) {
 			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
 				t.Fatalf("xml.Unmarshal() error = %v", err)
 			}
-			if got.Floating != tt.wantFloating {
-				t.Errorf("Floating = %q, want %q", got.Floating, tt.wantFloating)
-			}
-			if got.Direction != tt.wantDir {
-				t.Errorf("Direction = %q, want %q", got.Direction, tt.wantDir)
-			}
-			if got.Gateway != tt.wantGateway {
-				t.Errorf("Gateway = %q, want %q", got.Gateway, tt.wantGateway)
-			}
-			if got.Quick != tt.wantQuick {
-				t.Errorf("Quick = %v, want %v", got.Quick, tt.wantQuick)
-			}
-			if got.Log != tt.wantLog {
-				t.Errorf("Log = %v, want %v", got.Log, tt.wantLog)
-			}
-			if got.Tracker != tt.wantTracker {
-				t.Errorf("Tracker = %q, want %q", got.Tracker, tt.wantTracker)
-			}
-			if got.StateType != tt.wantState {
-				t.Errorf("StateType = %q, want %q", got.StateType, tt.wantState)
-			}
+			assertFloatingRuleFields(t, "parse", got,
+				tt.wantFloating, tt.wantDir, tt.wantGateway, tt.wantTracker, tt.wantState,
+				tt.wantQuick, tt.wantLog)
 
-			// Round-trip validation
 			marshaled, err := xml.Marshal(got)
 			if err != nil {
 				t.Fatalf("xml.Marshal() error = %v", err)
@@ -1152,28 +1133,45 @@ func TestRule_FloatingRules_XMLRoundTrip(t *testing.T) {
 			if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
 				t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
 			}
-			if roundTripped.Floating != tt.wantFloating {
-				t.Errorf("round-trip Floating = %q, want %q", roundTripped.Floating, tt.wantFloating)
-			}
-			if roundTripped.Direction != tt.wantDir {
-				t.Errorf("round-trip Direction = %q, want %q", roundTripped.Direction, tt.wantDir)
-			}
-			if roundTripped.Gateway != tt.wantGateway {
-				t.Errorf("round-trip Gateway = %q, want %q", roundTripped.Gateway, tt.wantGateway)
-			}
-			if roundTripped.Quick != tt.wantQuick {
-				t.Errorf("round-trip Quick = %v, want %v", roundTripped.Quick, tt.wantQuick)
-			}
-			if roundTripped.Log != tt.wantLog {
-				t.Errorf("round-trip Log = %v, want %v", roundTripped.Log, tt.wantLog)
-			}
-			if roundTripped.Tracker != tt.wantTracker {
-				t.Errorf("round-trip Tracker = %q, want %q", roundTripped.Tracker, tt.wantTracker)
-			}
-			if roundTripped.StateType != tt.wantState {
-				t.Errorf("round-trip StateType = %q, want %q", roundTripped.StateType, tt.wantState)
-			}
+			assertFloatingRuleFields(t, "round-trip", roundTripped,
+				tt.wantFloating, tt.wantDir, tt.wantGateway, tt.wantTracker, tt.wantState,
+				tt.wantQuick, tt.wantLog)
 		})
+	}
+}
+
+// assertFloatingRuleFields is the per-case field-equality check used by
+// TestRule_FloatingRules_XMLRoundTrip. Extracting the assertions keeps the
+// subtest body's cognitive complexity below gocognit's threshold and makes
+// the parse vs round-trip cases share the same expected-field contract.
+func assertFloatingRuleFields(
+	t *testing.T,
+	label string,
+	got Rule,
+	wantFloating, wantDir, wantGateway, wantTracker, wantState string,
+	wantQuick, wantLog BoolFlag,
+) {
+	t.Helper()
+	if got.Floating != wantFloating {
+		t.Errorf("%s Floating = %q, want %q", label, got.Floating, wantFloating)
+	}
+	if got.Direction != wantDir {
+		t.Errorf("%s Direction = %q, want %q", label, got.Direction, wantDir)
+	}
+	if got.Gateway != wantGateway {
+		t.Errorf("%s Gateway = %q, want %q", label, got.Gateway, wantGateway)
+	}
+	if got.Quick != wantQuick {
+		t.Errorf("%s Quick = %v, want %v", label, got.Quick, wantQuick)
+	}
+	if got.Log != wantLog {
+		t.Errorf("%s Log = %v, want %v", label, got.Log, wantLog)
+	}
+	if got.Tracker != wantTracker {
+		t.Errorf("%s Tracker = %q, want %q", label, got.Tracker, wantTracker)
+	}
+	if got.StateType != wantState {
+		t.Errorf("%s StateType = %q, want %q", label, got.StateType, wantState)
 	}
 }
 
@@ -1606,83 +1604,61 @@ func TestRule_BackwardCompatibility_MissingFields(t *testing.T) {
 			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
 				t.Fatalf("xml.Unmarshal() error = %v", err)
 			}
-
-			// All new string fields default to empty
-			if got.Floating != "" {
-				t.Errorf("Floating = %q, want empty", got.Floating)
-			}
-			if got.Gateway != "" {
-				t.Errorf("Gateway = %q, want empty", got.Gateway)
-			}
-			if got.Direction != "" {
-				t.Errorf("Direction = %q, want empty", got.Direction)
-			}
-			if got.StateType != "" {
-				t.Errorf("StateType = %q, want empty", got.StateType)
-			}
-			if got.Tracker != "" {
-				t.Errorf("Tracker = %q, want empty", got.Tracker)
-			}
-
-			// All BoolFlag fields default to false
-			if got.Log {
-				t.Errorf("Log = %v, want false", got.Log)
-			}
-			if got.Disabled {
-				t.Errorf("Disabled = %v, want false", got.Disabled)
-			}
-			if got.Quick {
-				t.Errorf("Quick = %v, want false", got.Quick)
-			}
-
-			// New rate-limiting fields default to empty
-			if got.MaxSrcNodes != "" {
-				t.Errorf("MaxSrcNodes = %q, want empty", got.MaxSrcNodes)
-			}
-			if got.MaxSrcConn != "" {
-				t.Errorf("MaxSrcConn = %q, want empty", got.MaxSrcConn)
-			}
-			if got.MaxSrcConnRate != "" {
-				t.Errorf("MaxSrcConnRate = %q, want empty", got.MaxSrcConnRate)
-			}
-			if got.MaxSrcConnRates != "" {
-				t.Errorf("MaxSrcConnRates = %q, want empty", got.MaxSrcConnRates)
-			}
-
-			// New TCP/ICMP fields default to zero values
-			if got.TCPFlags1 != "" {
-				t.Errorf("TCPFlags1 = %q, want empty", got.TCPFlags1)
-			}
-			if got.TCPFlags2 != "" {
-				t.Errorf("TCPFlags2 = %q, want empty", got.TCPFlags2)
-			}
-			if got.TCPFlagsAny {
-				t.Errorf("TCPFlagsAny = %v, want false", got.TCPFlagsAny)
-			}
-			if got.ICMPType != "" {
-				t.Errorf("ICMPType = %q, want empty", got.ICMPType)
-			}
-			if got.ICMP6Type != "" {
-				t.Errorf("ICMP6Type = %q, want empty", got.ICMP6Type)
-			}
-
-			// New state and advanced fields default to zero values
-			if got.StateTimeout != "" {
-				t.Errorf("StateTimeout = %q, want empty", got.StateTimeout)
-			}
-			if got.AllowOpts {
-				t.Errorf("AllowOpts = %v, want false", got.AllowOpts)
-			}
-			if got.DisableReplyTo {
-				t.Errorf("DisableReplyTo = %v, want false", got.DisableReplyTo)
-			}
-			if got.NoPfSync {
-				t.Errorf("NoPfSync = %v, want false", got.NoPfSync)
-			}
-			if got.NoSync {
-				t.Errorf("NoSync = %v, want false", got.NoSync)
-			}
+			assertRuleFieldsEmpty(t, got)
 		})
+	}
+}
+
+// assertRuleFieldsEmpty checks that every optional Rule field is at its
+// zero-value. Extracted from TestRule_BackwardCompatibility_MissingFields
+// so the subtest body is a single call and gocognit stays under threshold.
+// When a new optional Rule field is added, extend this helper (and the test's
+// coverage grows automatically).
+func assertRuleFieldsEmpty(t *testing.T, got Rule) {
+	t.Helper()
+
+	stringFields := []struct {
+		name string
+		got  string
+	}{
+		{"Floating", got.Floating},
+		{"Gateway", got.Gateway},
+		{"Direction", got.Direction},
+		{"StateType", got.StateType},
+		{"Tracker", got.Tracker},
+		{"MaxSrcNodes", got.MaxSrcNodes},
+		{"MaxSrcConn", got.MaxSrcConn},
+		{"MaxSrcConnRate", got.MaxSrcConnRate},
+		{"MaxSrcConnRates", got.MaxSrcConnRates},
+		{"TCPFlags1", got.TCPFlags1},
+		{"TCPFlags2", got.TCPFlags2},
+		{"ICMPType", got.ICMPType},
+		{"ICMP6Type", got.ICMP6Type},
+		{"StateTimeout", got.StateTimeout},
+	}
+	for _, f := range stringFields {
+		if f.got != "" {
+			t.Errorf("%s = %q, want empty", f.name, f.got)
+		}
+	}
+
+	boolFlagFields := []struct {
+		name string
+		got  bool
+	}{
+		{"Log", bool(got.Log)},
+		{"Disabled", bool(got.Disabled)},
+		{"Quick", bool(got.Quick)},
+		{"TCPFlagsAny", bool(got.TCPFlagsAny)},
+		{"AllowOpts", bool(got.AllowOpts)},
+		{"DisableReplyTo", bool(got.DisableReplyTo)},
+		{"NoPfSync", bool(got.NoPfSync)},
+		{"NoSync", bool(got.NoSync)},
+	}
+	for _, f := range boolFlagFields {
+		if f.got {
+			t.Errorf("%s = %v, want false", f.name, f.got)
+		}
 	}
 }
 

@@ -1062,133 +1062,92 @@ func TestCoreProcessor_RaceConditions(t *testing.T) {
 	smallConfig := generateSmallConfig()
 	largeConfig := generateLargeConfig()
 
-	// Test concurrent processing of the same config
 	t.Run("Concurrent Same Config", func(t *testing.T) {
-		var wg sync.WaitGroup
-
-		errorChan := make(chan error, 10)
-
-		for i := range 10 {
-			wg.Add(1)
-
-			go func(id int) {
-				defer wg.Done()
-
-				report, err := localProcessor.Process(ctx, smallConfig, WithAllFeatures())
-				if err != nil {
-					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
-					return
-				}
-
-				if report == nil {
-					errorChan <- NewTestError(id, "report is nil")
-					return
-				}
-				// Verify basic report structure
-				if report.ConfigInfo.Hostname != "small-config" {
-					errorChan <- NewTestError(id, "unexpected hostname "+report.ConfigInfo.Hostname)
-				}
-			}(i)
-		}
-
-		wg.Wait()
-		close(errorChan)
-
-		// Check for any errors
-		for err := range errorChan {
-			t.Error(err)
-		}
+		runConcurrentWorkers(t, 10, func(id int) error {
+			report, perr := localProcessor.Process(ctx, smallConfig, WithAllFeatures())
+			if perr != nil {
+				return fmt.Errorf("goroutine %d: %w", id, perr)
+			}
+			if report == nil {
+				return NewTestError(id, "report is nil")
+			}
+			if report.ConfigInfo.Hostname != "small-config" {
+				return NewTestError(id, "unexpected hostname "+report.ConfigInfo.Hostname)
+			}
+			return nil
+		})
 	})
 
-	// Test concurrent processing of different configs
 	t.Run("Concurrent Different Configs", func(t *testing.T) {
-		var wg sync.WaitGroup
+		runConcurrentWorkers(t, 10, func(id int) error {
+			config := smallConfig
+			expectedHostname := "small-config"
+			if id%2 == 1 {
+				config = largeConfig
+				expectedHostname = "large-config"
+			}
 
-		errorChan := make(chan error, 10)
-
-		for i := range 10 {
-			wg.Add(1)
-
-			go func(id int) {
-				defer wg.Done()
-
-				var (
-					config           *common.CommonDevice
-					expectedHostname string
-				)
-
-				if id%2 == 0 {
-					config = smallConfig
-					expectedHostname = "small-config"
-				} else {
-					config = largeConfig
-					expectedHostname = "large-config"
+			report, perr := localProcessor.Process(ctx, config, WithAllFeatures())
+			if perr != nil {
+				return fmt.Errorf("goroutine %d: %w", id, perr)
+			}
+			if report == nil {
+				return NewTestError(id, "report is nil")
+			}
+			if report.ConfigInfo.Hostname != expectedHostname {
+				return &TestHostnameError{
+					GoroutineID:      id,
+					ExpectedHostname: expectedHostname,
+					ActualHostname:   report.ConfigInfo.Hostname,
 				}
-
-				report, err := localProcessor.Process(ctx, config, WithAllFeatures())
-				if err != nil {
-					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
-					return
-				}
-
-				if report == nil {
-					errorChan <- NewTestError(id, "report is nil")
-					return
-				}
-				// Verify correct config was processed
-				if report.ConfigInfo.Hostname != expectedHostname {
-					errorChan <- &TestHostnameError{GoroutineID: id, ExpectedHostname: expectedHostname, ActualHostname: report.ConfigInfo.Hostname}
-				}
-			}(i)
-		}
-
-		wg.Wait()
-		close(errorChan)
-
-		// Check for any errors
-		for err := range errorChan {
-			t.Error(err)
-		}
+			}
+			return nil
+		})
 	})
 
-	// Test concurrent processor creation
 	t.Run("Concurrent Processor Creation", func(t *testing.T) {
-		var wg sync.WaitGroup
-
-		errorChan := make(chan error, 10)
-
-		for i := range 10 {
-			wg.Add(1)
-
-			go func(id int) {
-				defer wg.Done()
-
-				localProcessor, err := NewCoreProcessor(nil)
-				if err != nil {
-					errorChan <- fmt.Errorf("goroutine %d: failed to create processor: %w", id, err)
-					return
-				}
-
-				report, err := localProcessor.Process(ctx, smallConfig, WithStats())
-				if err != nil {
-					errorChan <- fmt.Errorf("goroutine %d: %w", id, err)
-					return
-				}
-
-				if report == nil {
-					errorChan <- NewTestError(id, "report is nil")
-				}
-			}(i)
-		}
-
-		wg.Wait()
-		close(errorChan)
-
-		// Check for any errors
-		for err := range errorChan {
-			t.Error(err)
-		}
+		runConcurrentWorkers(t, 10, func(id int) error {
+			perWorkerProcessor, perr := NewCoreProcessor(nil)
+			if perr != nil {
+				return fmt.Errorf("goroutine %d: failed to create processor: %w", id, perr)
+			}
+			report, perr := perWorkerProcessor.Process(ctx, smallConfig, WithStats())
+			if perr != nil {
+				return fmt.Errorf("goroutine %d: %w", id, perr)
+			}
+			if report == nil {
+				return NewTestError(id, "report is nil")
+			}
+			return nil
+		})
 	})
+}
+
+// runConcurrentWorkers spawns n workers that each invoke work(id) and reports
+// any returned error via t.Error. Extracted from TestCoreProcessor_RaceConditions
+// so each subtest body is a single call instead of a boilerplate-laden
+// goroutine+channel dance.
+func runConcurrentWorkers(t *testing.T, n int, work func(id int) error) {
+	t.Helper()
+
+	var wg sync.WaitGroup
+	errorChan := make(chan error, n)
+
+	for i := range n {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			if werr := work(id); werr != nil {
+				errorChan <- werr
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errorChan)
+	for err := range errorChan {
+		t.Error(err)
+	}
 }
 
 // TestCoreProcessor_StatisticsAccuracy tests that statistics are calculated accurately.

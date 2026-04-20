@@ -334,7 +334,6 @@ func (s *Sanitizer) SanitizeStruct(v any) error {
 // See issue #149 for motivation — the previous Sprintf-per-slice-element
 // approach produced tens of thousands of short-lived strings per call.
 func (s *Sanitizer) sanitizeReflect(v reflect.Value, pathStack []string, sliceIdx int) error {
-	// Handle pointers
 	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil
@@ -344,102 +343,15 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, pathStack []string, sliceId
 
 	switch v.Kind() {
 	case reflect.Struct:
-		t := v.Type()
-		// When this struct is a slice element, fuse "[i]" onto the terminal
-		// segment so nested string leaves see the canonical
-		// "parent.field[i].child" shape instead of "parent.field.[i].child".
-		// Reuse pathStack directly when there is no index to fuse — the loop
-		// below allocates a fresh child slice per iteration so siblings
-		// never alias each other.
-		localStack := pathStack
-		if sliceIdx >= 0 && len(localStack) > 0 {
-			indexed := localStack[len(localStack)-1] + "[" + strconv.Itoa(sliceIdx) + "]"
-			// Build a new slice to avoid mutating the caller's pathStack.
-			newStack := make([]string, len(localStack))
-			copy(newStack, localStack)
-			newStack[len(newStack)-1] = indexed
-			localStack = newStack
-		}
-		for i := range v.NumField() {
-			field := v.Field(i)
-			fieldType := t.Field(i)
-
-			// Skip unexported fields
-			if !field.CanSet() {
-				continue
-			}
-
-			// Skip XMLName
-			if fieldType.Name == "XMLName" {
-				continue
-			}
-
-			// Determine the segment name: xml tag takes priority over Go
-			// field name. The xml tag may contain comma-separated options;
-			// only the name (first part) is used.
-			segment := fieldType.Name
-			xmlTag := fieldType.Tag.Get("xml")
-			if xmlTag != "" && xmlTag != "-" {
-				if comma := strings.IndexByte(xmlTag, ','); comma >= 0 {
-					if comma > 0 {
-						segment = xmlTag[:comma]
-					}
-				} else {
-					segment = xmlTag
-				}
-			}
-
-			// Allocate a fresh child stack per field so sibling recursions
-			// never share backing storage. This keeps paths correct when a
-			// nested struct appends its own segments.
-			childStack := make([]string, len(localStack)+1)
-			copy(childStack, localStack)
-			childStack[len(localStack)] = segment
-			if err := s.sanitizeReflect(field, childStack, -1); err != nil {
-				return err
-			}
-		}
-
+		return s.sanitizeReflectStruct(v, pathStack, sliceIdx)
 	case reflect.Slice:
 		for i := range v.Len() {
 			if err := s.sanitizeReflect(v.Index(i), pathStack, i); err != nil {
 				return err
 			}
 		}
-
 	case reflect.Map:
-		// Guard: struct/pointer-valued maps are a known SanitizeStruct gap
-		// (see GOTCHAS §14.4). Map values are not addressable in Go, so we
-		// cannot recurse into them safely here. Log a warning so future
-		// schema additions that embed secrets behind such a path surface
-		// the gap instead of silently shipping cleartext through the
-		// reflection consumer flow. The raw-XML SanitizeXML path is
-		// unaffected — it operates on element names, not Go types.
-		elemKind := v.Type().Elem().Kind()
-		if elemKind == reflect.Struct || elemKind == reflect.Pointer {
-			if s.logger != nil {
-				s.logger.Warn(
-					"sanitize reflect: skipping map with struct/pointer values",
-					"path", joinReflectPath(pathStack, sliceIdx),
-					"type", v.Type().String(),
-				)
-			}
-			return nil
-		}
-		for _, key := range v.MapKeys() {
-			mapValue := v.MapIndex(key)
-			if mapValue.Kind() == reflect.String && mapValue.CanInterface() {
-				keyStr := fmt.Sprintf("%v", key.Interface())
-				s.stats.TotalFields++
-				original := mapValue.String()
-				sanitized := s.sanitizeValue(keyStr, original)
-				if sanitized != original {
-					// For maps, we need to set the new value
-					v.SetMapIndex(key, reflect.ValueOf(sanitized))
-				}
-			}
-		}
-
+		return s.sanitizeReflectMap(v, pathStack, sliceIdx)
 	case reflect.String:
 		if v.CanSet() {
 			s.stats.TotalFields++
@@ -452,7 +364,6 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, pathStack []string, sliceId
 				v.SetString(sanitized)
 			}
 		}
-
 	default:
 		// No-op for primitive kinds (bool, int family, float family,
 		// complex, uintptr, chan, func, interface, array,
@@ -462,6 +373,98 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, pathStack []string, sliceId
 		// bool field would not produce a meaningful redaction.
 	}
 
+	return nil
+}
+
+// sanitizeReflectStruct walks the exported fields of a struct value. When the
+// struct is a slice element, the terminal path segment is fused with "[i]"
+// so string leaves see the canonical "parent.field[i].child" shape rather
+// than "parent.field.[i].child".
+func (s *Sanitizer) sanitizeReflectStruct(v reflect.Value, pathStack []string, sliceIdx int) error {
+	t := v.Type()
+	// Reuse pathStack directly when there is no index to fuse — the loop
+	// below allocates a fresh child slice per iteration so siblings never
+	// alias each other.
+	localStack := pathStack
+	if sliceIdx >= 0 && len(localStack) > 0 {
+		indexed := localStack[len(localStack)-1] + "[" + strconv.Itoa(sliceIdx) + "]"
+		newStack := make([]string, len(localStack))
+		copy(newStack, localStack)
+		newStack[len(newStack)-1] = indexed
+		localStack = newStack
+	}
+	for i := range v.NumField() {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		if !field.CanSet() || fieldType.Name == "XMLName" {
+			continue
+		}
+
+		// Allocate a fresh child stack per field so sibling recursions
+		// never share backing storage. This keeps paths correct when a
+		// nested struct appends its own segments.
+		segment := reflectFieldSegment(fieldType)
+		childStack := make([]string, len(localStack)+1)
+		copy(childStack, localStack)
+		childStack[len(localStack)] = segment
+		if err := s.sanitizeReflect(field, childStack, -1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// reflectFieldSegment returns the path segment for a struct field: the xml
+// tag name when present (minus any comma-options), otherwise the Go field
+// name. A xml tag of "-" is ignored (the field still contributes its Go
+// name — callers that want true exclusion must use CanSet/XMLName gates).
+func reflectFieldSegment(fieldType reflect.StructField) string {
+	xmlTag := fieldType.Tag.Get("xml")
+	if xmlTag == "" || xmlTag == "-" {
+		return fieldType.Name
+	}
+	if comma := strings.IndexByte(xmlTag, ','); comma >= 0 {
+		if comma > 0 {
+			return xmlTag[:comma]
+		}
+		return fieldType.Name
+	}
+	return xmlTag
+}
+
+// sanitizeReflectMap handles map values: recursion is skipped for
+// struct/pointer-valued maps (see GOTCHAS §14.4) because map entries are not
+// addressable, and string-valued entries are rewritten in place.
+func (s *Sanitizer) sanitizeReflectMap(v reflect.Value, pathStack []string, sliceIdx int) error {
+	elemKind := v.Type().Elem().Kind()
+	if elemKind == reflect.Struct || elemKind == reflect.Pointer {
+		// Log a warning so future schema additions that embed secrets behind
+		// such a path surface the gap instead of silently shipping cleartext
+		// through the reflection consumer flow. The raw-XML SanitizeXML path
+		// is unaffected — it operates on element names, not Go types.
+		if s.logger != nil {
+			s.logger.Warn(
+				"sanitize reflect: skipping map with struct/pointer values",
+				"path", joinReflectPath(pathStack, sliceIdx),
+				"type", v.Type().String(),
+			)
+		}
+		return nil
+	}
+	for _, key := range v.MapKeys() {
+		mapValue := v.MapIndex(key)
+		if mapValue.Kind() != reflect.String || !mapValue.CanInterface() {
+			continue
+		}
+		keyStr := fmt.Sprintf("%v", key.Interface())
+		s.stats.TotalFields++
+		original := mapValue.String()
+		sanitized := s.sanitizeValue(keyStr, original)
+		if sanitized != original {
+			v.SetMapIndex(key, reflect.ValueOf(sanitized))
+		}
+	}
 	return nil
 }
 

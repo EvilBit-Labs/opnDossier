@@ -274,115 +274,8 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	}
 
 	for _, pluginName := range pluginNames {
-		p, err := pr.GetPlugin(pluginName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get plugin '%s': %w", pluginName, err)
-		}
-
-		// Run checks for this plugin inside a recovery boundary so that a
-		// panicking plugin (especially a dynamically-loaded one) cannot crash
-		// the entire audit process. On panic, findings/evaluated remain nil
-		// and the plugin is retained in the result with zero findings.
-		var (
-			findings  []compliance.Finding
-			evaluated []string
-			runErr    error
-			panicked  bool
-		)
-
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					panicked = true
-					// Gate stack dumps behind verbose logging — function names
-					// in stack traces can leak internal plugin paths (e.g.,
-					// "acmecorp-pci-plugin.RunChecks") into centralized logs,
-					// revealing a customer's compliance posture.
-					if logger.IsVerbose() {
-						logger.Error("plugin panicked during RunChecks",
-							"plugin", pluginName,
-							"panic", r,
-							"stack", string(debug.Stack()),
-						)
-					} else {
-						logger.Error("plugin panicked during RunChecks",
-							"plugin", pluginName,
-							"panic", r,
-						)
-					}
-				}
-			}()
-			findings, evaluated, runErr = p.RunChecks(device)
-		}()
-
-		// When a plugin panicked, its internal state may be corrupt.
-		// Use only the pluginName (already known) and skip method calls
-		// that could trigger a secondary unrecovered panic.
-		if panicked {
-			result.PluginFindings[pluginName] = nil
-			result.PluginInfo[pluginName] = PluginInfo{
-				Name:    pluginName,
-				Version: "unknown (panicked)",
-			}
-			result.Compliance[pluginName] = make(map[string]bool)
-
-			continue
-		}
-
-		if runErr != nil {
-			return nil, fmt.Errorf("plugin %q RunChecks failed: %w", pluginName, runErr)
-		}
-
-		// Normalize findings: derive missing Severity from control metadata
-		for i := range findings {
-			if findings[i].Severity == "" {
-				severity, err := deriveSeverityFromControl(p, findings[i])
-				if err != nil {
-					return nil, fmt.Errorf("plugin %q produced invalid finding: %w", pluginName, err)
-				}
-
-				findings[i].Severity = severity
-			}
-		}
-
-		result.PluginFindings[pluginName] = findings
-		result.Findings = append(result.Findings, findings...)
-
-		// Track plugin information. GetControls is contractually required to
-		// return a defensive deep copy (see compliance.Plugin) so we assign it
-		// directly without an additional CloneControls call — dropping the
-		// historical double-clone on every audit.
-		result.PluginInfo[pluginName] = PluginInfo{
-			Name:        p.Name(),
-			Version:     p.Version(),
-			Description: p.Description(),
-			Controls:    p.GetControls(),
-		}
-
-		// Initialize compliance tracking for this plugin.
-		// Only controls the plugin can evaluate are initialized (to true/compliant).
-		// Controls absent from the map are UNCONFIRMED — not evaluable from the
-		// available configuration data.
-		result.Compliance[pluginName] = make(map[string]bool, len(evaluated))
-		for _, id := range evaluated {
-			result.Compliance[pluginName][id] = true // Default evaluated controls to compliant
-		}
-
-		// Update compliance status based on findings — flip evaluated controls to false.
-		// Inventory findings (Type: "inventory") are informational observations, not
-		// compliance failures. Their referenced controls are not in the evaluated
-		// slice and thus not in the compliance map, so the flip would be a no-op. We
-		// skip them explicitly for clarity and to guard against accidental map pollution.
-		for _, finding := range findings {
-			if finding.Type == "inventory" {
-				continue
-			}
-
-			for _, ref := range finding.References {
-				if result.Compliance[pluginName] != nil {
-					result.Compliance[pluginName][ref] = false // Non-compliant
-				}
-			}
+		if err := pr.runPluginChecks(device, pluginName, logger, result); err != nil {
+			return nil, err
 		}
 	}
 
@@ -399,6 +292,124 @@ func (pr *PluginRegistry) RunComplianceChecks(
 	}
 
 	return result, nil
+}
+
+// runPluginChecks executes one plugin against device, records the resulting
+// findings/PluginInfo/Compliance into result, and returns any non-recoverable
+// error. Panics inside the plugin's RunChecks are contained by
+// invokePluginWithRecovery; on panic the plugin is retained with empty
+// findings so downstream consumers still see it was evaluated.
+func (pr *PluginRegistry) runPluginChecks(
+	device *common.CommonDevice,
+	pluginName string,
+	logger *logging.Logger,
+	result *ComplianceResult,
+) error {
+	p, err := pr.GetPlugin(pluginName)
+	if err != nil {
+		return fmt.Errorf("failed to get plugin '%s': %w", pluginName, err)
+	}
+
+	findings, evaluated, panicked, runErr := invokePluginWithRecovery(p, device, pluginName, logger)
+	if panicked {
+		result.PluginFindings[pluginName] = nil
+		result.PluginInfo[pluginName] = PluginInfo{
+			Name:    pluginName,
+			Version: "unknown (panicked)",
+		}
+		result.Compliance[pluginName] = make(map[string]bool)
+		return nil
+	}
+	if runErr != nil {
+		return fmt.Errorf("plugin %q RunChecks failed: %w", pluginName, runErr)
+	}
+
+	// Normalize findings: derive missing Severity from control metadata.
+	for i := range findings {
+		if findings[i].Severity == "" {
+			severity, derr := deriveSeverityFromControl(p, findings[i])
+			if derr != nil {
+				return fmt.Errorf("plugin %q produced invalid finding: %w", pluginName, derr)
+			}
+			findings[i].Severity = severity
+		}
+	}
+
+	result.PluginFindings[pluginName] = findings
+	result.Findings = append(result.Findings, findings...)
+
+	// GetControls is contractually required to return a defensive deep copy
+	// (see compliance.Plugin) so we assign it directly without an additional
+	// CloneControls call — dropping the historical double-clone on every audit.
+	result.PluginInfo[pluginName] = PluginInfo{
+		Name:        p.Name(),
+		Version:     p.Version(),
+		Description: p.Description(),
+		Controls:    p.GetControls(),
+	}
+
+	// Initialize compliance tracking for this plugin. Only controls the plugin
+	// can evaluate are seeded true; controls absent from the map are
+	// UNCONFIRMED. Inventory findings then flip evaluated controls to false.
+	complianceMap := make(map[string]bool, len(evaluated))
+	for _, id := range evaluated {
+		complianceMap[id] = true
+	}
+	applyFindingsToCompliance(complianceMap, findings)
+	result.Compliance[pluginName] = complianceMap
+	return nil
+}
+
+// invokePluginWithRecovery runs p.RunChecks inside a panic boundary. A
+// panicking plugin (especially a dynamically-loaded one) must not crash the
+// entire audit process. Returned panicked=true means the plugin aborted; the
+// caller should record it with empty findings. Stack dumps are gated behind
+// verbose logging so plugin function names (which can leak internal paths
+// like "acmecorp-pci-plugin.RunChecks") do not end up in shared logs.
+//
+//nolint:nonamedreturns // panic recovery in the deferred func must overwrite the success value; a named return is the idiomatic way to do that.
+func invokePluginWithRecovery(
+	p compliance.Plugin,
+	device *common.CommonDevice,
+	pluginName string,
+	logger *logging.Logger,
+) (findings []compliance.Finding, evaluated []string, panicked bool, runErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			panicked = true
+			if logger.IsVerbose() {
+				logger.Error("plugin panicked during RunChecks",
+					"plugin", pluginName,
+					"panic", r,
+					"stack", string(debug.Stack()),
+				)
+			} else {
+				logger.Error("plugin panicked during RunChecks",
+					"plugin", pluginName,
+					"panic", r,
+				)
+			}
+		}
+	}()
+	findings, evaluated, runErr = p.RunChecks(device)
+	return findings, evaluated, false, runErr
+}
+
+// applyFindingsToCompliance flips evaluated controls referenced by non-inventory
+// findings to false (non-compliant). Inventory findings (Type: "inventory") are
+// informational observations and deliberately skipped — their referenced
+// controls are not in the evaluated slice and thus not in the compliance map,
+// so the flip would be a no-op. We skip them explicitly for clarity and to
+// guard against accidental map pollution.
+func applyFindingsToCompliance(out map[string]bool, findings []compliance.Finding) {
+	for _, finding := range findings {
+		if finding.Type == "inventory" {
+			continue
+		}
+		for _, ref := range finding.References {
+			out[ref] = false
+		}
+	}
 }
 
 // deduplicatePluginNames normalizes names to lowercase and returns a new slice

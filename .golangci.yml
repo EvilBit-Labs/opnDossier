@@ -48,8 +48,7 @@ linters:
     #   threshold is ready the moment the linter re-activates.
     - gocheckcompilerdirectives
     - gochecksumtype
-    # - gocognit - Staged-enable: TODO sweep current findings (18 at
-    #   min-complexity=40), then uncomment. Target settings active below.
+    - gocognit
     - goconst
     - gocritic
     - godot
@@ -209,10 +208,11 @@ linters:
     gochecksumtype:
       default-signifies-exhaustive: false
     gocognit:
-      # 40 (vs. Go default 15, skill-recommended 30). Permissive starting
-      # point for re-enable; the findings at 40 represent actual hard-to-
-      # read functions. Can tighten to 30 after current hot spots are
-      # refactored.
+      # 40 (vs. Go default 15, skill-recommended 30). Sweep on 2026-04-19
+      # cleared the baseline at this threshold. Can tighten to 30 in a
+      # follow-up once more of the hot spots (validators, walker, test
+      # helpers) have settled; dropping in one step would re-open several
+      # of the same files this sweep just refactored.
       min-complexity: 40
 
     gosec:

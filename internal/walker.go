@@ -67,72 +67,7 @@ func walkNode(title string, level int, node any) MDNode {
 			mdNode.Children = append(mdNode.Children, child)
 		}
 	case reflect.Struct:
-		for i := range nodeValue.NumField() {
-			field := nodeValue.Field(i)
-			fieldType := nodeType.Field(i)
-
-			// Skip unexported fields
-			if !field.CanInterface() {
-				continue
-			}
-
-			// Skip XML name fields
-			if fieldType.Name == "XMLName" {
-				continue
-			}
-
-			// Handle different field types
-			switch field.Kind() {
-			case reflect.Struct:
-				// Check if it's an empty struct
-				if field.NumField() == 0 {
-					// This is likely a flag field (e.g., struct{}{})
-					mdNode.Body += formatFieldName(fieldType.Name) + ": enabled\n"
-				} else {
-					childTitle := formatFieldName(fieldType.Name)
-					child := walkNode(childTitle, level+1, field.Interface())
-					mdNode.Children = append(mdNode.Children, child)
-				}
-			case reflect.Slice:
-				if field.Len() > 0 {
-					childTitle := formatFieldName(fieldType.Name)
-					child := walkSlice(childTitle, level+1, field)
-					mdNode.Children = append(mdNode.Children, child)
-				}
-			case reflect.Map:
-				if field.Len() > 0 {
-					childTitle := formatFieldName(fieldType.Name)
-					child := walkMap(childTitle, level+1, field)
-					mdNode.Children = append(mdNode.Children, child)
-				}
-			case reflect.String:
-				if field.Len() > 0 {
-					mdNode.Body += formatFieldName(fieldType.Name) + ": " + field.String() + "\n"
-				}
-			case reflect.Ptr:
-				if !field.IsNil() {
-					childTitle := formatFieldName(fieldType.Name)
-					child := walkNode(childTitle, level+1, field.Interface())
-					mdNode.Children = append(mdNode.Children, child)
-				}
-			case reflect.Bool:
-				if field.Bool() {
-					mdNode.Body += formatFieldName(fieldType.Name) + ": enabled\n"
-				}
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				if field.Int() != 0 {
-					mdNode.Body += formatFieldName(fieldType.Name) + ": " + strconv.FormatInt(field.Int(), 10) + "\n"
-				}
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				if field.Uint() != 0 {
-					mdNode.Body += formatFieldName(fieldType.Name) + ": " + strconv.FormatUint(field.Uint(), 10) + "\n"
-				}
-			case reflect.Invalid, reflect.Uintptr,
-				reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
-				reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
-				// Handle other types as needed or ignore
-			}
-		}
+		walkStructFields(&mdNode, nodeValue, nodeType, level)
 	case reflect.Slice:
 		return walkSlice(title, level, nodeValue)
 	case reflect.Map:
@@ -160,6 +95,69 @@ func walkNode(title string, level int, node any) MDNode {
 	}
 
 	return mdNode
+}
+
+// walkStructFields dispatches each exported, non-XMLName field of nodeValue
+// to the kind-appropriate handler (see walkStructField*). Extracted from
+// walkNode so each level of the reflection walk is readable on its own.
+func walkStructFields(mdNode *MDNode, nodeValue reflect.Value, nodeType reflect.Type, level int) {
+	for i := range nodeValue.NumField() {
+		field := nodeValue.Field(i)
+		fieldType := nodeType.Field(i)
+		if !field.CanInterface() || fieldType.Name == "XMLName" {
+			continue
+		}
+		walkStructField(mdNode, fieldType, field, level)
+	}
+}
+
+// walkStructField applies the kind-specific rendering for one struct field.
+func walkStructField(mdNode *MDNode, fieldType reflect.StructField, field reflect.Value, level int) {
+	switch field.Kind() {
+	case reflect.Struct:
+		if field.NumField() == 0 {
+			// Empty struct (struct{}{}) is treated as a flag.
+			mdNode.Body += formatFieldName(fieldType.Name) + ": enabled\n"
+			return
+		}
+		mdNode.Children = append(mdNode.Children,
+			walkNode(formatFieldName(fieldType.Name), level+1, field.Interface()))
+	case reflect.Slice:
+		if field.Len() > 0 {
+			mdNode.Children = append(mdNode.Children,
+				walkSlice(formatFieldName(fieldType.Name), level+1, field))
+		}
+	case reflect.Map:
+		if field.Len() > 0 {
+			mdNode.Children = append(mdNode.Children,
+				walkMap(formatFieldName(fieldType.Name), level+1, field))
+		}
+	case reflect.String:
+		if field.Len() > 0 {
+			mdNode.Body += formatFieldName(fieldType.Name) + ": " + field.String() + "\n"
+		}
+	case reflect.Ptr:
+		if !field.IsNil() {
+			mdNode.Children = append(mdNode.Children,
+				walkNode(formatFieldName(fieldType.Name), level+1, field.Interface()))
+		}
+	case reflect.Bool:
+		if field.Bool() {
+			mdNode.Body += formatFieldName(fieldType.Name) + ": enabled\n"
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if field.Int() != 0 {
+			mdNode.Body += formatFieldName(fieldType.Name) + ": " + strconv.FormatInt(field.Int(), 10) + "\n"
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if field.Uint() != 0 {
+			mdNode.Body += formatFieldName(fieldType.Name) + ": " + strconv.FormatUint(field.Uint(), 10) + "\n"
+		}
+	case reflect.Invalid, reflect.Uintptr,
+		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+		reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
+		// Handle other types as needed or ignore
+	}
 }
 
 // walkSlice creates an MDNode for a slice, generating child nodes for each element with indexed titles.

@@ -248,13 +248,21 @@ func validateCommonDHCP(scopes []common.DHCPScope, ifaces []common.Interface) []
 	return errors
 }
 
+// validFirewallStateTypes enumerates the accepted values for FirewallRule.StateType.
+var validFirewallStateTypes = map[string]struct{}{
+	"keep state":     {},
+	"sloppy state":   {},
+	"synproxy state": {},
+	"modulate state": {},
+	"none":           {},
+}
+
 // validateCommonFirewallRules checks each firewall rule for valid types, protocols,
 // interface references, source/destination addresses, ports, direction, state type,
 // and connection rate format.
 func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.Interface) []ValidationError {
 	errors := make([]ValidationError, 0, len(rules))
 	ifaceSet := make(map[string]struct{}, len(ifaces))
-
 	for _, iface := range ifaces {
 		if iface.Name != "" {
 			ifaceSet[iface.Name] = struct{}{}
@@ -262,107 +270,139 @@ func validateCommonFirewallRules(rules []common.FirewallRule, ifaces []common.In
 	}
 
 	for i, rule := range rules {
-		prefix := fmt.Sprintf("firewallRules[%d]", i)
+		errors = append(errors, validateFirewallRule(i, rule, ifaceSet)...)
+	}
+	return errors
+}
 
-		if rule.Type != "" &&
-			rule.Type != common.RuleTypePass &&
-			rule.Type != common.RuleTypeBlock &&
-			rule.Type != common.RuleTypeReject {
-			errors = append(errors, ValidationError{Field: prefix + ".type", Message: "invalid firewall rule type"})
+// validateFirewallRule runs the per-rule checks. Splitting each concern into
+// a named helper keeps validateCommonFirewallRules cognitively flat.
+func validateFirewallRule(
+	i int,
+	rule common.FirewallRule,
+	ifaceSet map[string]struct{},
+) []ValidationError {
+	prefix := fmt.Sprintf("firewallRules[%d]", i)
+	var errors []ValidationError
+	errors = append(errors, validateRuleTypeAndProtocol(prefix, rule)...)
+	errors = append(errors, validateRuleInterfaces(prefix, rule, ifaceSet)...)
+	errors = append(errors, validateRuleAddresses(prefix, rule)...)
+	errors = append(errors, validateRulePorts(prefix, rule)...)
+	errors = append(errors, validateRuleDirection(prefix, rule)...)
+	errors = append(errors, validateRuleStateAndRate(prefix, rule)...)
+	return errors
+}
+
+func validateRuleTypeAndProtocol(prefix string, rule common.FirewallRule) []ValidationError {
+	var errors []ValidationError
+	if rule.Type != "" &&
+		rule.Type != common.RuleTypePass &&
+		rule.Type != common.RuleTypeBlock &&
+		rule.Type != common.RuleTypeReject {
+		errors = append(errors, ValidationError{Field: prefix + ".type", Message: "invalid firewall rule type"})
+	}
+	if rule.IPProtocol != "" &&
+		rule.IPProtocol != common.IPProtocolInet &&
+		rule.IPProtocol != common.IPProtocolInet6 {
+		errors = append(errors, ValidationError{Field: prefix + ".ipProtocol", Message: "invalid IP protocol"})
+	}
+	return errors
+}
+
+func validateRuleInterfaces(
+	prefix string,
+	rule common.FirewallRule,
+	ifaceSet map[string]struct{},
+) []ValidationError {
+	var errors []ValidationError
+	for idx, ifaceName := range rule.Interfaces {
+		if ifaceName == "" {
+			continue
 		}
-
-		if rule.IPProtocol != "" &&
-			rule.IPProtocol != common.IPProtocolInet &&
-			rule.IPProtocol != common.IPProtocolInet6 {
-			errors = append(errors, ValidationError{Field: prefix + ".ipProtocol", Message: "invalid IP protocol"})
-		}
-
-		for idx, ifaceName := range rule.Interfaces {
-			if ifaceName == "" {
-				continue
-			}
-
-			if _, ok := ifaceSet[ifaceName]; !ok {
-				errors = append(errors, ValidationError{
-					Field:   fmt.Sprintf("%s.interfaces[%d]", prefix, idx),
-					Message: "firewall rule references unknown interface",
-				})
-			}
-		}
-
-		if src := strings.TrimSpace(rule.Source.Address); src != "" && !strings.EqualFold(src, "any") {
-			if looksLikeMalformedIP(src) && !isValidIP(src) && !isValidIPv6(src) && !isValidCIDR(src) {
-				errors = append(
-					errors,
-					ValidationError{Field: prefix + ".source.address", Message: "malformed source address"},
-				)
-			}
-		}
-
-		if dst := strings.TrimSpace(rule.Destination.Address); dst != "" && !strings.EqualFold(dst, "any") {
-			if looksLikeMalformedIP(dst) && !isValidIP(dst) && !isValidIPv6(dst) && !isValidCIDR(dst) {
-				errors = append(
-					errors,
-					ValidationError{Field: prefix + ".destination.address", Message: "malformed destination address"},
-				)
-			}
-		}
-
-		if !isValidPortOrRange(rule.Source.Port) {
-			errors = append(
-				errors,
-				ValidationError{Field: prefix + ".source.port", Message: "invalid source port or range"},
-			)
-		}
-
-		if !isValidPortOrRange(rule.Destination.Port) {
-			errors = append(
-				errors,
-				ValidationError{Field: prefix + ".destination.port", Message: "invalid destination port or range"},
-			)
-		}
-
-		if rule.Direction != "" &&
-			rule.Direction != common.DirectionIn &&
-			rule.Direction != common.DirectionOut &&
-			rule.Direction != common.DirectionAny {
-			errors = append(
-				errors,
-				ValidationError{Field: prefix + ".direction", Message: "invalid firewall direction"},
-			)
-		}
-
-		if rule.Floating && strings.TrimSpace(string(rule.Direction)) == "" {
-			errors = append(
-				errors,
-				ValidationError{Field: prefix + ".direction", Message: "floating rule requires direction"},
-			)
-		}
-
-		if rule.StateType != "" {
-			validStateTypes := map[string]struct{}{
-				"keep state":     {},
-				"sloppy state":   {},
-				"synproxy state": {},
-				"modulate state": {},
-				"none":           {},
-			}
-			if _, ok := validStateTypes[rule.StateType]; !ok {
-				errors = append(errors, ValidationError{Field: prefix + ".stateType", Message: "invalid state type"})
-			}
-		}
-
-		if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
-			errors = append(
-				errors,
-				ValidationError{
-					Field:   prefix + ".maxSrcConnRate",
-					Message: "invalid max source connection rate format",
-				},
-			)
+		if _, ok := ifaceSet[ifaceName]; !ok {
+			errors = append(errors, ValidationError{
+				Field:   fmt.Sprintf("%s.interfaces[%d]", prefix, idx),
+				Message: "firewall rule references unknown interface",
+			})
 		}
 	}
+	return errors
+}
 
+func validateRuleAddresses(prefix string, rule common.FirewallRule) []ValidationError {
+	var errors []ValidationError
+	if src := strings.TrimSpace(rule.Source.Address); src != "" && !strings.EqualFold(src, "any") {
+		if looksLikeMalformedIP(src) && !isValidIP(src) && !isValidIPv6(src) && !isValidCIDR(src) {
+			errors = append(errors, ValidationError{
+				Field:   prefix + ".source.address",
+				Message: "malformed source address",
+			})
+		}
+	}
+	if dst := strings.TrimSpace(rule.Destination.Address); dst != "" && !strings.EqualFold(dst, "any") {
+		if looksLikeMalformedIP(dst) && !isValidIP(dst) && !isValidIPv6(dst) && !isValidCIDR(dst) {
+			errors = append(errors, ValidationError{
+				Field:   prefix + ".destination.address",
+				Message: "malformed destination address",
+			})
+		}
+	}
+	return errors
+}
+
+func validateRulePorts(prefix string, rule common.FirewallRule) []ValidationError {
+	var errors []ValidationError
+	if !isValidPortOrRange(rule.Source.Port) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".source.port",
+			Message: "invalid source port or range",
+		})
+	}
+	if !isValidPortOrRange(rule.Destination.Port) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".destination.port",
+			Message: "invalid destination port or range",
+		})
+	}
+	return errors
+}
+
+func validateRuleDirection(prefix string, rule common.FirewallRule) []ValidationError {
+	var errors []ValidationError
+	if rule.Direction != "" &&
+		rule.Direction != common.DirectionIn &&
+		rule.Direction != common.DirectionOut &&
+		rule.Direction != common.DirectionAny {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".direction",
+			Message: "invalid firewall direction",
+		})
+	}
+	if rule.Floating && strings.TrimSpace(string(rule.Direction)) == "" {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".direction",
+			Message: "floating rule requires direction",
+		})
+	}
+	return errors
+}
+
+func validateRuleStateAndRate(prefix string, rule common.FirewallRule) []ValidationError {
+	var errors []ValidationError
+	if rule.StateType != "" {
+		if _, ok := validFirewallStateTypes[rule.StateType]; !ok {
+			errors = append(errors, ValidationError{
+				Field:   prefix + ".stateType",
+				Message: "invalid state type",
+			})
+		}
+	}
+	if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".maxSrcConnRate",
+			Message: "invalid max source connection rate format",
+		})
+	}
 	return errors
 }
 
@@ -396,6 +436,10 @@ func validateCommonNAT(nat *common.NATConfig) []ValidationError {
 	return errors
 }
 
+// validScopes enumerates the accepted values for user/group Scope. Shared by
+// the per-entry validators below.
+var validScopes = map[string]struct{}{"system": {}, "local": {}}
+
 // validateCommonUsersAndGroups checks user and group entries for required fields,
 // uniqueness of names and IDs, valid scopes, and that users reference known groups.
 func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []ValidationError {
@@ -403,95 +447,109 @@ func validateCommonUsersAndGroups(users []common.User, groups []common.Group) []
 
 	groupNames := make(map[string]bool, len(groups))
 	groupIDs := make(map[string]bool, len(groups))
-
 	for i, group := range groups {
-		prefix := fmt.Sprintf("groups[%d]", i)
-
-		if strings.TrimSpace(group.Name) == "" {
-			errors = append(errors, ValidationError{Field: prefix + ".name", Message: "group name is required"})
-		} else {
-			if groupNames[group.Name] {
-				errors = append(errors, ValidationError{Field: prefix + ".name", Message: "group name must be unique"})
-			}
-			groupNames[group.Name] = true
-		}
-
-		if strings.TrimSpace(group.GID) == "" {
-			errors = append(errors, ValidationError{Field: prefix + ".gid", Message: "group GID is required"})
-		} else {
-			gid, err := strconv.Atoi(group.GID)
-			if err != nil || gid < 0 {
-				errors = append(
-					errors,
-					ValidationError{Field: prefix + ".gid", Message: "group GID must be a non-negative integer"},
-				)
-			} else {
-				if groupIDs[group.GID] {
-					errors = append(
-						errors,
-						ValidationError{Field: prefix + ".gid", Message: "group GID must be unique"},
-					)
-				}
-				groupIDs[group.GID] = true
-			}
-		}
-
-		if group.Scope != "" {
-			validScope := map[string]struct{}{"system": {}, "local": {}}
-			if _, ok := validScope[group.Scope]; !ok {
-				errors = append(errors, ValidationError{Field: prefix + ".scope", Message: "invalid group scope"})
-			}
-		}
+		errors = append(errors, validateGroupEntry(i, group, groupNames, groupIDs)...)
 	}
 
 	userNames := make(map[string]bool, len(users))
 	userIDs := make(map[string]bool, len(users))
-
 	for i, user := range users {
-		prefix := fmt.Sprintf("users[%d]", i)
+		errors = append(errors, validateUserEntry(i, user, userNames, userIDs, groupNames)...)
+	}
 
-		if strings.TrimSpace(user.Name) == "" {
-			errors = append(errors, ValidationError{Field: prefix + ".name", Message: "user name is required"})
-		} else {
-			if userNames[user.Name] {
-				errors = append(errors, ValidationError{Field: prefix + ".name", Message: "user name must be unique"})
-			}
-			userNames[user.Name] = true
-		}
+	return errors
+}
 
-		if strings.TrimSpace(user.UID) == "" {
-			errors = append(errors, ValidationError{Field: prefix + ".uid", Message: "user UID is required"})
-		} else {
-			uid, err := strconv.Atoi(user.UID)
-			if err != nil || uid < 0 {
-				errors = append(
-					errors,
-					ValidationError{Field: prefix + ".uid", Message: "user UID must be a non-negative integer"},
-				)
-			} else {
-				if userIDs[user.UID] {
-					errors = append(errors, ValidationError{Field: prefix + ".uid", Message: "user UID must be unique"})
-				}
-				userIDs[user.UID] = true
-			}
-		}
+// validateGroupEntry validates one group and records its name/GID in the
+// provided uniqueness maps. Splitting the per-entry validation out keeps
+// validateCommonUsersAndGroups flat enough to pass gocognit.
+func validateGroupEntry(
+	i int,
+	group common.Group,
+	groupNames, groupIDs map[string]bool,
+) []ValidationError {
+	var errors []ValidationError
+	prefix := fmt.Sprintf("groups[%d]", i)
 
-		if user.GroupName != "" && !groupNames[user.GroupName] {
-			errors = append(
-				errors,
-				ValidationError{Field: prefix + ".groupName", Message: "user references unknown group"},
-			)
-		}
+	switch {
+	case strings.TrimSpace(group.Name) == "":
+		errors = append(errors, ValidationError{Field: prefix + ".name", Message: "group name is required"})
+	case groupNames[group.Name]:
+		errors = append(errors, ValidationError{Field: prefix + ".name", Message: "group name must be unique"})
+		groupNames[group.Name] = true
+	default:
+		groupNames[group.Name] = true
+	}
 
-		if user.Scope != "" {
-			validScope := map[string]struct{}{"system": {}, "local": {}}
-			if _, ok := validScope[user.Scope]; !ok {
-				errors = append(errors, ValidationError{Field: prefix + ".scope", Message: "invalid user scope"})
-			}
+	errors = append(errors, validateIDField(prefix+".gid", "group GID", group.GID, groupIDs)...)
+
+	if group.Scope != "" {
+		if _, ok := validScopes[group.Scope]; !ok {
+			errors = append(errors, ValidationError{Field: prefix + ".scope", Message: "invalid group scope"})
 		}
 	}
 
 	return errors
+}
+
+// validateUserEntry validates one user and records its name/UID in the
+// provided uniqueness maps. The group-name reference is checked against
+// groupNames (which must already be populated by the group pass).
+func validateUserEntry(
+	i int,
+	user common.User,
+	userNames, userIDs, groupNames map[string]bool,
+) []ValidationError {
+	var errors []ValidationError
+	prefix := fmt.Sprintf("users[%d]", i)
+
+	switch {
+	case strings.TrimSpace(user.Name) == "":
+		errors = append(errors, ValidationError{Field: prefix + ".name", Message: "user name is required"})
+	case userNames[user.Name]:
+		errors = append(errors, ValidationError{Field: prefix + ".name", Message: "user name must be unique"})
+		userNames[user.Name] = true
+	default:
+		userNames[user.Name] = true
+	}
+
+	errors = append(errors, validateIDField(prefix+".uid", "user UID", user.UID, userIDs)...)
+
+	if user.GroupName != "" && !groupNames[user.GroupName] {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".groupName",
+			Message: "user references unknown group",
+		})
+	}
+
+	if user.Scope != "" {
+		if _, ok := validScopes[user.Scope]; !ok {
+			errors = append(errors, ValidationError{Field: prefix + ".scope", Message: "invalid user scope"})
+		}
+	}
+
+	return errors
+}
+
+// validateIDField validates a UID or GID string: must be a non-negative
+// integer and unique within the collection. On success the id is recorded in
+// seen. labelKind is used in error messages ("user UID", "group GID") so one
+// helper covers both entry types.
+func validateIDField(field, labelKind, raw string, seen map[string]bool) []ValidationError {
+	if strings.TrimSpace(raw) == "" {
+		return []ValidationError{{Field: field, Message: labelKind + " is required"}}
+	}
+
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 0 {
+		return []ValidationError{{Field: field, Message: labelKind + " must be a non-negative integer"}}
+	}
+
+	if seen[raw] {
+		return []ValidationError{{Field: field, Message: labelKind + " must be unique"}}
+	}
+	seen[raw] = true
+	return nil
 }
 
 // validateCommonSysctl checks sysctl tunables for required fields, uniqueness,
