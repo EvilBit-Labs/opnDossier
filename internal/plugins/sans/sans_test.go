@@ -278,7 +278,7 @@ func TestSANSPlugin_FindingSeverityMatchesControl(t *testing.T) {
 }
 
 func getFindings(findings []compliance.Finding) []string {
-	var ids []string
+	ids := make([]string, 0, len(findings))
 	for _, finding := range findings {
 		ids = append(ids, finding.Reference)
 	}

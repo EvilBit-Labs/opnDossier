@@ -1811,7 +1811,7 @@ func assertFindingPresence(
 
 // Helper function to extract finding IDs for debugging.
 func getFindings(findings []compliance.Finding) []string {
-	var ids []string
+	ids := make([]string, 0, len(findings))
 	for _, finding := range findings {
 		ids = append(ids, finding.Reference)
 	}

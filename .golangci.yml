@@ -28,20 +28,32 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - exhaustive - disabled: we'll come back to this after 1.0
-    # - exhaustruct - disabled: we'll come back to this after 1.0
+    # - exhaustive - Staged-enable: TODO sweep the 9 current findings, then
+    #   uncomment. No threshold to tune; each finding is a missing case in a
+    #   type-switch / switch-over-enum.
+    # - exhaustruct - Disabled: the project's idiom for declarative data (compliance
+    #   plugin Control tables, diff/sanitizer rule lists, config validation records)
+    #   is partial struct literals with intentionally zero-valued optional fields.
+    #   Exhaustruct flags 500+ of these as "missing fields" across internal/plugins/,
+    #   internal/diff/, internal/sanitizer/rules.go, internal/config/validation.go,
+    #   and internal/*/example.go. Fighting this would require either hundreds of
+    #   //nolint directives or a brittle struct-name exclude list. Go's zero-value
+    #   guarantee already covers the "forgot to initialize" case exhaustruct is
+    #   designed to catch, so the safety gain does not justify the maintenance cost.
     - exptostd
     - ginkgolinter
     - fatcontext
     - forbidigo
     - funcorder
-    # - funlen - Disabled: we'll come back to this after 1.0
+    # - funlen - Staged-enable: TODO sweep current findings (49 at lines=120,
+    #   statements=80), then uncomment. Target settings are active below so the
+    #   threshold is ready the moment the linter re-activates.
     - gocheckcompilerdirectives
     - gochecksumtype
-    # - gocognit - Disabled: we'll come back to this after 1.0
+    # - gocognit - Staged-enable: TODO sweep current findings (18 at
+    #   min-complexity=40), then uncomment. Target settings active below.
     - goconst
     - gocritic
-    # - gocyclo - Disabled in favor of cyclop (see disable section)
     - godot
     - gomoddirectives
     - goprintffuncname
@@ -57,7 +69,8 @@ linters:
     - mnd
     - musttag
     - nakedret
-    # - nestif - Disabled: we'll come back to this after 1.0
+    # - nestif - Staged-enable: TODO sweep current findings (8 at
+    #   min-complexity=8), then uncomment. Target settings active below.
     - nilerr
     - nilnesserr
     - nilnil
@@ -66,7 +79,14 @@ linters:
     - nonamedreturns
     - nosprintfhostport
     - perfsprint
-    # - prealloc # Disabled: this can be premature optimization
+    # - prealloc - Disabled: this can be premature optimization. Probed 2026-04-19:
+    #   12 findings, 8 of which are validator error-collector slices where the common
+    #   case is zero errors (preallocating cap=len(items) would over-allocate).
+    #   The 4 legitimate findings (guaranteed-length transforms in plaintext.go,
+    #   config_test.go, and plugin test helpers) are easier to catch in code review
+    #   than via a lint rule that also recommends the anti-pattern on validators.
+    #   AGENTS.md documents the manual-review expectation. See also: prealloc would
+    #   need an exclusion list per-directory to avoid steering us wrong.
     - predeclared
     - promlinter
     - protogetter
@@ -78,7 +98,10 @@ linters:
     - spancheck
     - sqlclosecheck
     - staticcheck
-    #- tagliatelle # Disabled: currently this is more trouble than it's worth
+    # - tagliatelle - Permanently disabled: the vendor-controlled config.xml schema
+    #   mixes casing conventions (hostname, descr, sourceport, created-time, Phase1).
+    #   Our Go types mirror that reality; enforcing a single case convention fights
+    #   the input format we do not control.
     - testableexamples
     - thelper
     - testifylint
@@ -115,11 +138,16 @@ linters:
         text: 'SA1019:'
   disable:
     - gomodguard # Disabled: maybe someday, but not important right now
-    - gocyclo # Disabled in favor of cyclop
-    - testpackage
+    - gocyclo # Disabled in favor of cyclop (which supersedes it with per-package averages)
+    - testpackage # Disabled: tests live in the same package to exercise unexported helpers
     - gochecknoglobals # Disabled: causes issues with cobra commands
   settings:
     cyclop:
+      # Current (2026-04-19): max-complexity=50 preserves the pre-sweep
+      # baseline (green CI). Target after sweep: 25, which matches the
+      # skill's recommended adjusted threshold (Go default is 15). Probed:
+      # 7 findings at 25, concentrated in ~10 files. When the sweep drops
+      # this to 25, update the comment and the rationale below.
       max-complexity: 50
       package-average: 10.0
     gocritic:
@@ -141,11 +169,6 @@ linters:
 
     embeddedstructfieldcheck:
       forbid-mutex: true
-    tagliatelle:
-      case:
-        overrides:
-          - pkg: pkg/parser/opnsense
-            ignore: true
 
     errcheck:
       check-type-assertions: true
@@ -158,29 +181,6 @@ linters:
       check:
         - switch
         - map
-    exhaustruct:
-      exclude:
-        - ^net/http.Client$
-        - ^net/http.Cookie$
-        - ^net/http.Request$
-        - ^net/http.Response$
-        - ^net/http.Server$
-        - ^net/http.Transport$
-        - ^net/url.URL$
-        - ^os/exec.Cmd$
-        - ^reflect.StructField$
-        - ^github.com/Shopify/sarama.Config$
-        - ^github.com/Shopify/sarama.ProducerMessage$
-        - ^github.com/mitchellh/mapstructure.DecoderConfig$
-        - ^github.com/prometheus/client_golang/.+Opts$
-        - ^github.com/spf13/cobra.Command$
-        - ^github.com/spf13/cobra.CompletionOptions$
-        - ^github.com/stretchr/testify/mock.Mock$
-        - ^github.com/testcontainers/testcontainers-go.+Request$
-        - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
-        - ^golang.org/x/tools/go/analysis.Analyzer$
-        - ^google.golang.org/protobuf/.+Options$
-        - ^gopkg.in/yaml.v3.Node$
     forbidigo:
       # Type-aware matching so we catch t.Parallel() regardless of the local
       # variable name (t, tt, tc, etc.).
@@ -197,12 +197,20 @@ linters:
     funcorder:
       struct-method: false
     funlen:
-      lines: 60
-      statements: 40
+      # Raised from default 60/40 → 120/80 to accommodate existing long-but-
+      # linear functions that cyclop/gocognit do not flag (those measure
+      # branching, not length). 120 lines catches real sprawl without
+      # drowning in warnings on reasonable-length CLI handlers.
+      lines: 120
+      statements: 80
     gochecksumtype:
       default-signifies-exhaustive: false
     gocognit:
-      min-complexity: 30
+      # 40 (vs. Go default 15, skill-recommended 30). Permissive starting
+      # point for re-enable; the findings at 40 represent actual hard-to-
+      # read functions. Can tighten to 30 after current hot spots are
+      # refactored.
+      min-complexity: 40
 
     gosec:
       excludes:
@@ -215,6 +223,12 @@ linters:
         - shadow # Disabled temporarily to focus on other issues first
     inamedparam:
       skip-single-param: true
+
+    nestif:
+      # 8 (vs. Go default 5). Complements cyclop + gocognit from the
+      # deep-nesting angle — catches "pyramid of doom" patterns that
+      # branching counts alone do not flag.
+      min-complexity: 8
 
     mnd:
       ignored-functions:

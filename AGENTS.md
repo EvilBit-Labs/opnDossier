@@ -42,6 +42,7 @@ When rules conflict, follow the higher precedence rule.
 4. Prefer structured config data + audit overlays over flat summary tables
 5. Validate markdown with `mdformat` — **never run `mdformat` directly**; use `pre-commit run -a` which loads the correct plugins
 6. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
+7. **Preallocate slices when the final size is known ahead of time.** Prefer `make([]T, 0, len(src))` over `var s []T` followed by `append` in a loop when the output length is guaranteed by the input (e.g., a transform that does not filter). `prealloc` is not enabled in CI because it also recommends the anti-pattern on validator error-collector loops where the common case is zero appends — so this is a manual-review rule, not a lint-enforced one. Do *not* preallocate when the loop may skip the append (validation, filtering, conditional matching); in those cases the nil-slice-grow-on-demand pattern is correct.
 
 ### JSON / YAML Tag Naming
 

@@ -90,7 +90,7 @@ func StripMarkdownFormatting(markdown string) (string, error) {
 func extractTablesWithPlaceholders(htmlContent string, replacements *[]string, counter *int) string {
 	return reHTMLTable.ReplaceAllStringFunc(htmlContent, func(tableHTML string) string {
 		rows := reHTMLTableRow.FindAllStringSubmatch(tableHTML, -1)
-		var lines []string
+		lines := make([]string, 0, len(rows))
 		for _, row := range rows {
 			cells := reHTMLTableCell.FindAllStringSubmatch(row[1], -1)
 			var values []string
