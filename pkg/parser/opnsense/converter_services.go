@@ -316,7 +316,23 @@ func (c *converter) convertForwarders(fwds []schema.ForwarderGroup) []common.For
 }
 
 // convertVPN maps OpenVPN, WireGuard, and IPsec sections to common.VPN.
+//
+// Schema pointer-vs-value inconsistency (landmine for future refactorers):
+//   - doc.OpenVPN is a value type (schema.OpenVPN, not a pointer) — it always exists.
+//   - doc.OPNsense.Wireguard is a pointer — it may be nil when absent.
+//   - doc.OPNsense.IPsec is a pointer — it may be nil when absent.
+//
+// The OpenVPN sub-converters (convertOpenVPNServers/Clients/CSCs) all handle
+// empty slices gracefully, so no explicit nil-guard on doc.OpenVPN is needed
+// today. If doc.OpenVPN is ever changed to a pointer type for consistency with
+// Wireguard/IPsec, add an explicit nil-guard here before dereferencing.
 func (c *converter) convertVPN(doc *schema.OpnSenseDocument) common.VPN {
+	// doc.OpenVPN is a value type (schema.OpenVPN, not a pointer),
+	// so the nil-style guard used for Wireguard/IPsec below would be
+	// vacuous here. Preserved as a comment for parity with sibling
+	// converters (pattern enforcement), and as a landmine for anyone
+	// who later changes doc.OpenVPN to a pointer type — see also
+	// doc.OPNsense.Wireguard which *is* a pointer.
 	vpn := common.VPN{
 		OpenVPN: common.OpenVPNConfig{
 			Servers:               c.convertOpenVPNServers(doc.OpenVPN.Servers),

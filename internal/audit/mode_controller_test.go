@@ -32,8 +32,15 @@ func (m *mockCompliancePlugin) Description() string {
 	return m.description
 }
 
-func (m *mockCompliancePlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
-	return []compliance.Finding{}
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockCompliancePlugin) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
+	controls := m.GetControls()
+	ids := make([]string, len(controls))
+	for i, c := range controls {
+		ids[i] = c.ID
+	}
+
+	return []compliance.Finding{}, ids, nil
 }
 
 func (m *mockCompliancePlugin) GetControls() []compliance.Control {
@@ -42,15 +49,6 @@ func (m *mockCompliancePlugin) GetControls() []compliance.Control {
 
 func (m *mockCompliancePlugin) GetControlByID(_ string) (*compliance.Control, error) {
 	return nil, compliance.ErrControlNotFound
-}
-
-func (m *mockCompliancePlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
-	ids := make([]string, len(m.GetControls()))
-	for i, c := range m.GetControls() {
-		ids[i] = c.ID
-	}
-
-	return ids
 }
 
 func (m *mockCompliancePlugin) ValidateConfiguration() error {
@@ -1038,43 +1036,89 @@ func TestReport_AnalysisMethods(t *testing.T) {
 
 	t.Run("addWANExposedServices", func(t *testing.T) {
 		report.addWANExposedServices()
-		// Verify that WAN exposed services were added
-		if len(report.Metadata) == 0 {
-			t.Error("addWANExposedServices() should add WAN exposed services to the report")
-		}
+		assertStubMarker(t, report, "wan_exposed_services")
 	})
 
 	t.Run("addWeakNATRules", func(t *testing.T) {
 		report.addWeakNATRules()
-		// Verify that weak NAT rules were added
-		if len(report.Metadata) == 0 {
-			t.Error("addWeakNATRules() should add weak NAT rules to the report")
-		}
+		assertStubMarker(t, report, "weak_nat_rules")
 	})
 
 	t.Run("addAdminPortals", func(t *testing.T) {
 		report.addAdminPortals()
-		// Verify that admin portals were added
-		if len(report.Metadata) == 0 {
-			t.Error("addAdminPortals() should add admin portals to the report")
-		}
+		assertStubMarker(t, report, "admin_portals")
 	})
 
 	t.Run("addAttackSurfaces", func(t *testing.T) {
 		report.addAttackSurfaces()
-		// Verify that attack surfaces were added
-		if len(report.Metadata) == 0 {
-			t.Error("addAttackSurfaces() should add attack surfaces to the report")
-		}
+		assertStubMarker(t, report, "attack_surfaces")
 	})
 
 	t.Run("addEnumerationData", func(t *testing.T) {
 		report.addEnumerationData()
-		// Verify that enumeration data was added
-		if len(report.Metadata) == 0 {
-			t.Error("addEnumerationData() should add enumeration data to the report")
-		}
+		assertStubMarker(t, report, "enumeration_data")
 	})
+}
+
+// assertStubMarker verifies that a red-mode stub analysis method emitted the
+// canonical `{not_implemented: true, stub: true}` marker under the expected
+// metadata key. See GOTCHAS §8.4.
+func assertStubMarker(t *testing.T, report *Report, key string) {
+	t.Helper()
+
+	raw, ok := report.Metadata[key]
+	if !ok {
+		t.Fatalf("expected metadata key %q to be set, but it was absent", key)
+	}
+
+	marker, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("metadata[%q]: expected map[string]any, got %T", key, raw)
+	}
+
+	notImpl, ok := marker["not_implemented"].(bool)
+	if !ok || !notImpl {
+		t.Errorf("metadata[%q].not_implemented: expected true, got %v", key, marker["not_implemented"])
+	}
+
+	stub, ok := marker["stub"].(bool)
+	if !ok || !stub {
+		t.Errorf("metadata[%q].stub: expected true, got %v", key, marker["stub"])
+	}
+}
+
+// TestRedModeMetadata_MarksStubsExplicitly asserts that every red-mode stub
+// analysis method emits an explicit `{not_implemented: true, stub: true}`
+// marker under a predictable key, so downstream consumers cannot mistake
+// stub output for real analysis. See GOTCHAS §8.4.
+func TestRedModeMetadata_MarksStubsExplicitly(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		key     string
+		trigger func(*Report)
+	}{
+		{"addWANExposedServices", "wan_exposed_services", (*Report).addWANExposedServices},
+		{"addWeakNATRules", "weak_nat_rules", (*Report).addWeakNATRules},
+		{"addAdminPortals", "admin_portals", (*Report).addAdminPortals},
+		{"addAttackSurfaces", "attack_surfaces", (*Report).addAttackSurfaces},
+		{"addEnumerationData", "enumeration_data", (*Report).addEnumerationData},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			report := &Report{
+				Mode:     ModeRed,
+				Metadata: make(map[string]any),
+			}
+
+			tc.trigger(report)
+			assertStubMarker(t, report, tc.key)
+		})
+	}
 }
 
 func TestPluginRegistry_GetPlugin(t *testing.T) {

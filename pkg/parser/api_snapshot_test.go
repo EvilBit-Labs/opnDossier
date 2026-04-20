@@ -28,17 +28,15 @@ import (
 const apiSnapshotFixtureDir = "testdata/api-snapshots"
 
 // captureGoDoc runs `go doc -all <packagePath>` and returns the raw output.
-// `go doc` already restricts output to exported identifiers by default; the
-// -all flag expands coverage to include every exported identifier in the
-// package along with their associated doc comments, which is the full public
-// surface we want to snapshot. The command is run under the test's context so
-// `go test` timeout propagation and cancellation work correctly.
+// The -all flag keeps only exported identifiers — which is exactly what we
+// want to snapshot. The command is run under the test's context so `go test`
+// timeout propagation and cancellation work correctly.
 func captureGoDoc(t *testing.T, packagePath string) []byte {
 	t.Helper()
 
 	cmd := exec.CommandContext(t.Context(), "go", "doc", "-all", packagePath)
-	out, err := cmd.CombinedOutput()
-	require.NoErrorf(t, err, "go doc -all %s failed: %s", packagePath, out)
+	out, err := cmd.Output()
+	require.NoErrorf(t, err, "go doc -all %s failed", packagePath)
 
 	return out
 }

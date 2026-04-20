@@ -221,6 +221,7 @@ url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939409"
 checksum = "sha256:e58c6f86378a22507c1123e24412afd4ee2d3bb32ebd94d6059827dc0c1b3fbf"
 url = "https://github.com/anchore/quill/releases/download/v0.7.1/quill_0.7.1_linux_amd64.tar.gz"
 url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939435"
+provenance = "github-attestations"
 
 [tools."github:anchore/quill"."platforms.linux-x64-baseline"]
 checksum = "sha256:e58c6f86378a22507c1123e24412afd4ee2d3bb32ebd94d6059827dc0c1b3fbf"
@@ -318,17 +319,9 @@ backend = "go:github.com/google/go-licenses"
 version = "2.25.0"
 backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 
-[[tools."go:github.com/spf13/cobra-cli"]]
-version = "1.3.0"
-backend = "go:github.com/spf13/cobra-cli"
-
 [[tools."go:golang.org/x/perf/cmd/benchstat"]]
 version = "0.0.0-20260409210113-8e83ce0f7b1c"
 backend = "go:golang.org/x/perf/cmd/benchstat"
-
-[[tools."go:golang.org/x/vuln/cmd/govulncheck"]]
-version = "1.2.0"
-backend = "go:golang.org/x/vuln/cmd/govulncheck"
 
 [[tools.golangci-lint]]
 version = "2.11.4"
@@ -352,22 +345,18 @@ provenance = "github-attestations"
 [tools.golangci-lint."platforms.linux-x64-baseline"]
 checksum = "sha256:200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-amd64.tar.gz"
-provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-x64-musl"]
 checksum = "sha256:200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-amd64.tar.gz"
-provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:200c5b7503f67b59a6743ccf32133026c174e272b930ee79aa2aa6f37aca7ef1"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-linux-amd64.tar.gz"
-provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.macos-arm64"]
 checksum = "sha256:02db2a2dae8b26812e53b0688a6f617e3ef1f489790e829ea22862cf76945675"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-arm64.tar.gz"
-provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.macos-x64"]
 checksum = "sha256:c900d4048db75d1edfd550fd11cf6a9b3008e7caa8e119fcddbc700412d63e60"
@@ -382,12 +371,10 @@ provenance = "github-attestations"
 [tools.golangci-lint."platforms.windows-x64"]
 checksum = "sha256:4932cfca5e75bf60fe1c576edf459e5e809e6644664a068185d64b84af3fad9e"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-windows-amd64.zip"
-provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.windows-x64-baseline"]
 checksum = "sha256:4932cfca5e75bf60fe1c576edf459e5e809e6644664a068185d64b84af3fad9e"
 url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-windows-amd64.zip"
-provenance = "github-attestations"
 
 [[tools.goreleaser]]
 version = "2.15.3"

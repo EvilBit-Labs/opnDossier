@@ -6,7 +6,7 @@
 
 opnDossier is a command-line tool for network operators and security professionals working with OPNsense and pfSense firewalls. Transform complex XML configuration files into clear, readable documentation and identify security issues, misconfigurations, and optimization opportunities.
 
-Built for offline operation in secure environments — no external dependencies, no telemetry, complete airgapped support.
+Built for offline operation in secure environments - no external dependencies, no telemetry, complete airgapped support.
 
 ### What It Does
 
@@ -15,6 +15,9 @@ Built for offline operation in secure environments — no external dependencies,
 - **Configuration Validation** - Comprehensive checks for misconfigurations and best-practice issues
 - **Multi-Format Export** - Convert to markdown documentation, JSON, or YAML for integration
 - **Offline Operation** - Works completely offline, perfect for airgapped networks
+
+> [!NOTE]
+> pfSense support is strong for core firewall and service areas, but some report and audit sections are still in progress. If you work with pfSense, see the [device support matrix](docs/user-guide/device-support-matrix.md) for current feature-by-feature coverage. When a pfSense area is not yet supported, opnDossier warns during processing so you can tell the difference between a product gap and a missing configuration.
 
 ## Quick Start
 
@@ -183,6 +186,16 @@ go build -o opnDossier main.go
 ```
 
 For development builds with additional tooling, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+If you plan to contribute, install the pre-commit and commit-msg git hooks so fast local checks run automatically:
+
+```bash
+just install   # runs mise install, installs hook types, tidies modules
+# or, manually:
+mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
+```
+
+Run `just ci-check` manually before pushing for the full quality bar (lint, tests, race detector). See [CONTRIBUTING.md §Development Setup](CONTRIBUTING.md#development-setup) for details.
 
 ## Usage Examples
 
@@ -379,7 +392,7 @@ GitHub Action references should be pinned with intention. The three options, in 
 ```yaml
   - name: Audit OPNsense config
   # v1.4.0 — verify SHA against the release at https://github.com/EvilBit-Labs/opnDossier/releases/tag/v1.4.0
-    uses: EvilBit-Labs/opnDossier@0ec9309d3034aefbb096f80fc0f2b367b3db93ae
+    uses: EvilBit-Labs/opnDossier@0ac538c64c8170f56dc9c1353ee5d71b532d303f
     with:
       command: audit
       config-file: config.xml
@@ -417,7 +430,7 @@ opnDossier's `pkg/` packages are importable by other Go modules. The typical con
 
 Module path: `github.com/EvilBit-Labs/opnDossier`
 
-Go version: 1.26 or later (see [`go.mod`](go.mod) for the pinned toolchain). The module uses Go 1.26 language features, so older toolchains cannot compile it.
+Go version: 1.26+ (opnDossier supports the current and previous stable Go releases — N and N-1 — matching Go's upstream policy).
 
 See [docs/development/public-api.md](docs/development/public-api.md) for the full public API classification, stability policy, and semver rules.
 
@@ -563,11 +576,11 @@ opnDossier is designed with security as a first-class concern:
 - **No external dependencies** - Operates completely offline
 - **No telemetry** - No data collection or external communication
 - **Secure by design** - Input validation, sanitization, and SBOM generation
-- **Automated scanning** - Vulnerability scans and dependency audits run in CI/CD on pull requests, pushes, and a weekly schedule
+- **Automated scanning** - Daily vulnerability scans and dependency audits in CI/CD
 
-### Third-party plugin trust model
+### Dynamic plugin trust model
 
-`--plugin-dir` applies to **third-party** compliance plugins distributed as Go shared objects; it does **not** affect the built-in `stig`, `sans`, and `firewall` plugins, which are compiled into the opnDossier binary and always available. Third-party plugins are opt-in. The `--plugin-dir` flag on `opnDossier audit` loads every `.so` file in the directory via Go's standard `plugin.Open()` mechanism (Linux, macOS, FreeBSD only — a clean no-op on Windows); loaded plugins run with full opnDossier process privileges and are not signature-verified. Only point `--plugin-dir` at directories whose contents you build, review, and control — never at a world-writable path. A stderr warning is emitted whenever `--plugin-dir` is supplied. For the full threat model and hardening guidance, see [audit command — Third-Party Plugin Security](docs/user-guide/commands/audit.md#third-party-plugin-security).
+Dynamic compliance plugins are opt-in. The `--plugin-dir` flag on `opnDossier audit` loads every `.so` file in the directory via Go's standard `plugin.Open()` mechanism; those plugins run with full opnDossier process privileges and are not signature-verified. Only point `--plugin-dir` at directories whose contents you build, review, and control — never at a world-writable path. A stderr warning is emitted whenever `--plugin-dir` is supplied. For the full threat model and hardening guidance, see [audit command — Dynamic Plugin Security](docs/user-guide/commands/audit.md#dynamic-plugin-security).
 
 For security vulnerabilities, please see our [security policy](SECURITY.md).
 
@@ -600,7 +613,7 @@ Built for network operators and security professionals.
 [docs]: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/index.md
 [docs-badge]: https://img.shields.io/badge/docs-mkdocs-blue.svg
 [go]: https://golang.org
-[go-badge]: https://img.shields.io/github/go-mod/go-version/EvilBit-Labs/opnDossier?label=go&color=blue
+[go-badge]: https://img.shields.io/badge/go-1.26+-blue.svg
 [goreportcard]: https://goreportcard.com/report/github.com/EvilBit-Labs/opnDossier
 [goreportcard-badge]: https://goreportcard.com/badge/github.com/EvilBit-Labs/opnDossier
 [license]: LICENSE

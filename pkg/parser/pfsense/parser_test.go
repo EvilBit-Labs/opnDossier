@@ -25,6 +25,54 @@ const xmlRootPfSense = "pfsense"
 // ifaceLAN is the standard LAN interface name used in pfSense fixture assertions.
 const ifaceLAN = "lan"
 
+// nonGapWarnings filters out the always-emitted pfSense known-gap warnings
+// (one SeverityMedium entry per pfsense.KnownGaps() subsystem) so existing
+// assertions on per-test warnings remain readable. See
+// docs/user-guide/device-support-matrix.md for the gap list.
+func nonGapWarnings(ws []common.ConversionWarning) []common.ConversionWarning {
+	out := make([]common.ConversionWarning, 0, len(ws))
+	for _, w := range ws {
+		if w.Message == pfsense.PfsenseKnownGapMessage {
+			continue
+		}
+		out = append(out, w)
+	}
+	return out
+}
+
+// TestConverter_KnownGapWarnings_Contract directly pins the known-gap
+// warning emission contract so per-feature assertions can continue to use
+// nonGapWarnings (which hides these) without masking a regression that
+// drops the warnings entirely. If the converter stops emitting them, the
+// parity test at pkg/parser/parity_test.go also fails — this local test
+// fails first and points at the fix site (emitKnownGapWarnings in
+// pkg/parser/pfsense/converter.go).
+func TestConverter_KnownGapWarnings_Contract(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	_, warnings, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	var gapWarnings []common.ConversionWarning
+	for _, w := range warnings {
+		if w.Message == pfsense.PfsenseKnownGapMessage {
+			gapWarnings = append(gapWarnings, w)
+		}
+	}
+
+	require.Len(t, gapWarnings, len(pfsense.KnownGaps()))
+
+	fields := make([]string, 0, len(gapWarnings))
+	for _, w := range gapWarnings {
+		assert.Equal(t, common.SeverityMedium, w.Severity)
+		assert.Empty(t, w.Value)
+		fields = append(fields, w.Field)
+	}
+
+	assert.ElementsMatch(t, pfsense.KnownGaps(), fields)
+}
+
 // --- Parser.Parse tests ---
 
 func TestParser_Parse(t *testing.T) {
@@ -140,14 +188,9 @@ func TestParser_Parse_AcceptedCharsets(t *testing.T) {
 
 // --- Parser.ParseAndValidate tests ---
 
-// TestParser_ParseAndValidate does NOT use t.Parallel().
-// ParseAndValidate reads the package-level validator holder in pkg/parser/pfsense;
-// TestParser_ParseAndValidateWithValidator and TestParser_SetValidator_StompProtection
-// mutate that holder. Running this test in parallel with those would be
-// order-dependent: a concurrent run could see an always-error validator and
-// fail for reasons unrelated to Parse correctness. Keep serial so the
-// validator-state precondition (nil) is deterministic.
 func TestParser_ParseAndValidate(t *testing.T) {
+	t.Parallel()
+
 	xmlData := `<?xml version="1.0"?><pfsense><system><hostname>test</hostname><domain>test.local</domain></system></pfsense>`
 
 	p := pfsense.NewParser(nil)
@@ -212,7 +255,7 @@ func TestConverter_System(t *testing.T) {
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.NotNil(t, device)
-	assert.Empty(t, warnings)
+	assert.Empty(t, nonGapWarnings(warnings))
 
 	sys := device.System
 	assert.Equal(t, "fw-test", sys.Hostname)
@@ -550,9 +593,10 @@ func TestConverter_Users(t *testing.T) {
 	assert.Equal(t, "admins", device.Users[0].GroupName)
 
 	// Empty name user should generate a warning.
-	require.Len(t, warnings, 1)
-	assert.Contains(t, warnings[0].Field, "Users[1].Name")
-	assert.Equal(t, common.SeverityHigh, warnings[0].Severity)
+	filtered := nonGapWarnings(warnings)
+	require.Len(t, filtered, 1)
+	assert.Contains(t, filtered[0].Field, "Users[1].Name")
+	assert.Equal(t, common.SeverityHigh, filtered[0].Severity)
 }
 
 func TestConverter_Groups(t *testing.T) {
@@ -607,9 +651,10 @@ func TestConverter_Certificates_Warnings(t *testing.T) {
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	require.Len(t, device.Certificates, 1)
-	require.Len(t, warnings, 1)
-	assert.Equal(t, "Certificates[0].Certificate", warnings[0].Field)
-	assert.Equal(t, common.SeverityHigh, warnings[0].Severity)
+	filtered := nonGapWarnings(warnings)
+	require.Len(t, filtered, 1)
+	assert.Equal(t, "Certificates[0].Certificate", filtered[0].Field)
+	assert.Equal(t, common.SeverityHigh, filtered[0].Severity)
 }
 
 func TestConverter_Certificates(t *testing.T) {
@@ -803,11 +848,12 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 
 			_, warnings, err := pfsense.ConvertDocument(doc)
 			require.NoError(t, err)
-			assert.Len(t, warnings, tc.wantWarnings)
+			filtered := nonGapWarnings(warnings)
+			require.Len(t, filtered, tc.wantWarnings)
 
-			if tc.wantField != "" && len(warnings) > 0 {
-				assert.Equal(t, tc.wantField, warnings[0].Field)
-				assert.Equal(t, tc.wantSeverity, warnings[0].Severity)
+			if tc.wantField != "" {
+				assert.Equal(t, tc.wantField, filtered[0].Field)
+				assert.Equal(t, tc.wantSeverity, filtered[0].Severity)
 			}
 		})
 	}
@@ -880,11 +926,12 @@ func TestConverter_NAT_Warnings(t *testing.T) {
 
 			_, warnings, err := pfsense.ConvertDocument(doc)
 			require.NoError(t, err)
-			assert.Len(t, warnings, tc.wantWarnings)
+			filtered := nonGapWarnings(warnings)
+			require.Len(t, filtered, tc.wantWarnings)
 
-			if tc.wantField != "" && len(warnings) > 0 {
-				assert.Equal(t, tc.wantField, warnings[0].Field)
-				assert.Equal(t, tc.wantSeverity, warnings[0].Severity)
+			if tc.wantField != "" {
+				assert.Equal(t, tc.wantField, filtered[0].Field)
+				assert.Equal(t, tc.wantSeverity, filtered[0].Severity)
 			}
 		})
 	}
@@ -902,7 +949,7 @@ func TestConverter_Gateways_Warnings(t *testing.T) {
 
 	_, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Len(t, warnings, 2)
+	assert.Len(t, nonGapWarnings(warnings), 2)
 
 	fields := make([]string, len(warnings))
 	for i, w := range warnings {
@@ -922,7 +969,7 @@ func TestConverter_Users_Warnings(t *testing.T) {
 
 	_, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Len(t, warnings, 2)
+	assert.Len(t, nonGapWarnings(warnings), 2)
 
 	fields := make([]string, len(warnings))
 	for i, w := range warnings {
@@ -1622,9 +1669,8 @@ func TestPfSense_SetValidator_Race(t *testing.T) {
 	// Every writer installs the SAME validator (identical function value is
 	// not required by the spec — only "some installed function wins and
 	// stays installed"). Because we cannot reliably compare func values,
-	// the race test succeeds if no race is flagged and the reader path
-	// (ParseAndValidate) executes cleanly while the writers call
-	// SetValidator concurrently.
+	// each writer just increments the shared counter; the race test
+	// succeeds if no race is flagged and the reader path executes cleanly.
 	var installed sync.WaitGroup
 	installed.Add(numWriters)
 

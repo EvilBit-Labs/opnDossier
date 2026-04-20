@@ -365,7 +365,10 @@ func TestPlugin_FindingSeverityMatchesControl(t *testing.T) {
 		},
 	}
 
-	findings := plugin.RunChecks(device)
+	findings, _, err := plugin.RunChecks(device)
+	if err != nil {
+		t.Fatalf("unexpected RunChecks error: %v", err)
+	}
 	if len(findings) == 0 {
 		t.Fatal("expected at least one finding to validate severity invariant")
 	}

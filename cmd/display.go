@@ -132,8 +132,8 @@ RELATED:
 
 		filePath := args[0]
 
-		// Create context-aware logger with input file field
-		ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", filePath)
+		// Create logger with input file field
+		ctxLogger := cmdLogger.WithFields("input_file", filePath)
 
 		// Sanitize the file path
 		cleanPath := filepath.Clean(filePath)

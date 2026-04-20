@@ -14,11 +14,11 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 )
 
-// Phase A plugin loader hardening constants. These package-level constants
-// bound the preflight behaviour so code, tests in this package, and
-// documentation comments can reference a single source of truth. Phase B
-// follow-ups (owner-UID check, path denylist, filename allowlist, SHA-256
-// manifest) are tracked for post-v1.5; see GOTCHAS §2.5.
+// Phase A plugin loader hardening constants. These bound the preflight
+// behaviour and are exported as package-level const so tests and docs can
+// reference a single source of truth. Phase B follow-ups (owner-UID check,
+// path denylist, filename allowlist, SHA-256 manifest) are tracked for
+// post-v1.5; see GOTCHAS §2.5.
 const (
 	// pluginWritableMask matches the group-write and world-write bits
 	// (0o020 | 0o002 = 0o022). Any file or directory carrying one of these
@@ -29,9 +29,8 @@ const (
 	// pluginMaxSize caps the number of bytes we will read while computing
 	// the SHA-256 digest for the audit log. A legitimate compliance plugin
 	// is well under a megabyte; 64 MiB leaves generous headroom while
-	// bounding preflight I/O and CPU time and avoiding handing very large
-	// files to plugin.Open. The hasher streams bytes rather than buffering
-	// them, so this is a time/throughput cap, not a memory-allocation cap.
+	// preventing pathological files from exhausting memory during preflight.
+	// This also partially addresses the Phase B "size cap" objective.
 	pluginMaxSize int64 = 64 << 20 // 64 MiB
 
 	// pluginVerdictAccepted / pluginVerdictRejected are the two possible
@@ -39,11 +38,6 @@ const (
 	// log aggregator) can filter on these verdict strings.
 	pluginVerdictAccepted = "accepted"
 	pluginVerdictRejected = "rejected"
-
-	// pluginOwnerUIDUnavailable is the audit-log value recorded for the
-	// owner UID on platforms where it cannot be extracted (Windows, or any
-	// os.FileInfo implementation that does not carry a *syscall.Stat_t).
-	pluginOwnerUIDUnavailable = "unavailable"
 )
 
 // pluginPreflightResult captures the metadata collected while validating a
@@ -70,14 +64,13 @@ type pluginPreflightResult struct {
 //
 // The checks, in order:
 //  1. The path must be absolute (cross-platform).
-//  2. Lstat the path. A symlink is rejected outright on every platform
-//     because plugin.Open follows links.
-//  3. Reject non-regular files (FIFOs, sockets, device nodes) so
-//     hashFileSizeCapped does not block on an open() or read().
-//  4. Reject group/world-writable plugin files (POSIX only).
-//  5. Stat the containing directory; reject if group/world-writable (POSIX
+//  2. Lstat the path. A symlink is rejected outright because plugin.Open
+//     follows links (POSIX only — Windows symlink semantics differ and are
+//     skipped at runtime).
+//  3. Reject group/world-writable plugin files (POSIX only).
+//  4. Stat the containing directory; reject if group/world-writable (POSIX
 //     only).
-//  6. Compute the file SHA-256 using a size-capped reader so the audit log
+//  5. Compute the file SHA-256 using a size-capped reader so the audit log
 //     can identify the artifact even when the file cannot be opened as a
 //     plugin.
 //
@@ -87,7 +80,7 @@ func runPluginPreflight(path string) pluginPreflightResult {
 	res := pluginPreflightResult{
 		name:     filepath.Base(path),
 		path:     path,
-		ownerUID: pluginOwnerUIDUnavailable,
+		ownerUID: "unavailable",
 		verdict:  pluginVerdictRejected,
 	}
 
@@ -116,18 +109,6 @@ func runPluginPreflight(path string) pluginPreflightResult {
 	if info.Mode()&os.ModeSymlink != 0 {
 		res.reason = "plugin is a symlink"
 		res.err = fmt.Errorf("refusing to load plugin symlink: %s", path)
-		return res
-	}
-
-	// Non-regular file rejection. A FIFO, socket, or device node named
-	// *.so slips past the symlink check but os.Open + io.CopyN on such a
-	// path can block indefinitely before plugin.Open is ever reached — a
-	// denial-of-service primitive that is trivially reachable on POSIX.
-	// Require a regular file up front so hashFileSizeCapped only ever runs
-	// on something it can read to EOF.
-	if !info.Mode().IsRegular() {
-		res.reason = "plugin is not a regular file"
-		res.err = fmt.Errorf("refusing non-regular plugin file %q (mode %v)", path, info.Mode())
 		return res
 	}
 

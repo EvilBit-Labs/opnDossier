@@ -81,13 +81,13 @@ When auditing multiple files, each report is auto-named to prevent filename coll
 
 ## Plugin Registry
 
-`audit.PluginManager` maintains its own `PluginRegistry` instance that is **independent** of the global singleton returned by `audit.GetGlobalRegistry()`. This split exists so that CLI invocations and programmatic callers can operate with isolated plugin sets, but it introduces a sharp edge:
+`audit.PluginManager` owns a single `PluginRegistry` supplied at construction time: `NewPluginManager(logger, reg)`. Pass `nil` to allocate a fresh private registry (the common case for short-lived programmatic callers), or pass a shared `*PluginRegistry` when multiple managers or subsystems must observe the same plugin set (e.g., CLI helpers and the audit pipeline).
 
-- `pm.InitializePlugins()` populates the manager's registry **only** — not the global one.
-- Plugins that must be visible to simple CLI helpers must be registered explicitly via `audit.RegisterGlobalPlugin()`.
+- `pm.InitializePlugins()` populates the registry supplied to `NewPluginManager`.
 - Registry methods (`ListPlugins`, `GetPlugin`) are protected by `sync.RWMutex` and are safe for concurrent access. After `InitializePlugins` returns, the registry is effectively read-only.
+- The legacy package-level global registry (`GetGlobalRegistry`, `RegisterGlobalPlugin`, `GetGlobalPlugin`, `ListGlobalPlugins`) is `// Deprecated:` and scheduled for removal in v2.0. New code must not depend on it.
 
-See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#21-registry-independence) for the full invariant and the CLI call sites that depend on it.
+See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#21-registry-consolidation-historical--resolved-2026-04-19) for the historical context on the two-registry bug this consolidation eliminated.
 
 ### Plugin Selection and the `--plugins` Flag
 
@@ -101,7 +101,7 @@ See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTC
 `PluginRegistry.LoadDynamicPlugins` uses Go's `plugin.Open()` to load `.so` files from a directory at runtime. Two ordering and trust invariants must be preserved:
 
 1. **`SetPluginDir` must precede `InitializePlugins`.** `PluginManager.SetPluginDir(dir, explicit)` mutates a field that `InitializePlugins` reads only during its execution. Setting the directory afterward has no observable effect. See [GOTCHAS.md §2.3](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#23-setplugindir-must-precede-initializeplugins).
-2. **Loading is opt-in.** Dynamic plugin loading runs only when the plugin directory is explicitly configured — currently via the `--plugin-dir` CLI flag (or the equivalent shared option for `convert`). If no directory is configured, `InitializePlugins` skips `LoadDynamicPlugins` entirely; there is no implicit `./plugins` auto-discovery. Plugins are never fetched from the network.
+2. **Loading is opt-in.** Dynamic plugin loading requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched from the network.
 
 ### Trust Model
 
@@ -134,7 +134,7 @@ See [GOTCHAS.md §2.2](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTC
 The audit engine draws a clean line between **severity** (triage priority) and **compliance status** (pass/fail). Several subtle rules follow from that separation:
 
 - **Info severity does not bypass compliance.** A finding with `Severity == "info"` that references a control still flips that control to non-compliant. Severity only affects presentation ordering and summary counts.
-- **Inventory controls are excluded from the compliance map.** Controls with `Type: "inventory"` are omitted from `EvaluatedControlIDs` entirely and surface only in the "Configuration Notes" section of the report.
+- **Inventory controls are excluded from the compliance map.** Controls with `Type: "inventory"` are intentionally omitted from the `evaluated` slice returned by `RunChecks` and surface only in the "Configuration Notes" section of the report.
 - **Unrecognized severity strings** are counted in a private `unknown` bucket by `countSeverities`. Callers that have access to a logger should emit a warning when `counts.unknown > 0`.
 
 See [GOTCHAS.md §2.4](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#24-info-severity-does-not-bypass-compliance) for the canonical statement of these rules.
@@ -146,7 +146,7 @@ Audit compliance results flow from the plugin registry into the standard multi-f
 1. `cmd/audit_handler.go` calls `mapAuditReportToComplianceResults()` to convert `audit.Report` into `common.ComplianceResults`.
 2. `handleAuditMode()` creates a shallow copy of `CommonDevice` and sets its `ComplianceResults` field to the mapped results.
 3. The enriched device is passed to `generateWithProgrammaticGenerator()`, which dispatches to the `FormatHandler` from `DefaultRegistry` (markdown, JSON, YAML, text, or HTML).
-4. For Markdown, `BuildAuditSection()` in `internal/converter/builder/` renders per-plugin sections, findings tables, and summary. For structured formats, `ComplianceResults` is serialized directly.
+4. For markdown, `BuildAuditSection()` in `internal/converter/builder/` renders per-plugin sections, findings tables, and summary. For structured formats, `ComplianceResults` is serialized directly.
 
 This is the same pipeline described in detail in [pipelines.md — Audit-to-Export Mapping](pipelines.md#audit-to-export-mapping); the plugin system simply populates the `ComplianceResults` field before that pipeline runs.
 

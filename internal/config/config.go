@@ -38,15 +38,51 @@ type ValidationConfig struct {
 }
 
 // Config holds the configuration for the opnDossier application.
+//
+// NOTE: Several top-level fields (Verbose, Debug, Quiet, Theme, Format) are
+// marked Deprecated and kept for backward compatibility with v1.x YAML config
+// files. They will be removed in v2.0. Migration guidance for end users lives
+// in GOTCHAS.md §21 "Config Flat→Nested Deprecation"; migration guidance for
+// Go API consumers is in the per-field Deprecated comments below.
 type Config struct {
-	// Flat fields (backward compatible)
-	InputFile  string   `mapstructure:"input_file"`
-	OutputFile string   `mapstructure:"output_file"`
-	Verbose    bool     `mapstructure:"verbose"`
-	Debug      bool     `mapstructure:"debug"`
-	Quiet      bool     `mapstructure:"quiet"`
-	Theme      string   `mapstructure:"theme"`
-	Format     string   `mapstructure:"format"`
+	// Flat fields (backward compatible; see deprecation notes per field)
+	InputFile  string `mapstructure:"input_file"`
+	OutputFile string `mapstructure:"output_file"`
+
+	// Deprecated: Verbose will be removed in v2.0. There is no direct nested
+	// boolean replacement; set Logging.Level = "debug" for verbose runtime
+	// logging. This field is still read by cmd/root.go and config_show.go for
+	// backward compatibility with v1.x YAML configs. When both this field and
+	// Logging.Level are set, Logging.Level wins.
+	Verbose bool `mapstructure:"verbose"`
+
+	// Deprecated: Debug will be removed in v2.0. Use Logging.Level = "debug"
+	// instead. This field is still read by cmd/root.go for backward
+	// compatibility with v1.x YAML configs. When both this field and
+	// Logging.Level are set, Logging.Level wins.
+	Debug bool `mapstructure:"debug"`
+
+	// Deprecated: Quiet will be removed in v2.0. There is no direct nested
+	// boolean replacement; set Logging.Level = "error" to suppress info/warn
+	// output. This field is still read by cmd/root.go, cmd/audit.go,
+	// cmd/validate.go, cmd/display.go, cmd/convert.go, cmd/diff.go, and
+	// cmd/config_show.go for backward compatibility with v1.x YAML configs.
+	Quiet bool `mapstructure:"quiet"`
+
+	// Deprecated: Theme will be removed in v2.0. A nested Display.Theme field
+	// has not yet been introduced — when it is added, it will supersede this
+	// flat field. Until then, this remains the canonical location for theme
+	// selection and is read by cmd/display.go, cmd/convert.go, and
+	// internal/processor/report.go.
+	Theme string `mapstructure:"theme"`
+
+	// Deprecated: Format will be removed in v2.0. Use Export.Format for the
+	// programmatic output format (markdown, json, yaml). This field is still
+	// read by cmd/convert.go and cmd/config_show.go for backward compatibility
+	// with v1.x YAML configs. When both this field and Export.Format are set,
+	// callers should prefer Export.Format.
+	Format string `mapstructure:"format"`
+
 	Sections   []string `mapstructure:"sections"`
 	WrapWidth  int      `mapstructure:"wrap"`
 	JSONOutput bool     `mapstructure:"json_output"` // Output errors in JSON format
@@ -58,6 +94,12 @@ type Config struct {
 	Export     ExportConfig     `mapstructure:"export"`
 	Logging    LoggingConfig    `mapstructure:"logging"`
 	Validation ValidationConfig `mapstructure:"validation"`
+
+	// deprecationWarnings captures per-field migration guidance detected at
+	// load time (see detectDeprecatedFieldUsage). Unexported because it is
+	// not part of any serialization surface; callers read it via
+	// DeprecationWarnings(). Populated by LoadConfigWithViper.
+	deprecationWarnings []string `mapstructure:"-"`
 }
 
 // LoadConfig loads application configuration from the specified YAML file, environment variables, and defaults.
@@ -178,12 +220,84 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// Stash any deprecated-field usage so callers (cmd/root.go) can surface
+	// a single WARN per process. We intentionally do not log here: the config
+	// package must not own stderr output, and callers have a *logging.Logger.
+	cfg.deprecationWarnings = detectDeprecatedFieldUsage(v)
+
 	// Validate the configuration
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
 
 	return cfg, nil
+}
+
+// detectDeprecatedFieldUsage returns human-readable migration warnings for
+// each deprecated flat field the user explicitly set (via YAML config file
+// or environment variable). Fields left at their default value are not
+// reported.
+//
+// Detection strategy: viper.IsSet() is NOT reliable here because v.SetDefault()
+// (called before this function runs) causes IsSet() to return true for every
+// key that has a registered default. Instead:
+//   - v.InConfig(key) covers YAML presence.
+//   - envVarIsSet covers env-var presence via os.LookupEnv.
+//
+// CLI flag detection is intentionally out of scope: the deprecated flat keys
+// are not bound to CLI flags in this project (root.go binds --verbose/--quiet
+// directly into Config via Cobra, not through viper), so there is no
+// ambiguity. If a future caller binds a CLI flag to one of these keys,
+// extend the detection here.
+//
+// Returns an empty slice when no deprecated fields are in use. Callers should
+// log each entry at WARN level exactly once during startup.
+func detectDeprecatedFieldUsage(v *viper.Viper) []string {
+	// Map from deprecated flat key → migration guidance string.
+	deprecatedKeys := []struct {
+		key      string
+		guidance string
+	}{
+		{
+			"verbose",
+			"`verbose` (top-level) is deprecated and will be removed in v2.0. Set `logging.level: debug` instead.",
+		},
+		{"debug", "`debug` (top-level) is deprecated and will be removed in v2.0. Set `logging.level: debug` instead."},
+		{"quiet", "`quiet` (top-level) is deprecated and will be removed in v2.0. Set `logging.level: error` instead."},
+		{
+			"theme",
+			"`theme` (top-level) is deprecated and will be removed in v2.0. A nested replacement will be introduced before removal.",
+		},
+		{"format", "`format` (top-level) is deprecated and will be removed in v2.0. Use `export.format` instead."},
+	}
+
+	warnings := make([]string, 0, len(deprecatedKeys))
+	for _, d := range deprecatedKeys {
+		if v.InConfig(d.key) || envVarIsSet(d.key) {
+			warnings = append(warnings, d.guidance)
+		}
+	}
+	return warnings
+}
+
+// envVarIsSet reports whether the OPNDOSSIER_<KEY> env var is explicitly set,
+// regardless of value. Mirrors the key mapping used by
+// viper.SetEnvKeyReplacer in LoadConfigWithViper: hyphens/dots → underscores.
+func envVarIsSet(key string) bool {
+	envKey := "OPNDOSSIER_" + strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(key))
+	_, ok := os.LookupEnv(envKey)
+	return ok
+}
+
+// DeprecationWarnings returns user-facing guidance for every deprecated flat
+// config key the user explicitly set during load. Callers (e.g. cmd/root.go)
+// should log each entry at WARN level once during startup. Returns nil when
+// no deprecated fields are in use.
+func (c *Config) DeprecationWarnings() []string {
+	if c == nil {
+		return nil
+	}
+	return c.deprecationWarnings
 }
 
 // ValidationError represents a configuration validation error.
@@ -255,26 +369,42 @@ func combineValidationErrors(validationErrors []ValidationError) error {
 }
 
 // IsVerbose returns true if verbose logging is enabled.
+//
+// Reads the deprecated Config.Verbose field. This accessor will be updated or
+// removed alongside Config.Verbose in v2.0.
 func (c *Config) IsVerbose() bool {
 	return c.Verbose
 }
 
 // IsDebug returns true if debug logging is enabled.
+//
+// Reads the deprecated Config.Debug field. This accessor will be updated or
+// removed alongside Config.Debug in v2.0.
 func (c *Config) IsDebug() bool {
 	return c.Debug
 }
 
 // IsQuiet returns true if quiet mode is enabled.
+//
+// Reads the deprecated Config.Quiet field. This accessor will be updated or
+// removed alongside Config.Quiet in v2.0.
 func (c *Config) IsQuiet() bool {
 	return c.Quiet
 }
 
 // GetTheme returns the configured theme.
+//
+// Reads the deprecated Config.Theme field. This accessor will be updated or
+// removed alongside Config.Theme in v2.0.
 func (c *Config) GetTheme() string {
 	return c.Theme
 }
 
 // GetFormat returns the configured output format.
+//
+// Reads the deprecated Config.Format field. This accessor will be updated or
+// removed alongside Config.Format in v2.0. Callers wanting the programmatic
+// output format should prefer Export.Format.
 func (c *Config) GetFormat() string {
 	return c.Format
 }

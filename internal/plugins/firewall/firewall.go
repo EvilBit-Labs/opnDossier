@@ -16,9 +16,18 @@ type checkResult struct {
 	Known  bool
 }
 
+// initialFindingsCapacity is the starting capacity for the findings slice in
+// RunChecks. Sized to fit the typical failure rate on a default-state device
+// (~16 findings); grows automatically under heavier loads.
+const initialFindingsCapacity = 16
+
 // Plugin implements the compliance.Plugin interface for Firewall plugin.
 type Plugin struct {
 	controls []compliance.Control
+	// severityByID maps control ID -> severity so RunChecks can look up the
+	// severity for a finding without scanning the full controls slice (previous
+	// behavior: O(n) per finding; now O(1)). Populated once in NewPlugin.
+	severityByID map[string]string
 }
 
 // NewPlugin creates a new Firewall compliance plugin.
@@ -106,8 +115,19 @@ func NewPlugin() *Plugin {
 		},
 	}
 
+	newControls := newControlDefinitions()
+	controls := make([]compliance.Control, 0, len(baseControls)+len(newControls))
+	controls = append(controls, baseControls...)
+	controls = append(controls, newControls...)
+
+	severityByID := make(map[string]string, len(controls))
+	for _, c := range controls {
+		severityByID[c.ID] = c.Severity
+	}
+
 	p := &Plugin{
-		controls: append(baseControls, newControlDefinitions()...),
+		controls:     controls,
+		severityByID: severityByID,
 	}
 
 	return p
@@ -128,139 +148,151 @@ func (fp *Plugin) Description() string {
 	return "Firewall-specific compliance checks for OPNsense configurations"
 }
 
-// RunChecks performs Firewall compliance checks against the device configuration.
+// RunChecks performs Firewall compliance checks against the device configuration
+// in a single traversal. Returns (findings, evaluated, err).
+//
 // Each helper returns (result, known). When known is false the check is skipped
-// because the data needed to determine compliance is not available in config.xml.
-func (fp *Plugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
-	var findings []compliance.Finding
+// because the data needed to determine compliance is not available in config.xml,
+// and that control ID is excluded from the evaluated slice. When known is true
+// the control ID is appended to evaluated regardless of pass/fail.
+//
+// err is currently always nil — reserved for unrecoverable future conditions.
+//
+//nolint:gocritic // nonamedreturns enforced project-wide; docstring clarifies return shape.
+func (fp *Plugin) RunChecks(
+	device *common.CommonDevice,
+) ([]compliance.Finding, []string, error) {
+	findings := make([]compliance.Finding, 0, initialFindingsCapacity)
+	evaluated := make([]string, 0, len(fp.controls))
 
-	// FIREWALL-001: SSH Warning Banner
-	if cr := fp.hasSSHBanner(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-001"),
-			Title:          "SSH Warning Banner Not Configured",
-			Description:    "SSH warning banner is not configured",
-			Recommendation: "Configure SSH warning banner in /etc/ssh/sshd_config",
-			Component:      "ssh-config",
-			Reference:      "FIREWALL-001",
-			References:     []string{"FIREWALL-001"},
-			Tags:           []string{"ssh-security", "banner", "firewall-controls"},
-		})
+	// Inline base-control dispatch. Each entry runs exactly once and contributes
+	// to both findings (on fail) and evaluated (on Known=true).
+	baseEntries := []struct {
+		controlID      string
+		checkFn        func(*common.CommonDevice) checkResult
+		failOnTrue     bool
+		title          string
+		description    string
+		recommendation string
+		component      string
+		tags           []string
+	}{
+		{
+			controlID:      "FIREWALL-001",
+			checkFn:        fp.hasSSHBanner,
+			title:          "SSH Warning Banner Not Configured",
+			description:    "SSH warning banner is not configured",
+			recommendation: "Configure SSH warning banner in /etc/ssh/sshd_config",
+			component:      "ssh-config",
+			tags:           []string{"ssh-security", "banner", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-002",
+			checkFn:        fp.hasAutoConfigBackup,
+			title:          "Auto Configuration Backup Disabled",
+			description:    "Automatic configuration backup is not enabled",
+			recommendation: "Enable AutoConfigBackup in Services > Auto Config Backup",
+			component:      "backup-config",
+			tags:           []string{"backup", "configuration", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-003",
+			checkFn:        fp.hasCustomMOTD,
+			title:          "Custom MOTD Not Configured",
+			description:    "Message of the Day is not customized",
+			recommendation: "Configure custom MOTD in /etc/motd",
+			component:      "motd-config",
+			tags:           []string{"motd", "legal-notice", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-004",
+			checkFn:        fp.hasCustomHostname,
+			title:          "Default Hostname in Use",
+			description:    "Device is using default hostname",
+			recommendation: "Set custom hostname in System > General Setup",
+			component:      "hostname-config",
+			tags:           []string{"hostname", "asset-identification", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-005",
+			checkFn:        fp.hasDNSServers,
+			title:          "DNS Servers Not Configured",
+			description:    "DNS servers are not explicitly configured",
+			recommendation: "Configure DNS servers in System > General Setup",
+			component:      "dns-config",
+			tags:           []string{"dns", "network-config", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-006",
+			checkFn:        fp.hasIPv6Enabled,
+			failOnTrue:     true,
+			title:          "IPv6 Enabled",
+			description:    "IPv6 is enabled and should be disabled if not required",
+			recommendation: "Disable IPv6 in System > Advanced > Networking if not required",
+			component:      "ipv6-config",
+			tags:           []string{"ipv6", "attack-surface", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-007",
+			checkFn:        fp.hasDNSRebindProtection,
+			title:          "DNS Rebind Protection Missing",
+			description:    "Unbound is active but has no private-address entries; DNS rebinding attacks are not mitigated.",
+			recommendation: "Populate Unbound's private-address list under Services > Unbound DNS > Advanced.",
+			component:      "dns-config",
+			tags:           []string{"dns-rebind", "security", "firewall-controls"},
+		},
+		{
+			controlID:      "FIREWALL-008",
+			checkFn:        fp.hasHTTPSManagement,
+			title:          "HTTP Management Access",
+			description:    "Web management is not configured for HTTPS",
+			recommendation: "Configure HTTPS in System > Advanced > Admin Access",
+			component:      "management-access",
+			tags:           []string{"https", "encryption", "firewall-controls"},
+		},
 	}
 
-	// FIREWALL-002: Auto Configuration Backup
-	if cr := fp.hasAutoConfigBackup(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-002"),
-			Title:          "Auto Configuration Backup Disabled",
-			Description:    "Automatic configuration backup is not enabled",
-			Recommendation: "Enable AutoConfigBackup in Services > Auto Config Backup",
-			Component:      "backup-config",
-			Reference:      "FIREWALL-002",
-			References:     []string{"FIREWALL-002"},
-			Tags:           []string{"backup", "configuration", "firewall-controls"},
-		})
-	}
+	for _, entry := range baseEntries {
+		cr := entry.checkFn(device)
+		if !cr.Known {
+			continue
+		}
 
-	// FIREWALL-003: Message of the Day
-	if cr := fp.hasCustomMOTD(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-003"),
-			Title:          "Custom MOTD Not Configured",
-			Description:    "Message of the Day is not customized",
-			Recommendation: "Configure custom MOTD in /etc/motd",
-			Component:      "motd-config",
-			Reference:      "FIREWALL-003",
-			References:     []string{"FIREWALL-003"},
-			Tags:           []string{"motd", "legal-notice", "firewall-controls"},
-		})
-	}
+		evaluated = append(evaluated, entry.controlID)
 
-	// FIREWALL-004: Hostname Configuration
-	if cr := fp.hasCustomHostname(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-004"),
-			Title:          "Default Hostname in Use",
-			Description:    "Device is using default hostname",
-			Recommendation: "Set custom hostname in System > General Setup",
-			Component:      "hostname-config",
-			Reference:      "FIREWALL-004",
-			References:     []string{"FIREWALL-004"},
-			Tags:           []string{"hostname", "asset-identification", "firewall-controls"},
-		})
-	}
+		failed := !cr.Result
+		if entry.failOnTrue {
+			failed = cr.Result
+		}
 
-	// FIREWALL-005: DNS Server Configuration
-	if cr := fp.hasDNSServers(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-005"),
-			Title:          "DNS Servers Not Configured",
-			Description:    "DNS servers are not explicitly configured",
-			Recommendation: "Configure DNS servers in System > General Setup",
-			Component:      "dns-config",
-			Reference:      "FIREWALL-005",
-			References:     []string{"FIREWALL-005"},
-			Tags:           []string{"dns", "network-config", "firewall-controls"},
-		})
-	}
+		if !failed {
+			continue
+		}
 
-	// FIREWALL-006: IPv6 Disablement
-	if cr := fp.hasIPv6Enabled(device); cr.Known && cr.Result {
 		findings = append(findings, compliance.Finding{
 			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-006"),
-			Title:          "IPv6 Enabled",
-			Description:    "IPv6 is enabled and should be disabled if not required",
-			Recommendation: "Disable IPv6 in System > Advanced > Networking if not required",
-			Component:      "ipv6-config",
-			Reference:      "FIREWALL-006",
-			References:     []string{"FIREWALL-006"},
-			Tags:           []string{"ipv6", "attack-surface", "firewall-controls"},
-		})
-	}
-
-	// FIREWALL-007: DNS Rebind Protection
-	if cr := fp.hasDNSRebindProtection(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-007"),
-			Title:          "DNS Rebind Protection Missing",
-			Description:    "Unbound is active but has no private-address entries; DNS rebinding attacks are not mitigated.",
-			Recommendation: "Populate Unbound's private-address list under Services > Unbound DNS > Advanced.",
-			Component:      "dns-config",
-			Reference:      "FIREWALL-007",
-			References:     []string{"FIREWALL-007"},
-			Tags:           []string{"dns-rebind", "security", "firewall-controls"},
-		})
-	}
-
-	// FIREWALL-008: HTTPS Web Management
-	if cr := fp.hasHTTPSManagement(device); cr.Known && !cr.Result {
-		findings = append(findings, compliance.Finding{
-			Type:           "compliance",
-			Severity:       fp.controlSeverity("FIREWALL-008"),
-			Title:          "HTTP Management Access",
-			Description:    "Web management is not configured for HTTPS",
-			Recommendation: "Configure HTTPS in System > Advanced > Admin Access",
-			Component:      "management-access",
-			Reference:      "FIREWALL-008",
-			References:     []string{"FIREWALL-008"},
-			Tags:           []string{"https", "encryption", "firewall-controls"},
+			Severity:       fp.severityByID[entry.controlID],
+			Title:          entry.title,
+			Description:    entry.description,
+			Recommendation: entry.recommendation,
+			Component:      entry.component,
+			Reference:      entry.controlID,
+			References:     []string{entry.controlID},
+			Tags:           entry.tags,
 		})
 	}
 
 	// Run new checks (FIREWALL-009 through -061) via table-driven dispatch.
-	findings = append(findings, fp.runNewChecks(device)...)
+	newFindings, newEvaluated := fp.runNewChecks(device)
+	findings = append(findings, newFindings...)
+	evaluated = append(evaluated, newEvaluated...)
 
-	// Run inventory checks (FIREWALL-062+) — Type: "inventory", excluded from compliance map.
+	// Run inventory checks (FIREWALL-062+) — Type: "inventory", excluded from
+	// compliance map. Inventory controls are NOT appended to evaluated because
+	// they are informational and do not participate in compliance pass/fail.
 	findings = append(findings, fp.runInventoryChecks(device)...)
 
-	return findings
+	return findings, evaluated, nil
 }
 
 // GetControls returns all Firewall controls. The returned slice is a deep copy to
@@ -290,102 +322,11 @@ func (fp *Plugin) ValidateConfiguration() error {
 	return nil
 }
 
-// EvaluatedControlIDs returns the IDs of controls this plugin can evaluate
-// given the device configuration. Controls that return Unknown (Known=false)
-// are excluded — they cannot be assessed from config.xml data alone.
-func (fp *Plugin) EvaluatedControlIDs(device *common.CommonDevice) []string {
-	// Map control IDs to their check functions for systematic evaluation.
-	checks := map[string]func(*common.CommonDevice) checkResult{
-		"FIREWALL-001": fp.hasSSHBanner,
-		"FIREWALL-002": fp.hasAutoConfigBackup,
-		"FIREWALL-003": fp.hasCustomMOTD,
-		"FIREWALL-004": fp.hasCustomHostname,
-		"FIREWALL-005": fp.hasDNSServers,
-		"FIREWALL-006": fp.hasIPv6Enabled,
-		"FIREWALL-007": fp.hasDNSRebindProtection,
-		"FIREWALL-008": fp.hasHTTPSManagement,
-		// Management Plane (009-021)
-		"FIREWALL-009": fp.checkNonDefaultWebGUIPort,
-		"FIREWALL-010": fp.checkManagementInterfaceRestriction,
-		"FIREWALL-011": fp.checkTLSVersionMinimum,
-		"FIREWALL-012": fp.checkAntiLockoutRuleAwareness,
-		"FIREWALL-013": fp.checkSessionTimeout,
-		"FIREWALL-014": fp.checkConsoleMenuProtection,
-		"FIREWALL-015": fp.checkLoginProtection,
-		"FIREWALL-016": fp.checkDefaultCredentialReset,
-		"FIREWALL-017": fp.checkUniqueAdministratorAccounts,
-		"FIREWALL-018": fp.checkLeastPrivilegeAccess,
-		"FIREWALL-019": fp.checkCentralizedAuthentication,
-		"FIREWALL-020": fp.checkDisabledUnusedAccounts,
-		"FIREWALL-021": fp.checkGroupBasedPrivileges,
-		// Rule Hygiene (022-035)
-		"FIREWALL-022": fp.checkNoAnyAnyPassRules,
-		"FIREWALL-023": fp.checkNoAnySourceOnWANInbound,
-		"FIREWALL-024": fp.checkSpecificPortRules,
-		"FIREWALL-025": fp.checkRuleDocumentation,
-		"FIREWALL-026": fp.checkDisabledRuleCleanup,
-		"FIREWALL-027": fp.checkProtocolSpecification,
-		"FIREWALL-028": fp.checkPassRuleLogging,
-		"FIREWALL-029": fp.checkPrivateAddressFilteringOnWAN,
-		"FIREWALL-030": fp.checkBogonFilteringOnWAN,
-		"FIREWALL-031": fp.checkUnusedInterfaceDisablement,
-		"FIREWALL-032": fp.checkVLANSegmentation,
-		"FIREWALL-033": fp.checkSourceRouteRejection,
-		"FIREWALL-034": fp.checkSYNFloodProtection,
-		"FIREWALL-035": fp.checkConnectionStateLimits,
-		// Encryption & Monitoring (036-053)
-		"FIREWALL-036": fp.checkValidWebGUICertificate,
-		"FIREWALL-037": fp.checkCertificateExpiration,
-		"FIREWALL-038": fp.checkStrongKeyLengths,
-		"FIREWALL-039": fp.checkRemoteSyslog,
-		"FIREWALL-040": fp.checkAuthenticationEventLogging,
-		"FIREWALL-041": fp.checkFirewallFilterLogging,
-		"FIREWALL-042": fp.checkLogRetention,
-		"FIREWALL-043": fp.checkNTPConfiguration,
-		"FIREWALL-044": fp.checkTimezoneConfiguration,
-		"FIREWALL-045": fp.checkSNMPDisabledIfUnused,
-		"FIREWALL-046": fp.checkNoDefaultCommunityStrings,
-		"FIREWALL-047": fp.checkStrongVPNEncryption,
-		"FIREWALL-048": fp.checkStrongVPNIntegrity,
-		"FIREWALL-049": fp.checkPerfectForwardSecrecy,
-		"FIREWALL-050": fp.checkVPNKeyLifetime,
-		"FIREWALL-051": fp.checkNoIKEv1AggressiveMode,
-		"FIREWALL-052": fp.checkIKEv2Preferred,
-		"FIREWALL-053": fp.checkDeadPeerDetection,
-		// Services (054-061)
-		"FIREWALL-054": fp.checkDocumentedPortForwards,
-		"FIREWALL-055": fp.checkOutboundNATControl,
-		"FIREWALL-056": fp.checkNATReflectionDisabled,
-		"FIREWALL-057": fp.checkUPnPDisabled,
-		"FIREWALL-058": fp.checkDNSSECValidation,
-		"FIREWALL-059": fp.checkDNSResolverAccessRestriction,
-		"FIREWALL-060": fp.checkConfigurationRevisionTracking,
-		"FIREWALL-061": fp.checkHAConfiguration,
-	}
-
-	var evaluated []string
-	for _, ctrl := range fp.controls {
-		if checkFn, exists := checks[ctrl.ID]; exists {
-			if cr := checkFn(device); cr.Known {
-				evaluated = append(evaluated, ctrl.ID)
-			}
-		}
-	}
-
-	return evaluated
-}
-
-// controlSeverity returns the severity for a control ID from the control
-// definitions. This ensures findings derive severity from the single source
-// of truth (the control metadata) rather than hard-coding literals.
+// controlSeverity returns the severity for a control ID from the pre-built
+// severityByID map populated in NewPlugin. Returns "" when the ID is unknown.
+// O(1) — replaces the historical O(n) linear scan over fp.controls.
 func (fp *Plugin) controlSeverity(id string) string {
-	for _, c := range fp.controls {
-		if c.ID == id {
-			return c.Severity
-		}
-	}
-
-	return ""
+	return fp.severityByID[id]
 }
 
 // defaultHostnames contains factory-default hostnames that indicate the device

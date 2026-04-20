@@ -41,7 +41,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 			},
 		}
 
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		f := inventoryFindingByRef(findings, controlDHCPInventory)
 		require.NotNil(t, f, "expected FIREWALL-062 inventory finding")
 		assert.Equal(t, "inventory", f.Type)
@@ -60,7 +61,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 			},
 		}
 
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		f := inventoryFindingByRef(findings, controlDHCPInventory)
 		require.NotNil(t, f, "expected FIREWALL-062 inventory finding for Kea scopes")
 		assert.Equal(t, "inventory", f.Type)
@@ -78,7 +80,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 			},
 		}
 
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		f := inventoryFindingByRef(findings, controlDHCPInventory)
 		require.NotNil(t, f)
 		assert.Contains(t, f.Description, "1 ISC DHCP scope(s)")
@@ -94,7 +97,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 			},
 		}
 
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		f := inventoryFindingByRef(findings, controlDHCPInventory)
 		require.NotNil(t, f)
 		assert.Contains(t, f.Description, "1 ISC DHCP scope(s)")
@@ -104,7 +108,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 		t.Parallel()
 
 		device := &common.CommonDevice{}
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		assert.Nil(t, inventoryFindingByRef(findings, controlDHCPInventory),
 			"unexpected DHCP inventory finding when no DHCP scopes")
 	})
@@ -112,7 +117,8 @@ func TestFirewallPlugin_InventoryChecks_DHCP(t *testing.T) {
 	t.Run("no finding on nil device", func(t *testing.T) {
 		t.Parallel()
 
-		findings := fp.RunChecks(nil)
+		findings, _, err := fp.RunChecks(nil)
+		require.NoError(t, err)
 		assert.Nil(t, inventoryFindingByRef(findings, controlDHCPInventory),
 			"unexpected DHCP inventory finding on nil device")
 	})
@@ -134,7 +140,8 @@ func TestFirewallPlugin_InventoryChecks_Interfaces(t *testing.T) {
 			},
 		}
 
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		f := inventoryFindingByRef(findings, controlInterfaceInventory)
 		require.NotNil(t, f, "expected FIREWALL-063 inventory finding")
 		assert.Equal(t, "inventory", f.Type)
@@ -151,13 +158,14 @@ func TestFirewallPlugin_InventoryChecks_Interfaces(t *testing.T) {
 			},
 		}
 
-		findings := fp.RunChecks(device)
+		findings, _, err := fp.RunChecks(device)
+		require.NoError(t, err)
 		assert.Nil(t, inventoryFindingByRef(findings, controlInterfaceInventory),
 			"unexpected interface inventory finding when no enabled interfaces")
 	})
 }
 
-func TestFirewallPlugin_InventoryFindings_DoNotAppearInEvaluatedControlIDs(t *testing.T) {
+func TestFirewallPlugin_InventoryFindings_DoNotAppearInEvaluated(t *testing.T) {
 	t.Parallel()
 
 	fp := firewall.NewPlugin()
@@ -168,11 +176,12 @@ func TestFirewallPlugin_InventoryFindings_DoNotAppearInEvaluatedControlIDs(t *te
 		},
 	}
 
-	evaluated := fp.EvaluatedControlIDs(device)
+	_, evaluated, err := fp.RunChecks(device)
+	require.NoError(t, err)
 
 	for _, id := range []string{controlDHCPInventory, controlInterfaceInventory} {
 		assert.NotContains(t, evaluated, id,
-			"inventory control %s must not appear in EvaluatedControlIDs", id)
+			"inventory control %s must not appear in evaluated slice", id)
 	}
 }
 
@@ -187,7 +196,8 @@ func TestFirewallPlugin_InventoryFindings_HaveCorrectType(t *testing.T) {
 		},
 	}
 
-	findings := fp.RunChecks(device)
+	findings, _, err := fp.RunChecks(device)
+	require.NoError(t, err)
 
 	var inventoryCount int
 

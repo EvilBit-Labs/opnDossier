@@ -166,6 +166,11 @@ type UnusedInterfaceFinding struct {
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
 }
 
+// FindingSeverity is an alias for Severity, kept for backward compatibility in tests.
+//
+// Deprecated: Use Severity directly.
+type FindingSeverity = Severity
+
 // SecurityFinding represents a security finding.
 type SecurityFinding struct {
 	// Component is the configuration component affected by the finding.

@@ -15,39 +15,12 @@ var defaultUsernames = []string{"admin", "root"}
 // pageAllPrivilege is the OPNsense privilege granting full web GUI access.
 const pageAllPrivilege = "page-all"
 
-// checkNonDefaultWebGUIPort checks whether the web GUI uses a non-default port.
-// The CommonDevice model does not expose the web GUI port, so this cannot be evaluated.
-func (fp *Plugin) checkNonDefaultWebGUIPort(_ *common.CommonDevice) checkResult {
-	return unknown
-}
-
-// checkManagementInterfaceRestriction checks whether web GUI access is restricted
-// to specific management interfaces. The CommonDevice model does not expose the
-// web GUI interface binding, so this cannot be evaluated.
-func (fp *Plugin) checkManagementInterfaceRestriction(_ *common.CommonDevice) checkResult {
-	return unknown
-}
-
-// checkTLSVersionMinimum checks whether a minimum TLS version is enforced for
-// web GUI access. The CommonDevice model does not expose the TLS version setting,
-// so this cannot be evaluated.
-func (fp *Plugin) checkTLSVersionMinimum(_ *common.CommonDevice) checkResult {
-	return unknown
-}
-
-// checkAntiLockoutRuleAwareness checks whether the anti-lockout rule is configured.
-// The CommonDevice model does not expose the anti-lockout setting, so this cannot
-// be evaluated.
-func (fp *Plugin) checkAntiLockoutRuleAwareness(_ *common.CommonDevice) checkResult {
-	return unknown
-}
-
-// checkSessionTimeout checks whether a session timeout is configured for the
-// management interface. The CommonDevice model does not expose session timeout
-// settings, so this cannot be evaluated.
-func (fp *Plugin) checkSessionTimeout(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-009 through FIREWALL-013 (non-default webgui port, management
+// interface restriction, TLS version minimum, anti-lockout rule awareness,
+// session timeout) were no-op helpers returning unknown — the CommonDevice
+// model does not expose these settings. The helpers were dead after the
+// EvaluatedControlIDs map was removed, so they were deleted. The controls
+// remain in controls.go so the audit report still labels them UNCONFIRMED.
 
 // checkConsoleMenuProtection checks whether the serial/VGA console menu is
 // disabled. When disabled, physical access to the console does not grant
@@ -60,12 +33,10 @@ func (fp *Plugin) checkConsoleMenuProtection(device *common.CommonDevice) checkR
 	return checkResult{Result: device.System.DisableConsoleMenu, Known: true}
 }
 
-// checkLoginProtection checks whether login brute-force protection is enabled.
-// The CommonDevice model does not expose login protection settings, so this
-// cannot be evaluated.
-func (fp *Plugin) checkLoginProtection(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-015 (checkLoginProtection) was a no-op returning unknown — the
+// CommonDevice model does not expose login brute-force protection. Removed
+// with the EvaluatedControlIDs cleanup; control remains in controls.go so
+// the report labels it UNCONFIRMED.
 
 // checkDefaultCredentialReset checks that no users with default administrative
 // usernames (admin, root) exist in an enabled state.
@@ -118,12 +89,10 @@ func (fp *Plugin) checkLeastPrivilegeAccess(device *common.CommonDevice) checkRe
 	return checkResult{Result: true, Known: true}
 }
 
-// checkCentralizedAuthentication checks whether a centralized authentication
-// server (RADIUS, LDAP) is configured. The CommonDevice model does not expose
-// auth server configuration, so this cannot be evaluated.
-func (fp *Plugin) checkCentralizedAuthentication(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-019 (checkCentralizedAuthentication) was a no-op returning unknown
+// — the CommonDevice model does not expose auth server configuration.
+// Removed with the EvaluatedControlIDs cleanup; control remains in
+// controls.go so the report labels it UNCONFIRMED.
 
 // checkDisabledUnusedAccounts checks for enabled user accounts that appear to
 // be system/default accounts which may no longer be needed. Accounts with

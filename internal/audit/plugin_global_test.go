@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -549,7 +550,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 
 		if err := pm.InitializePlugins(context.Background()); err != nil {
 			t.Fatalf("InitializePlugins() unexpected error: %v", err)
@@ -565,7 +566,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 
 		missingDir := filepath.Join(t.TempDir(), "does-not-exist")
 		pm.SetPluginDir(missingDir, true)
@@ -584,7 +585,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 		pm.SetPluginDir(t.TempDir(), false)
 
 		if err := pm.InitializePlugins(context.Background()); err != nil {
@@ -731,7 +732,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			summary := registry.calculateSummary(tt.result)
+			summary, _ := registry.calculateSummary(tt.result)
 			if summary == nil {
 				t.Error("calculateSummary() returned nil")
 				return
@@ -1212,21 +1213,18 @@ type mockPluginWithFindings struct {
 	controls []compliance.Control
 }
 
-func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) []compliance.Finding {
-	return m.findings
-}
-
-func (m *mockPluginWithFindings) GetControls() []compliance.Control {
-	return m.controls
-}
-
-func (m *mockPluginWithFindings) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
 	ids := make([]string, len(m.controls))
 	for i, c := range m.controls {
 		ids[i] = c.ID
 	}
 
-	return ids
+	return m.findings, ids, nil
+}
+
+func (m *mockPluginWithFindings) GetControls() []compliance.Control {
+	return compliance.CloneControls(m.controls)
 }
 
 func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control, error) {
@@ -1246,22 +1244,15 @@ type mockPanickingPlugin struct {
 }
 
 // RunChecks panics unconditionally to simulate a misbehaving plugin.
-func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
+//
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
 	panic("test panic")
 }
 
 // GetControls returns the controls configured on the mock.
 func (m *mockPanickingPlugin) GetControls() []compliance.Control {
-	return m.controls
-}
-
-func (m *mockPanickingPlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
-	ids := make([]string, len(m.controls))
-	for i, c := range m.controls {
-		ids[i] = c.ID
-	}
-
-	return ids
+	return compliance.CloneControls(m.controls)
 }
 
 // GetControlByID returns the control matching the given ID.
@@ -1531,7 +1522,7 @@ func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	pm := NewPluginManager(logger)
+	pm := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	if err := pm.InitializePlugins(ctx); err != nil {
@@ -1735,5 +1726,151 @@ func TestRunComplianceChecks_DuplicatePluginNames(t *testing.T) {
 
 	if result.Summary.PluginCount != 1 {
 		t.Errorf("Expected PluginCount=1, got %d", result.Summary.PluginCount)
+	}
+}
+
+// TestRunComplianceChecks_UnknownSeverityWarn verifies that RunComplianceChecks
+// emits a WARN log entry when the aggregated summary contains findings with
+// unrecognized severity values, satisfying the GOTCHAS §2.4 contract that the
+// top-level summary (not just the per-plugin path in mode_controller) surfaces
+// these counts to operators.
+func TestRunComplianceChecks_UnknownSeverityWarn(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	// Plugin that deliberately returns findings with unrecognized severity
+	// values. Using "chartreuse" / "vermilion" keeps the strings obviously
+	// non-standard so a reviewer recognizes the intent at a glance.
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-unknown-severity",
+			description: "Plugin returning unknown severities",
+			version:     "1.0.0",
+		},
+		findings: []compliance.Finding{
+			{
+				Type:        "compliance",
+				Severity:    "chartreuse",
+				Title:       "Unknown severity A",
+				Description: "Severity not in the known set",
+				Reference:   "CONTROL-001",
+				References:  []string{"CONTROL-001"},
+			},
+			{
+				Type:        "compliance",
+				Severity:    "vermilion",
+				Title:       "Unknown severity B",
+				Description: "Severity not in the known set",
+				Reference:   "CONTROL-002",
+				References:  []string{"CONTROL-002"},
+			},
+		},
+		controls: []compliance.Control{
+			{ID: "CONTROL-001", Title: "Control 1", Severity: severityCritical},
+			{ID: "CONTROL-002", Title: "Control 2", Severity: "medium"},
+		},
+	}
+
+	if err := registry.RegisterPlugin(mockPlugin); err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	// Capture log output at warn level so we can assert the warning fires.
+	var buf bytes.Buffer
+
+	logger, err := logging.New(logging.Config{Level: "warn", Output: &buf})
+	if err != nil {
+		t.Fatalf("Failed to construct test logger: %v", err)
+	}
+
+	testConfig := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
+
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-unknown-severity"}, logger)
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error = %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("RunComplianceChecks() returned nil result")
+	}
+
+	// Summary counters must stay zero for unknown severities — they are not
+	// coerced into a known bucket.
+	if got := result.Summary.CriticalFindings; got != 0 {
+		t.Errorf("unexpected CriticalFindings = %d; want 0", got)
+	}
+
+	if got := result.Summary.HighFindings; got != 0 {
+		t.Errorf("unexpected HighFindings = %d; want 0", got)
+	}
+
+	if got := result.Summary.TotalFindings; got != 2 {
+		t.Errorf("TotalFindings = %d; want 2", got)
+	}
+
+	out := buf.String()
+	if !strings.Contains(strings.ToUpper(out), "WARN") {
+		t.Errorf("expected WARN log entry in output; got %q", out)
+	}
+
+	if !strings.Contains(out, "unrecognized severity") {
+		t.Errorf("expected message about unrecognized severity; got %q", out)
+	}
+	// Two unknown-severity findings were emitted by the plugin.
+	if !strings.Contains(out, "unknownCount=2") {
+		t.Errorf("expected unknownCount=2 in log output; got %q", out)
+	}
+}
+
+// TestRunComplianceChecks_NoUnknownSeverity_NoWarn verifies that the WARN path
+// is silent when every finding has a recognized severity — the log buffer
+// should not mention unrecognized severity at all.
+func TestRunComplianceChecks_NoUnknownSeverity_NoWarn(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-known-severity",
+			description: "Plugin returning only known severities",
+			version:     "1.0.0",
+		},
+		findings: []compliance.Finding{
+			{
+				Type:        "compliance",
+				Severity:    severityHigh,
+				Title:       "Known severity",
+				Description: "High severity finding",
+				Reference:   "CONTROL-001",
+				References:  []string{"CONTROL-001"},
+			},
+		},
+		controls: []compliance.Control{
+			{ID: "CONTROL-001", Title: "Control 1", Severity: severityHigh},
+		},
+	}
+
+	if err := registry.RegisterPlugin(mockPlugin); err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	var buf bytes.Buffer
+
+	logger, err := logging.New(logging.Config{Level: "warn", Output: &buf})
+	if err != nil {
+		t.Fatalf("Failed to construct test logger: %v", err)
+	}
+
+	testConfig := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
+
+	_, err = registry.RunComplianceChecks(testConfig, []string{"test-known-severity"}, logger)
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error = %v", err)
+	}
+
+	if out := buf.String(); strings.Contains(out, "unrecognized severity") {
+		t.Errorf("did not expect unrecognized-severity WARN; got %q", out)
 	}
 }

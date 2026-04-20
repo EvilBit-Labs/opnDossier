@@ -114,9 +114,7 @@ var sanitizeCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 files, making them safe to share for troubleshooting, documentation, or public
 reporting without exposing credentials, IP addresses, or other sensitive data.
 Unlike --redact on other commands (which only affects the rendered output),
-sanitize produces a fully-rewritten copy of the config.xml with sensitive
-values redacted. The input file is never modified in place (see OUTPUT below
-for where the sanitized copy is written).
+sanitize rewrites the source config.xml itself.
 
 SANITIZATION MODES:
   Choose the mode with --mode/-m based on your sharing context:
@@ -181,8 +179,8 @@ RELATED:
 
 		inputFile := args[0]
 
-		// Create context-aware logger with input file field
-		ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", inputFile)
+		// Create logger with input file field
+		ctxLogger := cmdLogger.WithFields("input_file", inputFile)
 
 		// Create a timeout context for processing
 		timeoutCtx, cancel := context.WithTimeout(ctx, constants.DefaultProcessingTimeout)

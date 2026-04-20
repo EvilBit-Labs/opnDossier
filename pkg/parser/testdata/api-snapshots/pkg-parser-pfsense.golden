@@ -47,6 +47,18 @@ on other public pkg/ packages (pkg/model, pkg/parser, pkg/schema/pfsense,
 and pkg/schema/opnsense — the latter supplies shared DHCP/Unbound types reused
 by the converters) plus the standard library.
 
+CONSTANTS
+
+const PfsenseKnownGapMessage = "not yet implemented in pfSense converter"
+    PfsenseKnownGapMessage is the stable message text emitted for every
+    CommonDevice subsystem listed in [pfsenseKnownGaps]. Consumers (compliance
+    plugins, audit filters) can match on this exact substring to identify
+    warnings that report "this subsystem is not yet implemented by the pfSense
+    converter" rather than "the XML configuration omits the subsystem". The
+    wording is part of the public contract and will remain stable across minor
+    releases.
+
+
 VARIABLES
 
 var ErrNilDocument = errors.New("pfsense converter: received nil document")
@@ -59,6 +71,22 @@ func ConvertDocument(doc *pfsense.Document) (*common.CommonDevice, []common.Conv
     ConvertDocument transforms a parsed pfSense Document into a
     platform-agnostic CommonDevice along with any non-fatal conversion warnings.
     This is a convenience function that creates a fresh converter internally.
+
+func IsKnownGap(field string) bool
+    IsKnownGap reports whether field names a CommonDevice subsystem that
+    the pfSense converter knowingly does not populate. The comparison is
+    case-sensitive and matches the exact CommonDevice field name (e.g.
+    "HighAvailability", "KeaDHCP"). Callers outside the parser use this to
+    avoid false-PASS results when reasoning about pfSense coverage — see
+    docs/user-guide/device-support-matrix.md for the human-readable table.
+
+    IsKnownGap is safe for concurrent use; the underlying slice is never mutated
+    after package init.
+
+func KnownGaps() []string
+    KnownGaps returns a fresh copy of [pfsenseKnownGaps] so callers can iterate
+    the full list (e.g. in tests that assert one warning per gap) without
+    risking mutation of the package-level slice.
 
 func NewParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser
     NewParserFactory returns a new DeviceParser configured for pfSense
@@ -89,8 +117,8 @@ type Parser struct {
 }
     Parser implements the DeviceParser interface for pfSense configuration
     files. It manages its own XML decoding because the shared OPNsenseXMLDecoder
-    returns *opnsense.OpnSenseDocument (pkg/schema/opnsense), which is
-    incompatible with pfsense.Document.
+    returns *schema.OpnSenseDocument which is incompatible with
+    pfsense.Document.
 
 func NewParser(_ parser.OPNsenseXMLDecoder) *Parser
     NewParser returns a new pfSense Parser. The decoder parameter is accepted

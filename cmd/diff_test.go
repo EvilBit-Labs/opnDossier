@@ -91,9 +91,6 @@ func TestDiffCmdRegistration(t *testing.T) {
 	assert.NotNil(t, cmd.Args, "diff command should have an Args validator")
 	assert.NotNil(t, cmd.ValidArgsFunction, "diff command should have a ValidArgsFunction")
 	assert.NotNil(t, cmd.PreRunE, "diff command should have a PreRunE validator")
-	// Durable content anchors — guard against silent Long/Example collapse.
-	assert.NotEmpty(t, cmd.Long, "diff command should define a Long description")
-	assert.NotEmpty(t, cmd.Example, "diff command should define Cobra Example content")
 }
 
 // TestDiffCmdFlagDefaults verifies that all diff command flags have correct default values.

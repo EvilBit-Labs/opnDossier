@@ -1,9 +1,7 @@
 package converter
 
 import (
-	"bytes"
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +10,15 @@ import (
 	"github.com/sebdah/goldie/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+// Fixed values injected into the deterministic builder so golden files are
+// byte-for-byte reproducible across machines. Chosen as stable UTC values
+// independent of the developer's local timezone and the build-time
+// -ldflags -X Version injection.
+var (
+	goldenGeneratedTime = time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
+	goldenToolVersion   = "test"
 )
 
 // goldenTestCase defines a test case for golden file testing.
@@ -64,8 +71,12 @@ func goldenTestCases() []goldenTestCase {
 	}
 }
 
-// newGoldie creates a goldie instance with custom normalizer and options.
-// The normalizer handles dynamic content (timestamps, versions) for deterministic comparisons.
+// newGoldie creates a goldie instance for byte-for-byte golden file comparison.
+//
+// Determinism comes from builder.WithGeneratedTime and builder.WithVersion
+// (see createDeterministicBuilder below) — no post-hoc regex normalization
+// is applied. Every byte emitted by the builder must be reproducible across
+// machines.
 func newGoldie(t *testing.T) *goldie.Goldie {
 	t.Helper()
 	return goldie.New(
@@ -73,53 +84,7 @@ func newGoldie(t *testing.T) *goldie.Goldie {
 		goldie.WithFixtureDir("testdata/golden"),
 		goldie.WithNameSuffix(".golden.md"),
 		goldie.WithDiffEngine(goldie.ColoredDiff),
-		goldie.WithEqualFn(normalizedEqual),
 	)
-}
-
-// normalizedEqual compares actual and expected content after normalization.
-// This allows dynamic content (timestamps, versions) to be ignored in comparisons.
-func normalizedEqual(actual, expected []byte) bool {
-	return bytes.Equal(normalizeGoldenOutput(actual), normalizeGoldenOutput(expected))
-}
-
-// normalizeGoldenOutput removes or normalizes dynamic content from the output
-// to ensure deterministic comparisons.
-//
-// GOLDEN FILE MAINTENANCE NOTE:
-// Golden files should contain ACTUAL timestamp and version values (e.g., "2026-02-01 18:56:25"
-// and "v1.0.0"), NOT placeholder strings like "[TIMESTAMP]" or "[VERSION]".
-// This function normalizes both actual output AND golden file content before comparison,
-// converting dynamic values to placeholders. This approach allows:
-//   - Golden files to be human-readable with real example values
-//   - Tests to pass regardless of when they run or what version is installed
-//   - Easy manual inspection of golden files
-//
-// When updating golden files with `go test -update`, the test framework writes
-// the actual generated output (with real timestamps/versions), which is correct.
-func normalizeGoldenOutput(output []byte) []byte {
-	lines := strings.Split(string(output), "\n")
-	var normalized []string
-
-	for _, line := range lines {
-		// Normalize generated timestamp
-		if strings.Contains(line, "**Generated On**:") {
-			line = "- **Generated On**: [TIMESTAMP]"
-		}
-
-		// Normalize tool version
-		if strings.Contains(line, "**Parsed By**:") {
-			line = "- **Parsed By**: opnDossier v[VERSION]"
-		}
-
-		normalized = append(normalized, line)
-	}
-
-	// Normalize trailing whitespace and newlines
-	result := strings.Join(normalized, "\n")
-	result = strings.TrimRight(result, "\n\t ")
-
-	return []byte(result)
 }
 
 // TestGolden_ProgrammaticReportGeneration tests that programmatic report generation
@@ -206,12 +171,9 @@ func TestGolden_HybridGeneratorProgrammaticMode(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// Normalize both outputs for comparison
-			normalizedHybrid := string(normalizeGoldenOutput([]byte(hybridOutput)))
-			normalizedDirect := string(normalizeGoldenOutput([]byte(directOutput)))
-
-			// They should be identical
-			assert.Equal(t, normalizedDirect, normalizedHybrid,
+			// Both outputs are deterministic via WithGeneratedTime/WithVersion,
+			// so they should be byte-for-byte identical.
+			assert.Equal(t, directOutput, hybridOutput,
 				"HybridGenerator programmatic output should match direct builder output")
 		})
 	}
@@ -283,15 +245,18 @@ func verifyReportStructure(t *testing.T, output string, comprehensive bool) {
 }
 
 // createDeterministicBuilder creates a MarkdownBuilder with deterministic output
-// by overriding time-sensitive values.
+// by injecting fixed generation time and tool version values.
+//
+// This is the single source of determinism for golden tests — goldie compares
+// bytes directly with no normalization. See the package-level
+// goldenGeneratedTime / goldenToolVersion for the exact values.
 func createDeterministicBuilder(t *testing.T) *builder.MarkdownBuilder {
 	t.Helper()
 
-	// Create a builder and configure it for deterministic output
-	mdBuilder := builder.NewMarkdownBuilder()
-	// The builder uses time.Now() and constants.Version internally,
-	// which we'll normalize in normalizeGoldenOutput
-	return mdBuilder
+	return builder.NewMarkdownBuilder(
+		builder.WithGeneratedTime(goldenGeneratedTime),
+		builder.WithVersion(goldenToolVersion),
+	)
 }
 
 // TestGolden_ConsistencyAcrossRuns ensures that multiple runs produce identical output.
@@ -301,14 +266,16 @@ func TestGolden_ConsistencyAcrossRuns(t *testing.T) {
 
 	mdBuilder := createDeterministicBuilder(t)
 
-	// Generate the same report multiple times
+	// Generate the same report multiple times. Because the builder has a
+	// fixed generated time and version, every run must be byte-for-byte
+	// identical — no normalization applied.
 	outputs := make([]string, 5)
 	for i := range 5 {
 		output, err := mdBuilder.BuildStandardReport(testData)
 		require.NoError(t, err)
-		outputs[i] = string(normalizeGoldenOutput([]byte(output)))
+		outputs[i] = output
 
-		// Small sleep to ensure any time-based variations would appear
+		// Small sleep to ensure any time-based variations would appear.
 		time.Sleep(10 * time.Millisecond)
 	}
 

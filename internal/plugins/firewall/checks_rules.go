@@ -302,10 +302,7 @@ func (fp *Plugin) checkSYNFloodProtection(device *common.CommonDevice) checkResu
 	return unknown
 }
 
-// checkConnectionStateLimits checks whether firewall rules define maximum
-// connection state limits. The CommonDevice model exposes MaxSrcNodes,
-// MaxSrcConn, and MaxSrcConnRate on FirewallRule but there is no global
-// maximum states setting, so this check cannot be evaluated.
-func (fp *Plugin) checkConnectionStateLimits(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-035 (checkConnectionStateLimits) was a no-op returning unknown —
+// the CommonDevice model has no global max-states setting. Removed with the
+// EvaluatedControlIDs cleanup; control remains in controls.go so the report
+// labels it UNCONFIRMED.

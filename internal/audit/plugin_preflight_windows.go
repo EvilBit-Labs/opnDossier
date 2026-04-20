@@ -9,5 +9,5 @@ import "os"
 // into the POSIX-style audit field would create a false equivalence. Phase B
 // hardening can introduce a dedicated Windows owner-check path if needed.
 func extractOwnerUID(_ os.FileInfo) string {
-	return pluginOwnerUIDUnavailable
+	return "unavailable"
 }

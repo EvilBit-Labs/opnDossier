@@ -23,10 +23,7 @@ opnDossier follows strict coding standards and development practices:
 
 #### Go Support Policy
 
-opnDossier requires Go 1.26 or later. The `go 1.26` directive in `go.mod` enables language features (including `reflect.Value.Fields()` iter.Seq2, added in 1.26) that older toolchains cannot compile. CI exercises a single Go version (pinned via `mise.toml`) across Linux, macOS, and Windows.
-
-> [!NOTE]
-> Once Go 1.27 ships and 1.26 becomes `oldstable`, the N/N-1 support policy and `go-version: [stable, oldstable]` CI matrix will be reinstated — see the TODO in `.github/workflows/ci.yml` for the checklist.
+opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI exercises both versions on every PR via a `stable` + `oldstable` matrix. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
 
 ### Development Setup
 
@@ -35,8 +32,8 @@ opnDossier requires Go 1.26 or later. The `go 1.26` directive in `go.mod` enable
 git clone https://github.com/EvilBit-Labs/opnDossier.git
 cd opnDossier
 
-# Install development dependencies (this also installs the pre-commit
-# and commit-msg git hooks via `pre-commit install`)
+# Install development dependencies (this also installs the pre-commit and
+# commit-msg git hooks via `pre-commit install`)
 just install
 
 # Verify setup
@@ -49,29 +46,22 @@ just test
 If you need to install the hooks manually (e.g., after cloning into a worktree or when `just install` was not run), use:
 
 ```bash
-pre-commit install --hook-type pre-commit --hook-type commit-msg
+mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
 ### Git Hooks
 
-Fast pre-commit checks run locally before each commit: formatters, lint config verification, `golangci-lint fmt`, and `golangci-lint run --fix`.
+The `pre-commit` framework runs fast formatters and linters (mdformat, actionlint, `golangci-lint fmt`, `golangci-lint run --fix`) on every commit. These must be quick enough to never get in the way.
 
-> [!IMPORTANT]
-> A `just ci-check` pre-push hook was deliberately not added. Heavy pre-push hooks silently break non-interactive push clients (Copilot, bot agents) because they cannot recover from hook failures and discard the session.
->
-> Instead:
-
-- Run `just ci-check` manually before pushing substantive changes.
-- Race-detector regressions in `cmd/` are prevented structurally by the `forbidigo t.Parallel()` rule in `.golangci.yml`, which lint catches on every commit.
-- CI runs the full suite (including `test-integration`) on every PR and push to `main`.
-
-If pre-commit blocks a hotfix in a genuine emergency:
+**Full quality bar before pushing.** The `just ci-check` recipe runs the complete suite — `check`, `format-check`, `lint`, `test`, `test-integration`, and `test-race`. Run it manually before pushing when you want the full signal locally:
 
 ```bash
-git commit --no-verify
+just ci-check
 ```
 
-`--no-verify` is for emergencies only. Any failure that prompts you to reach for it should be filed as a follow-up afterwards.
+It is intentionally **not** wired to a git hook. A prior iteration added a pre-push `just ci-check` hook, but non-interactive push clients (including Copilot agents) could not recover when the hook failed and discarded the session. Developer discipline replaces automation here — CI runs the subset it can host, and `just ci-check` remains the locally-runnable gate.
+
+**Race detector note.** `test-race` (the Go race detector) cannot be hosted reliably on GitHub Actions runners, so it runs only via `just ci-check` locally. If you're touching `cmd/` global-flag tests (GOTCHAS §1.1) or anything concurrency-sensitive, run `just test-race` before pushing.
 
 ### Known Gotchas
 
@@ -410,9 +400,9 @@ opnDossier treats vulnerability management as a first-class workflow concern.
   - `just sbom` - generate SBOM artifacts (CycloneDX + SPDX)
 - **CI requirements** (see [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml)):
   - **govulncheck** scans the Go module graph against the Go vulnerability database.
+  - **CodeQL** performs semantic static analysis on the Go source.
   - **Trivy** performs a filesystem dependency and misconfiguration scan, reporting `CRITICAL`, `HIGH`, and `MEDIUM` findings.
-  - **CodeQL** semantic static analysis runs via GitHub's repository-level default-setup code scanning (Security → Code scanning), mandated by org policy; advanced-setup CodeQL in a workflow would conflict.
-  - `govulncheck` + Trivy run on every PR, every push to `main`, and on a weekly schedule.
+  - Scans run on every PR, every push to `main`, and on a weekly schedule.
 - **Where results live**:
   - CodeQL and Trivy SARIF uploads appear in the GitHub Security tab (Code Scanning).
   - `govulncheck` failures appear in the workflow summary.
@@ -528,7 +518,7 @@ import (
 
     // Internal packages
     "github.com/EvilBit-Labs/opnDossier/internal/config"
-
+    
     // Public API packages
     common "github.com/EvilBit-Labs/opnDossier/pkg/model"
     "github.com/EvilBit-Labs/opnDossier/pkg/parser"
@@ -584,6 +574,10 @@ logger.Debug("Processing section", "section", sectionName, "count", itemCount)
 ctxLogger := logger.With("operation", "convert")
 ctxLogger.Error("Conversion failed", "error", err)
 ```
+
+### CLI Output Policy
+
+opnDossier's CLI has several distinct output channels (user-facing warnings, diagnostics, interactive prompts, machine-readable output, progress, and the narrow pre-logger fallback). When adding any CLI output, pick the channel that matches the purpose — not the nearest convenient tool. See [docs/development/cli-output-policy.md](docs/development/cli-output-policy.md) for the full policy, TTY / `TERM=dumb` rules, and what must never appear on which stream.
 
 ### Thread Safety with `sync.RWMutex`
 
@@ -840,7 +834,7 @@ Go map iteration is non-deterministic. When output is assembled from maps, tests
 
 ### Golden File Testing
 
-The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and tests should normalize dynamic content with helpers such as `normalizeGoldenOutput` before comparison. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
+The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and dynamic values (timestamps, versions) should be injected at construction time via builder options (e.g., `builder.WithGeneratedTime`, `builder.WithVersion`) so that goldie can compare bytes directly — no post-hoc normalization. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
 
 ### Pointer Identity Assertions
 
@@ -988,8 +982,7 @@ Releases should always ship with human-readable notes generated through `git-cli
 
 ### Reporting Vulnerabilities
 
-> [!WARNING]
-> Do not open public GitHub issues for security vulnerabilities. Use [GitHub Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) or email `support@evilbitlabs.io` instead. The project aims to release fixes for confirmed vulnerabilities within 90 days. `SECURITY.md` documents scope, safe harbor, and the project's PGP details.
+Do not open public GitHub issues for security vulnerabilities. Use [GitHub Private Vulnerability Reporting](https://github.com/EvilBit-Labs/opnDossier/security/advisories/new) or email `support@evilbitlabs.io` instead. The project aims to release fixes for confirmed vulnerabilities within 90 days. `SECURITY.md` documents scope, safe harbor, and the project's PGP details.
 
 ## Getting Help
 

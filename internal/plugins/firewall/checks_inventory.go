@@ -11,7 +11,8 @@ import (
 
 // runInventoryChecks produces informational findings for configuration inventory.
 // These use Type: "inventory" and are excluded from the compliance map — they
-// do not appear in EvaluatedControlIDs and do not affect pass/fail status.
+// are intentionally NOT appended to RunChecks' evaluated slice and therefore
+// do not affect pass/fail status.
 func (fp *Plugin) runInventoryChecks(device *common.CommonDevice) []compliance.Finding {
 	var findings []compliance.Finding
 

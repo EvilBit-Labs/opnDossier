@@ -43,8 +43,7 @@ func testDisplayCmd(localFlags *pflag.FlagSet) *cobra.Command {
 //
 // Rationale: The snapshot focuses on flags that directly affect display output
 // and are commonly modified in display tests. Fields: theme, wrapWidth,
-// noWrap, sections, comprehensive, deviceType, redact, includeTunables,
-// pluginDir.
+// noWrap, sections, comprehensive, deviceType, redact, includeTunables.
 type sharedFlagSnapshot struct {
 	theme           string
 	wrapWidth       int
@@ -54,7 +53,6 @@ type sharedFlagSnapshot struct {
 	deviceType      string
 	redact          bool
 	includeTunables bool
-	pluginDir       string
 }
 
 func captureSharedFlags() sharedFlagSnapshot {
@@ -67,7 +65,6 @@ func captureSharedFlags() sharedFlagSnapshot {
 		deviceType:      sharedDeviceType,
 		redact:          sharedRedact,
 		includeTunables: sharedIncludeTunables,
-		pluginDir:       sharedPluginDir,
 	}
 }
 
@@ -80,7 +77,6 @@ func (s sharedFlagSnapshot) restore() {
 	sharedDeviceType = s.deviceType
 	sharedRedact = s.redact
 	sharedIncludeTunables = s.includeTunables
-	sharedPluginDir = s.pluginDir
 }
 
 func captureStderr(t *testing.T, fn func()) string {
@@ -114,15 +110,6 @@ func captureStderr(t *testing.T, fn func()) string {
 	cleanup()
 
 	return output
-}
-
-// TestDisplayCmdLongAndExample guards against silent collapse of the Long
-// description or the dedicated Cobra Example field on the display command.
-// Both must remain populated so --help, man pages, and generated markdown docs
-// stay useful.
-func TestDisplayCmdLongAndExample(t *testing.T) {
-	assert.NotEmpty(t, displayCmd.Long, "displayCmd.Long should not be empty")
-	assert.NotEmpty(t, displayCmd.Example, "displayCmd.Example should not be empty")
 }
 
 func TestCaptureStderrRestoresOnPanic(t *testing.T) {

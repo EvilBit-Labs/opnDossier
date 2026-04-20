@@ -752,3 +752,68 @@ func BenchmarkSanitizeXML(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkSanitizeXML_MixedEmpty simulates a more realistic OPNsense config
+// where many elements are empty/self-closing containers (common in real
+// exports) interleaved with populated leaf elements. This exercises the
+// deferred path-materialization optimization from issue #148 — empty
+// CharData tokens should not trigger a strings.Join call.
+func BenchmarkSanitizeXML_MixedEmpty(b *testing.B) {
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0"?>` + "\n")
+	sb.WriteString("<opnsense>\n")
+
+	// Emit a realistic mix: ~5k populated leaves alongside ~10k empty
+	// containers and self-closing elements (matches config.xml shape).
+	sb.WriteString("  <system>\n")
+	for i := range 200 {
+		n := strconv.Itoa(i)
+		sb.WriteString("    <user>\n")
+		sb.WriteString("      <name>user" + n + "</name>\n")
+		sb.WriteString("      <password>secret" + n + "</password>\n")
+		sb.WriteString("      <descr></descr>\n") // empty element (no join needed)
+		sb.WriteString("      <disabled/>\n")     // self-closing (no CharData match)
+		sb.WriteString("      <scope>user</scope>\n")
+		sb.WriteString("      <expires></expires>\n") // empty
+		sb.WriteString("      <authorizedkeys></authorizedkeys>\n")
+		sb.WriteString("      <ipsecpsk></ipsecpsk>\n")
+		sb.WriteString("    </user>\n")
+	}
+	sb.WriteString("  </system>\n")
+
+	sb.WriteString("  <filter>\n")
+	for i := range 500 {
+		n := strconv.Itoa(i)
+		octet := strconv.Itoa(i % 256) // keep third octet in valid 0-255 range
+		sb.WriteString("    <rule>\n")
+		sb.WriteString("      <type>pass</type>\n")
+		sb.WriteString("      <descr>Rule " + n + "</descr>\n")
+		sb.WriteString("      <source>\n")
+		sb.WriteString("        <network></network>\n") // empty container
+		sb.WriteString("        <address>10.0." + octet + ".0/24</address>\n")
+		sb.WriteString("      </source>\n")
+		sb.WriteString("      <destination>\n")
+		sb.WriteString("        <any/>\n")
+		sb.WriteString("      </destination>\n")
+		sb.WriteString("      <protocol>tcp</protocol>\n")
+		sb.WriteString("      <log/>\n")      // self-closing
+		sb.WriteString("      <disabled/>\n") // self-closing
+		sb.WriteString("      <interface>lan</interface>\n")
+		sb.WriteString("    </rule>\n")
+	}
+	sb.WriteString("  </filter>\n")
+
+	sb.WriteString("</opnsense>\n")
+	input := sb.String()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for b.Loop() {
+		s := NewSanitizer(ModeAggressive)
+		var output bytes.Buffer
+		if err := s.SanitizeXML(strings.NewReader(input), &output); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

@@ -35,14 +35,6 @@ var (
 	sharedIncludeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedComprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
 	sharedRedact          bool     //nolint:gochecknoglobals // Redact sensitive fields in output
-
-	// Audit flags.
-	// TODO(#457): Remove shared audit globals — no longer bound to any CLI flags
-	// after audit flag removal from convert. Retained because buildAuditOptions()
-	// and generateOutputByFormat() still reference them.
-	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (blue, red)
-	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
-	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )
 
 // addSharedContentFlags adds shared CLI flags for content, formatting, and audit-related
@@ -63,7 +55,7 @@ var (
 // cmd must be a non-nil *cobra.Command.
 func addSharedContentFlags(cmd *cobra.Command) {
 	cmd.Flags().
-		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in the rendered report (ignored for JSON/YAML, which always include every tunable)")
+		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)")
 	setFlagAnnotation(cmd.Flags(), "include-tunables", []string{"content"})
 
 	cmd.Flags().
@@ -110,13 +102,12 @@ const (
 
 // pluginDirFlagUsage is the shared --plugin-dir help text. Every command that
 // exposes this flag must use this string so the trust-model warning stays in
-// sync. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md §"Third-Party
-// Plugin Security".
-const pluginDirFlagUsage = "Directory containing third-party .so compliance plugins (does not affect built-in stig/sans/firewall). " +
+// sync. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md §"Dynamic Plugin
+// Security".
+const pluginDirFlagUsage = "Directory containing dynamic .so compliance plugins. " +
 	"Plugins run with full process privileges; signatures are not verified. " +
 	"Do not point at untrusted-writable directories. " +
-	"Linux/macOS/FreeBSD only; no-op on Windows. " +
-	"See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Third-Party Plugin Security."
+	"See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Dynamic Plugin Security."
 
 // pluginDirTrustModelWarning is the exact stderr warning emitted when a
 // non-empty --plugin-dir flag is supplied. It mirrors the red-mode warning
@@ -308,7 +299,7 @@ func registryPluginNames() []string {
 			return
 		}
 
-		pm := audit.NewPluginManager(logger)
+		pm := audit.NewPluginManager(logger, nil)
 		if initErr := pm.InitializePlugins(context.Background()); initErr != nil {
 			cachedPluginNames = slices.Sorted(maps.Keys(pluginDescriptions))
 

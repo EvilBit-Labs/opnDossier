@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
@@ -165,11 +166,22 @@ type stubHandler struct {
 func (s *stubHandler) FileExtension() string { return s.ext }
 func (s *stubHandler) Aliases() []string     { return s.aliases }
 
-func (s *stubHandler) Generate(_ *HybridGenerator, _ *common.CommonDevice, _ Options) (string, error) {
+func (s *stubHandler) Generate(
+	_ context.Context,
+	_ *HybridGenerator,
+	_ *common.CommonDevice,
+	_ Options,
+) (string, error) {
 	return "stub", nil
 }
 
-func (s *stubHandler) GenerateToWriter(_ *HybridGenerator, _ io.Writer, _ *common.CommonDevice, _ Options) error {
+func (s *stubHandler) GenerateToWriter(
+	_ context.Context,
+	_ *HybridGenerator,
+	_ io.Writer,
+	_ *common.CommonDevice,
+	_ Options,
+) error {
 	return nil
 }
 
@@ -627,7 +639,12 @@ func TestHandler_Generate_DispatchesViaRegistry(t *testing.T) {
 			handler, err := DefaultRegistry.Get(tc.format)
 			require.NoError(t, err)
 
-			result, err := handler.Generate(gen, device, DefaultOptions().WithFormat(Format(tc.format)))
+			result, err := handler.Generate(
+				context.Background(),
+				gen,
+				device,
+				DefaultOptions().WithFormat(Format(tc.format)),
+			)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -663,7 +680,13 @@ func TestHandler_GenerateToWriter_DispatchesViaRegistry(t *testing.T) {
 			require.NoError(t, err)
 
 			var buf bytes.Buffer
-			err = handler.GenerateToWriter(gen, &buf, device, DefaultOptions().WithFormat(Format(tc.format)))
+			err = handler.GenerateToWriter(
+				context.Background(),
+				gen,
+				&buf,
+				device,
+				DefaultOptions().WithFormat(Format(tc.format)),
+			)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {

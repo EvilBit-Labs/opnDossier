@@ -11,6 +11,7 @@ import (
 	"log"
 	"maps"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -82,8 +83,20 @@ const maxSanitizeInputSize = 100 * 1024 * 1024 // 100 MB
 // SanitizeXML reads XML from the reader, sanitizes it, and writes to the writer.
 // This processes the XML as a stream, maintaining the original structure.
 // Input is limited to maxSanitizeInputSize bytes to prevent resource exhaustion.
+//
+// NOTE: SanitizeXML buffers the full input up to maxSanitizeInputSize+1
+// via io.ReadAll before streaming through xml.NewDecoder. This is
+// intentional: the size check (LimitReader + length comparison) is
+// simpler when the full payload is in memory, and 2-10MB peak residency
+// is trivial on real hardware. The streaming path (xml.NewDecoder(r))
+// would save the buffer but complicates the maxSanitizeInputSize
+// rejection gate. If we ever need to sanitize inputs larger than
+// maxSanitizeInputSize, revisit — until then, keep as-is.
+// See docs/solutions/ for benchmark context when #187 lands.
+// See also GOTCHAS.md §14.5.
 func (s *Sanitizer) SanitizeXML(r io.Reader, w io.Writer) error {
-	// Read entire input, bounded by size limit to prevent resource exhaustion
+	// Read entire input, bounded by size limit to prevent resource exhaustion.
+	// Buffering is intentional — see the function-level NOTE above.
 	data, err := io.ReadAll(io.LimitReader(r, maxSanitizeInputSize+1))
 	if err != nil {
 		return fmt.Errorf("reading input: %w", err)
@@ -117,12 +130,12 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 
 	var output strings.Builder
 	output.Grow(len(data))
-	var elementStack []string
-	// pathStack mirrors elementStack but tracks the cumulative dot-joined
-	// path at each depth. This avoids using strings.LastIndex(".") which
-	// would break if an element name contains a literal dot.
+	// pathStack tracks element names at each depth. The cumulative dotted
+	// path is materialized via strings.Join only at the CharData leaf where
+	// ShouldRedactValue is consulted — most tokens (empty/whitespace CharData
+	// and all Start/End transitions) skip the join entirely. This avoids
+	// O(depth) string allocation per StartElement. See issue #148.
 	var pathStack []string
-	var currentPath string
 
 	// Write XML declaration if present
 	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("<?xml")) {
@@ -144,13 +157,7 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 
 		switch t := token.(type) {
 		case xml.StartElement:
-			elementStack = append(elementStack, t.Name.Local)
-			if currentPath == "" {
-				currentPath = t.Name.Local
-			} else {
-				currentPath = currentPath + "." + t.Name.Local
-			}
-			pathStack = append(pathStack, currentPath)
+			pathStack = append(pathStack, t.Name.Local)
 			output.WriteString("<")
 			output.WriteString(t.Name.Local)
 
@@ -167,14 +174,8 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 			output.WriteString(">")
 
 		case xml.EndElement:
-			if len(elementStack) > 0 {
-				elementStack = elementStack[:len(elementStack)-1]
+			if len(pathStack) > 0 {
 				pathStack = pathStack[:len(pathStack)-1]
-				if len(pathStack) > 0 {
-					currentPath = pathStack[len(pathStack)-1]
-				} else {
-					currentPath = ""
-				}
 			}
 			output.WriteString("</")
 			output.WriteString(t.Name.Local)
@@ -185,11 +186,13 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 			if content != "" {
 				s.stats.TotalFields++
 				currentElement := ""
-				if len(elementStack) > 0 {
-					currentElement = elementStack[len(elementStack)-1]
+				if len(pathStack) > 0 {
+					currentElement = pathStack[len(pathStack)-1]
 				}
-				// Use the running path for context
-				fullPath := currentPath
+				// Materialize the full dotted path only now, at the leaf
+				// where a rule lookup is about to happen. Empty/whitespace
+				// CharData tokens skip this join entirely.
+				fullPath := strings.Join(pathStack, ".")
 
 				// Check if we should redact (try full path first, then element name)
 				// Only check - don't update stats yet
@@ -313,22 +316,43 @@ func (s *Sanitizer) sanitizeCommentContent(content string) string {
 // SanitizeStruct uses reflection to sanitize a struct in place.
 // This is useful for sanitizing parsed model structs before re-encoding.
 func (s *Sanitizer) SanitizeStruct(v any) error {
-	return s.sanitizeReflect(reflect.ValueOf(v), "")
+	return s.sanitizeReflect(reflect.ValueOf(v), nil, -1)
 }
 
-// sanitizeReflect recursively sanitizes a reflected value.
-func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
+// sanitizeReflect recursively sanitizes a reflected value. The dotted field
+// path is represented as a pathStack of segments plus an optional slice
+// sliceIdx (>=0 when the value is the N-th element of an enclosing slice).
+// The path is materialized into a single dotted string only at the leaf
+// (reflect.String / reflect.Map) where the rule lookup actually happens.
+// See issue #149 for motivation — the previous Sprintf-per-slice-element
+// approach produced tens of thousands of short-lived strings per call.
+func (s *Sanitizer) sanitizeReflect(v reflect.Value, pathStack []string, sliceIdx int) error {
 	// Handle pointers
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil
 		}
-		return s.sanitizeReflect(v.Elem(), path)
+		return s.sanitizeReflect(v.Elem(), pathStack, sliceIdx)
 	}
 
 	switch v.Kind() {
 	case reflect.Struct:
 		t := v.Type()
+		// When this struct is a slice element, fuse "[i]" onto the terminal
+		// segment so nested string leaves see the canonical
+		// "parent.field[i].child" shape instead of "parent.field.[i].child".
+		// Reuse pathStack directly when there is no index to fuse — the loop
+		// below allocates a fresh child slice per iteration so siblings
+		// never alias each other.
+		localStack := pathStack
+		if sliceIdx >= 0 && len(localStack) > 0 {
+			indexed := localStack[len(localStack)-1] + "[" + strconv.Itoa(sliceIdx) + "]"
+			// Build a new slice to avoid mutating the caller's pathStack.
+			newStack := make([]string, len(localStack))
+			copy(newStack, localStack)
+			newStack[len(newStack)-1] = indexed
+			localStack = newStack
+		}
 		for i := range v.NumField() {
 			field := v.Field(i)
 			fieldType := t.Field(i)
@@ -343,34 +367,35 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 				continue
 			}
 
-			// Build path
-			fieldPath := fieldType.Name
-			if path != "" {
-				fieldPath = path + "." + fieldType.Name
-			}
-
-			// Get xml tag for field name context (preserve parent path)
+			// Determine the segment name: xml tag takes priority over Go
+			// field name. The xml tag may contain comma-separated options;
+			// only the name (first part) is used.
+			segment := fieldType.Name
 			xmlTag := fieldType.Tag.Get("xml")
 			if xmlTag != "" && xmlTag != "-" {
-				parts := strings.Split(xmlTag, ",")
-				if parts[0] != "" {
-					if path != "" {
-						fieldPath = path + "." + parts[0]
-					} else {
-						fieldPath = parts[0]
+				if comma := strings.IndexByte(xmlTag, ','); comma >= 0 {
+					if comma > 0 {
+						segment = xmlTag[:comma]
 					}
+				} else {
+					segment = xmlTag
 				}
 			}
 
-			if err := s.sanitizeReflect(field, fieldPath); err != nil {
+			// Allocate a fresh child stack per field so sibling recursions
+			// never share backing storage. This keeps paths correct when a
+			// nested struct appends its own segments.
+			childStack := make([]string, len(localStack)+1)
+			copy(childStack, localStack)
+			childStack[len(localStack)] = segment
+			if err := s.sanitizeReflect(field, childStack, -1); err != nil {
 				return err
 			}
 		}
 
 	case reflect.Slice:
 		for i := range v.Len() {
-			itemPath := fmt.Sprintf("%s[%d]", path, i)
-			if err := s.sanitizeReflect(v.Index(i), itemPath); err != nil {
+			if err := s.sanitizeReflect(v.Index(i), pathStack, i); err != nil {
 				return err
 			}
 		}
@@ -384,44 +409,15 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 		// reflection consumer flow. The raw-XML SanitizeXML path is
 		// unaffected — it operates on element names, not Go types.
 		elemKind := v.Type().Elem().Kind()
-		if elemKind == reflect.Struct || elemKind == reflect.Ptr {
+		if elemKind == reflect.Struct || elemKind == reflect.Pointer {
 			if s.logger != nil {
 				s.logger.Warn(
 					"sanitize reflect: skipping map with struct/pointer values",
-					"path", path,
+					"path", joinReflectPath(pathStack, sliceIdx),
 					"type", v.Type().String(),
 				)
 			}
 			return nil
-		}
-		// Interface-typed maps (e.g. map[string]any) can smuggle struct/pointer
-		// values past the declared-kind check above. Inspect the concrete
-		// dynamic kind of the first such entry and emit the same warning so
-		// the gap is surfaced at runtime instead of shipping as cleartext.
-		// We break after the first match: one warning per offending map is
-		// enough signal for schema triage, and iterating every entry would
-		// be O(n) on each sanitize call.
-		if elemKind == reflect.Interface {
-			for _, key := range v.MapKeys() {
-				concrete := v.MapIndex(key)
-				for concrete.IsValid() && concrete.Kind() == reflect.Interface && !concrete.IsNil() {
-					concrete = concrete.Elem()
-				}
-				if !concrete.IsValid() {
-					continue
-				}
-				if concrete.Kind() == reflect.Struct || concrete.Kind() == reflect.Ptr {
-					if s.logger != nil {
-						s.logger.Warn(
-							"sanitize reflect: skipping interface-typed map with struct/pointer values",
-							"path", path,
-							"type", v.Type().String(),
-							"concrete_type", concrete.Type().String(),
-						)
-					}
-					return nil
-				}
-			}
 		}
 		for _, key := range v.MapKeys() {
 			mapValue := v.MapIndex(key)
@@ -441,6 +437,9 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 		if v.CanSet() {
 			s.stats.TotalFields++
 			original := v.String()
+			// Materialize the dotted path only now — most non-string
+			// recursion never reaches this branch.
+			path := joinReflectPath(pathStack, sliceIdx)
 			sanitized := s.sanitizeValue(path, original)
 			if sanitized != original {
 				v.SetString(sanitized)
@@ -449,6 +448,29 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 	}
 
 	return nil
+}
+
+// joinReflectPath flattens a reflect pathStack into a dotted field name,
+// splicing in the current slice index when present. Callers that are about
+// to consult the rule engine must use this helper so that the materialized
+// path matches the historic "parent.field[i]" shape.
+func joinReflectPath(pathStack []string, sliceIdx int) string {
+	if len(pathStack) == 0 {
+		if sliceIdx >= 0 {
+			return "[" + strconv.Itoa(sliceIdx) + "]"
+		}
+		return ""
+	}
+	if sliceIdx < 0 {
+		return strings.Join(pathStack, ".")
+	}
+	// Fuse "[i]" onto the terminal segment so slices over a named field
+	// render as "parent.field[i]" rather than "parent.field.[i]".
+	last := pathStack[len(pathStack)-1] + "[" + strconv.Itoa(sliceIdx) + "]"
+	if len(pathStack) == 1 {
+		return last
+	}
+	return strings.Join(pathStack[:len(pathStack)-1], ".") + "." + last
 }
 
 // escapeXMLText uses the stdlib xml.EscapeText to properly escape XML character data.
