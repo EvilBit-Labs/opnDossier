@@ -21,16 +21,12 @@ When a data race occurs in a test touching global state, the Go race detector ma
 
 ## 2. Plugin Architecture
 
-### 2.1 Registry Consolidation (Historical — Resolved 2026-04-19)
+### 2.1 Registry Independence
 
-**Status: RESOLVED.** `PluginManager` and the package-level global registry previously maintained independent `PluginRegistry` instances, and `InitializePlugins` populated only the manager's copy — leading to silent "plugin registered in one, queried from the other" bugs.
+`audit.PluginManager` maintains its own internal `PluginRegistry` instance. This is **independent** of the global singleton returned by `audit.GetGlobalRegistry()`.
 
-As of todo #143, there is a single registry path:
-
-- `NewPluginManager(logger, reg *PluginRegistry)` accepts the registry as a constructor argument. Pass `nil` to allocate a fresh private registry, or pass a shared `*PluginRegistry` when multiple managers or subsystems must observe the same plugin set.
-- `GetGlobalRegistry`, `RegisterGlobalPlugin`, `GetGlobalPlugin`, and `ListGlobalPlugins` are `// Deprecated:` and scheduled for removal in v2.0. They remain functional only to keep a small number of legacy tests compiling.
-
-New production code must use `NewPluginManager` with an explicit registry. Do not call the deprecated globals.
+- **Gotcha:** Calling `pm.InitializePlugins()` does **not** populate the global registry.
+- **Requirement:** If a plugin must be available globally (e.g., for simple CLI helpers), it must be explicitly registered via `audit.RegisterGlobalPlugin()`.
 
 ### 2.2 Panic Recovery Retains Plugins
 
@@ -48,24 +44,25 @@ New production code must use `NewPluginManager` with an explicit registry. Do no
 Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") participate in the compliance map normally — they can PASS or FAIL. Severity only affects presentation priority (summary counts, sort order), NOT compliance status. The compliance flip in `RunComplianceChecks` is never skipped based on severity.
 
 - **Gotcha:** A finding with `Severity == "info"` that references a control still flips that control to non-compliant. This is intentional — severity is triage priority, not compliance gating.
-- **Gotcha:** Inventory controls (`Type: "inventory"`) are intentionally excluded from the `evaluated` slice returned by `RunChecks` and do not appear in the compliance map. They only appear in "Configuration Notes."
-- **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`. Two call sites cover this today: the per-plugin loop in `internal/audit/mode_controller.go` (`generateBlueReport`) warns per plugin, and the aggregate path in `RunComplianceChecks` logs a WARN via the `unknownSeverityCount` returned from `calculateSummary` in `internal/audit/plugin.go`. When adding a new caller that aggregates findings across plugins, surface the unknown count the same way — either by propagating the return value from `calculateSummary`/`countSeverities` or by logging directly.
+- **Gotcha:** Inventory controls (`Type: "inventory"`) are excluded from `EvaluatedControlIDs` entirely and do not appear in the compliance map. They only appear in "Configuration Notes."
+- **Gotcha:** `countSeverities` tracks unrecognized severity strings in a private `unknown` counter. Callers with loggers should warn when `counts.unknown > 0`.
 
 ### 2.5 Dynamic Plugin Trust Model
 
 `PluginRegistry.LoadDynamicPlugins` uses `plugin.Open()` to load `.so` files from a directory. Loaded plugins execute with full process privileges — there is no signature verification, checksum validation, or sandboxing.
 
 - **Gotcha:** Any `.so` file in the plugin directory will be loaded and executed. A malicious or compromised plugin has the same access as the opnDossier process itself.
-- **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag or the presence of a `./plugins` directory. Plugins are never fetched remotely.
+- **Mitigation:** Loading is opt-in: it requires an explicit `--plugin-dir` flag (or the equivalent config key). There is no `./plugins` auto-discovery fallback — `PluginManager.InitializePlugins` only calls `LoadDynamicPlugins` when `pluginDir != ""`. Plugins are never fetched remotely.
 - **Prevention:** Restrict filesystem permissions on the plugin directory. Only load plugins built from reviewed source code. In shared or CI environments, avoid pointing `--plugin-dir` at world-writable directories.
 
 **Phase A hardening (v1.5).** Before `plugin.Open` is invoked, `runPluginPreflight` in `internal/audit/plugin_preflight.go` rejects the following footguns and emits a structured audit log per attempt:
 
 - **Symlinks rejected** via `os.Lstat` + `os.ModeSymlink` check. `plugin.Open` follows links, so an attacker with write access to the plugin directory could otherwise point a `.so` at anything on the filesystem.
+- **Non-regular files rejected** via `info.Mode().IsRegular()` (cross-platform). A FIFO, socket, or device node named `*.so` would otherwise block `hashFileSizeCapped` indefinitely on `os.Open` or `io.CopyN` before `plugin.Open` is ever reached — a DoS primitive trivially reachable on POSIX.
 - **Group/world-writable plugin files rejected** when `info.Mode().Perm()&0o022 != 0` (POSIX only). Closes CWE-732 where another local account could swap the file between audits.
 - **Group/world-writable container directory rejected** via a second `os.Stat` on `filepath.Dir(path)` (POSIX only). The file bits alone are not enough — a writable parent lets an attacker unlink and replace the plugin.
-- **Absolute paths required** via `filepath.IsAbs` (cross-platform). Operators must pass a fully-qualified `--plugin-dir`; relative paths are rejected so audit logs unambiguously identify the artifact.
-- **Structured audit log per load attempt**: INFO for accepted loads, WARN for rejections, with fields `plugin`, `path`, `sha256`, `mode`, `owner_uid`, `mtime`, `size_bytes`, `verdict`, `reason`. The SHA-256 is computed with a 64 MiB read cap so a pathological `.so` cannot exhaust memory during preflight.
+- **Absolute plugin file paths required at preflight** via `filepath.IsAbs` (cross-platform, defense-in-depth). Relative `--plugin-dir` inputs from the operator are accepted and normalized via `filepath.Abs` before the preflight runs, so `--plugin-dir ./plugins` is a supported invocation; the absolute-path check then fires if any caller ever bypasses `LoadDynamicPlugins` and hands a relative path directly to `runPluginPreflight`.
+- **Structured audit log per load attempt**: INFO for accepted loads, WARN for rejections, with fields `plugin`, `path`, `sha256`, `mode`, `owner_uid`, `mtime`, `size_bytes`, `verdict`, `reason`. The logged `path` is the normalized absolute plugin artifact path, and the SHA-256 is computed with a 64 MiB read cap so a pathological `.so` bounds preflight I/O and CPU time (the hasher streams rather than buffers, so this is a time/throughput cap, not a memory-allocation cap).
 
 Rejections are reported as `PluginLoadError` entries in the returned `LoadResult`, so callers see identical wiring for preflight and `plugin.Open` failures.
 
@@ -180,10 +177,10 @@ Only `blue` mode runs `RunComplianceChecks`. Red mode ignores `SelectedPlugins` 
 
 ### 8.4 Red Mode Stub Implementations
 
-`generateRedReport` in `mode_controller.go` calls five analysis methods (`addWANExposedServices`, `addWeakNATRules`, `addAdminPortals`, `addAttackSurfaces`, `addEnumerationData`) that are all placeholder stubs. Each method writes an explicit stub marker via the shared `stubMarker()` helper — `{"not_implemented": true, "stub": true}` — under a predictable key (`wan_exposed_services`, `weak_nat_rules`, `admin_portals`, `attack_surfaces`, `enumeration_data`). No fabricated counters are emitted, so downstream consumers can programmatically distinguish stub output from real analysis. A CLI warning is emitted in `cmd/audit.go` `PreRunE` when `--mode red` is selected.
+`generateRedReport` in `mode_controller.go` calls five analysis methods (`addWANExposedServices`, `addWeakNATRules`, `addAdminPortals`, `addAttackSurfaces`, `addEnumerationData`) that are all placeholder stubs. Each method writes fabricated metadata (e.g., `"exposed_services_count": 0`, `"admin_portals_found": 1`) without inspecting the actual `CommonDevice` configuration. A CLI warning is emitted in `cmd/audit.go` `PreRunE` when `--mode red` is selected.
 
-- **Gotcha:** Red mode reports still look structurally complete (marker keys present, no errors). Do not use red mode output for actual security assessments.
-- **Gotcha:** When implementing real red mode analysis, each stub method must be replaced individually. `TestRedModeMetadata_MarksStubsExplicitly` in `internal/audit/mode_controller_test.go` is a table-driven test asserting on the marker shape — remove the relevant row when a stub is replaced with a real implementation.
+- **Gotcha:** Red mode reports look structurally complete (all metadata keys present, no errors) but contain no real analysis. Do not use red mode output for actual security assessments.
+- **Gotcha:** When implementing real red mode analysis, each stub method must be replaced individually. The fabricated metadata keys (e.g., `"wan_exposure_scan_completed"`) are not covered by tests asserting specific values, so changing them will not break CI — but consumers relying on the metadata schema should be updated simultaneously.
 - **Prevention:** The `PreRunE` warning in `cmd/audit.go` alerts users at invocation time. Remove the warning once the red mode pipeline is fully implemented.
 
 ## 9. Dupl Linter Bidirectional Firing
@@ -304,15 +301,6 @@ A fresh `NewRuleEngine` creates a fresh `NewMapper()` — mappings are determini
 - **Why warn instead of fix:** Supporting struct-valued maps via reflection requires reconstructing each element in place (read → recurse into a copy → `SetMapIndex` with the mutated copy). That work is scheduled under todo #151 (tag-based redaction) which will subsume this gap by annotating sensitive fields directly and driving redaction from tags instead of field-name heuristics. The warning is the bridge until #151 lands.
 - **Regression tests:** `TestSanitizeStruct_MapStructValues_WarnsAndSkips` and `TestSanitizeStruct_MapStructValues_NilLoggerNoPanic` in `internal/sanitizer/sanitizer_reflect_test.go` pin both the warning path and the nil-logger nil-safety invariant. If a future enhancement starts handling struct-valued maps, those tests must be updated (or replaced) to reflect the new behavior — do not delete them blind.
 
-### 14.5 `SanitizeXML` Buffers the Full Input via `io.ReadAll`
-
-`SanitizeXML` in `internal/sanitizer/sanitizer.go` calls `io.ReadAll(io.LimitReader(r, maxSanitizeInputSize+1))` before token-streaming the XML through `xml.NewDecoder`. This buffers the entire payload (up to the 100MB cap) in memory rather than streaming directly from the reader. This is a documented, intentional tradeoff — not a bug — and is filed here for visibility so future contributors do not re-file the same concern or "fix" it without understanding the tradeoff.
-
-- **Why buffer:** The `maxSanitizeInputSize+1` size check is simpler to express with the full payload in memory (`LimitReader` + length comparison). A streaming path via `xml.NewDecoder(r)` would save the buffer but complicates the `maxSanitizeInputSize` rejection gate (currently 100MB).
-- **Cost:** Peak residency equals input size, capped at 100MB. For typical 2-10MB OPNsense configs this is trivial on real hardware.
-- **When to revisit:** Only if benchmarks at ≥100MB input scale show memory pressure, or if a use case requires sanitizing inputs larger than the current cap. Until then, keep as-is.
-- **Reference:** todo #183 (filed 2026-04-19 from comprehensive review PERF-L2). Issue #187 will add benchmark context.
-
 ## 15. Liberal Boolean and Integer Parsing
 
 ### 15.0 `BoolFlag` vs `FlexBool` vs `FlexInt` vs strict `int`/`bool`
@@ -418,31 +406,3 @@ The one-shot lock is the enforcement point against a dynamically loaded complian
 - **Gotcha:** Test code that needs to swap validators across subtests uses the `ResetValidatorForTesting` / `ValidatorForTesting` helpers defined in `pkg/parser/pfsense/export_test.go`. These live in `_test.go` and therefore are NOT part of the public API — never promote them to a plain `.go` file.
 - **Gotcha:** The exported `SetValidator` is safe to call from any goroutine; concurrent writers race to win the `sync.Once`, but only one does. Readers never see a torn value because the holder is `atomic.Pointer[...]` — verified by `TestPfSense_SetValidator_Race` under `-race`.
 - **Regression tests:** `TestPfSense_SetValidator_CannotBeOverwritten` pins the stomp-protection invariant; `TestPfSense_SetValidator_Race` pins the concurrent-writer safety. Both live in `pkg/parser/pfsense/parser_test.go`. If either fails, the §20 defense has regressed.
-
-## 21. Config Flat→Nested Deprecation
-
-### 21.1 Flat Fields Scheduled for v2.0 Removal
-
-`internal/config/Config` exposes five top-level fields that are marked `// Deprecated:` in Go source and slated for removal in v2.0: `Verbose`, `Debug`, `Quiet`, `Theme`, `Format`. They are still read by multiple `cmd/*` and `internal/*` consumers (accessors `IsVerbose`, `IsDebug`, `IsQuiet`, `GetTheme`, `GetFormat`) so that v1.x YAML configs continue to load unchanged.
-
-- **End-user migration path (YAML):** when v2.0 removes the flat keys, operators with `.opnDossier.yaml` files that currently set `verbose: true`, `debug: true`, `quiet: true`, or `format: yaml` at the top level must move those values under the nested keys. Examples:
-  - `verbose: true` / `debug: true` → `logging: { level: debug }`
-  - `quiet: true` → `logging: { level: error }`
-  - `format: yaml` → `export: { format: yaml }`
-  - `theme: <value>` → remains at the top level until a nested `display.theme` is introduced before v2.0.
-- **Runtime warning:** `config.LoadConfigWithViper` now populates `Config.DeprecationWarnings()` whenever a user explicitly sets one of the deprecated keys via YAML, env var, or CLI flag. Callers (today: `cmd/root.go` is the intended owner) should drain this slice and emit a WARN per entry exactly once at startup.
-- **Detection boundary:** `detectDeprecatedFieldUsage` uses `v.InConfig(key)` to detect explicit YAML/config-file presence and `os.LookupEnv` via `envVarIsSet` to detect explicit environment overrides. It intentionally does **not** rely on `viper.IsSet(key)` for this check, because seeded defaults make `IsSet` unreliable for distinguishing unset keys from user-provided values. Defaults (unset values) are intentionally not reported — otherwise every run would warn, because viper seeds defaults for the flat keys.
-- **Go API consumers:** treat `cfg.Verbose`, `cfg.Debug`, `cfg.Quiet`, `cfg.Theme`, `cfg.Format` as read-only for the rest of the v1.x series. New code should read the nested structs or the accessor methods; the accessors carry `//nolint:staticcheck` SA1019 directives internally so their deprecation contract is a one-sided signal to external callers, not noise for the package itself.
-- **Lint exclusions:** `.golangci.yml` excludes SA1019 under `internal/config/(config|config_coverage|validation)_test.go` because those tests exist specifically to exercise the deprecated surface. Any NEW callers should either migrate to the nested API or add a line-level `//nolint:staticcheck` with a "why" comment; do NOT broaden the file-level exclusion.
-- **Removal checklist (v2.0):** (1) delete the flat fields from `Config`; (2) delete `detectDeprecatedFieldUsage` + `DeprecationWarnings`; (3) delete the accessors or rewrite them to read from the nested struct; (4) drop the `.golangci.yml` test-file exclusion; (5) drop the individual `//nolint:staticcheck` directives in `cmd/config_show.go`, `cmd/context_test.go`, and `internal/config/validation.go`; (6) update CHANGELOG `### Removed` with the user-facing migration instructions from §21.1.
-
-## 22. Documentation Drift
-
-### 22.1 Keep the Device Support Matrix in Sync
-
-`docs/user-guide/device-support-matrix.md` is a user-facing support statement, not an internal implementation note. Any change that adds, removes, or materially changes OPNsense or pfSense coverage for a feature area must update that page in the same PR.
-
-- **Gotcha:** It is easy to update parser or audit coverage and forget the matrix, especially when the code change looks "internal."
-- **User impact:** The matrix is where operators check whether a missing report section means "not configured" or "not yet supported." If it drifts, users can misread gaps as product behavior.
-- **Rule:** When support changes, update the matrix wording from the user point of view and keep the support table aligned with the current product behavior.
-- **Prevention:** Treat `docs/user-guide/device-support-matrix.md` as part of the definition of done for platform coverage changes.

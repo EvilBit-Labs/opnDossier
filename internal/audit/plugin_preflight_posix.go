@@ -15,12 +15,12 @@ import (
 // deterministic instead of panicking.
 func extractOwnerUID(info os.FileInfo) string {
 	if info == nil {
-		return "unavailable"
+		return pluginOwnerUIDUnavailable
 	}
 
 	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok || stat == nil {
-		return "unavailable"
+		return pluginOwnerUIDUnavailable
 	}
 
 	return strconv.FormatUint(uint64(stat.Uid), 10)

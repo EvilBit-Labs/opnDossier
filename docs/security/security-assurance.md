@@ -43,7 +43,7 @@ opnDossier is an OPNsense configuration parser, auditor, and reporting tool. Its
 | AV-6  | Error messages include raw credential values from config                   | SR-5             |
 | AV-7  | Compromised Go module introduces malicious code                            | SR-4             |
 | AV-8  | Crafted IPsec XML elements exploit pfSense IPsec parser paths              | SR-1, SR-2, SR-6 |
-| AV-9  | Malicious plugin init() stomps validator before preflight                  | SR-4             |
+| AV-9  | Malicious plugin init() stomps validator during plugin.Open() load         | SR-4             |
 | AV-10 | OpenVPN TLS/StaticKeys HMAC keys leaked via sanitizer gap                  | SR-5             |
 | AV-11 | Group/world-writable plugin file or directory exploited to swap plugin .so | SR-4             |
 
@@ -123,27 +123,27 @@ Dynamic plugins execute with full process privileges inside the opnDossier proce
 
 Most OWASP Top 10 categories target web applications and are not applicable to a CLI configuration parser. The applicable items are:
 
-| Category                   | Applicability          | Countermeasure                                                                                    |
-| -------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
-| A03: Injection             | Partial -- XML parsing | Go's `encoding/xml` maps to typed structs; no dynamic query construction                          |
-| A04: Insecure Design       | Applicable             | Secure design principles applied throughout (see Section 4)                                       |
-| A06: Vulnerable Components | Applicable             | Grype and Snyk in CI, Dependabot for automated updates, OSSF Scorecard                            |
-| A09: Security Logging      | Partial                | Parse/audit errors logged via `charmbracelet/log`; security events reported via GitHub Advisories |
+| Category                   | Applicability          | Countermeasure                                                                                                               |
+| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| A03: Injection             | Partial -- XML parsing | Go's `encoding/xml` maps to typed structs; no dynamic query construction                                                     |
+| A04: Insecure Design       | Applicable             | Secure design principles applied throughout (see Section 4)                                                                  |
+| A06: Vulnerable Components | Applicable             | govulncheck and Trivy in CI, CodeQL via GitHub default-setup code scanning, Dependabot for automated updates, OSSF Scorecard |
+| A09: Security Logging      | Partial                | Parse/audit errors logged via `charmbracelet/log`; security events reported via GitHub Advisories                            |
 
 ## 6. Supply Chain Security
 
-| Measure             | Implementation                                                            |
-| ------------------- | ------------------------------------------------------------------------- |
-| Dependency auditing | Grype and Snyk run in CI; CodeQL for static analysis                      |
-| Dependency updates  | Dependabot configured for automated PRs                                   |
-| Pinned toolchain    | Go version pinned via `mise` and `go.mod`                                 |
-| Reproducible builds | `go.sum` committed; `CGO_ENABLED=0` static builds                         |
-| Build provenance    | Sigstore attestations via `actions/attest-build-provenance`               |
-| Artifact signing    | Cosign keyless signing (Sigstore) + GPG signing via GoReleaser            |
-| SBOM generation     | CycloneDX SBOM generated per release via `cyclonedx-gomod`                |
-| CI integrity        | All GitHub Actions pinned to SHA hashes                                   |
-| Code review         | Required on all PRs; automated by CodeRabbit with security-focused checks |
-| License compliance  | FOSSA scanning for Apache-2.0 compatible dependencies                     |
+| Measure             | Implementation                                                                                                                                                                                                                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dependency auditing | govulncheck (Go vulnerability database) and Trivy (filesystem scan + misconfiguration detection) run in CI via `.github/workflows/security.yml` on push/PR and weekly; CodeQL (semantic analysis) runs via GitHub's default-setup code scanning |
+| Dependency updates  | Dependabot configured for automated PRs                                                                                                                                                                                                         |
+| Pinned toolchain    | Go version pinned via `mise` and `go.mod`                                                                                                                                                                                                       |
+| Reproducible builds | `go.sum` committed; `CGO_ENABLED=0` static builds                                                                                                                                                                                               |
+| Build provenance    | Sigstore attestations via `actions/attest-build-provenance`                                                                                                                                                                                     |
+| Artifact signing    | Cosign keyless signing (Sigstore) + GPG signing via GoReleaser                                                                                                                                                                                  |
+| SBOM generation     | CycloneDX SBOM generated per release via `cyclonedx-gomod`                                                                                                                                                                                      |
+| CI integrity        | All GitHub Actions pinned to SHA hashes                                                                                                                                                                                                         |
+| Code review         | Required on all PRs; automated by CodeRabbit with security-focused checks                                                                                                                                                                       |
+| License compliance  | FOSSA scanning for Apache-2.0 compatible dependencies                                                                                                                                                                                           |
 
 ## 7. Ongoing Assurance
 
@@ -154,9 +154,12 @@ This assurance case is maintained as a living document. It is updated when:
 - Dependencies change significantly
 - Security incidents occur
 
-The project maintains continuous assurance through automated CI checks (golangci-lint, CodeQL, Grype, Snyk) that run on every commit.
+The project maintains continuous assurance through two separately-managed scan streams:
+
+- **Workflow-based scans** (`golangci-lint`, `govulncheck`, Trivy) run from [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) on every PR, every push to `main`, and on a weekly schedule.
+- **CodeQL** runs via GitHub's repository-level default-setup code scanning. Its cadence and trigger set are managed by GitHub (not by a workflow in this repo) — typically on every push and PR, at a schedule GitHub controls. Advanced-setup CodeQL in a workflow would conflict with the default setup and is intentionally absent.
 
 ## References
 
 - [GOTCHAS.md §2.5 — Dynamic Plugin Trust Model](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#25-dynamic-plugin-trust-model)
-- [docs/user-guide/commands/audit.md — Dynamic Plugin Security](../user-guide/commands/audit.md#dynamic-plugin-security)
+- [docs/user-guide/commands/audit.md — Third-Party Plugin Security](../user-guide/commands/audit.md#third-party-plugin-security)
