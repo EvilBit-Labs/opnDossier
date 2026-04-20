@@ -35,6 +35,7 @@ theme:
 # Navigation
 nav:
   - Home: index.md
+  - For AI Agents & Automation: for-agents.md
 
   - User Guide:
       - Getting Started: user-guide/getting-started.md

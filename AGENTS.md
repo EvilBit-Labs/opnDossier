@@ -2,6 +2,8 @@
 
 This file provides AI coding assistants with project context. All substantive documentation lives in the files linked below. Read the linked documents for implementation details — this file only contains agent-specific behavioral rules.
 
+> **Agents invoking opnDossier at runtime** (vs. contributing to it): start at [docs/for-agents.md](docs/for-agents.md). That page aggregates every stable machine-readable interface — auto-generated CLI reference, JSON/YAML output schemas, exit codes, public Go API, configuration schema — in one place and is kept in sync with the code via generators. The rest of this document is for AI assistants contributing to the repo itself.
+
 @GOTCHAS.md
 
 ## Project Documentation
