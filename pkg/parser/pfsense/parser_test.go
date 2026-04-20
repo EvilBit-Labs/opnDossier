@@ -140,9 +140,14 @@ func TestParser_Parse_AcceptedCharsets(t *testing.T) {
 
 // --- Parser.ParseAndValidate tests ---
 
+// TestParser_ParseAndValidate does NOT use t.Parallel().
+// ParseAndValidate reads the package-level validator holder in pkg/parser/pfsense;
+// TestParser_ParseAndValidateWithValidator and TestParser_SetValidator_StompProtection
+// mutate that holder. Running this test in parallel with those would be
+// order-dependent: a concurrent run could see an always-error validator and
+// fail for reasons unrelated to Parse correctness. Keep serial so the
+// validator-state precondition (nil) is deterministic.
 func TestParser_ParseAndValidate(t *testing.T) {
-	t.Parallel()
-
 	xmlData := `<?xml version="1.0"?><pfsense><system><hostname>test</hostname><domain>test.local</domain></system></pfsense>`
 
 	p := pfsense.NewParser(nil)
@@ -1617,8 +1622,9 @@ func TestPfSense_SetValidator_Race(t *testing.T) {
 	// Every writer installs the SAME validator (identical function value is
 	// not required by the spec — only "some installed function wins and
 	// stays installed"). Because we cannot reliably compare func values,
-	// each writer just increments the shared counter; the race test
-	// succeeds if no race is flagged and the reader path executes cleanly.
+	// the race test succeeds if no race is flagged and the reader path
+	// (ParseAndValidate) executes cleanly while the writers call
+	// SetValidator concurrently.
 	var installed sync.WaitGroup
 	installed.Add(numWriters)
 

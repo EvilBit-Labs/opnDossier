@@ -43,7 +43,7 @@ opnDossier is an OPNsense configuration parser, auditor, and reporting tool. Its
 | AV-6  | Error messages include raw credential values from config                   | SR-5             |
 | AV-7  | Compromised Go module introduces malicious code                            | SR-4             |
 | AV-8  | Crafted IPsec XML elements exploit pfSense IPsec parser paths              | SR-1, SR-2, SR-6 |
-| AV-9  | Malicious plugin init() stomps validator before preflight                  | SR-4             |
+| AV-9  | Malicious plugin init() stomps validator during plugin.Open() load         | SR-4             |
 | AV-10 | OpenVPN TLS/StaticKeys HMAC keys leaked via sanitizer gap                  | SR-5             |
 | AV-11 | Group/world-writable plugin file or directory exploited to swap plugin .so | SR-4             |
 

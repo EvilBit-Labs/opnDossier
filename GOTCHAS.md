@@ -58,10 +58,11 @@ Reclassified info-severity controls (e.g., FIREWALL-003 "Message of the Day") pa
 **Phase A hardening (v1.5).** Before `plugin.Open` is invoked, `runPluginPreflight` in `internal/audit/plugin_preflight.go` rejects the following footguns and emits a structured audit log per attempt:
 
 - **Symlinks rejected** via `os.Lstat` + `os.ModeSymlink` check. `plugin.Open` follows links, so an attacker with write access to the plugin directory could otherwise point a `.so` at anything on the filesystem.
+- **Non-regular files rejected** via `info.Mode().IsRegular()` (cross-platform). A FIFO, socket, or device node named `*.so` would otherwise block `hashFileSizeCapped` indefinitely on `os.Open` or `io.CopyN` before `plugin.Open` is ever reached — a DoS primitive trivially reachable on POSIX.
 - **Group/world-writable plugin files rejected** when `info.Mode().Perm()&0o022 != 0` (POSIX only). Closes CWE-732 where another local account could swap the file between audits.
 - **Group/world-writable container directory rejected** via a second `os.Stat` on `filepath.Dir(path)` (POSIX only). The file bits alone are not enough — a writable parent lets an attacker unlink and replace the plugin.
-- **Absolute paths required** via `filepath.IsAbs` (cross-platform). Operators must pass a fully-qualified `--plugin-dir`; relative paths are rejected so audit logs unambiguously identify the artifact.
-- **Structured audit log per load attempt**: INFO for accepted loads, WARN for rejections, with fields `plugin`, `path`, `sha256`, `mode`, `owner_uid`, `mtime`, `size_bytes`, `verdict`, `reason`. The SHA-256 is computed with a 64 MiB read cap so a pathological `.so` cannot exhaust memory during preflight.
+- **Absolute plugin file paths required at preflight** via `filepath.IsAbs` (cross-platform, defense-in-depth). Relative `--plugin-dir` inputs from the operator are accepted and normalized via `filepath.Abs` before the preflight runs, so `--plugin-dir ./plugins` is a supported invocation; the absolute-path check then fires if any caller ever bypasses `LoadDynamicPlugins` and hands a relative path directly to `runPluginPreflight`.
+- **Structured audit log per load attempt**: INFO for accepted loads, WARN for rejections, with fields `plugin`, `path`, `sha256`, `mode`, `owner_uid`, `mtime`, `size_bytes`, `verdict`, `reason`. The logged `path` is the normalized absolute plugin artifact path, and the SHA-256 is computed with a 64 MiB read cap so a pathological `.so` bounds preflight I/O and CPU time (the hasher streams rather than buffers, so this is a time/throughput cap, not a memory-allocation cap).
 
 Rejections are reported as `PluginLoadError` entries in the returned `LoadResult`, so callers see identical wiring for preflight and `plugin.Open` failures.
 

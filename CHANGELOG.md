@@ -144,10 +144,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   running `opnDossier sanitize` on configs containing OpenVPN TLS-auth
   material leaked the raw HMAC keys (SEC-H1 from comprehensive review).
 - pfSense validator protected against stomp by malicious dynamic plugin
-  `init()` code. `pfsense.ValidateFunc` renamed to unexported
-  `validateFunc`; new `pfsense.SetValidator` guarded by `sync.Once`.
-  Matches OPNsense's `XMLDecoder.ParseAndValidate` DI pattern. Fixes
-  SEC-H2 from comprehensive review.
+  `init()` code. The public `pfsense.ValidateFunc` var was removed and
+  replaced by `pfsense.SetValidator`, which installs the validator once
+  via `sync.Once` over an internal `atomic.Pointer` holder. Second and
+  subsequent calls are silently dropped. Matches OPNsense's
+  `XMLDecoder.ParseAndValidate` DI pattern. Fixes SEC-H2 from
+  comprehensive review.
 - Plugin loader preflight now rejects symlinks, group/world-writable
   plugin files, group/world-writable container directories, and
   relative plugin paths. Emits structured audit log per load attempt

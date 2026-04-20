@@ -201,11 +201,12 @@ type peekResult struct {
 //
 // CANCELLATION CONTRACT: Callers must ensure the supplied ctx is eventually
 // cancelled. On ctx.Done(), this function returns ctx.Err() immediately, but
-// the inner goroutine itself only exits when the next token read unblocks —
-// the ctx-wrapped reader (see [newCtxReader]) surfaces ctx.Err() on its next
-// Read call, which is how the goroutine is unstuck. If the supplied reader
-// never yields (e.g., a hung network stream) AND the ctx is never cancelled,
-// the goroutine leaks and retains up to DefaultMaxInputSize bytes in its
+// the inner goroutine itself only exits when the current token read unblocks.
+// The ctx-wrapped reader (see [newCtxReader]) returns ctx.Err() on a
+// subsequent Read call after the underlying blocked Read has returned; it
+// does not interrupt an already-blocked Read. If the supplied reader never
+// yields (e.g., a hung network stream) AND the ctx is never cancelled, the
+// goroutine leaks and retains up to DefaultMaxInputSize bytes in its
 // internal buffer until the process exits.
 //
 // The function deliberately does NOT install a watchdog timer that closes the
@@ -219,9 +220,7 @@ type peekResult struct {
 // CLI callers wrap *os.File readers which return io.EOF promptly on EOF, so
 // the goroutine exits naturally in that path. Library consumers supplying
 // readers that can block indefinitely (sockets, fifos, long-polling HTTP
-// bodies) MUST cancel the context to release the goroutine. See GOTCHAS.md
-// §1.1 for why we never use t.Parallel() in tests that exercise this path
-// against package-level state.
+// bodies) MUST cancel the context to release the goroutine.
 func peekRootElementBounded(ctx context.Context, r io.Reader) (string, io.Reader, error) {
 	var buf bytes.Buffer
 

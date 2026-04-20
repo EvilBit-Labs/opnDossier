@@ -394,6 +394,35 @@ func (s *Sanitizer) sanitizeReflect(v reflect.Value, path string) error {
 			}
 			return nil
 		}
+		// Interface-typed maps (e.g. map[string]any) can smuggle struct/pointer
+		// values past the declared-kind check above. Inspect the concrete
+		// dynamic kind of the first such entry and emit the same warning so
+		// the gap is surfaced at runtime instead of shipping as cleartext.
+		// We break after the first match: one warning per offending map is
+		// enough signal for schema triage, and iterating every entry would
+		// be O(n) on each sanitize call.
+		if elemKind == reflect.Interface {
+			for _, key := range v.MapKeys() {
+				concrete := v.MapIndex(key)
+				for concrete.IsValid() && concrete.Kind() == reflect.Interface && !concrete.IsNil() {
+					concrete = concrete.Elem()
+				}
+				if !concrete.IsValid() {
+					continue
+				}
+				if concrete.Kind() == reflect.Struct || concrete.Kind() == reflect.Ptr {
+					if s.logger != nil {
+						s.logger.Warn(
+							"sanitize reflect: skipping interface-typed map with struct/pointer values",
+							"path", path,
+							"type", v.Type().String(),
+							"concrete_type", concrete.Type().String(),
+						)
+					}
+					return nil
+				}
+			}
+		}
 		for _, key := range v.MapKeys() {
 			mapValue := v.MapIndex(key)
 			if mapValue.Kind() == reflect.String && mapValue.CanInterface() {

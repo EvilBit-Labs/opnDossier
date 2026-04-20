@@ -106,7 +106,7 @@ func TestLoadDynamicPlugins_RejectsSymlink(t *testing.T) {
 	}
 
 	if !strings.Contains(result.Failures[0].Error(), "symlink") {
-		t.Errorf("expected 'symlink' in failure error, got: %v", result.Failures[0].Err)
+		t.Errorf("expected 'symlink' in failure error, got: %s", result.Failures[0].Error())
 	}
 }
 
@@ -200,14 +200,17 @@ func TestLoadDynamicPlugins_RejectsWorldWritableContainerDir(t *testing.T) {
 	// fixture creation itself is not complicated by the permissions.
 	// gosec G302: intentional world-writable chmod — the whole point of
 	// this test is to exercise the preflight's rejection of that mode.
-	if err := os.Chmod(pluginDir, 0o777); err != nil { //nolint:gosec // intentional world-writable mode under test
+	//nolint:gosec // intentional world-writable mode under test
+	if err := os.Chmod(pluginDir, 0o777); err != nil {
 		t.Fatalf("failed to chmod plugin dir to world-writable: %v", err)
 	}
 	t.Cleanup(func() {
 		// Restore permissions so t.TempDir cleanup can remove the dir on
 		// platforms where the test user cannot unlink files inside a
-		// world-writable directory without write on the parent.
-		//nolint:gosec // 0o700 is the default t.TempDir mode; explicit restore.
+		// world-writable directory without write on the parent. The mode
+		// is restrictive (0o700, owner-only) but gosec G302 still flags
+		// the literal > 0o600 on any chmod.
+		//nolint:gosec // G302: 0o700 is owner-only; restoring temp dir to default
 		if err := os.Chmod(pluginDir, 0o700); err != nil {
 			t.Logf("warning: failed to restore plugin dir permissions: %v", err)
 		}
@@ -422,18 +425,30 @@ func TestLoadDynamicPlugins_AuditLog_RejectionWarn(t *testing.T) {
 // LoadDynamicPlugins pipeline. Guards basic invariants: accepted paths carry
 // a sha256 digest, rejections carry a non-nil err, and the verdict string
 // stays within the two documented values.
+//
+// Cross-platform contract:
+//   - The accepted/relative-path/missing-file/non-regular subtests run
+//     on every platform (Windows included) because runPluginPreflight's
+//     absolute-path check, Lstat, and regular-file check are all
+//     platform-neutral.
+//   - The POSIX permission-bit subtests (group/world-writable file,
+//     group/world-writable directory) only run on POSIX platforms; those
+//     branches of runPluginPreflight are gated behind runtime.GOOS != "windows"
+//     and would produce false negatives on Windows.
 func TestRunPluginPreflight_Unit(t *testing.T) {
 	t.Parallel()
-
-	if runtime.GOOS == goosWindows {
-		t.Skip("POSIX permission semantics required")
-	}
 
 	dir := t.TempDir()
 	goodPath := writePluginFile(t, dir, "good.so", 0o600, []byte("payload"))
 
 	t.Run("accepted plugin returns sha256", func(t *testing.T) {
 		t.Parallel()
+
+		if runtime.GOOS == goosWindows {
+			t.Skip(
+				"POSIX permission semantics required for a deterministic accepted path on Windows runners; covered by the other platform-neutral cases.",
+			)
+		}
 
 		res := runPluginPreflight(goodPath)
 		if res.verdict != pluginVerdictAccepted {
@@ -472,6 +487,29 @@ func TestRunPluginPreflight_Unit(t *testing.T) {
 		}
 		if !errors.Is(res.err, os.ErrNotExist) {
 			t.Errorf("expected error to wrap os.ErrNotExist, got %v", res.err)
+		}
+	})
+
+	t.Run("non-regular file is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		// A directory named *.so is the portable way to manufacture a
+		// non-regular path the preflight must reject: os.Lstat returns an
+		// info with Mode().IsDir()==true and IsRegular()==false on every
+		// platform, without needing syscall.Mkfifo (POSIX-only) or other
+		// privileged operations. FIFOs, sockets, and device nodes are all
+		// covered by the same !IsRegular() guard.
+		dirAsPlugin := filepath.Join(t.TempDir(), "directory-pretending-to-be-a-plugin.so")
+		if err := os.Mkdir(dirAsPlugin, 0o700); err != nil {
+			t.Fatalf("mkdir failed: %v", err)
+		}
+
+		res := runPluginPreflight(dirAsPlugin)
+		if res.verdict != pluginVerdictRejected {
+			t.Fatalf("verdict = %q, want %q; reason=%s", res.verdict, pluginVerdictRejected, res.reason)
+		}
+		if !strings.Contains(res.reason, "not a regular file") {
+			t.Errorf("expected reason to mention non-regular file, got %q", res.reason)
 		}
 	})
 }
@@ -591,13 +629,15 @@ func TestLoadDynamicPlugins_NonDirPathErrors(t *testing.T) {
 // not land in centralized logs at default verbosity. This test exercises the
 // verbose branch specifically — the non-verbose branch is covered by
 // TestRunComplianceChecks_PanickingPluginIsolation with a default logger.
+//
+// The assertion uses bufferLogger so we can pin that the stack-trace payload
+// actually lands in the log output when verbose is on. Without this
+// assertion, the test would pass even if IsVerbose() stopped emitting
+// verbose-only panic diagnostics entirely.
 func TestRunComplianceChecks_PanicVerboseLogging(t *testing.T) {
 	t.Parallel()
 
-	verboseLogger, err := logging.New(logging.Config{Level: "debug"})
-	if err != nil {
-		t.Fatalf("failed to create verbose logger: %v", err)
-	}
+	verboseLogger, buf := bufferLogger(t)
 	if !verboseLogger.IsVerbose() {
 		t.Fatal("expected debug-level logger to report verbose")
 	}
@@ -642,6 +682,21 @@ func TestRunComplianceChecks_PanicVerboseLogging(t *testing.T) {
 	}
 	if !strings.Contains(info.Version, "panicked") {
 		t.Errorf("expected version to contain 'panicked', got %q", info.Version)
+	}
+
+	// The verbose branch must actually emit the stack trace. Pin that so
+	// the IsVerbose() gate is not silently removed by a future refactor.
+	logOutput := buf.String()
+	if !strings.Contains(logOutput, "plugin panicked during RunChecks") {
+		t.Errorf("verbose log must contain the panic-recovery message, got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "stack") {
+		t.Errorf("verbose branch must log a stack field; missing from output: %s", logOutput)
+	}
+	// Basic goroutine-stack marker — every debug.Stack() output includes
+	// "goroutine " followed by the goroutine number.
+	if !strings.Contains(logOutput, "goroutine ") {
+		t.Errorf("verbose log must carry debug.Stack() payload (marker 'goroutine '), got: %s", logOutput)
 	}
 }
 
