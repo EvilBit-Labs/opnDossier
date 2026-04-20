@@ -77,7 +77,7 @@ func emitAuditResult(
 		return fmt.Errorf("failed to determine output path for %s: %w", result.inputFile, err)
 	}
 
-	// Export or print the output
+	// Export to file when requested.
 	if actualOutputFile != "" {
 		ctxLogger.Debug("Exporting audit report to file", "output_file", actualOutputFile)
 		e := export.NewFileExporter(ctxLogger)
@@ -85,21 +85,31 @@ func emitAuditResult(
 		if err := e.Export(ctx, result.output, actualOutputFile); err != nil {
 			return fmt.Errorf("failed to export audit report to %s: %w", actualOutputFile, err)
 		}
-	} else {
-		ctxLogger.Debug("Outputting audit report to stdout")
 
-		// Render markdown through glamour for styled terminal output;
-		// other formats (JSON, YAML, text, HTML) are written raw.
-		if opt.Format == converter.FormatMarkdown {
-			displayer := display.NewTerminalDisplayWithMarkdownOptions(opt)
-			if err := displayer.Display(ctx, result.output); err != nil {
-				return fmt.Errorf("failed to display audit report: %w", err)
-			}
-		} else {
-			if _, err := fmt.Fprint(cmd.OutOrStdout(), result.output); err != nil {
-				return fmt.Errorf("failed to write audit report to stdout: %w", err)
-			}
+		return nil
+	}
+
+	// No output file: emit to stdout.
+	ctxLogger.Debug("Outputting audit report to stdout")
+	return emitAuditReportToStdout(ctx, cmd, result.output, opt)
+}
+
+// emitAuditReportToStdout writes an audit report to the command's stdout.
+// Markdown is rendered through glamour for styled terminal output; other
+// formats (JSON, YAML, text, HTML) are written raw. Extracted from
+// emitAuditResult to keep the if/else branching flat enough to read.
+func emitAuditReportToStdout(ctx context.Context, cmd *cobra.Command, output string, opt converter.Options) error {
+	if opt.Format == converter.FormatMarkdown {
+		displayer := display.NewTerminalDisplayWithMarkdownOptions(opt)
+		if err := displayer.Display(ctx, output); err != nil {
+			return fmt.Errorf("failed to display audit report: %w", err)
 		}
+
+		return nil
+	}
+
+	if _, err := fmt.Fprint(cmd.OutOrStdout(), output); err != nil {
+		return fmt.Errorf("failed to write audit report to stdout: %w", err)
 	}
 
 	return nil

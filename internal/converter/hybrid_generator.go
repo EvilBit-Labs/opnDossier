@@ -318,53 +318,7 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 	// Check if builder supports SectionWriter interface for streaming
 	sectionWriter, ok := g.builder.(builder.SectionWriter)
 	if !ok {
-		// Fallback to string-based generation using the already-prepared target
-		g.logger.Debug("Builder does not support SectionWriter, falling back to string generation")
-
-		var output string
-		var err error
-
-		switch {
-		case opts.Comprehensive:
-			output, err = g.builder.BuildComprehensiveReport(target)
-		default:
-			output, err = g.builder.BuildStandardReport(target)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		// Per-subsystem boundary: between report body and audit section (fallback path).
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		// Append audit section when compliance data is present. In this
-		// non-streaming fallback we still buffer once, but we stream each
-		// segment directly to the writer to avoid the += copy of the
-		// accumulated report body (PERF-M7).
-		if target.ComplianceResults != nil {
-			auditSection := g.builder.BuildAuditSection(target)
-			if auditSection != "" {
-				if _, writeErr := io.WriteString(w, output); writeErr != nil {
-					return fmt.Errorf("failed to write report body: %w", writeErr)
-				}
-				if _, writeErr := io.WriteString(w, auditSectionSeparator); writeErr != nil {
-					return fmt.Errorf("failed to write audit section separator: %w", writeErr)
-				}
-				if _, writeErr := io.WriteString(w, auditSection); writeErr != nil {
-					return fmt.Errorf("failed to write audit section: %w", writeErr)
-				}
-				return nil
-			}
-		}
-
-		if _, writeErr := io.WriteString(w, output); writeErr != nil {
-			return fmt.Errorf("failed to write report body: %w", writeErr)
-		}
-
-		return nil
+		return g.generateMarkdownFallback(ctx, w, target, opts)
 	}
 
 	// Use streaming writer
@@ -401,6 +355,59 @@ func (g *HybridGenerator) generateMarkdownToWriter(
 		}
 	}
 
+	return nil
+}
+
+// generateMarkdownFallback is the string-based (non-streaming) markdown path,
+// taken when the configured builder does not implement SectionWriter. It
+// composes the report body into a string via the builder and then streams the
+// body + optional audit section to w to avoid += copies (PERF-M7). Extracted
+// from generateMarkdownToWriter to keep the branching there shallow.
+func (g *HybridGenerator) generateMarkdownFallback(
+	ctx context.Context,
+	w io.Writer,
+	target *common.CommonDevice,
+	opts Options,
+) error {
+	g.logger.Debug("Builder does not support SectionWriter, falling back to string generation")
+
+	var output string
+	var err error
+	switch {
+	case opts.Comprehensive:
+		output, err = g.builder.BuildComprehensiveReport(target)
+	default:
+		output, err = g.builder.BuildStandardReport(target)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Per-subsystem boundary: between report body and audit section (fallback path).
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	// Append audit section when compliance data is present.
+	if target.ComplianceResults != nil {
+		auditSection := g.builder.BuildAuditSection(target)
+		if auditSection != "" {
+			if _, writeErr := io.WriteString(w, output); writeErr != nil {
+				return fmt.Errorf("failed to write report body: %w", writeErr)
+			}
+			if _, writeErr := io.WriteString(w, auditSectionSeparator); writeErr != nil {
+				return fmt.Errorf("failed to write audit section separator: %w", writeErr)
+			}
+			if _, writeErr := io.WriteString(w, auditSection); writeErr != nil {
+				return fmt.Errorf("failed to write audit section: %w", writeErr)
+			}
+			return nil
+		}
+	}
+
+	if _, writeErr := io.WriteString(w, output); writeErr != nil {
+		return fmt.Errorf("failed to write report body: %w", writeErr)
+	}
 	return nil
 }
 

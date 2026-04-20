@@ -244,51 +244,58 @@ func (r *Report) redactedCopyUnsafe() *Report {
 	}
 
 	if cp.NormalizedConfig != nil {
-		snmpNeedsRedaction := cp.NormalizedConfig.SNMP.ROCommunity != ""
-		certsNeedRedaction := hasCertPrivateKeys(cp.NormalizedConfig.Certificates)
-		casNeedRedaction := hasCAPrivateKeys(cp.NormalizedConfig.CAs)
-
-		if snmpNeedsRedaction || certsNeedRedaction || casNeedRedaction {
-			deviceCopy := *cp.NormalizedConfig
-			cp.NormalizedConfig = &deviceCopy
-
-			if snmpNeedsRedaction {
-				deviceCopy.SNMP = common.SNMPConfig{
-					ROCommunity: redactedValue,
-					SysLocation: deviceCopy.SNMP.SysLocation,
-					SysContact:  deviceCopy.SNMP.SysContact,
-				}
-			}
-
-			if certsNeedRedaction {
-				certs := make([]common.Certificate, len(deviceCopy.Certificates))
-				copy(certs, deviceCopy.Certificates)
-
-				for i := range certs {
-					if certs[i].PrivateKey != "" {
-						certs[i].PrivateKey = redactedValue
-					}
-				}
-
-				deviceCopy.Certificates = certs
-			}
-
-			if casNeedRedaction {
-				cas := make([]common.CertificateAuthority, len(deviceCopy.CAs))
-				copy(cas, deviceCopy.CAs)
-
-				for i := range cas {
-					if cas[i].PrivateKey != "" {
-						cas[i].PrivateKey = redactedValue
-					}
-				}
-
-				deviceCopy.CAs = cas
-			}
-		}
+		cp.NormalizedConfig = redactNormalizedConfig(cp.NormalizedConfig)
 	}
 
 	return cp
+}
+
+// redactNormalizedConfig returns a copy of dev with SNMP community strings and
+// certificate/CA private keys replaced by redactedValue, or dev itself when no
+// sensitive material is present. Called from redactedCopyUnsafe; kept separate
+// so the top-level copier's branching stays flat.
+func redactNormalizedConfig(dev *common.CommonDevice) *common.CommonDevice {
+	snmpNeedsRedaction := dev.SNMP.ROCommunity != ""
+	certsNeedRedaction := hasCertPrivateKeys(dev.Certificates)
+	casNeedRedaction := hasCAPrivateKeys(dev.CAs)
+
+	if !snmpNeedsRedaction && !certsNeedRedaction && !casNeedRedaction {
+		return dev
+	}
+
+	deviceCopy := *dev
+
+	if snmpNeedsRedaction {
+		deviceCopy.SNMP = common.SNMPConfig{
+			ROCommunity: redactedValue,
+			SysLocation: deviceCopy.SNMP.SysLocation,
+			SysContact:  deviceCopy.SNMP.SysContact,
+		}
+	}
+
+	if certsNeedRedaction {
+		certs := make([]common.Certificate, len(deviceCopy.Certificates))
+		copy(certs, deviceCopy.Certificates)
+		for i := range certs {
+			if certs[i].PrivateKey != "" {
+				certs[i].PrivateKey = redactedValue
+			}
+		}
+		deviceCopy.Certificates = certs
+	}
+
+	if casNeedRedaction {
+		cas := make([]common.CertificateAuthority, len(deviceCopy.CAs))
+		copy(cas, deviceCopy.CAs)
+		for i := range cas {
+			if cas[i].PrivateKey != "" {
+				cas[i].PrivateKey = redactedValue
+			}
+		}
+		deviceCopy.CAs = cas
+	}
+
+	return &deviceCopy
 }
 
 // hasCertPrivateKeys reports whether any certificate in the slice has a

@@ -183,47 +183,10 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 
 		case xml.CharData:
 			content := strings.TrimSpace(string(t))
-			if content != "" {
-				s.stats.TotalFields++
-				currentElement := ""
-				if len(pathStack) > 0 {
-					currentElement = pathStack[len(pathStack)-1]
-				}
-				// Materialize the full dotted path only now, at the leaf
-				// where a rule lookup is about to happen. Empty/whitespace
-				// CharData tokens skip this join entirely.
-				fullPath := strings.Join(pathStack, ".")
-
-				// Check if we should redact (try full path first, then element name)
-				// Only check - don't update stats yet
-				should, rule := s.engine.ShouldRedactValue(fullPath, content)
-				if !should {
-					should, rule = s.engine.ShouldRedactValue(currentElement, content)
-				}
-
-				var sanitizedContent string
-				if should {
-					// Use RedactWithRule to apply the same rule that ShouldRedactValue
-					// matched, avoiding a redundant lookup that could attribute the
-					// redaction to a different rule in statistics.
-					sanitizedContent = s.engine.RedactWithRule(rule, fullPath, content)
-					// Only count as redacted if the value actually changed;
-					// guarded Redactors (e.g., ip_address_field) may return
-					// the original value when the guard rejects it.
-					if sanitizedContent != content {
-						s.stats.RedactedFields++
-						if rule != nil {
-							s.stats.RedactionsByType[rule.Name]++
-						}
-					} else {
-						s.stats.SkippedFields++
-					}
-				} else {
-					s.stats.SkippedFields++
-					sanitizedContent = content
-				}
-				output.WriteString(escapeXMLText(sanitizedContent))
-			} else if len(t) > 0 {
+			switch {
+			case content != "":
+				output.WriteString(escapeXMLText(s.sanitizeCharData(content, pathStack)))
+			case len(t) > 0:
 				// Preserve whitespace
 				output.Write(t)
 			}
@@ -254,6 +217,50 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 	}
 
 	return []byte(output.String()), nil
+}
+
+// sanitizeCharData applies redaction to a non-empty CharData leaf. The
+// extracted helper keeps the main token-stream loop flat; stats and
+// rule-lookup sequencing are documented inline below.
+func (s *Sanitizer) sanitizeCharData(content string, pathStack []string) string {
+	s.stats.TotalFields++
+
+	currentElement := ""
+	if len(pathStack) > 0 {
+		currentElement = pathStack[len(pathStack)-1]
+	}
+	// Materialize the full dotted path only now, at the leaf where a rule
+	// lookup is about to happen. Empty/whitespace CharData tokens are
+	// filtered by the caller and never reach this join.
+	fullPath := strings.Join(pathStack, ".")
+
+	// Try full path first, then bare element name.
+	should, rule := s.engine.ShouldRedactValue(fullPath, content)
+	if !should {
+		should, rule = s.engine.ShouldRedactValue(currentElement, content)
+	}
+
+	if !should {
+		s.stats.SkippedFields++
+		return content
+	}
+
+	// Apply the same rule that ShouldRedactValue matched to avoid a
+	// redundant lookup that could attribute the redaction to a different
+	// rule in statistics.
+	redacted := s.engine.RedactWithRule(rule, fullPath, content)
+	// Only count as redacted if the value actually changed; guarded
+	// Redactors (e.g., ip_address_field) may return the original value
+	// when the guard rejects it.
+	if redacted == content {
+		s.stats.SkippedFields++
+		return redacted
+	}
+	s.stats.RedactedFields++
+	if rule != nil {
+		s.stats.RedactionsByType[rule.Name]++
+	}
+	return redacted
 }
 
 // sanitizeValue applies redaction rules to a value based on field name context.

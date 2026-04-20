@@ -772,43 +772,37 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 
 			// Test compliance calculations
 			if tt.name == "compliance calculations" {
-				plugin1Compliance, exists := summary.Compliance["plugin1"]
-				if !exists {
-					t.Error("calculateSummary() missing compliance for plugin1")
-				} else {
-					if plugin1Compliance.Compliant != 2 {
-						t.Errorf("calculateSummary() plugin1 compliant = %v, want 2", plugin1Compliance.Compliant)
-					}
-					if plugin1Compliance.NonCompliant != 1 {
-						t.Errorf(
-							"calculateSummary() plugin1 non-compliant = %v, want 1",
-							plugin1Compliance.NonCompliant,
-						)
-					}
-					if plugin1Compliance.Total != 3 {
-						t.Errorf("calculateSummary() plugin1 total = %v, want 3", plugin1Compliance.Total)
-					}
-				}
-
-				plugin2Compliance, exists := summary.Compliance["plugin2"]
-				if !exists {
-					t.Error("calculateSummary() missing compliance for plugin2")
-				} else {
-					if plugin2Compliance.Compliant != 0 {
-						t.Errorf("calculateSummary() plugin2 compliant = %v, want 0", plugin2Compliance.Compliant)
-					}
-					if plugin2Compliance.NonCompliant != 2 {
-						t.Errorf(
-							"calculateSummary() plugin2 non-compliant = %v, want 2",
-							plugin2Compliance.NonCompliant,
-						)
-					}
-					if plugin2Compliance.Total != 2 {
-						t.Errorf("calculateSummary() plugin2 total = %v, want 2", plugin2Compliance.Total)
-					}
-				}
+				assertPluginCompliance(t, summary.Compliance, "plugin1", 2, 1, 3)
+				assertPluginCompliance(t, summary.Compliance, "plugin2", 0, 2, 2)
 			}
 		})
+	}
+}
+
+// assertPluginCompliance looks up the compliance entry for plugin and asserts
+// the per-plugin Compliant, NonCompliant, and Total counters match. Extracted
+// from TestCalculateSummary to keep the per-case body flat.
+func assertPluginCompliance(
+	t *testing.T,
+	complianceMap map[string]PluginCompliance,
+	plugin string,
+	wantCompliant, wantNonCompliant, wantTotal int,
+) {
+	t.Helper()
+
+	got, exists := complianceMap[plugin]
+	if !exists {
+		t.Errorf("calculateSummary() missing compliance for %s", plugin)
+		return
+	}
+	if got.Compliant != wantCompliant {
+		t.Errorf("calculateSummary() %s compliant = %v, want %v", plugin, got.Compliant, wantCompliant)
+	}
+	if got.NonCompliant != wantNonCompliant {
+		t.Errorf("calculateSummary() %s non-compliant = %v, want %v", plugin, got.NonCompliant, wantNonCompliant)
+	}
+	if got.Total != wantTotal {
+		t.Errorf("calculateSummary() %s total = %v, want %v", plugin, got.Total, wantTotal)
 	}
 }
 

@@ -220,46 +220,65 @@ func validateDhcpdInterface(name string, cfg schema.DhcpdInterface, ifaceSet map
 
 	// Validate DHCP range if either from or to is set
 	if cfg.Range.From != "" || cfg.Range.To != "" {
-		if cfg.Range.From != "" && !isValidIP(cfg.Range.From) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("dhcpd.%s.range.from", name),
-				Message: fmt.Sprintf("DHCP range 'from' address '%s' must be a valid IP address", cfg.Range.From),
-			})
-		}
-
-		if cfg.Range.To != "" && !isValidIP(cfg.Range.To) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("dhcpd.%s.range.to", name),
-				Message: fmt.Sprintf("DHCP range 'to' address '%s' must be a valid IP address", cfg.Range.To),
-			})
-		}
-
-		// Cross-validation: from address should be less than to address
-		if isValidIP(cfg.Range.From) && isValidIP(cfg.Range.To) {
-			fromIP := net.ParseIP(cfg.Range.From).To4()
-
-			toIP := net.ParseIP(cfg.Range.To).To4()
-			if fromIP != nil && toIP != nil {
-				// Compare byte by byte
-				for i := range 4 {
-					if fromIP[i] > toIP[i] {
-						errors = append(errors, ValidationError{
-							Field: fmt.Sprintf("dhcpd.%s.range", name),
-							Message: fmt.Sprintf(
-								"DHCP range 'from' address (%s) must be less than 'to' address (%s)",
-								cfg.Range.From,
-								cfg.Range.To,
-							),
-						})
-
-						break
-					} else if fromIP[i] < toIP[i] {
-						break
-					}
-				}
-			}
-		}
+		errors = append(errors, validateDhcpdRange(name, cfg.Range.From, cfg.Range.To)...)
 	}
 
 	return errors
+}
+
+// validateDhcpdRange validates a DHCP address range: each endpoint must parse
+// as an IP, and 'from' must be numerically less than 'to'. Called only when
+// at least one endpoint is non-empty.
+func validateDhcpdRange(name, from, to string) []ValidationError {
+	var errors []ValidationError
+
+	if from != "" && !isValidIP(from) {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("dhcpd.%s.range.from", name),
+			Message: fmt.Sprintf("DHCP range 'from' address '%s' must be a valid IP address", from),
+		})
+	}
+
+	if to != "" && !isValidIP(to) {
+		errors = append(errors, ValidationError{
+			Field:   fmt.Sprintf("dhcpd.%s.range.to", name),
+			Message: fmt.Sprintf("DHCP range 'to' address '%s' must be a valid IP address", to),
+		})
+	}
+
+	if !isValidIP(from) || !isValidIP(to) {
+		return errors
+	}
+
+	fromIP := net.ParseIP(from).To4()
+	toIP := net.ParseIP(to).To4()
+	if fromIP == nil || toIP == nil {
+		return errors
+	}
+
+	if compareIPv4Bytes(fromIP, toIP) > 0 {
+		errors = append(errors, ValidationError{
+			Field: fmt.Sprintf("dhcpd.%s.range", name),
+			Message: fmt.Sprintf(
+				"DHCP range 'from' address (%s) must be less than 'to' address (%s)",
+				from,
+				to,
+			),
+		})
+	}
+
+	return errors
+}
+
+// compareIPv4Bytes returns -1, 0, or 1 comparing two 4-byte IPv4 addresses.
+func compareIPv4Bytes(a, b net.IP) int {
+	for i := range 4 {
+		switch {
+		case a[i] < b[i]:
+			return -1
+		case a[i] > b[i]:
+			return 1
+		}
+	}
+	return 0
 }

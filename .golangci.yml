@@ -67,8 +67,7 @@ linters:
     - mnd
     - musttag
     - nakedret
-    # - nestif - Staged-enable: TODO sweep current findings (8 at
-    #   min-complexity=8), then uncomment. Target settings active below.
+    - nestif
     - nilerr
     - nilnesserr
     - nilnil
@@ -231,7 +230,8 @@ linters:
     nestif:
       # 8 (vs. Go default 5). Complements cyclop + gocognit from the
       # deep-nesting angle — catches "pyramid of doom" patterns that
-      # branching counts alone do not flag.
+      # branching counts alone do not flag. Sweep on 2026-04-19 cleared
+      # the baseline; any re-add of a 9+-nested block will fail CI.
       min-complexity: 8
 
     mnd:

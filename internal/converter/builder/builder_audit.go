@@ -159,44 +159,9 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 	})
 
 	// Per-plugin summary statistics
-	if len(cc.PluginResults) > 0 {
-		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
-			result := cc.PluginResults[pluginName]
-			md.H3(pluginName)
-
-			if result.Summary == nil {
-				md.BulletList("Summary: no data available")
-			} else {
-				items := []string{fmt.Sprintf("Findings: %d", result.Summary.TotalFindings)}
-
-				items = append(items,
-					fmt.Sprintf("Compliant: %d", result.Summary.Compliant),
-					fmt.Sprintf("Non-Compliant: %d", result.Summary.NonCompliant),
-				)
-
-				if result.Summary.CriticalFindings > 0 {
-					items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
-				}
-
-				if result.Summary.HighFindings > 0 {
-					items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
-				}
-
-				if result.Summary.MediumFindings > 0 {
-					items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
-				}
-
-				if result.Summary.LowFindings > 0 {
-					items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
-				}
-
-				if result.Summary.InfoFindings > 0 {
-					items = append(items, fmt.Sprintf("Informational: %d", result.Summary.InfoFindings))
-				}
-
-				md.BulletList(items...)
-			}
-		}
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		md.H3(pluginName)
+		md.BulletList(pluginSummaryItems(cc.PluginResults[pluginName])...)
 	}
 
 	// ── Audit metadata (at the very end) ──
@@ -222,6 +187,38 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 	md.Build()
 
 	return buf.String()
+}
+
+// pluginSummaryItems renders a per-plugin summary as bullet list items. When
+// no Summary is attached, a single "no data available" entry is returned so
+// the H3 heading is not left dangling.
+func pluginSummaryItems(result common.PluginComplianceResult) []string {
+	if result.Summary == nil {
+		return []string{"Summary: no data available"}
+	}
+
+	items := []string{
+		fmt.Sprintf("Findings: %d", result.Summary.TotalFindings),
+		fmt.Sprintf("Compliant: %d", result.Summary.Compliant),
+		fmt.Sprintf("Non-Compliant: %d", result.Summary.NonCompliant),
+	}
+
+	severityCounts := []struct {
+		label string
+		count int
+	}{
+		{"Critical", result.Summary.CriticalFindings},
+		{"High", result.Summary.HighFindings},
+		{"Medium", result.Summary.MediumFindings},
+		{"Low", result.Summary.LowFindings},
+		{"Informational", result.Summary.InfoFindings},
+	}
+	for _, s := range severityCounts {
+		if s.count > 0 {
+			items = append(items, fmt.Sprintf("%s: %d", s.label, s.count))
+		}
+	}
+	return items
 }
 
 // writePluginControlsTable renders a unified controls table for a plugin with a Status column.
