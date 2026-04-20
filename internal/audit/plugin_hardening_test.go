@@ -13,6 +13,7 @@ import (
 
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // goosWindows is the runtime.GOOS value used throughout the hardening
@@ -580,6 +581,111 @@ func TestLoadDynamicPlugins_NonDirPathErrors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "failed to read plugin directory") {
 		t.Errorf("expected 'failed to read plugin directory' in error, got: %v", err)
+	}
+}
+
+// TestRunComplianceChecks_PanicVerboseLogging covers the verbose-logger
+// branch of the plugin panic recovery path. The default panic handler gates
+// debug.Stack() output behind IsVerbose() so stack traces (which expose
+// internal plugin identifiers that can leak customer compliance posture) do
+// not land in centralized logs at default verbosity. This test exercises the
+// verbose branch specifically — the non-verbose branch is covered by
+// TestRunComplianceChecks_PanickingPluginIsolation with a default logger.
+func TestRunComplianceChecks_PanicVerboseLogging(t *testing.T) {
+	t.Parallel()
+
+	verboseLogger, err := logging.New(logging.Config{Level: "debug"})
+	if err != nil {
+		t.Fatalf("failed to create verbose logger: %v", err)
+	}
+	if !verboseLogger.IsVerbose() {
+		t.Fatal("expected debug-level logger to report verbose")
+	}
+
+	panickingPlugin := &mockPanickingPlugin{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "panicking-plugin-verbose",
+			version:     "0.0.1",
+			description: "Plugin that panics",
+		},
+		controls: []compliance.Control{
+			{ID: "PANIC-002", Title: "Panic Control", Severity: "high"},
+		},
+	}
+
+	registry := NewPluginRegistry()
+	if err := registry.RegisterPlugin(panickingPlugin); err != nil {
+		t.Fatalf("RegisterPlugin failed: %v", err)
+	}
+
+	device := &common.CommonDevice{}
+	result, err := registry.RunComplianceChecks(
+		device,
+		[]string{"panicking-plugin-verbose"},
+		verboseLogger,
+	)
+	if err != nil {
+		t.Fatalf("RunComplianceChecks returned unexpected error: %v", err)
+	}
+
+	// The panic must be isolated — zero findings, plugin retained in result
+	// with a "panicked" version marker.
+	if len(result.Findings) != 0 {
+		t.Errorf("panicking plugin must produce zero findings, got %d", len(result.Findings))
+	}
+	if len(result.PluginInfo) != 1 {
+		t.Fatalf("expected 1 PluginInfo entry, got %d", len(result.PluginInfo))
+	}
+	info, ok := result.PluginInfo["panicking-plugin-verbose"]
+	if !ok {
+		t.Fatal("expected PluginInfo entry for panicked plugin")
+	}
+	if !strings.Contains(info.Version, "panicked") {
+		t.Errorf("expected version to contain 'panicked', got %q", info.Version)
+	}
+}
+
+// TestExtractOwnerUID_NilInfo guards the nil-safety branch of the POSIX
+// owner-UID extractor. The preflight emits "unavailable" rather than
+// panicking when the caller passes a nil FileInfo (e.g., a buggy future
+// helper) so the audit log row is still well-formed.
+func TestExtractOwnerUID_NilInfo(t *testing.T) {
+	t.Parallel()
+
+	if runtime.GOOS == goosWindows {
+		t.Skip("extractOwnerUID is POSIX-only")
+	}
+
+	const wantUnavailable = "unavailable"
+	uid := extractOwnerUID(nil)
+	if uid != wantUnavailable {
+		t.Errorf("extractOwnerUID(nil) = %q, want %q", uid, wantUnavailable)
+	}
+}
+
+// TestExtractOwnerUID_RealFile verifies the happy path: a real on-disk file
+// produces a numeric UID matching the current process. Exercises the
+// syscall.Stat_t type assertion and strconv path.
+func TestExtractOwnerUID_RealFile(t *testing.T) {
+	t.Parallel()
+
+	if runtime.GOOS == goosWindows {
+		t.Skip("extractOwnerUID is POSIX-only")
+	}
+
+	path := writePluginFile(t, t.TempDir(), "real.so", 0o600, []byte("stub"))
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("os.Stat failed: %v", err)
+	}
+
+	uid := extractOwnerUID(info)
+	if uid == "unavailable" { //nolint:goconst // local assertion, not a shared const
+		t.Errorf("extractOwnerUID(realFile) = %q, want a numeric UID", uid)
+	}
+	// Assert it parses as a number.
+	if _, err := fmt.Sscanf(uid, "%d", new(int)); err != nil {
+		t.Errorf("extractOwnerUID returned non-numeric %q: %v", uid, err)
 	}
 }
 
