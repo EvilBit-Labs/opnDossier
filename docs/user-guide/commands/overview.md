@@ -13,4 +13,4 @@ opnDossier provides the following commands for working with OPNsense and pfSense
 | [`config`](config.md)     |        | Manage opnDossier configuration (init, show, validate)     |
 | `version`                 |        | Display version information                                |
 
-For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
+For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md). For the exhaustive auto-generated flag list for every command (regenerated from the Cobra command definitions via `just generate-cli-docs`), see the [CLI Reference](../../cli/opnDossier.md) section.

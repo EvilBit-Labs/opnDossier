@@ -176,6 +176,7 @@ opndossier --verbose audit config.xml --mode blue --plugins stig,sans
 
 ## Related
 
+- [CLI Reference — `audit`](../../cli/opnDossier_audit.md) -- auto-generated exhaustive flag list
 - [convert](convert.md) -- convert configs to documentation
 - [display](display.md) -- render in terminal instead of writing to file
 - [Configuration Reference](../configuration-reference.md) -- global flags and settings
