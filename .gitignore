@@ -227,6 +227,7 @@ SECURITY_AUDIT.md
 docs/plans/
 todos/
 .context/
+/skills/
 
 # VHS demo artifacts (regenerated from vhs/*.tape)
 vhs/gif/
