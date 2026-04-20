@@ -565,9 +565,9 @@ opnDossier is designed with security as a first-class concern:
 - **Secure by design** - Input validation, sanitization, and SBOM generation
 - **Automated scanning** - Vulnerability scans and dependency audits run in CI/CD on pull requests, pushes, and a weekly schedule
 
-### Dynamic plugin trust model
+### Third-party plugin trust model
 
-Dynamic compliance plugins are opt-in. The `--plugin-dir` flag on `opnDossier audit` loads every `.so` file in the directory via Go's standard `plugin.Open()` mechanism; those plugins run with full opnDossier process privileges and are not signature-verified. Only point `--plugin-dir` at directories whose contents you build, review, and control — never at a world-writable path. A stderr warning is emitted whenever `--plugin-dir` is supplied. For the full threat model and hardening guidance, see [audit command — Dynamic Plugin Security](docs/user-guide/commands/audit.md#dynamic-plugin-security).
+`--plugin-dir` applies to **third-party** compliance plugins distributed as Go shared objects; it does **not** affect the built-in `stig`, `sans`, and `firewall` plugins, which are compiled into the opnDossier binary and always available. Third-party plugins are opt-in. The `--plugin-dir` flag on `opnDossier audit` loads every `.so` file in the directory via Go's standard `plugin.Open()` mechanism (Linux, macOS, FreeBSD only — a clean no-op on Windows); loaded plugins run with full opnDossier process privileges and are not signature-verified. Only point `--plugin-dir` at directories whose contents you build, review, and control — never at a world-writable path. A stderr warning is emitted whenever `--plugin-dir` is supplied. For the full threat model and hardening guidance, see [audit command — Third-Party Plugin Security](docs/user-guide/commands/audit.md#third-party-plugin-security).
 
 For security vulnerabilities, please see our [security policy](SECURITY.md).
 

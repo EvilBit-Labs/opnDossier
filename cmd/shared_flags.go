@@ -110,12 +110,13 @@ const (
 
 // pluginDirFlagUsage is the shared --plugin-dir help text. Every command that
 // exposes this flag must use this string so the trust-model warning stays in
-// sync. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md §"Dynamic Plugin
-// Security".
-const pluginDirFlagUsage = "Directory containing dynamic .so compliance plugins. " +
+// sync. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md §"Third-Party
+// Plugin Security".
+const pluginDirFlagUsage = "Directory containing third-party .so compliance plugins (does not affect built-in stig/sans/firewall). " +
 	"Plugins run with full process privileges; signatures are not verified. " +
 	"Do not point at untrusted-writable directories. " +
-	"See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Dynamic Plugin Security."
+	"Linux/macOS/FreeBSD only; no-op on Windows. " +
+	"See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Third-Party Plugin Security."
 
 // pluginDirTrustModelWarning is the exact stderr warning emitted when a
 // non-empty --plugin-dir flag is supplied. It mirrors the red-mode warning

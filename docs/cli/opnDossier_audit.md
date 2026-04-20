@@ -92,7 +92,7 @@ opnDossier audit [file ...] [flags]
 ```
       --mode string         Audit mode (blue|red) (default "blue")
       --plugins strings     Compliance plugins to run (stig,sans,firewall)
-      --plugin-dir string   Directory containing dynamic .so compliance plugins. Plugins run with full process privileges; signatures are not verified. Do not point at untrusted-writable directories. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Dynamic Plugin Security.
+      --plugin-dir string   Directory containing third-party .so compliance plugins (does not affect built-in stig/sans/firewall). Plugins run with full process privileges; signatures are not verified. Do not point at untrusted-writable directories. Linux/macOS/FreeBSD only; no-op on Windows. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Third-Party Plugin Security.
       --failures-only       Show only failing controls in blue mode plugin results tables
   -f, --format string       Output format for audit report (markdown, json, yaml, text, html) (default "markdown")
   -o, --output string       Output file path for saving audit report (default: print to console)

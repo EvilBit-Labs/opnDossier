@@ -162,4 +162,4 @@ The project maintains continuous assurance through two separately-managed scan s
 ## References
 
 - [GOTCHAS.md §2.5 — Dynamic Plugin Trust Model](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#25-dynamic-plugin-trust-model)
-- [docs/user-guide/commands/audit.md — Dynamic Plugin Security](../user-guide/commands/audit.md#dynamic-plugin-security)
+- [docs/user-guide/commands/audit.md — Third-Party Plugin Security](../user-guide/commands/audit.md#third-party-plugin-security)
