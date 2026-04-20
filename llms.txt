@@ -1,97 +1,144 @@
 # opnDossier
 
-> Firewall Configuration Processor - Transform OPNsense and pfSense configs into documentation and security analysis
+> Firewall Configuration Processor - Transform OPNsense and pfSense configuration files into documentation, machine-readable exports (JSON/YAML/HTML/Markdown/text), and security audit reports. Offline-first, no telemetry, works in airgapped environments.
 
-opnDossier is a command-line tool for network operators and security professionals working with OPNsense and pfSense firewalls. It converts XML configuration files into clear, readable documentation and identifies security issues, misconfigurations, and optimization opportunities.
+This file is a repo-orientation primer for AI coding assistants (Copilot, Cursor-style IDE assistants, Claude-in-repo) that have cloned or indexed this repository. It describes the codebase layout, tech stack, and contributor-facing docs.
+
+If you are an AI agent **invoking the `opnDossier` CLI at runtime** (not contributing to it), the better starting point is [docs/for-agents.md](docs/for-agents.md). If you are an LLM crawler fetching the published docs site, the conventional entry point is [https://opndossier.com/llms.txt](https://opndossier.com/llms.txt) (this file's spec-compliant sibling served at the site root).
 
 ## Key Characteristics
 
-- **Offline-First**: Works completely offline, designed for airgapped environments
-- **No Telemetry**: Zero data collection or external communication
-- **Multi-Format Export**: Markdown, JSON, YAML, HTML, and plain text output formats
-- **Security Analysis**: Detects vulnerabilities, dead rules, unused resources
-- **Compliance Auditing**: Built-in STIG, SANS, and firewall compliance plugins
-- **Configuration Sanitization**: Redact sensitive data for safe sharing
-- **Configuration Diffing**: Compare two config versions with security-aware analysis
-- **Go-based**: Built with Go 1.26+ for performance and reliability
+- **Offline-first** — no network calls at runtime, designed for airgapped environments
+- **No telemetry** — zero data collection or external communication
+- **Multi-format export** — Markdown, JSON, YAML, HTML, plain text; every format is serialized from the same `pkg/model.CommonDevice` domain model
+- **Honest-empty-field policy** — subsystems not yet implemented for a device type emit a stable `"not yet implemented in <device> converter"` ConversionWarning substring so automation can distinguish product gaps from missing configuration; canonical list: `pkg/parser/pfsense.KnownGaps()`
+- **Public Go API** — `pkg/parser`, `pkg/model`, `pkg/schema/*` are semver-committed from v1.5; compile-time shape tests + `go doc -all` goldies guard against drift
+- **Security analysis** — vulnerability detection, dead-rule analysis, unused-resource analysis
+- **Compliance auditing** — built-in STIG, SANS, and firewall-baseline plugins; third-party compliance plugins loadable as `.so` files via `--plugin-dir` (Linux/macOS/FreeBSD only, preflight-hardened)
+- **Configuration sanitization** — field-pattern and value-detector redaction of credentials, keys, and community strings
+- **Configuration diffing** — compare two configs with security-aware change analysis
+- **Go 1.26+** — single static binary for Linux / macOS / Windows
 
 ## Project Structure
 
-- `cmd/` - CLI command entry points (Cobra-based)
-- `internal/` - Private application logic
-  - `audit/` - Audit engine and compliance checking
-  - `cfgparser/` - XML parsing and validation
-  - `compliance/` - Plugin interfaces
-  - `config/` - Configuration management
-  - `constants/` - Shared constants and validation whitelists
-  - `converter/` - Data conversion and report generation
-    - `builder/` - Programmatic markdown builder and streaming writer
-  - `diff/` - Configuration diff engine with security analysis
-  - `display/` - Terminal display formatting
-  - `export/` - File export functionality
-  - `logging/` - Structured logging utilities
-  - `markdown/` - Markdown generation and validation
-  - `model/` - Data models and re-export seam
-    - `common/` - Platform-agnostic CommonDevice domain model
-    - `opnsense/` - OPNsense schema-to-CommonDevice converter
-  - `plugins/` - Compliance plugins (firewall, SANS, STIG)
-  - `pool/` - Worker pool for concurrent processing
-  - `processor/` - Data processing and report generation
-  - `progress/` - CLI progress indicators (spinner, bar)
-  - `sanitizer/` - Data sanitization and redaction engine
-  - `schema/` - Canonical OPNsense XML data model
-  - `validator/` - Data validation
-- `testdata/` - Test fixtures
-- `docs/` - Documentation
-- `project_spec/` - Project specifications
+- `cmd/` — CLI command entry points (Cobra-based, wrapped with `charmbracelet/fang`)
+- `pkg/` — **Public Go API** (semver-committed from v1.5)
+  - `pkg/model/` — Platform-agnostic `CommonDevice` domain model plus `ConversionWarning`, `Severity`, `DeviceType`, firewall/NAT/DHCP/VPN subsystem structs
+  - `pkg/parser/` — `Factory`, `OPNsenseXMLDecoder` interface, `DeviceParser` interface, `DeviceParserRegistry`
+    - `pkg/parser/opnsense/` — OPNsense `Parser` and `ConvertDocument(*schema.OpnSenseDocument)`; self-registers via `init()`
+    - `pkg/parser/pfsense/` — pfSense `Parser` and `ConvertDocument(*pfschema.Document)`; self-registers via `init()`; has its own XML decoder because the shared `OPNsenseXMLDecoder` is OPNsense-typed
+  - `pkg/schema/` — XML DTO layer (tracks vendor upstream, public but vendor-tracking)
+    - `pkg/schema/opnsense/` — `OpnSenseDocument` and nested OPNsense XML DTOs
+    - `pkg/schema/pfsense/` — `Document` and pfSense-specific DTOs (forked copy-on-write from OPNsense where they diverge)
+    - `pkg/schema/shared/` — cross-platform helper types (`FlexBool`, `FlexInt`, shared DHCP/Unbound structs)
+- `internal/` — **Private application logic** (not importable by external consumers)
+  - `internal/analysis/` — Shared analysis + canonical finding types, detection functions, statistics
+  - `internal/audit/` — Audit engine, compliance plugin registry/manager, dynamic plugin loader + preflight
+  - `internal/cfgparser/` — `XMLParser` implementation of `parser.OPNsenseXMLDecoder` (charset detection, XXE protection, size limits)
+  - `internal/compliance/` — Plugin interfaces and canonical `Finding` type
+  - `internal/config/` — Viper-based configuration management
+  - `internal/constants/` — Shared constants and validation whitelists
+  - `internal/converter/` — Data conversion and report generation
+    - `internal/converter/builder/` — Programmatic markdown builder and streaming writer
+    - `internal/converter/formatters/` — Format-specific renderers (JSON, YAML, HTML, text)
+  - `internal/diff/` — Configuration diff engine with security-aware change analysis
+  - `internal/display/` — Terminal display formatting
+  - `internal/docgen/` — Cobra-doc generation helpers
+  - `internal/export/` — File export with overwrite protection
+  - `internal/logging/` — `charmbracelet/log` wrapper with `IsVerbose()` gate for sensitive diagnostics
+  - `internal/plugins/` — Built-in compliance plugins (`firewall/`, `sans/`, `stig/`)
+  - `internal/pool/` — Worker pool for concurrent multi-file processing
+  - `internal/processor/` — Data processing and report generation pipeline
+  - `internal/progress/` — CLI progress indicators (spinner, bar)
+  - `internal/sanitizer/` — Sanitization engine (field-pattern + value-detector rules, XML streaming + struct reflection paths)
+  - `internal/validator/` — Semantic validation rules injected into `pkg/parser/*` via `SetValidator`
+- `docs/` — Documentation site (mkdocs)
+  - `docs/for-agents.md` — Runtime-invocation entry point for AI agents and automation pipelines
+  - `docs/llms.txt` — llmstxt.org-spec-compliant site-root summary (served at `https://opndossier.com/llms.txt`)
+  - `docs/cli/` — Cobra-auto-generated exhaustive flag reference (regenerated by `just generate-cli-docs`)
+  - `docs/development/` — Architecture, API reference, public-API contract, contributing, releasing
+  - `docs/user-guide/` — Hand-written operator narrative for each command
+  - `docs/data-model/` — `CommonDevice` schema reference and JSON/YAML export examples
+  - `docs/security/` — NIST IR 7608-style security assurance case
+- `project_spec/` — Project specifications (requirements, user stories, tasks)
+- `testdata/` — Shared test fixtures
 
 ## Technology Stack
 
-- CLI Framework: spf13/cobra
-- CLI Enhancement: charmbracelet/fang
-- Terminal Styling: charmbracelet/lipgloss, charmbracelet/glamour
-- Markdown Generation: nao1215/markdown
-- Configuration: spf13/viper
-- Logging: charmbracelet/log
-- Data Formats: encoding/xml, encoding/json, gopkg.in/yaml.v3
+- CLI framework: `github.com/spf13/cobra`, wrapped with `github.com/charmbracelet/fang`
+- Terminal styling: `github.com/charmbracelet/lipgloss`, `github.com/charmbracelet/glamour`
+- Markdown generation: `github.com/nao1215/markdown`
+- Markdown-to-HTML: `github.com/yuin/goldmark` (+ `goldmark-emoji`)
+- Configuration: `github.com/spf13/viper`
+- Logging: `github.com/charmbracelet/log`
+- Data formats: `encoding/xml`, `encoding/json`, `gopkg.in/yaml.v3`
 
-## Documentation
+## Documentation (authoritative sources, read before making changes)
 
-- README: https://github.com/EvilBit-Labs/opnDossier/blob/main/README.md
-- Contributing: https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md
-- Architecture: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/architecture.md
-- Development Standards: https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/standards.md
-- Requirements: https://github.com/EvilBit-Labs/opnDossier/blob/main/project_spec/requirements.md
-- Agent Guidelines: https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md
-- Releasing: https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md
-- Security: https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md
+- [README](https://github.com/EvilBit-Labs/opnDossier/blob/main/README.md) — Project overview, install, quick start
+- [AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) — Agent-specific behavioral rules and precedence
+- [GOTCHAS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md) — Non-obvious behaviors, pitfalls, hard-won lessons (read this before touching tests, plugins, or XML parsing)
+- [CONTRIBUTING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/CONTRIBUTING.md) — PR process, commit conventions, testing expectations
+- [Architecture Overview](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/architecture.md) — System design and component interactions
+- [Development Standards](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/standards.md) — Go patterns, implementation details, data processing
+- [Public API Contract](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/public-api.md) — Semver policy and stable surface
+- [Plugin Development](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/plugin-development.md) — Compliance plugin and device parser authoring
+- [Requirements](https://github.com/EvilBit-Labs/opnDossier/blob/main/project_spec/requirements.md) — Project requirements and specifications
+- [Releasing](https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md) — Release process and signing
+- [Security Policy](https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md) — Vulnerability disclosure policy
 
 ## Commands
 
+```text
+# Convert / display
+opnDossier display config.xml                               # Display config in terminal (Markdown + theme)
+opnDossier convert config.xml                               # Convert to Markdown (stdout)
+opnDossier convert config.xml -f json -o output.json        # Export to JSON
+opnDossier convert config.xml -f yaml -o output.yaml        # Export to YAML
+opnDossier convert config.xml -f html -o output.html        # Export to self-contained HTML
+
+# Validate / audit / diff
+opnDossier validate config.xml                              # Structural + semantic validation
+opnDossier audit config.xml                                 # Run blue-mode compliance audit (default)
+opnDossier audit config.xml --mode red                      # Attacker-focused recon (experimental; stub output)
+opnDossier audit config.xml --plugins stig,sans             # Run a subset of built-in plugins
+opnDossier audit config.xml --plugin-dir /opt/plugins       # Load third-party .so plugins (POSIX only)
+opnDossier diff old.xml new.xml                             # Compare two configs with security-aware analysis
+
+# Sanitize (redact sensitive values into a new file)
+opnDossier sanitize config.xml --mode aggressive -o safe.xml   # --mode: conservative | moderate | aggressive
+
+# Config file / completions / docs
+opnDossier config init                                      # Emit a fully annotated default config
+opnDossier config show                                      # Show effective merged config
+opnDossier config validate                                  # Validate the config file
+opnDossier completion bash|zsh|fish|powershell              # Shell completion scripts
+opnDossier man ./man                                        # Generate man pages
 ```
-opnDossier display config.xml                          # Display config in terminal
-opnDossier convert config.xml                          # Convert to markdown
-opnDossier convert config.xml -f json -o output.json   # Export to JSON
-opnDossier convert config.xml -f yaml -o output.yaml   # Export to YAML
-opnDossier convert config.xml -f html -o output.html   # Export to HTML
-opnDossier validate config.xml                         # Validate configuration
-opnDossier audit config.xml                            # Run compliance audit
-opnDossier sanitize config.xml -m aggressive -o safe.xml  # Redact sensitive data
-opnDossier diff old.xml new.xml                        # Compare configurations
-```
+
+Device type is auto-detected from the XML root element (`<opnsense>` vs `<pfsense>`). Force it with the global `--device-type` flag if needed.
 
 ## Development
 
+```text
+just dev *args          # Run opnDossier locally (alias for `just run`)
+just build              # Build the binary [alias: b]
+just build-release      # Build with optimizations for release
+just test               # Run all tests [alias: t]
+just test-race          # Run tests with race detector (locally enforced; not in CI)
+just test-integration   # Run integration tests (build tag)
+just test-coverage      # Generate coverage profile
+just coverage           # Run tests and open coverage HTML in browser
+just lint               # Run golangci-lint via mise-pinned toolchain
+just ci-check           # Full CI-equivalent checks (pre-commit + format + lint + test + integration + race)
+just ci-smoke           # Fast smoke tests (minimal validation)
+just scan               # Run gosec security scanner
+just generate-cli-docs  # Regenerate docs/cli/opnDossier_*.md from Cobra definitions
+just docs-build         # Build the mkdocs documentation site
 ```
-just dev       # Run in development mode
-just build     # Build with all checks
-just test      # Run tests
-just lint      # Run linting
-just ci-check  # Run CI-equivalent checks (pre-commit, lint, tests)
-just coverage  # Run tests and open coverage in browser
-just scan      # Run gosec security scanner
-```
+
+`just ci-check` is the pre-commit authority: run it before any commit that will be pushed. A test, lint, or format failure there is the same failure CI will hit.
 
 ## License
 
-Apache License 2.0
+Apache License 2.0 — see [LICENSE](https://github.com/EvilBit-Labs/opnDossier/blob/main/LICENSE).
