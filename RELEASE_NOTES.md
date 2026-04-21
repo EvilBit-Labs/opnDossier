@@ -1,34 +1,52 @@
-# opnDossier v1.4.0 — Kea DHCP, full compliance posture, and container support
+# opnDossier v1.5.0 — Public Go API lock, secret redaction, and parsing correctness
 
-This release unifies DHCP parsing across ISC and Kea backends, overhauls blue mode into a true compliance posture report, and ships a Dockerfile and GitHub Action for CI integration. Security hardening and a 710-line net code reduction round it out.
+v1.5.0 locks down the public Go API surface in `pkg/model`, `pkg/schema/*`, and `pkg/parser/*` for cross-repo consumption — sibling products can now depend on opnDossier as a stable library. It also ships a high-severity sanitizer fix for OpenVPN keys, a subtle but pervasive parsing correctness fix, and plugin-loader hardening.
 
 ## Highlights
 
-**Kea DHCP4 parsing.** Previously, opnDossier only extracted general-level Kea fields — subnets, pools, and reservations were invisible. Now, full Kea DHCP4 data is parsed and normalized into the same `DHCPScope` model as ISC DHCP, so reports, diffs, and exports work uniformly regardless of backend.
+**Public Go API is now stable.** `pkg/model/`, `pkg/schema/opnsense/`, `pkg/schema/pfsense/`, and `pkg/parser/` are audited, fully godoc'd, and frozen for external consumers. You can now import them directly:
 
-```yaml
-# CommonDevice DHCP scopes now include:
-  - source: kea        # or "isc"
-    subnet: 10.0.1.0/24
-    gateway: 10.0.1.1
-    staticLeases: ['...']
+```go
+import (
+    "github.com/EvilBit-Labs/opnDossier/pkg/parser"
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // register parser
+    _ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"
+)
+
+doc, _ := parser.NewFactory().Parse(ctx, xmlReader)
 ```
 
-**Three-state compliance posture.** Blue mode reports previously showed only findings. Now every control reports PASS, FAIL, or UNKNOWN — with 75 new controls across STIG, SANS, and Firewall plugins. The new `--failures-only` flag filters to just what needs attention.
+No more `internal/` imports, stdlib-only production deps, and the blank-import registration pattern follows `database/sql`. (#569, #575, #580, #586)
 
-**Docker and GitHub Action.** `Dockerfile` and `action.yaml` are wired into goreleaser v2 for container image builds on release. Run opnDossier in CI pipelines without installing Go. (#521, closes #482)
+**OpenVPN TLS-auth keys are now redacted.** Previously, `opnDossier sanitize` on configs containing OpenVPN `<tls>` or `<StaticKeys>` elements **leaked raw HMAC keys to stdout** — enough material to forge OpenVPN handshakes. Path-anchored patterns (`openvpn.tls`, `openvpn.statickeys`) now catch the real OpenVPN paths without false-positives against Suricata IDS or IPsec charon syslog. A new `IsOpenVPNStaticKey` value detector matches the `-----BEGIN OpenVPN Static key V1-----` envelope. (#587)
 
-**LDAP pseudonymization.** The sanitizer now pseudonymizes authserver LDAP bind passwords (e.g., `ldap-bindpw-001`) instead of flat-redacting them, preserving the structure needed for config comparison while removing secrets. (#529)
+**Liberal boolean parsing for OPNsense/pfSense.** Previously, `<enable>0</enable>` was treated as enabled because the parser only checked element presence — any non-empty body was "true." Now, boolean elements delegate through a shared truthy vocabulary (`1|on|yes|true|enable|enabled`, case-insensitive), so `<enable>0</enable>`, `<enable>no</enable>`, and `<enable>off</enable>` all correctly resolve to `false`. (#558, #577)
+
+**Dynamic plugin loader preflight.** Before `plugin.Open()` is invoked, the loader now rejects symlinked `.so` files, non-regular files (FIFO/socket/device nodes), group/world-writable plugin files, and world-writable parent directories. Every load attempt emits a structured audit log with SHA-256, mode bits, owner UID, and verdict. The dynamic-plugin trust model is now documented explicitly in `audit` help text. (#587)
 
 ## Upgrade notes
 
-No breaking changes. Drop-in upgrade from v1.3.0.
+**Breaking: template config keys silently ignored.** If your `~/.opnDossier.yaml` or environment set any of the following, they are no longer recognized (Viper ignores them without error):
 
-New optional flags:
+- Config keys: `template`, `engine`, `use_template`, `export.template`
+- Env vars: `OPNDOSSIER_TEMPLATE`, `OPNDOSSIER_ENGINE`, `OPNDOSSIER_EXPORT_TEMPLATE`
 
-- `--failures-only` — show only failing controls in blue mode (markdown format only)
-- Docker image available on release for CI/CD pipelines
+The template system was removed in favor of the programmatic builder — remove these keys from your config to avoid confusion. (#550, #556)
+
+**Breaking (Go API consumers only): `pfsense.ValidateFunc` → `pfsense.SetValidator`.** The exported `var ValidateFunc` has been replaced with a `sync.Once`-guarded `SetValidator(fn)` function to prevent malicious plugin `init()` from stomping the validator post-CLI-setup. Migration:
+
+```go
+// Before (v1.4.x):
+pfsense.ValidateFunc = myValidator
+
+// After (v1.5.0+):
+pfsense.SetValidator(myValidator)  // one-shot; first call wins
+```
+
+Only affects code that injects a custom pfSense validator — most consumers don't touch this. (#587)
+
+Otherwise: drop-in upgrade from v1.4.0.
 
 ## Full changelog
 
-See the [weekly changelog discussion](https://github.com/EvilBit-Labs/opnDossier/discussions/537) for the complete list of changes, contributors, and dependency updates.
+See [CHANGELOG.md](./CHANGELOG.md#150---2026-04-21) for the complete list.
