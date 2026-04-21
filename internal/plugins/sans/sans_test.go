@@ -93,7 +93,8 @@ func TestSANSPlugin_RunChecks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run the checks
-			findings := sansPlugin.RunChecks(tt.config)
+			findings, _, err := sansPlugin.RunChecks(tt.config)
+			require.NoError(t, err)
 
 			// Verify the expected number of findings
 			assert.Len(t, findings, len(tt.expectedFindingIDs), "Expected %d findings, got %d: %v",
@@ -259,7 +260,8 @@ func TestSANSPlugin_FindingSeverityMatchesControl(t *testing.T) {
 	}
 
 	for _, device := range configs {
-		findings := sansPlugin.RunChecks(device)
+		findings, _, err := sansPlugin.RunChecks(device)
+		require.NoError(t, err)
 		for _, finding := range findings {
 			control, err := sansPlugin.GetControlByID(finding.Reference)
 			require.NoError(t, err, "finding references unknown control %s", finding.Reference)
@@ -276,7 +278,7 @@ func TestSANSPlugin_FindingSeverityMatchesControl(t *testing.T) {
 }
 
 func getFindings(findings []compliance.Finding) []string {
-	var ids []string
+	ids := make([]string, 0, len(findings))
 	for _, finding := range findings {
 		ids = append(ids, finding.Reference)
 	}

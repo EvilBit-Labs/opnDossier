@@ -2,6 +2,8 @@
 
 This file provides AI coding assistants with project context. All substantive documentation lives in the files linked below. Read the linked documents for implementation details — this file only contains agent-specific behavioral rules.
 
+> **Agents invoking opnDossier at runtime** (vs. contributing to it): start at [docs/for-agents.md](docs/for-agents.md). That page aggregates every stable machine-readable interface — auto-generated CLI reference, JSON/YAML output schemas, exit codes, public Go API, configuration schema — in one place and is kept in sync with the code via generators. The rest of this document is for AI assistants contributing to the repo itself.
+
 @GOTCHAS.md
 
 ## Project Documentation
@@ -40,6 +42,22 @@ When rules conflict, follow the higher precedence rule.
 4. Prefer structured config data + audit overlays over flat summary tables
 5. Validate markdown with `mdformat` — **never run `mdformat` directly**; use `pre-commit run -a` which loads the correct plugins
 6. Place `//nolint:` directives on SEPARATE LINE above call (inline gets stripped by gofumpt)
+7. **Preallocate slices when the final size is known ahead of time.** Prefer `make([]T, 0, len(src))` over `var s []T` followed by `append` in a loop when the output length is guaranteed by the input (e.g., a transform that does not filter). `prealloc` is not enabled in CI because it also recommends the anti-pattern on validator error-collector loops where the common case is zero appends — so this is a manual-review rule, not a lint-enforced one. Do *not* preallocate when the loop may skip the append (validation, filtering, conditional matching); in those cases the nil-slice-grow-on-demand pattern is correct.
+
+### JSON / YAML Tag Naming
+
+The `tagliatelle` linter is disabled in `.golangci.yml` because the vendor-controlled OPNsense/pfSense `config.xml` schema mixes casing conventions (`hostname`, `descr`, `sourceport`, `created-time`, `Phase1`) and the `pkg/schema/*` Go types must mirror that reality — a single case convention fights the input format we do not control.
+
+For **new Go types that are not mirroring a vendor schema**, follow these conventions anyway so the public JSON/YAML surface we *do* control stays consistent:
+
+- **JSON tags** — `camelCase` (e.g. `"complianceResults"`, `"firewallRules"`, `"deviceType"`). This matches the existing `pkg/model.CommonDevice` JSON surface.
+- **YAML tags** — same `camelCase` as the JSON tag; do not diverge.
+- **Nested struct types** — every field gets an explicit tag. Do not rely on the default `FieldName` lowercasing.
+- **Boolean-flag fields** — name positively (e.g. `"enabled"`, not `"disabled"`), prefer omitting the field when unset via `omitempty`.
+
+When mirroring a vendor schema (anything under `pkg/schema/opnsense/`, `pkg/schema/pfsense/`, or `pkg/schema/shared/`), the vendor's XML element name wins. Do not rename vendor fields to match our camelCase policy — downstream consumers reading `config.xml` will break, and the round-trip invariant in the schema tests will fail.
+
+This convention is enforced manually via code review since tagliatelle cannot express the schema-carve-out accurately. Reviewers should flag any non-schema type with a non-camelCase JSON tag and any schema type with a Go-renamed tag.
 
 ### Code Review Checklist
 

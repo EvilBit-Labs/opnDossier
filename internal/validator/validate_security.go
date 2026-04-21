@@ -85,157 +85,195 @@ func validateAddressField(address, fieldPath string) []ValidationError {
 	return nil
 }
 
+// validOPNRuleTypes / IPProtocols / Directions / StateTypes are hoisted to
+// package scope so each helper does not reallocate them per rule.
+var (
+	validOPNRuleTypes      = []string{"pass", "block", "reject"}
+	validOPNIPProtocols    = []string{"inet", "inet6"}
+	validOPNDirections     = []string{"in", "out", "any"}
+	validOPNRuleStateTypes = []string{"keep state", "sloppy state", "synproxy state", "none"}
+)
+
 // validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
 // It returns a list of validation errors for any rule fields that are invalid or reference non-existent interfaces.
 func validateFilter(filter *schema.Filter, interfaces *schema.Interfaces) []ValidationError {
 	var errors []ValidationError
-
-	// Collect valid interface names from the configuration
 	validInterfaceNames := collectInterfaceNames(interfaces)
-
 	for i, rule := range filter.Rule {
-		// Validate rule type
-		validTypes := []string{"pass", "block", "reject"}
-		if rule.Type != "" && !contains(validTypes, rule.Type) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].type", i),
-				Message: fmt.Sprintf("rule type '%s' must be one of: %v", rule.Type, validTypes),
-			})
-		}
-
-		// Validate IP protocol
-		validIPProtocols := []string{"inet", "inet6"}
-		if rule.IPProtocol != "" && !contains(validIPProtocols, rule.IPProtocol) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].ipprotocol", i),
-				Message: fmt.Sprintf("IP protocol '%s' must be one of: %v", rule.IPProtocol, validIPProtocols),
-			})
-		}
-
-		// Validate interface against configured interfaces
-		if !rule.Interface.IsEmpty() {
-			for _, iface := range rule.Interface {
-				if _, exists := validInterfaceNames[iface]; !exists {
-					errors = append(errors, ValidationError{
-						Field: fmt.Sprintf("filter.rule[%d].interface", i),
-						Message: fmt.Sprintf(
-							"interface '%s' must be one of the configured interfaces: %v",
-							iface,
-							sortedInterfaceNames(validInterfaceNames),
-						),
-					})
-				}
-			}
-		}
-
-		// Validate source/destination networks and addresses
-		errors = append(errors, validateNetworkField(
-			rule.Source.Network, fmt.Sprintf("filter.rule[%d].source.network", i), "source", validInterfaceNames,
-		)...)
-		errors = append(errors, validateAddressField(
-			rule.Source.Address, fmt.Sprintf("filter.rule[%d].source.address", i),
-		)...)
-		errors = append(errors, validateNetworkField(
-			rule.Destination.Network,
-			fmt.Sprintf("filter.rule[%d].destination.network", i),
-			"destination",
-			validInterfaceNames,
-		)...)
-		errors = append(errors, validateAddressField(
-			rule.Destination.Address, fmt.Sprintf("filter.rule[%d].destination.address", i),
-		)...)
-
-		// Validate source port
-		if rule.Source.Port != "" && !isValidPortOrRange(rule.Source.Port) {
-			errors = append(errors, ValidationError{
-				Field: fmt.Sprintf("filter.rule[%d].source.port", i),
-				Message: fmt.Sprintf(
-					"source port '%s' is not a valid port (1-65535) or range (low-high)",
-					rule.Source.Port,
-				),
-			})
-		}
-
-		// Validate destination port
-		if rule.Destination.Port != "" && !isValidPortOrRange(rule.Destination.Port) {
-			errors = append(errors, ValidationError{
-				Field: fmt.Sprintf("filter.rule[%d].destination.port", i),
-				Message: fmt.Sprintf(
-					"destination port '%s' is not a valid port (1-65535) or range (low-high)",
-					rule.Destination.Port,
-				),
-			})
-		}
-
-		// Validate Source mutual exclusivity (Any, Network, Address)
-		sourceFieldCount := 0
-		if rule.Source.IsAny() {
-			sourceFieldCount++
-		}
-		if rule.Source.Network != "" {
-			sourceFieldCount++
-		}
-		if rule.Source.Address != "" {
-			sourceFieldCount++
-		}
-		if sourceFieldCount > 1 {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].source", i),
-				Message: "source can only specify one of: any, network, or address",
-			})
-		}
-
-		// Validate Destination mutual exclusivity (Any, Network, Address)
-		destFieldCount := 0
-		if rule.Destination.IsAny() {
-			destFieldCount++
-		}
-		if rule.Destination.Network != "" {
-			destFieldCount++
-		}
-		if rule.Destination.Address != "" {
-			destFieldCount++
-		}
-		if destFieldCount > 1 {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].destination", i),
-				Message: "destination can only specify one of: any, network, or address",
-			})
-		}
-
-		// Validate floating rule constraints
-		if rule.Floating == floatingYes && rule.Direction == "" {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
-				Message: "direction is required for floating rules",
-			})
-		}
-		validDirections := []string{"in", "out", "any"}
-		if rule.Direction != "" && !contains(validDirections, rule.Direction) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
-				Message: fmt.Sprintf("direction '%s' must be one of: %v", rule.Direction, validDirections),
-			})
-		}
-
-		// Validate state type
-		validStateTypes := []string{"keep state", "sloppy state", "synproxy state", "none"}
-		if rule.StateType != "" && !contains(validStateTypes, rule.StateType) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].statetype", i),
-				Message: fmt.Sprintf("state type '%s' must be one of: %v", rule.StateType, validStateTypes),
-			})
-		}
-
-		// Validate max-src-conn-rate format (e.g., "15/5")
-		if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].max-src-conn-rate", i),
-				Message: "max-src-conn-rate must be in format 'connections/seconds' (e.g., '15/5')",
-			})
-		}
+		errors = append(errors, validateOPNFilterRule(i, rule, validInterfaceNames)...)
 	}
+	return errors
+}
 
+// validateOPNFilterRule checks a single OPNsense filter rule by delegating
+// to concern-specific helpers. Splitting keeps validateFilter cognitively flat.
+func validateOPNFilterRule(
+	i int,
+	rule schema.Rule,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	var errors []ValidationError
+	prefix := fmt.Sprintf("filter.rule[%d]", i)
+	errors = append(errors, validateOPNRuleTypeAndProtocol(prefix, rule)...)
+	errors = append(errors, validateOPNRuleInterface(prefix, rule, validInterfaceNames)...)
+	errors = append(errors, validateOPNRuleEndpoints(prefix, rule, validInterfaceNames)...)
+	errors = append(errors, validateOPNRuleAnyExclusivity(prefix, rule)...)
+	errors = append(errors, validateOPNRuleDirection(prefix, rule)...)
+	errors = append(errors, validateOPNRuleStateAndRate(prefix, rule)...)
+	return errors
+}
+
+func validateOPNRuleTypeAndProtocol(prefix string, rule schema.Rule) []ValidationError {
+	var errors []ValidationError
+	if rule.Type != "" && !contains(validOPNRuleTypes, rule.Type) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".type",
+			Message: fmt.Sprintf("rule type '%s' must be one of: %v", rule.Type, validOPNRuleTypes),
+		})
+	}
+	if rule.IPProtocol != "" && !contains(validOPNIPProtocols, rule.IPProtocol) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".ipprotocol",
+			Message: fmt.Sprintf("IP protocol '%s' must be one of: %v", rule.IPProtocol, validOPNIPProtocols),
+		})
+	}
+	return errors
+}
+
+func validateOPNRuleInterface(
+	prefix string,
+	rule schema.Rule,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	if rule.Interface.IsEmpty() {
+		return nil
+	}
+	var errors []ValidationError
+	for _, iface := range rule.Interface {
+		if _, exists := validInterfaceNames[iface]; exists {
+			continue
+		}
+		errors = append(errors, ValidationError{
+			Field: prefix + ".interface",
+			Message: fmt.Sprintf(
+				"interface '%s' must be one of the configured interfaces: %v",
+				iface,
+				sortedInterfaceNames(validInterfaceNames),
+			),
+		})
+	}
+	return errors
+}
+
+// validateOPNRuleEndpoints mirrors validatePfSenseRuleEndpoints in pfsense.go
+// by design — the two devices share the same endpoint schema. The dupl linter
+// flags this pair bidirectionally, so both sides carry the suppression per
+// GOTCHAS §9.1.
+//
+//nolint:dupl // structurally identical to validatePfSenseRuleEndpoints by design
+func validateOPNRuleEndpoints(
+	prefix string,
+	rule schema.Rule,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	var errors []ValidationError
+	errors = append(errors, validateNetworkField(
+		rule.Source.Network, prefix+".source.network", "source", validInterfaceNames,
+	)...)
+	errors = append(errors, validateAddressField(
+		rule.Source.Address, prefix+".source.address",
+	)...)
+	errors = append(errors, validateNetworkField(
+		rule.Destination.Network, prefix+".destination.network", "destination", validInterfaceNames,
+	)...)
+	errors = append(errors, validateAddressField(
+		rule.Destination.Address, prefix+".destination.address",
+	)...)
+	if rule.Source.Port != "" && !isValidPortOrRange(rule.Source.Port) {
+		errors = append(errors, ValidationError{
+			Field: prefix + ".source.port",
+			Message: fmt.Sprintf(
+				"source port '%s' is not a valid port (1-65535) or range (low-high)",
+				rule.Source.Port,
+			),
+		})
+	}
+	if rule.Destination.Port != "" && !isValidPortOrRange(rule.Destination.Port) {
+		errors = append(errors, ValidationError{
+			Field: prefix + ".destination.port",
+			Message: fmt.Sprintf(
+				"destination port '%s' is not a valid port (1-65535) or range (low-high)",
+				rule.Destination.Port,
+			),
+		})
+	}
+	return errors
+}
+
+// validateOPNRuleAnyExclusivity enforces that each endpoint specifies exactly
+// one of {any, network, address} — OPNsense treats combinations as ambiguous.
+func validateOPNRuleAnyExclusivity(prefix string, rule schema.Rule) []ValidationError {
+	var errors []ValidationError
+	if countOPNEndpointFields(rule.Source.IsAny(), rule.Source.Network, rule.Source.Address) > 1 {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".source",
+			Message: "source can only specify one of: any, network, or address",
+		})
+	}
+	if countOPNEndpointFields(rule.Destination.IsAny(), rule.Destination.Network, rule.Destination.Address) > 1 {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".destination",
+			Message: "destination can only specify one of: any, network, or address",
+		})
+	}
+	return errors
+}
+
+func countOPNEndpointFields(isAny bool, network, address string) int {
+	count := 0
+	if isAny {
+		count++
+	}
+	if network != "" {
+		count++
+	}
+	if address != "" {
+		count++
+	}
+	return count
+}
+
+func validateOPNRuleDirection(prefix string, rule schema.Rule) []ValidationError {
+	var errors []ValidationError
+	if rule.Floating == floatingYes && rule.Direction == "" {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".direction",
+			Message: "direction is required for floating rules",
+		})
+	}
+	if rule.Direction != "" && !contains(validOPNDirections, rule.Direction) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".direction",
+			Message: fmt.Sprintf("direction '%s' must be one of: %v", rule.Direction, validOPNDirections),
+		})
+	}
+	return errors
+}
+
+func validateOPNRuleStateAndRate(prefix string, rule schema.Rule) []ValidationError {
+	var errors []ValidationError
+	if rule.StateType != "" && !contains(validOPNRuleStateTypes, rule.StateType) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".statetype",
+			Message: fmt.Sprintf("state type '%s' must be one of: %v", rule.StateType, validOPNRuleStateTypes),
+		})
+	}
+	if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".max-src-conn-rate",
+			Message: "max-src-conn-rate must be in format 'connections/seconds' (e.g., '15/5')",
+		})
+	}
 	return errors
 }
 

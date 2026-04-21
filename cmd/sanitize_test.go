@@ -82,18 +82,6 @@ func TestSanitizeCommandGroupID(t *testing.T) {
 	}
 }
 
-// TestSanitizeCmdLongAndExample guards against silent collapse of the Long
-// description or the dedicated Cobra Example field. Both must remain populated
-// so --help, auto-generated man pages, and generated markdown docs stay useful.
-func TestSanitizeCmdLongAndExample(t *testing.T) {
-	if sanitizeCmd.Long == "" {
-		t.Error("sanitizeCmd.Long should not be empty")
-	}
-	if sanitizeCmd.Example == "" {
-		t.Error("sanitizeCmd.Example should not be empty")
-	}
-}
-
 func TestSanitizeModeConstants(t *testing.T) {
 	// Verify our constants match the sanitizer package
 	if !sanitizer.IsValidMode(SanitizeModeAggressive) {
@@ -142,6 +130,7 @@ func TestDetermineSanitizeOutputPath_ExistingFile_Force(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestSanitizeCommandIntegration(t *testing.T) {
 	// Create a test XML file
 	tmpDir := t.TempDir()

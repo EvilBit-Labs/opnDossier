@@ -2,7 +2,7 @@
 
 This document has been consolidated. See the canonical location:
 
-**[RELEASING.md](../../RELEASING.md)**
+**[RELEASING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md)**
 
 The canonical document covers:
 

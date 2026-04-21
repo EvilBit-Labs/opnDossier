@@ -35,14 +35,6 @@ var (
 	sharedIncludeTunables bool     //nolint:gochecknoglobals // Include system tunables in output
 	sharedComprehensive   bool     //nolint:gochecknoglobals // Generate comprehensive report
 	sharedRedact          bool     //nolint:gochecknoglobals // Redact sensitive fields in output
-
-	// Audit flags.
-	// TODO(#457): Remove shared audit globals — no longer bound to any CLI flags
-	// after audit flag removal from convert. Retained because buildAuditOptions()
-	// and generateOutputByFormat() still reference them.
-	sharedAuditMode       string   //nolint:gochecknoglobals // Audit mode (blue, red)
-	sharedSelectedPlugins []string //nolint:gochecknoglobals // Selected compliance plugins
-	sharedPluginDir       string   //nolint:gochecknoglobals // Directory for dynamic .so plugins
 )
 
 // addSharedContentFlags adds shared CLI flags for content, formatting, and audit-related
@@ -63,7 +55,7 @@ var (
 // cmd must be a non-nil *cobra.Command.
 func addSharedContentFlags(cmd *cobra.Command) {
 	cmd.Flags().
-		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in the rendered report (ignored for JSON/YAML, which always include every tunable)")
+		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)")
 	setFlagAnnotation(cmd.Flags(), "include-tunables", []string{"content"})
 
 	cmd.Flags().
@@ -308,7 +300,7 @@ func registryPluginNames() []string {
 			return
 		}
 
-		pm := audit.NewPluginManager(logger)
+		pm := audit.NewPluginManager(logger, nil)
 		if initErr := pm.InitializePlugins(context.Background()); initErr != nil {
 			cachedPluginNames = slices.Sorted(maps.Keys(pluginDescriptions))
 

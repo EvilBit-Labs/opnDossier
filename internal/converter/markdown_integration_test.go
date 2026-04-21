@@ -16,6 +16,8 @@ import (
 
 // TestMarkdownBuilder_ReportContentValidation validates that programmatic report
 // generation produces correct and complete output for various configurations.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestMarkdownBuilder_ReportContentValidation(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -519,25 +521,34 @@ func validateTableFormatting(t *testing.T, content string) {
 
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
+		isTableRow := strings.HasPrefix(trimmed, "|") && strings.HasSuffix(trimmed, "|")
 
-		// Detect table start
-		if strings.HasPrefix(trimmed, "|") && strings.HasSuffix(trimmed, "|") {
-			if !inTable {
-				inTable = true
-				// Next line should be separator
-				if i+1 < len(lines) {
-					nextLine := strings.TrimSpace(lines[i+1])
-					if strings.Contains(nextLine, "|") && strings.Contains(nextLine, "-") {
-						// Just check it's a valid table separator - be more lenient
-						if !strings.HasPrefix(nextLine, "|") || !strings.HasSuffix(nextLine, "|") {
-							t.Errorf("Table separator line should start and end with | at line %d: %s", i+2, nextLine)
-						}
-					}
-				}
-			}
-		} else if inTable && trimmed == "" {
+		switch {
+		case isTableRow && !inTable:
+			inTable = true
+			assertTableSeparator(t, lines, i+1)
+		case !isTableRow && inTable && trimmed == "":
 			inTable = false
 		}
+	}
+}
+
+// assertTableSeparator verifies the line immediately following a table row
+// start looks like a valid markdown table separator. Extracted to keep the
+// surrounding loop body readable.
+func assertTableSeparator(t *testing.T, lines []string, sepIdx int) {
+	t.Helper()
+
+	if sepIdx >= len(lines) {
+		return
+	}
+	nextLine := strings.TrimSpace(lines[sepIdx])
+	// Only enforce delimiter shape when the line looks like a separator at all.
+	if !strings.Contains(nextLine, "|") || !strings.Contains(nextLine, "-") {
+		return
+	}
+	if !strings.HasPrefix(nextLine, "|") || !strings.HasSuffix(nextLine, "|") {
+		t.Errorf("Table separator line should start and end with | at line %d: %s", sepIdx+1, nextLine)
 	}
 }
 

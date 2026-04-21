@@ -194,14 +194,21 @@ func TestSanitizeStruct_MapStringValues_StillSanitizes(t *testing.T) {
 		t.Fatalf("SanitizeStruct() error = %v", err)
 	}
 
-	// String map values are still redacted in place — pin the exact
-	// placeholder emitted by the password rule so a partial or malformed
-	// redaction cannot sneak past an inequality-only check. gosec G101
-	// flags the literal as a "hardcoded credential" but the placeholder
-	// is the public redaction marker, not a secret.
-	const wantPasswordPlaceholder = "[REDACTED-PASSWORD]" //nolint:gosec // G101: redaction placeholder, not a credential
+	// String map values are replaced in place with the stable password
+	// placeholder. Asserting on the exact placeholder (rather than just
+	// inequality with the input) catches partial-leak regressions where a
+	// buggy sanitizer might substitute a non-empty-but-still-sensitive
+	// value — that would pass a bare "changed" check but leak in practice.
+	//
+	//nolint:gosec // G101 false positive: this is a redaction placeholder, not a credential
+	const wantPasswordPlaceholder = "[REDACTED-PASSWORD]"
 	if got := container.Passwords["password"]; got != wantPasswordPlaceholder {
-		t.Errorf("password redaction mismatch for string-valued map; got %q, want %q", got, wantPasswordPlaceholder)
+		t.Errorf("password redaction = %q, want %q (placeholder must match builtinRules())",
+			got, wantPasswordPlaceholder)
+	}
+	if strings.Contains(container.Passwords["password"], "plaintext-secret") {
+		t.Errorf("redacted value still contains cleartext substring: %q",
+			container.Passwords["password"])
 	}
 
 	// No struct-map warning should have fired.

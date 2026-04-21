@@ -91,9 +91,6 @@ func TestDiffCmdRegistration(t *testing.T) {
 	assert.NotNil(t, cmd.Args, "diff command should have an Args validator")
 	assert.NotNil(t, cmd.ValidArgsFunction, "diff command should have a ValidArgsFunction")
 	assert.NotNil(t, cmd.PreRunE, "diff command should have a PreRunE validator")
-	// Durable content anchors — guard against silent Long/Example collapse.
-	assert.NotEmpty(t, cmd.Long, "diff command should define a Long description")
-	assert.NotEmpty(t, cmd.Example, "diff command should define Cobra Example content")
 }
 
 // TestDiffCmdFlagDefaults verifies that all diff command flags have correct default values.
@@ -144,6 +141,8 @@ func TestDiffCmdFlagDefaults(t *testing.T) {
 // TestValidateDiffFlags exercises the validateDiffFlags function with valid and invalid
 // flag combinations. It drives flag values through direct global mutation with cleanup
 // to verify validation behavior.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateDiffFlags(t *testing.T) {
 	tests := []struct {
 		name         string

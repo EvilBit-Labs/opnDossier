@@ -488,6 +488,21 @@ func TestConverter_KeaDHCP(t *testing.T) {
 	})
 }
 
+// firstKeaScope returns a pointer to the first DHCPScope in device.DHCP whose
+// Source is DHCPSourceKea, or nil when no Kea scope is present. Extracted from
+// the TestConverter_KeaDHCP_UnifiedScopes subtests so each subtest doesn't
+// repeat the same loop boilerplate. Named distinctly from the
+// description-lookup helper in converter_testhelpers_test.go.
+func firstKeaScope(device *common.CommonDevice) *common.DHCPScope {
+	for i := range device.DHCP {
+		if device.DHCP[i].Source == common.DHCPSourceKea {
+			return &device.DHCP[i]
+		}
+	}
+	return nil
+}
+
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 	t.Parallel()
 
@@ -533,13 +548,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		}
 		assert.True(t, foundPoolWarning, "expected warning for multi-pool subnet")
 
-		var keaScope *common.DHCPScope
-		for i := range device.DHCP {
-			if device.DHCP[i].Source == common.DHCPSourceKea {
-				keaScope = &device.DHCP[i]
-				break
-			}
-		}
+		keaScope := firstKeaScope(device)
 		require.NotNil(t, keaScope, "expected Kea scope in device.DHCP")
 
 		assert.Equal(t, common.DHCPSourceKea, keaScope.Source)
@@ -574,13 +583,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		device, _, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
 
-		var keaScope *common.DHCPScope
-		for i := range device.DHCP {
-			if device.DHCP[i].Source == common.DHCPSourceKea {
-				keaScope = &device.DHCP[i]
-				break
-			}
-		}
+		keaScope := firstKeaScope(device)
 		require.NotNil(t, keaScope, "disabled Kea should still produce scopes")
 		assert.False(t, keaScope.Enabled, "disabled Kea scope should have Enabled=false")
 	})
@@ -614,13 +617,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		device, _, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
 
-		var keaScope *common.DHCPScope
-		for i := range device.DHCP {
-			if device.DHCP[i].Source == common.DHCPSourceKea {
-				keaScope = &device.DHCP[i]
-				break
-			}
-		}
+		keaScope := firstKeaScope(device)
 		require.NotNil(t, keaScope)
 		assert.Empty(t, keaScope.StaticLeases, "orphaned reservation should not appear")
 	})
@@ -652,13 +649,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		assert.True(t, foundOrphanWarning, "expected warning for orphaned reservation")
 
 		// Valid reservation still attached.
-		var keaScope *common.DHCPScope
-		for i := range device.DHCP {
-			if device.DHCP[i].Source == common.DHCPSourceKea {
-				keaScope = &device.DHCP[i]
-				break
-			}
-		}
+		keaScope := firstKeaScope(device)
 		require.NotNil(t, keaScope)
 		require.Len(t, keaScope.StaticLeases, 1)
 		assert.Equal(t, "10.0.0.50", keaScope.StaticLeases[0].IPAddress)
@@ -716,13 +707,7 @@ func TestConverter_KeaDHCP_UnifiedScopes(t *testing.T) {
 		device, _, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
 
-		var keaScope *common.DHCPScope
-		for i := range device.DHCP {
-			if device.DHCP[i].Source == common.DHCPSourceKea {
-				keaScope = &device.DHCP[i]
-				break
-			}
-		}
+		keaScope := firstKeaScope(device)
 		require.NotNil(t, keaScope)
 		assert.Equal(t, "10.0.0.0/24", keaScope.Range.From)
 		assert.Empty(t, keaScope.Range.To)

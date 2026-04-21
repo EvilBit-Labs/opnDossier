@@ -19,6 +19,8 @@ import (
 // pkg/parser/pfsense/converter_enum_cast_test.go. Future enum casts added to
 // the OPNsense converter should be covered here; pfSense additions belong
 // in the sibling file.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 	t.Parallel()
 

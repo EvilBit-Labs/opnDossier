@@ -16,8 +16,7 @@
 
 We take the security of opnDossier seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
-> [!WARNING]
-> Please do not report security vulnerabilities through public GitHub issues.
+**Please do not report security vulnerabilities through public GitHub issues.**
 
 Instead, use one of the following channels:
 
@@ -48,8 +47,7 @@ Please include:
 
 ### What to Expect
 
-> [!NOTE]
-> This is a passion project with volunteer maintainers. Response times are best-effort and may vary based on maintainer availability.
+**Note**: This is a passion project with volunteer maintainers. Response times are best-effort and may vary based on maintainer availability.
 
 - We will acknowledge receipt of your report within **1 week**
 - We will provide an initial assessment within **2 weeks**

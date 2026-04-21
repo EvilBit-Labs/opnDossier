@@ -117,5 +117,6 @@ opndossier diff old-config.xml new-config.xml --security --normalize
 
 ## Related
 
+- [CLI Reference — `diff`](../../cli/opnDossier_diff.md) -- auto-generated exhaustive flag list
 - [convert](convert.md) -- generate full documentation from a single config
 - [Configuration Reference](../configuration-reference.md) -- global flags and settings

@@ -137,6 +137,7 @@ func TestStripIPSuffix(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateFilter_NetworkValidation(t *testing.T) {
 	interfaces := &schema.Interfaces{
 		Items: map[string]schema.Interface{
@@ -629,6 +630,7 @@ func TestValidateFilter_AddressValidation(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateDhcpd_RangeValidation(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -1091,6 +1093,8 @@ func TestValidateInterface_MTUValidation(t *testing.T) {
 }
 
 // TestValidateFilter_MutualExclusivity tests that source/destination fields are mutually exclusive.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateFilter_MutualExclusivity(t *testing.T) {
 	interfaces := &schema.Interfaces{
 		Items: map[string]schema.Interface{
@@ -1594,6 +1598,8 @@ func TestIsValidPortOrRange(t *testing.T) {
 }
 
 // TestValidateFilter_PortValidation tests port validation for source and destination in filter rules.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateFilter_PortValidation(t *testing.T) {
 	interfaces := &schema.Interfaces{
 		Items: map[string]schema.Interface{

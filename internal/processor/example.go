@@ -251,10 +251,10 @@ func (p *ExampleProcessor) performPerformanceAnalysis(
 //
 // This is a reference implementation covering a narrow slice of checks
 // (administrative users, time synchronization, and audit logging). Real
-// compliance evaluation runs through the plugin system in internal/plugins
-// and the audit engine in internal/audit (invoked via `opnDossier audit
-// --mode blue`) — extend those rather than this example when adding new
-// compliance rules.
+// compliance evaluation runs through the plugin system under
+// `internal/plugins/` (firewall, sans, stig) invoked via the audit engine
+// and the `audit blue` mode — extend those rather than this example when
+// adding new compliance rules.
 func (p *ExampleProcessor) performComplianceCheck(
 	ctx context.Context,
 	cfg *common.CommonDevice,
@@ -266,7 +266,15 @@ func (p *ExampleProcessor) performComplianceCheck(
 	default:
 	}
 
-	// Check for required administrative users
+	checkAdminUsers(cfg, report)
+	checkTimeSync(cfg, report)
+	checkAuditLogging(cfg, report)
+	return nil
+}
+
+// checkAdminUsers checks for missing or disabled administrative accounts.
+// "Administrative" = user named "admin" or a member of the admin/admins group.
+func checkAdminUsers(cfg *common.CommonDevice, report *Report) {
 	if len(cfg.Users) == 0 {
 		report.AddFinding(SeverityCritical, Finding{
 			Type:           "compliance",
@@ -275,79 +283,78 @@ func (p *ExampleProcessor) performComplianceCheck(
 			Recommendation: "Configure at least one administrative user account for system management.",
 			Component:      "users",
 		})
+		return
 	}
 
-	// Check for time synchronization
-	if len(cfg.System.TimeServers) == 0 && cfg.NTP.PreferredServer == "" {
-		report.AddFinding(SeverityMedium, Finding{
+	var disabledAdminUsers []string
+	enabledAdminFound := false
+	for _, user := range cfg.Users {
+		name := user.Name
+		if name == "" {
+			name = user.UID
+		}
+
+		isAdmin := isAdminUser(user)
+		isEnabled := !user.Disabled
+
+		if isAdmin && isEnabled {
+			enabledAdminFound = true
+		}
+		if !isEnabled && isAdmin {
+			disabledAdminUsers = append(disabledAdminUsers, name)
+		}
+	}
+
+	if !enabledAdminFound {
+		report.AddFinding(SeverityCritical, Finding{
 			Type:           "compliance",
-			Title:          "Time Synchronization Not Configured",
-			Description:    "No time servers or NTP configuration is present.",
-			Recommendation: "Configure time synchronization to ensure accurate timestamps for logging and security.",
-			Component:      "ntp",
+			Title:          "No Administrative Users Configured",
+			Description:    "No enabled administrative users are configured in the system.",
+			Recommendation: "Ensure at least one enabled administrative user account is available for system management.",
+			Component:      "users",
+			Reference:      "https://docs.opnsense.org/manual/users.html",
 		})
 	}
 
-	// Check user account configuration
-	if len(cfg.Users) > 0 {
-		var disabledAdminUsers []string
-		enabledAdminFound := false
-
-		isAdminUser := func(user common.User) bool {
-			if strings.EqualFold(user.Name, "admin") {
-				return true
-			}
-			if strings.EqualFold(user.GroupName, "admins") || strings.EqualFold(user.GroupName, "admin") {
-				return true
-			}
-			return false
-		}
-
-		for _, user := range cfg.Users {
-			name := user.Name
-			if name == "" {
-				name = user.UID
-			}
-
-			isAdmin := isAdminUser(user)
-			isEnabled := !user.Disabled
-
-			if isAdmin && isEnabled {
-				enabledAdminFound = true
-			}
-
-			if !isEnabled && isAdmin {
-				disabledAdminUsers = append(disabledAdminUsers, name)
-			}
-		}
-
-		if !enabledAdminFound {
-			report.AddFinding(SeverityCritical, Finding{
-				Type:           "compliance",
-				Title:          "No Administrative Users Configured",
-				Description:    "No enabled administrative users are configured in the system.",
-				Recommendation: "Ensure at least one enabled administrative user account is available for system management.",
-				Component:      "users",
-				Reference:      "https://docs.opnsense.org/manual/users.html",
-			})
-		}
-
-		if len(disabledAdminUsers) > 0 {
-			report.AddFinding(SeverityMedium, Finding{
-				Type:  "compliance",
-				Title: "Weak User Account Configuration",
-				Description: fmt.Sprintf(
-					"Administrative users are disabled: %s.",
-					strings.Join(disabledAdminUsers, ", "),
-				),
-				Recommendation: "Review administrative account status and ensure only authorized, active users retain administrative privileges.",
-				Component:      "users",
-				Reference:      "https://docs.opnsense.org/manual/users.html",
-			})
-		}
+	if len(disabledAdminUsers) > 0 {
+		report.AddFinding(SeverityMedium, Finding{
+			Type:  "compliance",
+			Title: "Weak User Account Configuration",
+			Description: fmt.Sprintf(
+				"Administrative users are disabled: %s.",
+				strings.Join(disabledAdminUsers, ", "),
+			),
+			Recommendation: "Review administrative account status and ensure only authorized, active users retain administrative privileges.",
+			Component:      "users",
+			Reference:      "https://docs.opnsense.org/manual/users.html",
+		})
 	}
+}
 
-	// Check audit logging configuration
+func isAdminUser(user common.User) bool {
+	if strings.EqualFold(user.Name, "admin") {
+		return true
+	}
+	if strings.EqualFold(user.GroupName, "admins") || strings.EqualFold(user.GroupName, "admin") {
+		return true
+	}
+	return false
+}
+
+func checkTimeSync(cfg *common.CommonDevice, report *Report) {
+	if len(cfg.System.TimeServers) != 0 || cfg.NTP.PreferredServer != "" {
+		return
+	}
+	report.AddFinding(SeverityMedium, Finding{
+		Type:           "compliance",
+		Title:          "Time Synchronization Not Configured",
+		Description:    "No time servers or NTP configuration is present.",
+		Recommendation: "Configure time synchronization to ensure accurate timestamps for logging and security.",
+		Component:      "ntp",
+	})
+}
+
+func checkAuditLogging(cfg *common.CommonDevice, report *Report) {
 	if !cfg.Syslog.Enabled {
 		report.AddFinding(SeverityHigh, Finding{
 			Type:           "compliance",
@@ -357,48 +364,47 @@ func (p *ExampleProcessor) performComplianceCheck(
 			Component:      "syslog",
 			Reference:      "https://docs.opnsense.org/manual/syslog.html",
 		})
-	} else {
-		missingCategories := []string{}
-		if !cfg.Syslog.SystemLogging {
-			missingCategories = append(missingCategories, "system")
-		}
-		if !cfg.Syslog.AuthLogging {
-			missingCategories = append(missingCategories, "auth")
-		}
-		if !cfg.Syslog.FilterLogging {
-			missingCategories = append(missingCategories, "filter")
-		}
-
-		if len(missingCategories) > 0 {
-			report.AddFinding(SeverityMedium, Finding{
-				Type:  "compliance",
-				Title: "Incomplete Audit Logging",
-				Description: fmt.Sprintf(
-					"Syslog is enabled but missing critical categories: %s.",
-					strings.Join(missingCategories, ", "),
-				),
-				Recommendation: fmt.Sprintf(
-					"Enable the missing syslog categories (%s) to ensure comprehensive audit logging for security monitoring and compliance.",
-					strings.Join(missingCategories, ", "),
-				),
-				Component: "syslog",
-				Reference: "https://docs.opnsense.org/manual/syslog.html",
-			})
-		}
-
-		remoteConfigured := cfg.Syslog.RemoteServer != "" || cfg.Syslog.RemoteServer2 != "" ||
-			cfg.Syslog.RemoteServer3 != ""
-		if !remoteConfigured {
-			report.AddFinding(SeverityLow, Finding{
-				Type:           "compliance",
-				Title:          "Remote Audit Logging Not Configured",
-				Description:    "Syslog is enabled locally, but no remote syslog server is configured for log retention and monitoring.",
-				Recommendation: "Configure a remote syslog server to ensure logs are preserved off-device for compliance requirements, forensic analysis, and protection against log tampering.",
-				Component:      "syslog",
-				Reference:      "https://docs.opnsense.org/manual/syslog.html",
-			})
-		}
+		return
 	}
 
-	return nil
+	missingCategories := []string{}
+	if !cfg.Syslog.SystemLogging {
+		missingCategories = append(missingCategories, "system")
+	}
+	if !cfg.Syslog.AuthLogging {
+		missingCategories = append(missingCategories, "auth")
+	}
+	if !cfg.Syslog.FilterLogging {
+		missingCategories = append(missingCategories, "filter")
+	}
+
+	if len(missingCategories) > 0 {
+		report.AddFinding(SeverityMedium, Finding{
+			Type:  "compliance",
+			Title: "Incomplete Audit Logging",
+			Description: fmt.Sprintf(
+				"Syslog is enabled but missing critical categories: %s.",
+				strings.Join(missingCategories, ", "),
+			),
+			Recommendation: fmt.Sprintf(
+				"Enable the missing syslog categories (%s) to ensure comprehensive audit logging for security monitoring and compliance.",
+				strings.Join(missingCategories, ", "),
+			),
+			Component: "syslog",
+			Reference: "https://docs.opnsense.org/manual/syslog.html",
+		})
+	}
+
+	remoteConfigured := cfg.Syslog.RemoteServer != "" || cfg.Syslog.RemoteServer2 != "" ||
+		cfg.Syslog.RemoteServer3 != ""
+	if !remoteConfigured {
+		report.AddFinding(SeverityLow, Finding{
+			Type:           "compliance",
+			Title:          "Remote Audit Logging Not Configured",
+			Description:    "Syslog is enabled locally, but no remote syslog server is configured for log retention and monitoring.",
+			Recommendation: "Configure a remote syslog server to ensure logs are preserved off-device for compliance requirements, forensic analysis, and protection against log tampering.",
+			Component:      "syslog",
+			Reference:      "https://docs.opnsense.org/manual/syslog.html",
+		})
+	}
 }

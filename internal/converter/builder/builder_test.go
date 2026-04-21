@@ -760,6 +760,8 @@ func TestBuildStaticRoutesTableSet(t *testing.T) {
 }
 
 // Test the write-style methods that delegate to build methods.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestWriteTableMethods(t *testing.T) {
 	t.Parallel()
 

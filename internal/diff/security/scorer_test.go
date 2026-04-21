@@ -149,6 +149,60 @@ func TestScorer_ScoreAll(t *testing.T) {
 	assert.Equal(t, "high", summary.TopRisks[0].Impact)
 }
 
+func TestSummarizeScored(t *testing.T) {
+	t.Parallel()
+
+	// SummarizeScored mirrors ScoreAll but skips pattern matching — callers
+	// supply the already-computed Impact. Arrange a mix of high/medium/low
+	// items plus an unscored one and assert tier-based TopRisks prioritization.
+	risks := []ScoredRisk{
+		{Path: "filter.rule[uuid=abc]", Description: "Added permissive rule", Impact: "high"},
+		{Path: "filter.rule[uuid=def]", Description: "Removed rule", Impact: "medium"},
+		{Path: "system.hostname", Description: "Hostname changed", Impact: ""},
+		{Path: "filter.rule[uuid=ghi]", Description: "Low-impact change", Impact: "low"},
+	}
+
+	summary := SummarizeScored(risks)
+
+	assert.Equal(t, 1, summary.High)
+	assert.Equal(t, 1, summary.Medium)
+	assert.Equal(t, 1, summary.Low)
+	assert.True(t, summary.HasRisks())
+	assert.Equal(t, weightHigh+weightMedium+weightLow, summary.Score)
+	// TopRisks uses tier-based prioritization: the high-impact entry squeezes
+	// out the medium entry once a high is recorded.
+	require.Len(t, summary.TopRisks, 1)
+	assert.Equal(t, "high", summary.TopRisks[0].Impact)
+	assert.Equal(t, "filter.rule[uuid=abc]", summary.TopRisks[0].Path)
+}
+
+func TestSummarizeScored_MediumOnly(t *testing.T) {
+	t.Parallel()
+
+	// When there are no high-impact items, medium-impact items populate TopRisks
+	// (up to maxTopRisks). This mirrors the tier-based branch in accumulateRisk.
+	risks := []ScoredRisk{
+		{Path: "a", Description: "d-a", Impact: "medium"},
+		{Path: "b", Description: "d-b", Impact: "medium"},
+	}
+
+	summary := SummarizeScored(risks)
+
+	assert.Equal(t, 0, summary.High)
+	assert.Equal(t, 2, summary.Medium)
+	require.Len(t, summary.TopRisks, 2)
+}
+
+func TestSummarizeScored_Empty(t *testing.T) {
+	t.Parallel()
+
+	summary := SummarizeScored(nil)
+
+	assert.False(t, summary.HasRisks())
+	assert.Equal(t, 0, summary.Score)
+	assert.Empty(t, summary.TopRisks)
+}
+
 func TestScorer_ScoreAll_NoRisks(t *testing.T) {
 	scorer := NewScorer()
 

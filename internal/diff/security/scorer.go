@@ -70,41 +70,78 @@ func (s *Scorer) Score(change ChangeInput) string {
 }
 
 // ScoreAll computes an aggregate risk summary for a set of changes.
+//
+// Each change is (re-)scored via Score before aggregation. When the caller has
+// already populated SecurityImpact on each change (the typical path inside the
+// diff engine), prefer SummarizeScored to skip the redundant pattern match.
 func (s *Scorer) ScoreAll(changes []ChangeInput) RiskSummary {
 	summary := RiskSummary{}
 
-	for _, change := range changes {
-		impact := s.Score(change)
-		switch strings.ToLower(impact) {
-		case impactHigh:
-			summary.High++
-			summary.Score += weightHigh
-			if len(summary.TopRisks) < maxTopRisks {
-				summary.TopRisks = append(summary.TopRisks, RiskItem{
-					Path:        change.Path,
-					Description: change.Description,
-					Impact:      impact,
-				})
-			}
-		case impactMedium:
-			summary.Medium++
-			summary.Score += weightMedium
-			// Only include medium-impact items in TopRisks when no high-impact items exist.
-			// This tier-based prioritization keeps the summary focused on the most critical risks.
-			if summary.High == 0 && len(summary.TopRisks) < maxTopRisks {
-				summary.TopRisks = append(summary.TopRisks, RiskItem{
-					Path:        change.Path,
-					Description: change.Description,
-					Impact:      impact,
-				})
-			}
-		case impactLow:
-			summary.Low++
-			summary.Score += weightLow
-		}
+	for i := range changes {
+		impact := s.Score(changes[i])
+		accumulateRisk(&summary, impact, changes[i].Path, changes[i].Description)
 	}
 
 	return summary
+}
+
+// ScoredRisk is the minimal, already-scored view of a change used to build a
+// RiskSummary without re-running pattern matching. Callers that have already
+// populated SecurityImpact (for example the diff engine's per-change loop)
+// can pass their existing values directly, avoiding a second []ChangeInput
+// allocation per Compare.
+type ScoredRisk struct {
+	Path        string
+	Description string
+	Impact      string // Pre-computed impact (see Scorer.Score)
+}
+
+// SummarizeScored aggregates already-scored risks into a RiskSummary. Unlike
+// ScoreAll it performs no pattern matching and does not rescore inputs — it
+// simply tallies High/Medium/Low counts, running score, and top risks from the
+// Impact field on each ScoredRisk.
+func SummarizeScored(risks []ScoredRisk) RiskSummary {
+	summary := RiskSummary{}
+
+	for i := range risks {
+		accumulateRisk(&summary, risks[i].Impact, risks[i].Path, risks[i].Description)
+	}
+
+	return summary
+}
+
+// accumulateRisk updates summary in place with a single scored change. The
+// TopRisks list is tier-prioritized: high-impact items are always added (up to
+// maxTopRisks), and medium-impact items are only added when no high-impact
+// items have been recorded yet.
+func accumulateRisk(summary *RiskSummary, impact, path, description string) {
+	switch strings.ToLower(impact) {
+	case impactHigh:
+		summary.High++
+		summary.Score += weightHigh
+		if len(summary.TopRisks) < maxTopRisks {
+			summary.TopRisks = append(summary.TopRisks, RiskItem{
+				Path:        path,
+				Description: description,
+				Impact:      impact,
+			})
+		}
+	case impactMedium:
+		summary.Medium++
+		summary.Score += weightMedium
+		// Only include medium-impact items in TopRisks when no high-impact items exist.
+		// This tier-based prioritization keeps the summary focused on the most critical risks.
+		if summary.High == 0 && len(summary.TopRisks) < maxTopRisks {
+			summary.TopRisks = append(summary.TopRisks, RiskItem{
+				Path:        path,
+				Description: description,
+				Impact:      impact,
+			})
+		}
+	case impactLow:
+		summary.Low++
+		summary.Score += weightLow
+	}
 }
 
 // matches checks if a pattern applies to a change.

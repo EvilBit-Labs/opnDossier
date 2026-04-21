@@ -83,8 +83,7 @@ config := cmdCtx.Config
 | `--timestamps`  | bool   | false    | Include timestamps in logs         |
 | `--minimal`     | bool   | false    | Minimal output mode                |
 
-> [!NOTE]
-> `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
+> **Note:** `--json-output` is a validate-command-only flag (not global). It outputs validation errors in JSON format for machine consumption.
 
 ## Parser Package (internal/cfgparser)
 
@@ -202,11 +201,8 @@ for _, w := range warnings {
     logger.Warn("conversion warning", "field", w.Field, "message", w.Message)
 }
 
-// With validation — rewind the reader first; the previous CreateDevice consumed it.
-if _, err := file.Seek(0, io.SeekStart); err != nil {
-    return fmt.Errorf("rewind config.xml: %w", err)
-}
-device, warnings, err = factory.CreateDevice(context.Background(), file, "", true)
+// With validation
+device, warnings, err := factory.CreateDevice(context.Background(), file, "", true)
 if err != nil {
     return fmt.Errorf("parse and validate failed: %w", err)
 }
@@ -374,10 +370,7 @@ type ConversionWarning struct {
     // Message is a human-readable description of the issue.
     Message string
     // Severity indicates the importance of the warning.
-    // NOTE: ConversionWarning.Severity is `pkg/model.Severity` (string alias)
-    // — NOT `analysis.Severity`. Use the `common.Severity*` constants exported
-    // from `pkg/model` when constructing warnings.
-    Severity common.Severity
+    Severity model.Severity
 }
 ```
 
@@ -623,7 +616,10 @@ type Plugin interface {
     Name() string
     Version() string
     Description() string
-    RunChecks(device *common.CommonDevice) []Finding
+    // Single-pass evaluation: returns findings, the IDs of controls this
+    // plugin was able to evaluate on the provided device, and err.
+    RunChecks(device *common.CommonDevice) (findings []Finding, evaluated []string, err error)
+    // GetControls MUST return a defensive deep copy — callers do not clone again.
     GetControls() []Control
     GetControlByID(id string) (*Control, error)
     ValidateConfiguration() error
@@ -709,7 +705,6 @@ type ComplianceSummary struct {
     HighFindings     int                            `json:"highFindings"`
     MediumFindings   int                            `json:"mediumFindings"`
     LowFindings      int                            `json:"lowFindings"`
-    InfoFindings     int                            `json:"infoFindings"`
     PluginCount      int                            `json:"pluginCount"`
     Compliance       map[string]PluginCompliance    `json:"compliance"`
 }
@@ -722,7 +717,6 @@ type ComplianceSummary struct {
 - `HighFindings` (int): Count of high severity findings
 - `MediumFindings` (int): Count of medium severity findings
 - `LowFindings` (int): Count of low severity findings
-- `InfoFindings` (int): Count of info severity findings
 - `PluginCount` (int): Number of plugins executed
 - `Compliance` (map[string]PluginCompliance): Per-plugin compliance status
 
@@ -807,10 +801,12 @@ External Go projects can register custom device parsers by:
 1. **Implement the `DeviceParser` interface** in `pkg/parser/`:
 
    ```go
-   type CustomParser struct{}
+   type CustomParser struct {
+       decoder parser.OPNsenseXMLDecoder
+   }
 
    func (p *CustomParser) Parse(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
-       // Implementation: decode XML from r into your own schema DTO, then convert.
+       // Implementation
    }
 
    func (p *CustomParser) ParseAndValidate(ctx context.Context, r io.Reader) (*common.CommonDevice, []common.ConversionWarning, error) {
@@ -818,11 +814,11 @@ External Go projects can register custom device parsers by:
    }
    ```
 
-2. **Export a factory function** matching the `ConstructorFunc` signature. Custom parsers targeting a non-OPNsense schema should accept the `OPNsenseXMLDecoder` parameter only for signature compatibility and ignore it — the parser manages its own XML decoding. This mirrors the canonical pattern in `pkg/parser/pfsense/parser.go`, which decodes directly into `*pfschema.Document` via `parser.NewSecureXMLDecoder`:
+2. **Export a factory function** matching the `ConstructorFunc` signature:
 
    ```go
-   func NewCustomParserFactory(_ parser.OPNsenseXMLDecoder) parser.DeviceParser {
-       return &CustomParser{}
+   func NewCustomParserFactory(decoder parser.OPNsenseXMLDecoder) parser.DeviceParser {
+       return &CustomParser{decoder: decoder}
    }
    ```
 

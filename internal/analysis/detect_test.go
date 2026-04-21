@@ -47,6 +47,7 @@ func TestComputeAnalysis(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestDetectDeadRules(t *testing.T) {
 	t.Parallel()
 
@@ -382,6 +383,7 @@ func TestDetectDeadRules_DuplicateBeforeBlockAll(t *testing.T) {
 	assert.Equal(t, 1, findings[1].RuleIndex)
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestDetectUnusedInterfaces(t *testing.T) {
 	t.Parallel()
 

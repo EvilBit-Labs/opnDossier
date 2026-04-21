@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -83,31 +82,44 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
+	result, handler, err := generateOutputByFormat(ctx, device, opt, logger)
 	if err != nil {
 		t.Errorf("Unexpected error for markdown: %v", err)
 	}
 	if result == "" {
 		t.Errorf("Expected non-empty result for markdown")
 	}
+	if handler == nil {
+		t.Errorf("Expected non-nil handler for markdown")
+	} else if handler.FileExtension() != ".md" {
+		t.Errorf("Expected .md extension, got: %s", handler.FileExtension())
+	}
 
 	// Test JSON format - programmatic generation should succeed
 	opt.Format = converter.FormatJSON
-	jsonResult, err := generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
+	jsonResult, jsonHandler, err := generateOutputByFormat(ctx, device, opt, logger)
 	if err != nil {
 		t.Errorf("JSON format should succeed with programmatic generator: %v", err)
 	}
 	if jsonResult == "" {
 		t.Errorf("Expected non-empty result for JSON format")
 	}
+	if jsonHandler == nil {
+		t.Errorf("Expected non-nil handler for JSON")
+	} else if jsonHandler.FileExtension() != ".json" {
+		t.Errorf("Expected .json extension, got: %s", jsonHandler.FileExtension())
+	}
 
 	// Test unknown format (should return an error)
 	opt.Format = converter.Format("unknown")
-	_, err = generateOutputByFormat(ctx, device, opt, audit.Options{}, logger)
+	_, unknownHandler, err := generateOutputByFormat(ctx, device, opt, logger)
 	if err == nil {
 		t.Errorf("Expected error for unknown format, got nil")
 	} else if !errors.Is(err, ErrUnsupportedOutputFormat) {
 		t.Errorf("Expected ErrUnsupportedOutputFormat, got: %v", err)
+	}
+	if unknownHandler != nil {
+		t.Errorf("Expected nil handler for unknown format, got: %v", unknownHandler)
 	}
 }
 

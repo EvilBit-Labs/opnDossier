@@ -141,18 +141,18 @@ func TestAuditCmdHelpOutput(t *testing.T) {
 		assert.Contains(t, output, sub, "help output should contain %q", sub)
 	}
 
-	// Verify the audit mode descriptions appear in Long. Whitespace between
-	// the mode name and the description text is collapsed before matching so
-	// harmless alignment changes don't break this assertion — the meaning we
-	// care about is that both modes and their descriptions are present.
-	normalized := strings.Join(strings.Fields(output), " ")
+	// Verify the mode description content from auditCmd.Long is present in help
+	// output. Match on stable substrings rather than exact alignment so Cobra
+	// word-wrap or column-padding changes do not break the test.
 	modeDescriptions := []string{
-		"blue - Defensive audit with security findings and recommendations (default)",
-		"red - Attacker-focused recon report highlighting attack surfaces",
+		"blue",
+		"Defensive audit with security findings and recommendations (default)",
+		"red",
+		"Attacker-focused recon report highlighting attack surfaces",
 	}
 
 	for _, desc := range modeDescriptions {
-		assert.Contains(t, normalized, desc, "help output should contain mode description %q", desc)
+		assert.Contains(t, output, desc, "help output should contain mode description %q", desc)
 	}
 }
 

@@ -3,6 +3,7 @@ package sanitizer
 import (
 	"slices"
 	"strings"
+	"sync"
 )
 
 // Mode represents the sanitization aggressiveness level.
@@ -81,17 +82,14 @@ type RuleEngine struct {
 
 // NewRuleEngine creates a RuleEngine configured for the given Mode.
 // The engine is populated with the package's builtin rules and a default Mapper.
-// Field patterns are pre-lowercased at construction time to avoid redundant
-// allocations on every fieldNameMatches call.
+// Field patterns are pre-lowercased once at first call via sync.Once (see
+// cachedBuiltinRules); subsequent calls share the immutable slice without
+// re-allocating. The Mapper is fresh per engine — mapping namespaces stay
+// per-invocation, but the rule definitions do not change between runs.
+// See issue #150.
 func NewRuleEngine(mode Mode) *RuleEngine {
-	rules := builtinRules()
-	for i := range rules {
-		for j, pat := range rules[i].FieldPatterns {
-			rules[i].FieldPatterns[j] = strings.ToLower(pat)
-		}
-	}
 	engine := &RuleEngine{
-		rules:  rules,
+		rules:  cachedBuiltinRules(),
 		mapper: NewMapper(),
 		mode:   mode,
 	}
@@ -109,7 +107,10 @@ func (e *RuleEngine) GetMapper() *Mapper {
 }
 
 // ShouldRedactField determines if a field should be redacted based on its name.
-func (e *RuleEngine) ShouldRedactField(fieldName string) (bool, *Rule) {
+// The returned Rule is a copy of the matched cache entry — callers cannot
+// mutate the shared builtin rules through it. The matched bool is the gate;
+// the Rule zero-value is returned when no rule matches.
+func (e *RuleEngine) ShouldRedactField(fieldName string) (bool, Rule) {
 	for i := range e.rules {
 		rule := &e.rules[i]
 		if !e.ruleActiveForMode(rule) {
@@ -117,15 +118,17 @@ func (e *RuleEngine) ShouldRedactField(fieldName string) (bool, *Rule) {
 		}
 		for _, pattern := range rule.FieldPatterns {
 			if fieldNameMatches(fieldName, pattern) {
-				return true, rule
+				return true, *rule
 			}
 		}
 	}
-	return false, nil
+	return false, Rule{}
 }
 
 // ShouldRedactValue determines if a value should be redacted based on its content.
-func (e *RuleEngine) ShouldRedactValue(fieldName, value string) (bool, *Rule) {
+// Returns a copied Rule by value — see ShouldRedactField for the mutation-safety
+// contract.
+func (e *RuleEngine) ShouldRedactValue(fieldName, value string) (bool, Rule) {
 	// First check field-based rules
 	if should, rule := e.ShouldRedactField(fieldName); should {
 		return true, rule
@@ -138,16 +141,16 @@ func (e *RuleEngine) ShouldRedactValue(fieldName, value string) (bool, *Rule) {
 			continue
 		}
 		if rule.ValueDetector != nil && rule.ValueDetector(value) {
-			return true, rule
+			return true, *rule
 		}
 	}
-	return false, nil
+	return false, Rule{}
 }
 
 // Redact applies the appropriate redaction for a field/value pair.
 func (e *RuleEngine) Redact(fieldName, value string) string {
 	should, rule := e.ShouldRedactValue(fieldName, value)
-	if !should || rule == nil {
+	if !should {
 		return value
 	}
 	return e.redactWithRule(rule, fieldName, value)
@@ -156,16 +159,17 @@ func (e *RuleEngine) Redact(fieldName, value string) string {
 // RedactWithRule applies a specific rule's Redactor to the given field/value pair.
 // Use this when you already have the matched rule from ShouldRedactValue to avoid
 // a redundant rule lookup (which could match a different rule than the one tracked
-// for statistics).
-func (e *RuleEngine) RedactWithRule(rule *Rule, fieldName, value string) string {
-	if rule == nil {
+// for statistics). A zero-value Rule is treated as "no rule" and the input value
+// is returned unchanged.
+func (e *RuleEngine) RedactWithRule(rule Rule, fieldName, value string) string {
+	if rule.Name == "" && rule.Redactor == nil {
 		return value
 	}
 	return e.redactWithRule(rule, fieldName, value)
 }
 
 // redactWithRule applies the given rule's Redactor, falling back to the generic mapper.
-func (e *RuleEngine) redactWithRule(rule *Rule, fieldName, value string) string {
+func (e *RuleEngine) redactWithRule(rule Rule, fieldName, value string) string {
 	if rule.Redactor != nil {
 		return rule.Redactor(e.mapper, fieldName, value)
 	}
@@ -218,6 +222,8 @@ func fieldNameMatches(fieldName, pattern string) bool {
 //
 //   - email MUST precede hostname. Email addresses contain dots that match hostname
 //     patterns. The ordering ensures emails are mapped via MapEmail, not MapHostname.
+//
+//nolint:funlen // declarative rule table; order is load-bearing (see above)
 func builtinRules() []Rule {
 	allModes := []Mode{ModeAggressive, ModeModerate, ModeMinimal}
 	aggressiveModerate := []Mode{ModeAggressive, ModeModerate}
@@ -545,6 +551,39 @@ func builtinRules() []Rule {
 			},
 		},
 	}
+}
+
+// builtinRulesCache holds the pre-lowercased, immutable rule slice used by
+// every RuleEngine. Rules themselves never mutate after construction —
+// NewRuleEngine previously re-ran strings.ToLower over every FieldPattern on
+// every call, which was wasted work for batch sanitization (thousands of
+// files × ~80 patterns). The sync.Once path captures the canonical rule
+// ordering (authserver_config before password, email before hostname — see
+// GOTCHAS §19.1) and preserves it for all subsequent calls.
+//
+//nolint:gochecknoglobals // Module-wide immutable cache, sync.Once guarded.
+var (
+	builtinRulesOnce  sync.Once
+	builtinRulesCache []Rule
+)
+
+// cachedBuiltinRules returns the shared builtin rule slice, building and
+// lowercasing it on first call. The returned slice MUST be treated as
+// read-only by callers — ShouldRedactField / ShouldRedactValue only read
+// rule fields, and no external callers mutate Rule values. If a future
+// change needs per-engine mutation, deep-clone at that site; do not mutate
+// the shared slice.
+func cachedBuiltinRules() []Rule {
+	builtinRulesOnce.Do(func() {
+		rules := builtinRules()
+		for i := range rules {
+			for j, pat := range rules[i].FieldPatterns {
+				rules[i].FieldPatterns[j] = strings.ToLower(pat)
+			}
+		}
+		builtinRulesCache = rules
+	})
+	return builtinRulesCache
 }
 
 // authServerFieldFromPath extracts the authserver field type from a dotted path.

@@ -14,6 +14,7 @@ import (
 
 const validationFindingType = "validation"
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidateCommonDevice(t *testing.T) {
 	t.Parallel()
 

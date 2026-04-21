@@ -1,6 +1,7 @@
 package converter
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"slices"
@@ -21,10 +22,20 @@ type FormatHandler interface {
 	Aliases() []string
 
 	// Generate creates documentation as a string using the provided generator context.
-	Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error)
+	// The ctx is threaded to per-subsystem boundary checks inside each format's
+	// generator (e.g., between report body and audit section for markdown).
+	Generate(ctx context.Context, g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error)
 
 	// GenerateToWriter writes documentation directly to the provided io.Writer.
-	GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error
+	// The ctx is threaded to per-subsystem boundary checks inside each format's
+	// generator.
+	GenerateToWriter(
+		ctx context.Context,
+		g *HybridGenerator,
+		w io.Writer,
+		data *common.CommonDevice,
+		opts Options,
+	) error
 }
 
 // FormatRegistry centralises format dispatch by mapping canonical format names
@@ -206,18 +217,24 @@ func (h *markdownHandler) FileExtension() string { return ".md" }
 func (h *markdownHandler) Aliases() []string     { return []string{"md"} }
 
 // Generate produces markdown output via the builder pattern, supporting standard and comprehensive modes.
-func (h *markdownHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generateMarkdown(data, opts)
+func (h *markdownHandler) Generate(
+	ctx context.Context,
+	g *HybridGenerator,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
+	return g.generateMarkdown(ctx, data, opts)
 }
 
 // GenerateToWriter streams markdown sections incrementally via SectionWriter when available.
 func (h *markdownHandler) GenerateToWriter(
+	ctx context.Context,
 	g *HybridGenerator,
 	w io.Writer,
 	data *common.CommonDevice,
 	opts Options,
 ) error {
-	return g.generateMarkdownToWriter(w, data, opts)
+	return g.generateMarkdownToWriter(ctx, w, data, opts)
 }
 
 // jsonHandler handles JSON format output via encoding/json serialization.
@@ -227,13 +244,24 @@ func (h *jsonHandler) FileExtension() string { return ".json" }
 func (h *jsonHandler) Aliases() []string     { return nil }
 
 // Generate produces indented JSON from the enriched CommonDevice model.
-func (h *jsonHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generateJSON(data, opts)
+func (h *jsonHandler) Generate(
+	ctx context.Context,
+	g *HybridGenerator,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
+	return g.generateJSON(ctx, data, opts)
 }
 
 // GenerateToWriter encodes JSON directly to the writer via json.NewEncoder.
-func (h *jsonHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
-	return g.generateJSONToWriter(w, data, opts)
+func (h *jsonHandler) GenerateToWriter(
+	ctx context.Context,
+	g *HybridGenerator,
+	w io.Writer,
+	data *common.CommonDevice,
+	opts Options,
+) error {
+	return g.generateJSONToWriter(ctx, w, data, opts)
 }
 
 // yamlHandler handles YAML format output via gopkg.in/yaml.v3 serialization.
@@ -243,13 +271,24 @@ func (h *yamlHandler) FileExtension() string { return ".yaml" }
 func (h *yamlHandler) Aliases() []string     { return []string{"yml"} }
 
 // Generate produces YAML from the enriched CommonDevice model.
-func (h *yamlHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generateYAML(data, opts)
+func (h *yamlHandler) Generate(
+	ctx context.Context,
+	g *HybridGenerator,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
+	return g.generateYAML(ctx, data, opts)
 }
 
 // GenerateToWriter encodes YAML directly to the writer via yaml.NewEncoder.
-func (h *yamlHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
-	return g.generateYAMLToWriter(w, data, opts)
+func (h *yamlHandler) GenerateToWriter(
+	ctx context.Context,
+	g *HybridGenerator,
+	w io.Writer,
+	data *common.CommonDevice,
+	opts Options,
+) error {
+	return g.generateYAMLToWriter(ctx, w, data, opts)
 }
 
 // textHandler handles plain text output by generating markdown and stripping formatting.
@@ -259,13 +298,24 @@ func (h *textHandler) FileExtension() string { return ".txt" }
 func (h *textHandler) Aliases() []string     { return []string{"txt"} }
 
 // Generate produces plain text by rendering markdown then removing all formatting markers.
-func (h *textHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generatePlainText(data, opts)
+func (h *textHandler) Generate(
+	ctx context.Context,
+	g *HybridGenerator,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
+	return g.generatePlainText(ctx, data, opts)
 }
 
 // GenerateToWriter writes the stripped plain text output to the writer.
-func (h *textHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
-	return g.generatePlainTextToWriter(w, data, opts)
+func (h *textHandler) GenerateToWriter(
+	ctx context.Context,
+	g *HybridGenerator,
+	w io.Writer,
+	data *common.CommonDevice,
+	opts Options,
+) error {
+	return g.generatePlainTextToWriter(ctx, w, data, opts)
 }
 
 // htmlHandler handles HTML output by generating markdown and converting via goldmark.
@@ -275,11 +325,22 @@ func (h *htmlHandler) FileExtension() string { return ".html" }
 func (h *htmlHandler) Aliases() []string     { return []string{"htm"} }
 
 // Generate produces HTML by rendering markdown then converting via goldmark.
-func (h *htmlHandler) Generate(g *HybridGenerator, data *common.CommonDevice, opts Options) (string, error) {
-	return g.generateHTML(data, opts)
+func (h *htmlHandler) Generate(
+	ctx context.Context,
+	g *HybridGenerator,
+	data *common.CommonDevice,
+	opts Options,
+) (string, error) {
+	return g.generateHTML(ctx, data, opts)
 }
 
 // GenerateToWriter writes the rendered HTML output to the writer.
-func (h *htmlHandler) GenerateToWriter(g *HybridGenerator, w io.Writer, data *common.CommonDevice, opts Options) error {
-	return g.generateHTMLToWriter(w, data, opts)
+func (h *htmlHandler) GenerateToWriter(
+	ctx context.Context,
+	g *HybridGenerator,
+	w io.Writer,
+	data *common.CommonDevice,
+	opts Options,
+) error {
+	return g.generateHTMLToWriter(ctx, w, data, opts)
 }

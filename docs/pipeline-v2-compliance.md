@@ -59,7 +59,7 @@ Pipeline v2 defines mandatory tooling and quality gates for all EvilBit Labs pub
 
 **Files:**
 
-- [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) - `govulncheck` + Trivy filesystem scan (CodeQL runs separately via GitHub's default-setup code scanning)
+- [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml) - `govulncheck` and Trivy filesystem scan. CodeQL is handled by GitHub's repository-level default-setup code scanning (not a job in this workflow — GitHub rejects SARIF upload from a manually-configured CodeQL job when default setup is enabled).
 - [`.github/workflows/sbom.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/sbom.yml) - Repository SBOM generation
 - FOSSA license scanning (GitHub App integration)
 - [`.github/workflows/release.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/release.yml) - SLSA provenance + Cosign signing
@@ -79,7 +79,7 @@ The project provides the following local security and compliance tooling:
 - **`just scan`** — run `gosec` source-code security analysis
 - **`just sbom`** — generate a CycloneDX SBOM via `cyclonedx-gomod`
 - **`just security-all`** — run `gosec` and SBOM generation together
-- **`govulncheck`** — already pinned in `mise.toml`; reproduce the CI check locally with `mise exec -- govulncheck ./...` (matches the exact version CI runs)
+- **`govulncheck`** — install via `go install golang.org/x/vuln/cmd/govulncheck@latest`, then run `govulncheck ./...` to reproduce the CI check locally
 - **FOSSA CLI** — run `fossa analyze` and `fossa test` locally (requires `FOSSA_API_KEY`)
 
 Trivy and CodeQL are executed only in CI. To reproduce a Trivy finding locally, install the CLI from the upstream project and run `trivy fs --severity CRITICAL,HIGH,MEDIUM --ignore-unfixed .`.
@@ -168,7 +168,7 @@ cosign verify-blob \
 ### Scheduled Scans
 
 - **OSSF Scorecard**: Weekly repository hygiene assessment
-- **Security workflow**: Weekly run of `govulncheck` + Trivy (Mondays at 06:00 UTC); CodeQL runs via GitHub's default-setup code scanning separately
+- **Security workflow**: Weekly run of `govulncheck`, CodeQL, and Trivy (Mondays at 06:00 UTC)
 - **Dependabot**: Weekly dependency update PRs
 
 ### Real-time Monitoring

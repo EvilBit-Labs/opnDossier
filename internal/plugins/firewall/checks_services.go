@@ -56,11 +56,10 @@ func (fp *Plugin) checkNATReflectionDisabled(device *common.CommonDevice) checkR
 	return checkResult{Result: device.NAT.ReflectionDisabled, Known: true}
 }
 
-// checkUPnPDisabled checks whether UPnP/NAT-PMP is disabled. The CommonDevice
-// model does not expose UPnP configuration, so this cannot be evaluated.
-func (fp *Plugin) checkUPnPDisabled(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-057 (checkUPnPDisabled) was a no-op returning unknown — the
+// CommonDevice model does not expose UPnP configuration. Removed with the
+// EvaluatedControlIDs cleanup; control remains in controls.go so the report
+// labels it UNCONFIRMED.
 
 // checkDNSSECValidation checks that DNSSEC validation is enabled on the
 // Unbound DNS resolver. DNSSEC prevents DNS spoofing by cryptographically
@@ -78,19 +77,11 @@ func (fp *Plugin) checkDNSSECValidation(device *common.CommonDevice) checkResult
 	return checkResult{Result: device.DNS.Unbound.DNSSEC, Known: true}
 }
 
-// checkDNSResolverAccessRestriction checks whether the DNS resolver access is
-// restricted to specific interfaces. The CommonDevice model does not expose
-// Unbound interface binding, so this cannot be evaluated.
-func (fp *Plugin) checkDNSResolverAccessRestriction(_ *common.CommonDevice) checkResult {
-	return unknown
-}
-
-// checkConfigurationRevisionTracking checks whether configuration revision
-// tracking is configured. The CommonDevice model does not expose revision
-// tracking settings in a way that enables this check.
-func (fp *Plugin) checkConfigurationRevisionTracking(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-059 (checkDNSResolverAccessRestriction) and FIREWALL-060
+// (checkConfigurationRevisionTracking) were no-op helpers returning unknown —
+// the CommonDevice model does not expose Unbound interface binding or
+// revision tracking. Removed with the EvaluatedControlIDs cleanup; controls
+// remain in controls.go so the report labels them UNCONFIRMED.
 
 // checkHAConfiguration checks whether a high-availability configuration is
 // in place when pfsync peer IP is configured.

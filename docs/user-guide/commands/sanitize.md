@@ -158,5 +158,6 @@ opndossier sanitize config.xml -o sanitized.xml --force
 
 ## Related
 
+- [CLI Reference — `sanitize`](../../cli/opnDossier_sanitize.md) -- auto-generated exhaustive flag list
 - [convert](convert.md) -- use `--redact` flag for inline redaction during conversion
 - [Configuration Reference](../configuration-reference.md) -- global flags and settings

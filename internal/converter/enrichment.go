@@ -94,71 +94,86 @@ func prepareForExport(data *common.CommonDevice, redact bool) *common.CommonDevi
 //
 // If new secret fields are added to common.*, they MUST be added here.
 func redactSensitiveFields(cp *common.CommonDevice) {
-	// HA password
 	if cp.HighAvailability.Password != "" {
 		cp.HighAvailability.Password = redactedValue
 	}
-
-	// Certificate private keys
-	if len(cp.Certificates) > 0 {
-		cp.Certificates = slices.Clone(cp.Certificates)
-		for i := range cp.Certificates {
-			if cp.Certificates[i].PrivateKey != "" {
-				cp.Certificates[i].PrivateKey = redactedValue
-			}
-		}
-	}
-
-	// CA private keys (present for locally-created CAs)
-	if len(cp.CAs) > 0 {
-		cp.CAs = slices.Clone(cp.CAs)
-		for i := range cp.CAs {
-			if cp.CAs[i].PrivateKey != "" {
-				cp.CAs[i].PrivateKey = redactedValue
-			}
-		}
-	}
-
-	// API key secrets
-	if len(cp.Users) > 0 {
-		cp.Users = slices.Clone(cp.Users)
-		for i := range cp.Users {
-			if len(cp.Users[i].APIKeys) > 0 {
-				cp.Users[i].APIKeys = slices.Clone(cp.Users[i].APIKeys)
-				for j := range cp.Users[i].APIKeys {
-					if cp.Users[i].APIKeys[j].Secret != "" {
-						cp.Users[i].APIKeys[j].Secret = redactedValue
-					}
-				}
-			}
-		}
-	}
-
-	// SNMP community string
+	redactCertPrivateKeys(cp)
+	redactCAPrivateKeys(cp)
+	redactUserAPIKeySecrets(cp)
 	if cp.SNMP.ROCommunity != "" {
 		cp.SNMP.ROCommunity = redactedValue
 	}
+	redactWireGuardPSKs(cp)
+	redactDHCPv6Secrets(cp)
+}
 
-	// WireGuard pre-shared keys
-	if len(cp.VPN.WireGuard.Clients) > 0 {
-		cp.VPN.WireGuard.Clients = slices.Clone(cp.VPN.WireGuard.Clients)
-		for i := range cp.VPN.WireGuard.Clients {
-			if cp.VPN.WireGuard.Clients[i].PSK != "" {
-				cp.VPN.WireGuard.Clients[i].PSK = redactedValue
+func redactCertPrivateKeys(cp *common.CommonDevice) {
+	if len(cp.Certificates) == 0 {
+		return
+	}
+	cp.Certificates = slices.Clone(cp.Certificates)
+	for i := range cp.Certificates {
+		if cp.Certificates[i].PrivateKey != "" {
+			cp.Certificates[i].PrivateKey = redactedValue
+		}
+	}
+}
+
+func redactCAPrivateKeys(cp *common.CommonDevice) {
+	if len(cp.CAs) == 0 {
+		return
+	}
+	cp.CAs = slices.Clone(cp.CAs)
+	for i := range cp.CAs {
+		if cp.CAs[i].PrivateKey != "" {
+			cp.CAs[i].PrivateKey = redactedValue
+		}
+	}
+}
+
+func redactUserAPIKeySecrets(cp *common.CommonDevice) {
+	if len(cp.Users) == 0 {
+		return
+	}
+	cp.Users = slices.Clone(cp.Users)
+	for i := range cp.Users {
+		if len(cp.Users[i].APIKeys) == 0 {
+			continue
+		}
+		cp.Users[i].APIKeys = slices.Clone(cp.Users[i].APIKeys)
+		for j := range cp.Users[i].APIKeys {
+			if cp.Users[i].APIKeys[j].Secret != "" {
+				cp.Users[i].APIKeys[j].Secret = redactedValue
 			}
 		}
 	}
+}
 
-	// DHCPv6 authentication secrets
-	if len(cp.DHCP) > 0 {
-		cp.DHCP = slices.Clone(cp.DHCP)
-		for i := range cp.DHCP {
-			if cp.DHCP[i].AdvancedV6 != nil && cp.DHCP[i].AdvancedV6.AdvDHCP6KeyInfoStatementSecret != "" {
-				v6Copy := *cp.DHCP[i].AdvancedV6
-				v6Copy.AdvDHCP6KeyInfoStatementSecret = redactedValue
-				cp.DHCP[i].AdvancedV6 = &v6Copy
-			}
+func redactWireGuardPSKs(cp *common.CommonDevice) {
+	if len(cp.VPN.WireGuard.Clients) == 0 {
+		return
+	}
+	cp.VPN.WireGuard.Clients = slices.Clone(cp.VPN.WireGuard.Clients)
+	for i := range cp.VPN.WireGuard.Clients {
+		if cp.VPN.WireGuard.Clients[i].PSK != "" {
+			cp.VPN.WireGuard.Clients[i].PSK = redactedValue
 		}
+	}
+}
+
+func redactDHCPv6Secrets(cp *common.CommonDevice) {
+	if len(cp.DHCP) == 0 {
+		return
+	}
+	cp.DHCP = slices.Clone(cp.DHCP)
+	for i := range cp.DHCP {
+		adv := cp.DHCP[i].AdvancedV6
+		if adv == nil || adv.AdvDHCP6KeyInfoStatementSecret == "" {
+			continue
+		}
+		v6Copy := *adv
+		v6Copy.AdvDHCP6KeyInfoStatementSecret = redactedValue
+		cp.DHCP[i].AdvancedV6 = &v6Copy
 	}
 }
 

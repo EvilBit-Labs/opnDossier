@@ -94,8 +94,8 @@ Examples:
 			go func(fp string) {
 				defer wg.Done()
 
-				// Create context-aware logger for this goroutine with input file field
-				ctxLogger := cmdLogger.WithContext(ctx).WithFields("input_file", fp)
+				// Create logger for this goroutine with input file field
+				ctxLogger := cmdLogger.WithFields("input_file", fp)
 				ctxLogger.Info("Starting validation process")
 
 				// Sanitize the file path

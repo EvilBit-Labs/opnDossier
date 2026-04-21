@@ -127,8 +127,7 @@ func loadValidator() validateFuncType {
 
 // Parser implements the DeviceParser interface for pfSense configuration files.
 // It manages its own XML decoding because the shared OPNsenseXMLDecoder returns
-// *opnsense.OpnSenseDocument (pkg/schema/opnsense), which is incompatible with
-// pfsense.Document.
+// *schema.OpnSenseDocument which is incompatible with pfsense.Document.
 type Parser struct {
 	maxInputSize int64
 }

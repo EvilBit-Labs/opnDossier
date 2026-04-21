@@ -227,8 +227,15 @@ SECURITY_AUDIT.md
 docs/plans/
 todos/
 .context/
+/skills/
 
 # VHS demo artifacts (regenerated from vhs/*.tape)
 vhs/gif/
 vhs/screenshots/
 vhs/opnDossier
+
+# Large benchmark fixtures (generated lazily by BenchmarkSanitizeXML_10MB).
+# Kept out of git to avoid repo bloat; regenerated deterministically by
+# the benchmark helper when missing or undersized. See
+# internal/sanitizer/testdata/README.md.
+internal/sanitizer/testdata/benchmark-10mb.xml

@@ -1,0 +1,62 @@
+# opnDossier
+
+> opnDossier is a command-line tool that processes OPNsense and pfSense firewall configuration files (`config.xml`) into human-readable documentation and machine-readable exports. It runs security audits against STIG / SANS / custom compliance plugins, identifies dead firewall rules, redacts sensitive values, and works completely offline for air-gapped environments.
+
+opnDossier is built in Go, ships as a single static binary for Linux / macOS / Windows, and exposes a stable public Go API from v1.5. Every structured output format (Markdown, JSON, YAML, HTML, plain text) is generated from the same `pkg/model.CommonDevice` domain model, so automation pipelines see the same data shape regardless of which surface they consume. Unimplemented subsystems emit a stable `"not yet implemented in <device> converter"` ConversionWarning substring rather than silently producing empty output, so agents can distinguish product gaps from missing configuration.
+
+## Documentation
+
+- [For AI Agents & Automation](https://opndossier.com/for-agents/): Aggregated entry point for runtime-invoking agents — links every stable machine-readable interface (auto-generated CLI reference, JSON/YAML output schemas, exit codes, public Go API, configuration surfaces) in one place
+- [Getting Started](https://opndossier.com/user-guide/getting-started/): Tutorial walking a first-time operator through parsing, auditing, and exporting a `config.xml`
+- [Commands Overview](https://opndossier.com/user-guide/commands/overview/): Narrative reference for every subcommand with use cases and workflows
+- [Configuration Reference](https://opndossier.com/user-guide/configuration-reference/): Every CLI flag, environment variable, and config-file key with types, defaults, and precedence rules
+- [Device Support Matrix](https://opndossier.com/user-guide/device-support-matrix/): OPNsense vs. pfSense coverage per `CommonDevice` subsystem (authoritative source of what's supported)
+
+## CLI Reference (auto-generated)
+
+- [opnDossier (root)](https://opndossier.com/cli/opnDossier/): Global flags and subcommand index — regenerated from Cobra on every build
+- [audit](https://opndossier.com/cli/opnDossier_audit/): Run security audit and compliance checks (blue / red modes)
+- [convert](https://opndossier.com/cli/opnDossier_convert/): Convert `config.xml` to Markdown, JSON, YAML, HTML, or plain text
+- [display](https://opndossier.com/cli/opnDossier_display/): Render `config.xml` as formatted Markdown in the terminal
+- [validate](https://opndossier.com/cli/opnDossier_validate/): Check `config.xml` for structural and semantic correctness
+- [diff](https://opndossier.com/cli/opnDossier_diff/): Compare two OPNsense configuration files
+- [sanitize](https://opndossier.com/cli/opnDossier_sanitize/): Redact sensitive information from `config.xml` into a new file
+- [config](https://opndossier.com/cli/opnDossier_config/): Manage opnDossier configuration (`init`, `show`, `validate`)
+
+## Data Model & Integration
+
+- [Model Reference](https://opndossier.com/data-model/model-reference/): Auto-generated reference for the `pkg/model.CommonDevice` schema (the JSON/YAML output shape)
+- [JSON Export Examples](https://opndossier.com/data-model/examples/json-export/): Real `CommonDevice` JSON outputs for common workflows
+- [YAML Processing Examples](https://opndossier.com/data-model/examples/yaml-processing/): Consuming YAML exports in automation pipelines
+- [API Reference](https://opndossier.com/development/api/): Full internal API documentation for library consumers
+- [Public API Contract](https://opndossier.com/development/public-api/): Semver-committed surface and Regime notes from v1.5 onward
+
+## Security & Plugins
+
+- [Third-Party Plugin Security](https://opndossier.com/user-guide/commands/audit/#third-party-plugin-security): Trust model, preflight restrictions, and operator responsibilities for dynamic `.so` plugins loaded via `--plugin-dir` (Linux/macOS/FreeBSD only; no-op on Windows)
+- [Plugin Development Guide](https://opndossier.com/development/plugin-development/): How to author compliance plugins (both built-in via `internal/plugins/*` and dynamic via `-buildmode=plugin`)
+- [Security Assurance Case](https://opndossier.com/security/security-assurance/): NIST IR 7608-style assurance case with threat model, trust boundaries, and attack-vector coverage
+
+## Development
+
+- [Architecture Overview](https://opndossier.com/development/architecture/): System design, component interactions, and the parser → converter → enrichment pipeline
+- [Development Standards](https://opndossier.com/development/standards/): Go coding standards and project structure
+- [CLI Output Policy](https://opndossier.com/development/cli-output-policy/): Which streams are used for what — stdout for structured data, stderr for diagnostics, fd-3 reserved
+- [Contributing](https://opndossier.com/development/contributing/): PR process, commit conventions, testing expectations
+- [Releasing](https://opndossier.com/development/releasing/): How a release is cut, signed, and published
+
+## Compliance & Reference
+
+- [Compliance Standards](https://opndossier.com/compliance-standards/): Built-in STIG, SANS, and firewall-baseline plugin details
+- [Firewall Security Controls](https://opndossier.com/firewall-security-controls-reference/): Reference for the `FIREWALL-XXX` control catalog
+- [XML Field Reference](https://opndossier.com/xml-field-reference/): OPNsense / pfSense `config.xml` element reference
+- [Pipeline v2 Compliance](https://opndossier.com/pipeline-v2-compliance/): How the single-pass `compliance.Plugin.RunChecks` contract works
+
+## Optional
+
+- [Examples](https://opndossier.com/examples/): Complete worked examples (basic documentation, advanced configuration, audit & compliance, automation & scripting, troubleshooting)
+- [Common Workflows](https://opndossier.com/user-guide/workflows/): Operator-oriented end-to-end recipes
+- [Security Scoring](https://opndossier.com/user-guide/security-scoring/): How opnDossier scores configurations against a baseline
+- [About](https://opndossier.com/about/): Project overview and features
+- [GitHub Repository](https://github.com/EvilBit-Labs/opnDossier): Source code, issue tracker, releases
+- [GitHub Action](https://github.com/EvilBit-Labs/opnDossier/blob/main/action.yaml): Pre-built GitHub Action wrapping the CLI for CI-driven audit pipelines

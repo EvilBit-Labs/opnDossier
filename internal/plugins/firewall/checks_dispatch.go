@@ -316,16 +316,31 @@ func (fp *Plugin) newChecksTable() []newCheckEntry {
 	}
 }
 
-// runNewChecks evaluates all checks from FIREWALL-009 through -061 and returns
-// findings for non-compliant controls.
-func (fp *Plugin) runNewChecks(device *common.CommonDevice) []compliance.Finding {
-	var findings []compliance.Finding
+// runNewChecks evaluates all checks from FIREWALL-009 through -061 in a single
+// pass. Returns (findings, evaluated):
+//   - findings: compliance findings for checks that failed.
+//   - evaluated: control IDs for checks that could be evaluated (Known=true),
+//     independent of pass/fail. Controls with Known=false (insufficient data
+//     in config.xml) are excluded.
+//
+// The table itself enumerates only the controls where a finding is possible;
+// controls that always return Unknown are in fp.controls but not in this
+// table, and are intentionally absent from evaluated.
+//
+//nolint:gocritic // nonamedreturns enforced project-wide; docstring clarifies return shape.
+func (fp *Plugin) runNewChecks(device *common.CommonDevice) ([]compliance.Finding, []string) {
+	table := fp.newChecksTable()
 
-	for _, entry := range fp.newChecksTable() {
+	findings := make([]compliance.Finding, 0, len(table))
+	evaluated := make([]string, 0, len(table))
+
+	for _, entry := range table {
 		cr := entry.checkFn(fp, device)
 		if !cr.Known {
 			continue
 		}
+
+		evaluated = append(evaluated, entry.controlID)
 
 		// Determine if the check failed.
 		// Most checks: Result==false means non-compliant.
@@ -352,5 +367,5 @@ func (fp *Plugin) runNewChecks(device *common.CommonDevice) []compliance.Finding
 		})
 	}
 
-	return findings
+	return findings, evaluated
 }

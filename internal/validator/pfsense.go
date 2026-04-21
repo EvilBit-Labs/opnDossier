@@ -201,141 +201,193 @@ func validatePfSenseSystem(sys *pfsense.System) []ValidationError {
 // protocols, interface references, and network specifications.
 func validatePfSenseFilter(filter *pfsense.Filter, interfaces *pfsense.Interfaces) []ValidationError {
 	var errors []ValidationError
-
 	validInterfaceNames := collectPfSenseInterfaceNames(interfaces)
-
 	for i, rule := range filter.Rule {
-		validTypes := []string{"pass", "block", "reject"}
-		if rule.Type != "" && !contains(validTypes, rule.Type) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].type", i),
-				Message: fmt.Sprintf("rule type '%s' must be one of: %v", rule.Type, validTypes),
-			})
-		}
-
-		validIPProtocols := []string{"inet", "inet6", "inet46"}
-		if rule.IPProtocol != "" && !contains(validIPProtocols, rule.IPProtocol) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].ipprotocol", i),
-				Message: fmt.Sprintf("IP protocol '%s' must be one of: %v", rule.IPProtocol, validIPProtocols),
-			})
-		}
-
-		if !rule.Interface.IsEmpty() {
-			for _, iface := range rule.Interface {
-				if _, exists := validInterfaceNames[iface]; !exists {
-					errors = append(errors, ValidationError{
-						Field: fmt.Sprintf("filter.rule[%d].interface", i),
-						Message: fmt.Sprintf(
-							"interface '%s' must be one of the configured interfaces: %v",
-							iface,
-							sortedInterfaceNames(validInterfaceNames),
-						),
-					})
-				}
-			}
-		}
-
-		errors = append(errors, validateNetworkField(
-			rule.Source.Network, fmt.Sprintf("filter.rule[%d].source.network", i), "source", validInterfaceNames,
-		)...)
-		errors = append(errors, validateAddressField(
-			rule.Source.Address, fmt.Sprintf("filter.rule[%d].source.address", i),
-		)...)
-		errors = append(errors, validateNetworkField(
-			rule.Destination.Network,
-			fmt.Sprintf("filter.rule[%d].destination.network", i),
-			"destination",
-			validInterfaceNames,
-		)...)
-		errors = append(errors, validateAddressField(
-			rule.Destination.Address, fmt.Sprintf("filter.rule[%d].destination.address", i),
-		)...)
-
-		if rule.Source.Port != "" && !isValidPortOrRange(rule.Source.Port) {
-			errors = append(errors, ValidationError{
-				Field: fmt.Sprintf("filter.rule[%d].source.port", i),
-				Message: fmt.Sprintf(
-					"source port '%s' is not a valid port (1-65535) or range (low-high)",
-					rule.Source.Port,
-				),
-			})
-		}
-
-		if rule.Destination.Port != "" && !isValidPortOrRange(rule.Destination.Port) {
-			errors = append(errors, ValidationError{
-				Field: fmt.Sprintf("filter.rule[%d].destination.port", i),
-				Message: fmt.Sprintf(
-					"destination port '%s' is not a valid port (1-65535) or range (low-high)",
-					rule.Destination.Port,
-				),
-			})
-		}
-
-		sourceFieldCount := 0
-		if rule.Source.IsAny() {
-			sourceFieldCount++
-		}
-		if rule.Source.Network != "" {
-			sourceFieldCount++
-		}
-		if rule.Source.Address != "" {
-			sourceFieldCount++
-		}
-		if sourceFieldCount > 1 {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].source", i),
-				Message: "source can only specify one of: any, network, or address",
-			})
-		}
-
-		destFieldCount := 0
-		if rule.Destination.IsAny() {
-			destFieldCount++
-		}
-		if rule.Destination.Network != "" {
-			destFieldCount++
-		}
-		if rule.Destination.Address != "" {
-			destFieldCount++
-		}
-		if destFieldCount > 1 {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].destination", i),
-				Message: "destination can only specify one of: any, network, or address",
-			})
-		}
-
-		if rule.Floating == floatingYes && rule.Direction == "" {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
-				Message: "direction is required for floating rules",
-			})
-		}
-		validDirections := []string{"in", "out", "any"}
-		if rule.Direction != "" && !contains(validDirections, rule.Direction) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].direction", i),
-				Message: fmt.Sprintf("direction '%s' must be one of: %v", rule.Direction, validDirections),
-			})
-		}
-
-		validStateTypes := []string{"keep state", "sloppy state", "synproxy state", "none"}
-		if rule.StateType != "" && !contains(validStateTypes, rule.StateType) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].statetype", i),
-				Message: fmt.Sprintf("state type '%s' must be one of: %v", rule.StateType, validStateTypes),
-			})
-		}
-
-		if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("filter.rule[%d].max-src-conn-rate", i),
-				Message: "max-src-conn-rate must be in format 'connections/seconds' (e.g., '15/5')",
-			})
-		}
+		errors = append(errors, validatePfSenseFilterRule(i, rule, validInterfaceNames)...)
 	}
+	return errors
+}
 
+// validatePfSenseFilterRule checks a single pfSense filter rule by delegating
+// to concern-specific helpers. Splitting keeps validatePfSenseFilter well
+// under gocognit's threshold.
+func validatePfSenseFilterRule(
+	i int,
+	rule pfsense.FilterRule,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	var errors []ValidationError
+	prefix := fmt.Sprintf("filter.rule[%d]", i)
+	errors = append(errors, validatePfSenseRuleTypeAndProtocol(prefix, rule)...)
+	errors = append(errors, validatePfSenseRuleInterface(prefix, rule, validInterfaceNames)...)
+	errors = append(errors, validatePfSenseRuleEndpoints(prefix, rule, validInterfaceNames)...)
+	errors = append(errors, validatePfSenseRuleAnyExclusivity(prefix, rule)...)
+	errors = append(errors, validatePfSenseRuleDirection(prefix, rule)...)
+	errors = append(errors, validatePfSenseRuleStateAndRate(prefix, rule)...)
+	return errors
+}
+
+// validPfSenseRuleTypes / IPProtocols / Directions / StateTypes are hoisted to
+// package scope so each helper does not reallocate them per rule.
+var (
+	validPfSenseRuleTypes      = []string{"pass", "block", "reject"}
+	validPfSenseIPProtocols    = []string{"inet", "inet6", "inet46"}
+	validPfSenseDirections     = []string{"in", "out", "any"}
+	validPfSenseRuleStateTypes = []string{"keep state", "sloppy state", "synproxy state", "none"}
+)
+
+func validatePfSenseRuleTypeAndProtocol(prefix string, rule pfsense.FilterRule) []ValidationError {
+	var errors []ValidationError
+	if rule.Type != "" && !contains(validPfSenseRuleTypes, rule.Type) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".type",
+			Message: fmt.Sprintf("rule type '%s' must be one of: %v", rule.Type, validPfSenseRuleTypes),
+		})
+	}
+	if rule.IPProtocol != "" && !contains(validPfSenseIPProtocols, rule.IPProtocol) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".ipprotocol",
+			Message: fmt.Sprintf("IP protocol '%s' must be one of: %v", rule.IPProtocol, validPfSenseIPProtocols),
+		})
+	}
+	return errors
+}
+
+func validatePfSenseRuleInterface(
+	prefix string,
+	rule pfsense.FilterRule,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	if rule.Interface.IsEmpty() {
+		return nil
+	}
+	var errors []ValidationError
+	for _, iface := range rule.Interface {
+		if _, exists := validInterfaceNames[iface]; exists {
+			continue
+		}
+		errors = append(errors, ValidationError{
+			Field: prefix + ".interface",
+			Message: fmt.Sprintf(
+				"interface '%s' must be one of the configured interfaces: %v",
+				iface,
+				sortedInterfaceNames(validInterfaceNames),
+			),
+		})
+	}
+	return errors
+}
+
+// validatePfSenseRuleEndpoints mirrors validateOPNRuleEndpoints in
+// validate_security.go by design — the two devices share the same endpoint
+// schema. The dupl linter flags this pair bidirectionally, so both sides
+// carry the suppression per GOTCHAS §9.1.
+//
+//nolint:dupl // structurally identical to validateOPNRuleEndpoints by design
+func validatePfSenseRuleEndpoints(
+	prefix string,
+	rule pfsense.FilterRule,
+	validInterfaceNames map[string]struct{},
+) []ValidationError {
+	var errors []ValidationError
+	errors = append(errors, validateNetworkField(
+		rule.Source.Network, prefix+".source.network", "source", validInterfaceNames,
+	)...)
+	errors = append(errors, validateAddressField(
+		rule.Source.Address, prefix+".source.address",
+	)...)
+	errors = append(errors, validateNetworkField(
+		rule.Destination.Network, prefix+".destination.network", "destination", validInterfaceNames,
+	)...)
+	errors = append(errors, validateAddressField(
+		rule.Destination.Address, prefix+".destination.address",
+	)...)
+	if rule.Source.Port != "" && !isValidPortOrRange(rule.Source.Port) {
+		errors = append(errors, ValidationError{
+			Field: prefix + ".source.port",
+			Message: fmt.Sprintf(
+				"source port '%s' is not a valid port (1-65535) or range (low-high)",
+				rule.Source.Port,
+			),
+		})
+	}
+	if rule.Destination.Port != "" && !isValidPortOrRange(rule.Destination.Port) {
+		errors = append(errors, ValidationError{
+			Field: prefix + ".destination.port",
+			Message: fmt.Sprintf(
+				"destination port '%s' is not a valid port (1-65535) or range (low-high)",
+				rule.Destination.Port,
+			),
+		})
+	}
+	return errors
+}
+
+// validatePfSenseRuleAnyExclusivity enforces that each endpoint specifies
+// exactly one of {any, network, address} — pfSense treats combinations as
+// ambiguous.
+func validatePfSenseRuleAnyExclusivity(prefix string, rule pfsense.FilterRule) []ValidationError {
+	var errors []ValidationError
+	if countPfSenseEndpointFields(rule.Source.IsAny(), rule.Source.Network, rule.Source.Address) > 1 {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".source",
+			Message: "source can only specify one of: any, network, or address",
+		})
+	}
+	if countPfSenseEndpointFields(rule.Destination.IsAny(), rule.Destination.Network, rule.Destination.Address) > 1 {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".destination",
+			Message: "destination can only specify one of: any, network, or address",
+		})
+	}
+	return errors
+}
+
+func countPfSenseEndpointFields(isAny bool, network, address string) int {
+	count := 0
+	if isAny {
+		count++
+	}
+	if network != "" {
+		count++
+	}
+	if address != "" {
+		count++
+	}
+	return count
+}
+
+func validatePfSenseRuleDirection(prefix string, rule pfsense.FilterRule) []ValidationError {
+	var errors []ValidationError
+	if rule.Floating == floatingYes && rule.Direction == "" {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".direction",
+			Message: "direction is required for floating rules",
+		})
+	}
+	if rule.Direction != "" && !contains(validPfSenseDirections, rule.Direction) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".direction",
+			Message: fmt.Sprintf("direction '%s' must be one of: %v", rule.Direction, validPfSenseDirections),
+		})
+	}
+	return errors
+}
+
+func validatePfSenseRuleStateAndRate(prefix string, rule pfsense.FilterRule) []ValidationError {
+	var errors []ValidationError
+	if rule.StateType != "" && !contains(validPfSenseRuleStateTypes, rule.StateType) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".statetype",
+			Message: fmt.Sprintf("state type '%s' must be one of: %v", rule.StateType, validPfSenseRuleStateTypes),
+		})
+	}
+	if rule.MaxSrcConnRate != "" && !isValidConnRateFormat(rule.MaxSrcConnRate) {
+		errors = append(errors, ValidationError{
+			Field:   prefix + ".max-src-conn-rate",
+			Message: "max-src-conn-rate must be in format 'connections/seconds' (e.g., '15/5')",
+		})
+	}
 	return errors
 }
 

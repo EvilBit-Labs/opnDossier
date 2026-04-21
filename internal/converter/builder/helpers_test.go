@@ -69,6 +69,7 @@ func TestFormatLeaseTime(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestHasAdvancedDHCPConfig(t *testing.T) {
 	t.Parallel()
 
@@ -223,6 +224,7 @@ func TestHasAdvancedDHCPConfig(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestHasDHCPv6Config(t *testing.T) {
 	t.Parallel()
 
@@ -755,6 +757,7 @@ func TestBuildAdvancedDHCPItems(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestBuildDHCPv6Items(t *testing.T) {
 	t.Parallel()
 

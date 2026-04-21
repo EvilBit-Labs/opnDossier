@@ -107,19 +107,23 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 }
 
 // computeRiskSummary calculates the aggregate risk summary from scored changes.
+//
+// Each Change in result.Changes already has SecurityImpact populated by the
+// per-change loop in Compare (and by addReorderChanges). We aggregate those
+// existing values directly via security.SummarizeScored instead of rebuilding
+// a []ChangeInput and re-running pattern matching through ScoreAll — this
+// eliminates a second O(n) allocation on large diffs (PERF-M6).
 func (e *Engine) computeRiskSummary(result *Result) RiskSummary {
-	inputs := make([]security.ChangeInput, len(result.Changes))
+	risks := make([]security.ScoredRisk, len(result.Changes))
 	for i, c := range result.Changes {
-		inputs[i] = security.ChangeInput{
-			Type:           c.Type.String(),
-			Section:        c.Section.String(),
-			Path:           c.Path,
-			Description:    c.Description,
-			SecurityImpact: c.SecurityImpact,
+		risks[i] = security.ScoredRisk{
+			Path:        c.Path,
+			Description: c.Description,
+			Impact:      c.SecurityImpact,
 		}
 	}
 
-	return e.scorer.ScoreAll(inputs)
+	return security.SummarizeScored(risks)
 }
 
 // compareSection dispatches to section-specific comparers.

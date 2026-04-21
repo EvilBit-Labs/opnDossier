@@ -506,8 +506,8 @@ func TestShouldRedactField_OTPSeed(t *testing.T) {
 			if !should {
 				t.Errorf("ShouldRedactField(%q) = false, want true", tt.field)
 			}
-			if rule == nil {
-				t.Errorf("ShouldRedactField(%q) returned nil rule", tt.field)
+			if rule.Name == "" {
+				t.Errorf("ShouldRedactField(%q) returned zero-value rule (no Name)", tt.field)
 			}
 		})
 	}

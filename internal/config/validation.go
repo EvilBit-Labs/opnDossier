@@ -124,17 +124,21 @@ func (v *Validator) validateOutputFile() {
 }
 
 // validateTheme validates the theme setting.
+//
+// Validates the deprecated Config.Theme flat field. Kept until Config.Theme
+// is removed in v2.0.
 func (v *Validator) validateTheme() {
-	if v.config.Theme == "" {
+	theme := v.config.Theme
+	if theme == "" {
 		return
 	}
 
-	if !isValidEnum(v.config.Theme, ValidThemes) {
+	if !isValidEnum(theme, ValidThemes) {
 		validOptions := filterEmpty(ValidThemes)
 		v.errors.Add(FieldValidationError{
 			Field:      "theme",
 			Message:    "invalid theme value",
-			Value:      v.config.Theme,
+			Value:      theme,
 			ValidItems: validOptions,
 			Suggestion: "use one of the valid themes or leave empty for auto-detection",
 		})
@@ -142,17 +146,21 @@ func (v *Validator) validateTheme() {
 }
 
 // validateFormat validates the output format.
+//
+// Validates the deprecated Config.Format flat field. Kept until Config.Format
+// is removed in v2.0.
 func (v *Validator) validateFormat() {
-	if v.config.Format == "" {
+	format := v.config.Format
+	if format == "" {
 		return
 	}
 
-	if !isValidEnum(v.config.Format, ValidFormats) {
+	if !isValidEnum(format, ValidFormats) {
 		validOptions := filterEmpty(ValidFormats)
 		v.errors.Add(FieldValidationError{
 			Field:      "format",
 			Message:    "invalid output format",
-			Value:      v.config.Format,
+			Value:      format,
 			ValidItems: validOptions,
 			Suggestion: "markdown/md for Markdown, json for JSON, yaml/yml for YAML, text/txt for plain text, html/htm for HTML",
 		})

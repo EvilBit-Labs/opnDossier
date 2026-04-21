@@ -22,9 +22,27 @@ type PluginManager struct {
 }
 
 // NewPluginManager creates a new plugin manager.
-func NewPluginManager(logger *logging.Logger) *PluginManager {
+//
+// The reg parameter is the PluginRegistry this manager reads from and writes
+// to. Pass a shared *PluginRegistry when multiple managers or subsystems must
+// observe the same plugin set (e.g., CLI helpers and the audit pipeline).
+// Pass nil to allocate a fresh private registry — this is the appropriate
+// default for short-lived programmatic callers that do not share state with
+// anything else.
+//
+// This replaces the earlier split between the PluginManager's private registry
+// and the package-level global registry (see the Deprecated notes on
+// GetGlobalRegistry / RegisterGlobalPlugin in plugin.go). There is now a
+// single registry path: whichever *PluginRegistry is supplied here is the one
+// InitializePlugins populates and ListAvailablePlugins / RunComplianceAudit
+// read from.
+func NewPluginManager(logger *logging.Logger, reg *PluginRegistry) *PluginManager {
+	if reg == nil {
+		reg = NewPluginRegistry()
+	}
+
 	return &PluginManager{
-		registry: NewPluginRegistry(),
+		registry: reg,
 		logger:   logger,
 	}
 }
@@ -42,12 +60,8 @@ func NewPluginManager(logger *logging.Logger) *PluginManager {
 // load failures are non-fatal — they do NOT cause InitializePlugins to return
 // an error. Callers must inspect GetLoadResult() after this method returns to
 // detect and surface dynamic plugin load failures.
-//
-// Note: this populates pm.registry only, not the global singleton returned by
-// GetGlobalRegistry(). If plugins need to be available via the global registry,
-// callers must use RegisterGlobalPlugin() separately.
 func (pm *PluginManager) InitializePlugins(ctx context.Context) error {
-	logger := pm.logger.WithContext(ctx)
+	logger := pm.logger
 	logger.Info("Initializing compliance plugins")
 
 	// Reset load result so repeated calls don't carry stale state.
@@ -134,8 +148,8 @@ func (pm *PluginManager) GetRegistry() *PluginRegistry {
 }
 
 // ListAvailablePlugins returns information about all available plugins.
-func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo {
-	logger := pm.logger.WithContext(ctx)
+func (pm *PluginManager) ListAvailablePlugins(_ context.Context) []PluginInfo {
+	logger := pm.logger
 	pluginNames := pm.registry.ListPlugins()
 	pluginInfos := make([]PluginInfo, 0, len(pluginNames))
 
@@ -163,11 +177,11 @@ func (pm *PluginManager) ListAvailablePlugins(ctx context.Context) []PluginInfo 
 
 // RunComplianceAudit runs compliance checks using specified plugins.
 func (pm *PluginManager) RunComplianceAudit(
-	ctx context.Context,
+	_ context.Context,
 	device *common.CommonDevice,
 	pluginNames []string,
 ) (*ComplianceResult, error) {
-	logger := pm.logger.WithContext(ctx)
+	logger := pm.logger
 	logger.Info("Starting compliance audit", "plugins", pluginNames)
 
 	result, err := pm.registry.RunComplianceChecks(device, pluginNames, pm.logger)

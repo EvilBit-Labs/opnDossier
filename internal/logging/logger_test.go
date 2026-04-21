@@ -2,7 +2,6 @@ package logging
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -200,33 +199,6 @@ func TestLoggerLevels(t *testing.T) {
 			assert.Equal(t, tt.expected, level)
 		})
 	}
-}
-
-func TestLoggerWithContext(t *testing.T) {
-	var buf bytes.Buffer
-
-	config := Config{
-		Level:           "info",
-		Format:          "text",
-		Output:          &buf,
-		ReportCaller:    false,
-		ReportTimestamp: false,
-	}
-
-	logger, err := New(config)
-	require.NoError(t, err)
-
-	type contextKey string
-
-	ctx := context.WithValue(context.Background(), contextKey("test"), "value")
-
-	contextLogger := logger.WithContext(ctx)
-	require.NotNil(t, contextLogger)
-
-	contextLogger.Info("test message")
-
-	output := buf.String()
-	assert.Contains(t, output, "test message")
 }
 
 func TestLoggerWithFields(t *testing.T) {

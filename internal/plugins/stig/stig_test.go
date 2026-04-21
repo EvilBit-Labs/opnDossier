@@ -59,6 +59,7 @@ func TestPlugin_hasDefaultDenyPolicy(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestPlugin_hasOverlyPermissiveRules(t *testing.T) {
 	plugin := NewPlugin()
 
@@ -365,7 +366,10 @@ func TestPlugin_FindingSeverityMatchesControl(t *testing.T) {
 		},
 	}
 
-	findings := plugin.RunChecks(device)
+	findings, _, err := plugin.RunChecks(device)
+	if err != nil {
+		t.Fatalf("unexpected RunChecks error: %v", err)
+	}
 	if len(findings) == 0 {
 		t.Fatal("expected at least one finding to validate severity invariant")
 	}

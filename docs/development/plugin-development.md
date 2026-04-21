@@ -27,8 +27,12 @@ type Plugin interface {
     Name() string                    // Unique plugin identifier
     Version() string                 // Plugin version
     Description() string             // Human-readable description
-    RunChecks(device *common.CommonDevice) []compliance.Finding // Execute compliance checks (panic-safe)
-    GetControls() []compliance.Control   // Return all controls
+    // Single-pass evaluation (panic-safe): returns findings, the set of
+    // control IDs the plugin could evaluate on this device, and err.
+    // Plugins MUST produce findings and evaluated in the same traversal.
+    RunChecks(device *common.CommonDevice) (findings []compliance.Finding, evaluated []string, err error)
+    // GetControls MUST return a defensive deep copy — callers do not clone again.
+    GetControls() []compliance.Control
     GetControlByID(id string) (*compliance.Control, error) // Get specific control
     ValidateConfiguration() error    // Validate plugin config
 }
@@ -39,24 +43,20 @@ type Plugin interface {
 The `Finding` struct is generic and uses `References`, `Tags`, and `Metadata` fields:
 
 ```go
-// compliance.Finding is a type alias for analysis.Finding (defined in
-// internal/analysis/finding.go). All fields are plain strings/slices/maps --
-// Severity is a plain string, not a typed Severity enum.
-type Finding struct {
-    Type           string            // Category (e.g., "compliance")
-    Severity       string            // Severity level: "critical" | "high" | "medium" | "low" | "info"
-    Title          string
-    Description    string
-    Recommendation string
-    Component      string
-    Reference      string            // Single control ID reference
-    References     []string          // Related control or standard IDs
-    Tags           []string          // Classification labels
-    Metadata       map[string]string // Arbitrary key-value context
-}
+// compliance.Finding
+Type           string            // Category (e.g., "compliance")
+Severity       common.Severity   // Severity level: use constants like common.SeverityCritical, common.SeverityHigh, etc.
+Title          string
+Description    string
+Recommendation string
+Component      string
+Reference      string            // Single control ID reference
+References     []string          // Multiple control ID references
+Tags           []string
+Metadata       map[string]string
 ```
 
-**Note:** `compliance.Finding` is a type alias for the canonical `analysis.Finding` type defined in `internal/analysis/finding.go`. This unifies finding representations across the audit, compliance, and processor modules. Plugins should continue to import `github.com/EvilBit-Labs/opnDossier/internal/compliance` and use `compliance.Finding`, which remains fully compatible. If you want a shared source of truth for severity strings, use the `analysis.Severity*` constants (e.g., `string(analysis.SeverityHigh)`) -- do not use `common.Severity*` from `pkg/model`, which is the severity enum for conversion warnings, not for compliance findings.
+**Note:** `compliance.Finding` is a type alias for the canonical `analysis.Finding` type defined in `internal/analysis/finding.go`. This architectural change unifies finding representations across the audit, compliance, and processor modules, ensuring consistency throughout the codebase. Plugins should continue to import `github.com/EvilBit-Labs/opnDossier/internal/compliance` and use `compliance.Finding`, which remains fully compatible.
 
 ## Creating a New Plugin
 
@@ -87,7 +87,6 @@ package plugins
 
 import (
     "fmt"
-    "github.com/EvilBit-Labs/opnDossier/internal/analysis"
     "github.com/EvilBit-Labs/opnDossier/internal/compliance"
     common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
@@ -104,13 +103,7 @@ func NewCustomPlugin() *CustomPlugin {
                 Title:       "Custom Security Control",
                 Description: "Description of the custom security control",
                 Category:    "Security",
-                // Severity is a plain string on compliance.Control. Use the
-                // canonical compliance severity strings ("critical" | "high" |
-                // "medium" | "low" | "info") or the analysis.Severity*
-                // constants as a shared source of truth. Do NOT use
-                // common.Severity* from pkg/model -- that enum is for
-                // conversion warnings, not compliance findings.
-                Severity:    string(analysis.SeverityHigh),
+                Severity:    string(common.SeverityHigh),
                 Rationale:   "Why this control is important",
                 Remediation: "How to fix compliance issues",
                 Tags:        []string{"custom", "security", "compliance"},
@@ -140,21 +133,26 @@ func (cp *CustomPlugin) ValidateConfiguration() error {
 
 // controlSeverity returns the severity for a control ID from the control
 // definitions. This ensures findings derive severity from the single source
-// of truth (the control metadata) rather than hard-coding literals. Both
-// compliance.Control.Severity and compliance.Finding.Severity are plain
-// strings, so no conversion is needed.
-func (cp *CustomPlugin) controlSeverity(id string) string {
+// of truth (the control metadata) rather than hard-coding literals.
+func (cp *CustomPlugin) controlSeverity(id string) common.Severity {
     for _, c := range cp.controls {
         if c.ID == id {
-            return c.Severity
+            return common.Severity(c.Severity)
         }
     }
     return ""
 }
-func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Finding {
-    var findings []compliance.Finding
-    // Implement your compliance checks here
-    // Example:
+func (cp *CustomPlugin) RunChecks(
+    device *common.CommonDevice,
+) ([]compliance.Finding, []string, error) {
+    var (
+        findings  []compliance.Finding
+        evaluated []string
+    )
+
+    // Implement your compliance checks here. Produce both findings and
+    // evaluated in the same single traversal.
+    evaluated = append(evaluated, "CUSTOM-001")
     findings = append(findings, compliance.Finding{
         Type:           "compliance",
         Severity:       cp.controlSeverity("CUSTOM-001"),
@@ -166,7 +164,8 @@ func (cp *CustomPlugin) RunChecks(device *common.CommonDevice) []compliance.Find
         References:     []string{"CUSTOM-001"},
         Tags:           []string{"custom", "security", "compliance"},
     })
-    return findings
+
+    return findings, evaluated, nil
 }
 ```
 
@@ -183,7 +182,7 @@ import (
 type MyDynamicPlugin struct{}
 
 // Implement compliance.Plugin methods...
-// RunChecks(device *common.CommonDevice) []compliance.Finding
+// RunChecks(device *common.CommonDevice) (findings []compliance.Finding, evaluated []string, err error)
 
 var Plugin compliance.Plugin = &MyDynamicPlugin{}
 ```
@@ -267,7 +266,7 @@ Dynamic plugins are loaded as Go `.so` shared objects via the standard `plugin.O
 
 - **Full process privileges.** A loaded plugin executes within the same process as opnDossier with identical permissions. There is no sandboxing, privilege separation, or capability restriction.
 - **No verification.** The loader does not perform signature verification, checksum validation, or provenance checks on `.so` files. Any file matching the `.so` extension in the plugin directory will be loaded and executed.
-- **Opt-in loading.** Dynamic plugin loading only occurs when the `--plugin-dir` flag is explicitly provided. There is no `./plugins` auto-discovery fallback — `PluginManager.InitializePlugins` skips `LoadDynamicPlugins` when `pluginDir == ""`. Plugins are not fetched from remote sources.
+- **Opt-in loading.** Dynamic plugin loading only occurs when the `--plugin-dir` flag is explicitly provided or the default `./plugins` directory exists. Plugins are not fetched from remote sources.
 - **Same-toolchain requirement.** Plugins must be compiled with the exact same Go version and module dependencies as the main binary. A version mismatch causes a load error, not a security bypass.
 
 **Recommendations:**
@@ -282,7 +281,7 @@ Dynamic plugins are loaded as Go `.so` shared objects via the standard `plugin.O
 - **Control ID patterns**: Use stable, predictable identifiers. The built-in plugins use `V-XXXXXX` for STIG (matching real DISA STIG vulnerability IDs), `SANS-FW-XXX` for SANS, and `FIREWALL-XXX` for the firewall plugin. New plugins should follow a similar `PLUGIN-XXX` pattern with a prefix that identifies the standard.
 - Provide actionable remediation and clear rationale.
 - Use the `References` and `Tags` fields for all findings.
-- **Set Finding Severity**: Plugins must populate `Finding.Severity` for accurate severity breakdown in reports. `Finding.Severity` is a plain string -- use the canonical compliance severity values (`"critical"`, `"high"`, `"medium"`, `"low"`, `"info"`) or the `analysis.Severity*` constants in `internal/analysis` for a shared source of truth. Use a helper like `controlSeverity(id string) string` that looks up the severity from the control definitions rather than hard-coding literals at each finding site. Do NOT use `common.Severity*` from `pkg/model` -- those constants are for `ConversionWarning` severity, not compliance findings.
+- **Set Finding Severity**: Plugins must populate `Finding.Severity` for accurate severity breakdown in reports. Use typed constants like `common.SeverityHigh`, `common.SeverityCritical`, etc., from `pkg/model`. Use a helper function like `controlSeverity(id string) common.Severity` to look up severity from control definitions rather than hard-coding literals.
 - **Deep Copy Controls**: Implement `GetControls()` to return `compliance.CloneControls(cp.controls)` to prevent callers from mutating the plugin's internal state.
 - Write comprehensive tests for your plugin.
 - Document your controls and plugin usage.
@@ -329,30 +328,27 @@ Dynamic plugin load failures (from `.so` files) are distinct from runtime panics
 
 ### Setting Finding Severity
 
-The audit engine requires the `Finding.Severity` field to generate accurate severity breakdowns in reports. `Finding.Severity` and `Control.Severity` are both plain strings -- the compliance package does not export its own severity enum. Plugins should:
+The audit engine requires the `Finding.Severity` field to generate accurate severity breakdowns in reports. Plugins should:
 
-1. **Use canonical severity strings.** The accepted values are `"critical"`, `"high"`, `"medium"`, `"low"`, and `"info"`. For a shared source of truth, use the constants defined in `internal/analysis`:
+1. **Use typed severity constants from `pkg/model`**:
 
-   - `analysis.SeverityCritical` — `"critical"`
-   - `analysis.SeverityHigh` — `"high"`
-   - `analysis.SeverityMedium` — `"medium"`
-   - `analysis.SeverityLow` — `"low"`
-   - `analysis.SeverityInfo` — `"info"`
+   Available severity constants:
 
-   Apply them to `string` fields with an explicit cast, e.g. `string(analysis.SeverityHigh)`.
-
-   **Do NOT use `common.Severity*` from `pkg/model`.** Those constants are defined for `ConversionWarning` severity (parser/converter data-quality signals) and happen to share the same string values today. Mixing them into compliance findings conflates two distinct concepts; if the conversion-warning vocabulary diverges in the future, plugins that reuse it will quietly break.
+   - `common.SeverityCritical` — for critical security issues
+   - `common.SeverityHigh` — for high-priority findings
+   - `common.SeverityMedium` — for medium-priority findings
+   - `common.SeverityLow` — for low-priority findings
 
 2. **Derive severity from control metadata** using a helper function that looks up the control's severity:
 
    ```go
-   // controlSeverity returns the severity string for a control ID from the
-   // control definitions. Finding.Severity and Control.Severity are both
-   // plain strings, so no type conversion is needed.
-   func (p *Plugin) controlSeverity(id string) string {
+   // controlSeverity returns the severity for a control ID from the control
+   // definitions. This ensures findings derive severity from the single source
+   // of truth (the control metadata) rather than hard-coding literals.
+   func (p *Plugin) controlSeverity(id string) common.Severity {
        for _, c := range p.controls {
            if c.ID == id {
-               return c.Severity
+               return common.Severity(c.Severity)
            }
        }
        return ""
@@ -372,7 +368,9 @@ The audit engine requires the `Finding.Severity` field to generate accurate seve
    })
    ```
 
-4. **Fallback behavior**: The audit engine will attempt to derive severity from referenced controls if not provided, but plugins should not rely on this behavior. Always set `Finding.Severity` explicitly.
+4. **Benefits of typed constants**: Using typed constants from `pkg/model` provides compile-time validation, prevents typos, enables IDE autocomplete, and makes refactoring safer. The compiler will catch invalid severity values before runtime.
+
+5. **Fallback behavior**: The audit engine will attempt to derive severity from referenced controls if not provided, but plugins should not rely on this behavior. Always set `Finding.Severity` explicitly.
 
 ### Working with Model Enums
 
@@ -539,7 +537,7 @@ unsupported device type: root element <fortinet> is not recognized; supported: (
 
 Fix: add `_ "your/parser/package"` to the binary's import list.
 
-**Root element mismatch:** The string passed to `parser.Register()` must match the XML root element name. The lookup is case-insensitive because `DeviceParserRegistry.Register` and `DeviceParserRegistry.Get` normalize the device-type key to lowercase (with whitespace trimmed). The XML root-element detection itself (`peekRootElementBounded` in `pkg/parser/factory.go`) does not lowercase the tag -- it returns the raw local name -- so the registry's normalization is what makes `"Fortinet"` and `"fortinet"` resolve identically. Using lowercase consistently is still recommended for clarity.
+**Root element mismatch:** The string passed to `parser.Register()` must match the XML root element name. Both the registry and the XML root element detection normalize to lowercase, so `"Fortinet"` and `"fortinet"` will resolve identically. However, using lowercase consistently is recommended for clarity.
 
 **Duplicate registration:** If two packages register the same root element name, the binary will panic at startup. This is intentional -- it surfaces conflicts immediately rather than silently picking one.
 
@@ -555,8 +553,8 @@ Fix: add `_ "your/parser/package"` to the binary's import list.
 ### Compliance Plugins
 
 - **Plugin not loaded?** Ensure it is built as a Go plugin (`-buildmode=plugin`), exports `var Plugin`, and is in the correct directory. Check `GetLoadResult()` or CLI warnings for load failures.
-- **Go version mismatch?** All plugins and the main binary must be built with the same Go version and dependencies. This is the most common cause of dynamic plugin load failures.
-- **Platform support:** Go plugins are supported on Linux, macOS, and FreeBSD only — the `plugin` package is not implemented on Windows. Windows users can run opnDossier under WSL2 or in a Linux container if they need compliance plugins.
+- **Go version mismatch?** All plugins and the main binary must be built with the exact same Go version and dependencies. This is the most common cause of dynamic plugin load failures.
+- **Platform support:** Go plugins are supported on Linux and macOS, not Windows.
 - **Plugin appears with zero findings?** The plugin may have panicked during execution. Check the audit logs for panic details. Panicked plugins are retained in results but produce no findings. Review the plugin's error handling and ensure it returns findings properly rather than panicking.
 - **Dynamic plugin directory not found?** If you specified `--plugin-dir`, ensure the directory exists. Explicit directories fail fast if missing. Without the flag, no dynamic plugins are loaded.
 - **Duplicate plugin name?** If a dynamic plugin has the same name as a static plugin or another dynamic plugin, registration will fail. Check the load failures in `GetLoadResult()` or CLI warning logs.

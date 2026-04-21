@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"cmp"
 	"fmt"
 	"maps"
 	"slices"
@@ -127,15 +128,8 @@ func ruleDescription(rule common.FirewallRule) string {
 		return rule.Description
 	}
 
-	src := rule.Source.Address
-	if src == "" {
-		src = addressUnknown
-	}
-
-	dst := rule.Destination.Address
-	if dst == "" {
-		dst = addressUnknown
-	}
+	src := cmp.Or(rule.Source.Address, addressUnknown)
+	dst := cmp.Or(rule.Destination.Address, addressUnknown)
 
 	return fmt.Sprintf("%s %s → %s", string(rule.Type), src, dst)
 }
@@ -168,11 +162,7 @@ func formatEndpoint(ep common.RuleEndpoint) string {
 	if ep.Negated {
 		prefix = "!"
 	}
-	addr := ep.Address
-	if addr == "" {
-		addr = addressUnknown
-	}
-	result := prefix + addr
+	result := prefix + cmp.Or(ep.Address, addressUnknown)
 	if ep.Port != "" {
 		result += ":" + ep.Port
 	}

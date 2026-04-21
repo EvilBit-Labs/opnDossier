@@ -6,7 +6,7 @@ See [README.md § Using as a Go Library](https://github.com/EvilBit-Labs/opnDoss
 
 ## Current Regime
 
-This policy takes effect starting with v1.5. Releases prior to v1.5 (including the v1.0–v1.4 line) made no public-API semver commitment on `pkg/` shape; treat those versions as subject to change between any two releases. The "Post-v1.0.0" semver rules below describe what v1.5+ guarantees going forward, not retroactive coverage.
+This policy takes effect starting with v1.5. Releases prior to v1.5 made no public-API semver commitment on `pkg/` shape. For v1.4 and earlier, treat `pkg/` as subject to change between any two releases.
 
 ## Package Classification
 
@@ -27,7 +27,7 @@ These packages are intended for direct consumption by other Go modules. Their ex
 
 `opnsense.ConvertDocument(*schema.OpnSenseDocument)` and `pfsense.ConvertDocument(*pfschema.Document)` are the **idiomatic, primary** public-API entry points for Go consumers that already have a parsed vendor DTO. Parse the XML once (with `encoding/xml`, `parser.NewSecureXMLDecoder`, or your own decoder), then call `ConvertDocument` as many times as you need. No blank imports required — the caller references the concrete package directly, so the registry is not involved.
 
-Because `pkg/parser/pfsense` and `pkg/schema/pfsense` share the package name `pfsense`, consumers that need both should import the schema package under an alias (e.g., `pfschema "github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense"`) so `pfsense.ConvertDocument(*pfschema.Document)` reads unambiguously.
+The `pfschema` alias in the signature above disambiguates the schema package (`pkg/schema/pfsense`) from the parser package (`pkg/parser/pfsense`) — both are named `pfsense` on disk, so a real consumer importing both must alias one. The OPNsense side has the same collision but uses the long-standing convention of importing `pkg/schema/opnsense` as `schema`.
 
 `parser.Factory.CreateDevice(ctx, reader, deviceTypeOverride, validateMode)` is the **auto-detection escape hatch** — the path you use when you have a `reader` but no pre-parsed DTO. The factory peeks the XML root element, dispatches to the registered parser for that device type, and returns a converted `CommonDevice`. `Factory` is stable and covered by the same semver commitments as the rest of `pkg/parser`, but consumers should treat it as a convenience wrapper over `ConvertDocument` rather than the canonical entry point. Auto-detection requires blank imports of the device parser packages so their `init()` functions can self-register (see [Registration Contract](#registration-contract-blank-imports)).
 
@@ -62,15 +62,15 @@ Everything under `cmd/` and `internal/` is implementation detail. This includes 
 
 ## Stability Policy
 
-### Pre-v1.5.0
+### Pre-v1.0.0
 
-Until `v1.5.0`, the public API is considered beta and was not semver-committed. The v1.0–v1.4 line shipped `pkg/` types but made no cross-release stability guarantee; breaking changes could appear in any minor bump. In practice, breaking changes were batched with migration notes in `CHANGELOG.md`, but the semver contract was not formal.
+Until the first tagged `v1.0.0` release, the public API is considered beta. Minor versions (`v0.X.0`) may contain breaking changes. We still try hard not to break consumers within a single minor line — in practice, breaking changes are batched into minor bumps with migration notes in `CHANGELOG.md` — but the semver contract is not yet formal.
 
-Pin a specific version in your `go.mod` and read release notes before upgrading to or within the v1.0–v1.4 range.
+Pin a specific version in your `go.mod` and read release notes before upgrading.
 
-### Post-v1.5.0
+### Post-v1.0.0
 
-Starting with `v1.5.0` (when this policy took effect), the public API follows [semantic versioning](https://semver.org):
+Once `v1.0.0` is tagged, the public API follows [semantic versioning](https://semver.org):
 
 - **Patch** (`v1.2.X`): bug fixes and internal changes. No public API changes.
 - **Minor** (`v1.X.0`): new exported symbols, new fields on existing structs, new `Severity` constants, new device types in the parser registry. Existing consumers must continue to compile and behave correctly.

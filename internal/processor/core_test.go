@@ -331,6 +331,7 @@ func TestCoreProcessor_Normalization(t *testing.T) {
 	})
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestCoreProcessor_Analysis(t *testing.T) {
 	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)

@@ -333,6 +333,7 @@ func TestValidatePfSenseNat(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidatePfSenseUsersAndGroups(t *testing.T) {
 	t.Parallel()
 

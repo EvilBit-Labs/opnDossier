@@ -37,19 +37,12 @@ func (fp *Plugin) checkValidWebGUICertificate(device *common.CommonDevice) check
 	return checkResult{Result: device.System.WebGUI.SSLCertRef != "", Known: true}
 }
 
-// checkCertificateExpiration checks whether certificates are at risk of
-// expiration. The CommonDevice model does not expose certificate expiry dates,
-// so this cannot be evaluated.
-func (fp *Plugin) checkCertificateExpiration(_ *common.CommonDevice) checkResult {
-	return unknown
-}
-
-// checkStrongKeyLengths checks whether certificates use strong key lengths.
-// The CommonDevice model does not expose certificate key lengths, so this
-// cannot be evaluated.
-func (fp *Plugin) checkStrongKeyLengths(_ *common.CommonDevice) checkResult {
-	return unknown
-}
+// FIREWALL-037 (checkCertificateExpiration) and FIREWALL-038
+// (checkStrongKeyLengths) were no-op helpers returning unknown — the
+// CommonDevice model does not expose certificate expiry dates or key lengths.
+// The helpers were dead after the EvaluatedControlIDs map was removed, so
+// they were deleted. The controls remain in controls.go so the audit report
+// still labels them UNCONFIRMED.
 
 // checkRemoteSyslog checks that remote syslog forwarding is configured and
 // a remote server address is defined. Centralized logging is essential for

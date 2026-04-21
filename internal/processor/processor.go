@@ -82,7 +82,7 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	}
 
 	// Phase 2: Validate the configuration
-	logger := p.logger.WithContext(ctx)
+	logger := p.logger
 
 	var validationErrors []ValidationError
 	func() {

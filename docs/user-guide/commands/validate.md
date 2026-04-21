@@ -47,5 +47,6 @@ opndossier validate config.xml && opndossier convert config.xml -o output.md
 
 ## Related
 
+- [CLI Reference — `validate`](../../cli/opnDossier_validate.md) -- auto-generated exhaustive flag list
 - [convert](convert.md) -- convert after successful validation
 - [Configuration Reference](../configuration-reference.md) -- global flags and settings

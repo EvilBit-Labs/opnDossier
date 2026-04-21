@@ -21,8 +21,7 @@ func TestGetRootCmd(t *testing.T) {
 	rootCmd := GetRootCmd()
 	require.NotNil(t, rootCmd)
 	assert.Equal(t, "opnDossier", rootCmd.Use)
-	assert.Contains(t, rootCmd.Short, "CLI tool for processing OPNsense")
-	assert.Contains(t, rootCmd.Short, "pfSense")
+	assert.Contains(t, rootCmd.Short, "CLI tool for processing OPNsense and pfSense configuration files")
 }
 
 func TestRootCmdFlags(t *testing.T) {
@@ -289,6 +288,7 @@ func TestSetupLightweightContext_DefaultInvocation_CreatesContextWithConfigAndLo
 	require.NotNil(t, cmdCtx.Logger, "Logger should be set")
 
 	// Verify default config values
+	//nolint:staticcheck // SA1019: intentional read of deprecated Config.Format field for backward-compat default coverage.
 	assert.Equal(t, "markdown", cmdCtx.Config.Format)
 
 	// Verify command has a context set

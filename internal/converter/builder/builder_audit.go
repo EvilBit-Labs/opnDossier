@@ -28,38 +28,60 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 	var buf bytes.Buffer
 	md := markdown.NewMarkdown(&buf)
 
-	// Horizontal rule separating config data from audit report
 	md.HorizontalRule()
 
-	// ── Per-plugin control results (main audit content) ──
+	b.writeAuditPluginSections(md, cc)
+	writeAuditSecurityAndInventory(md, cc)
+	writeAuditSummary(md, cc)
+	writeAuditMetadata(md, cc)
 
-	if len(cc.PluginResults) > 0 {
-		md.H2("Compliance Audit Results")
+	//nolint:errcheck,gosec // Build writes to bytes.Buffer which cannot fail
+	md.Build()
 
-		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
-			result := cc.PluginResults[pluginName]
-			md.H3(pluginName)
+	return buf.String()
+}
 
-			// Render unified controls table when Controls data is available
-			if len(result.Controls) > 0 {
-				b.writePluginControlsTable(md, pluginName, result)
-			} else if len(result.Findings) > 0 {
-				// Legacy fallback: render findings table when no Controls data.
-				// failuresOnly does not apply here — findings ARE failures by definition;
-				// the flag only filters the controls table which has both PASS and FAIL rows.
-				b.writePluginFindingsTable(md, pluginName, result)
-			}
+// writeAuditPluginSections emits the per-plugin H3 blocks under "Compliance
+// Audit Results". When a plugin has Controls data, the unified controls table
+// is rendered; otherwise the legacy findings-only fallback is used.
+func (b *MarkdownBuilder) writeAuditPluginSections(md *markdown.Markdown, cc *common.ComplianceResults) {
+	if len(cc.PluginResults) == 0 {
+		return
+	}
+	md.H2("Compliance Audit Results")
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		result := cc.PluginResults[pluginName]
+		md.H3(pluginName)
+		switch {
+		case len(result.Controls) > 0:
+			b.writePluginControlsTable(md, pluginName, result)
+		case len(result.Findings) > 0:
+			// Legacy fallback: render findings table when no Controls data.
+			// failuresOnly does not apply here — findings ARE failures by
+			// definition; the flag only filters the controls table which has
+			// both PASS and FAIL rows.
+			b.writePluginFindingsTable(md, pluginName, result)
 		}
 	}
+}
 
-	// Partition top-level findings into security (compliance) and inventory.
+// writeAuditSecurityAndInventory partitions top-level findings into security
+// (compliance) and inventory, plus per-plugin inventory findings, and emits
+// the "Security Findings" and "Configuration Notes" tables.
+func writeAuditSecurityAndInventory(md *markdown.Markdown, cc *common.ComplianceResults) {
 	var securityFindings, inventoryFindings []common.ComplianceFinding
-
 	for _, f := range cc.Findings {
 		if f.Type == findingTypeInventory {
 			inventoryFindings = append(inventoryFindings, f)
 		} else {
 			securityFindings = append(securityFindings, f)
+		}
+	}
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		for _, f := range cc.PluginResults[pluginName].Findings {
+			if f.Type == findingTypeInventory {
+				inventoryFindings = append(inventoryFindings, f)
+			}
 		}
 	}
 
@@ -69,7 +91,6 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 			Header: []string{"Severity", "Component", "Title", "Recommendation"},
 			Rows:   make([][]string, 0, len(securityFindings)),
 		}
-
 		for _, f := range securityFindings {
 			findingsTable.Rows = append(findingsTable.Rows, []string{
 				EscapePipeForMarkdown(f.Severity),
@@ -78,17 +99,7 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 				EscapePipeForMarkdown(f.Recommendation),
 			})
 		}
-
 		md.Table(findingsTable)
-	}
-
-	// Configuration Notes — inventory-type findings from top-level and per-plugin
-	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
-		for _, f := range cc.PluginResults[pluginName].Findings {
-			if f.Type == findingTypeInventory {
-				inventoryFindings = append(inventoryFindings, f)
-			}
-		}
 	}
 
 	if len(inventoryFindings) > 0 {
@@ -97,7 +108,6 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 			Header: []string{"Component", "Title", "Details"},
 			Rows:   make([][]string, 0, len(inventoryFindings)),
 		}
-
 		for _, f := range inventoryFindings {
 			notesTable.Rows = append(notesTable.Rows, []string{
 				EscapePipeForMarkdown(f.Component),
@@ -105,123 +115,117 @@ func (b *MarkdownBuilder) BuildAuditSection(data *common.CommonDevice) string {
 				EscapePipeForMarkdown(f.Description),
 			})
 		}
-
 		md.Table(notesTable)
 	}
+}
 
-	// ── Summary and metadata (reference section at bottom) ──
-
-	// Compute summary totals
-	var totalFindings int
-	var totalCompliant, totalNonCompliant int
-
-	if cc.Summary != nil {
-		totalFindings = cc.Summary.TotalFindings
-		totalCompliant = cc.Summary.Compliant
-		totalNonCompliant = cc.Summary.NonCompliant
-	} else {
-		totalFindings = len(cc.Findings)
-		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
-			pr := cc.PluginResults[pluginName]
-			if pr.Summary != nil {
-				totalFindings += pr.Summary.TotalFindings
-				totalCompliant += pr.Summary.Compliant
-				totalNonCompliant += pr.Summary.NonCompliant
-			} else {
-				totalFindings += len(pr.Findings)
-				// Derive compliant/non-compliant from Controls when Summary is nil.
-				// UNKNOWN controls are excluded from both counts.
-				for _, ctrl := range pr.Controls {
-					switch ctrl.Status {
-					case common.ControlStatusPass:
-						totalCompliant++
-					case common.ControlStatusFail:
-						totalNonCompliant++
-					}
-				}
-			}
-		}
-	}
-
-	// ── Compliance summary ──
-
-	summaryRows := [][]string{
-		{"Mode", cc.Mode},
-		{"Total Findings", strconv.Itoa(totalFindings)},
-		{"Compliant", strconv.Itoa(totalCompliant)},
-		{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
-	}
+// writeAuditSummary emits the compliance totals table and per-plugin
+// summary statistics. Totals come from cc.Summary when present, otherwise
+// derived from PluginResults (inventory-only plugins with neither Summary
+// nor Findings contribute zero).
+func writeAuditSummary(md *markdown.Markdown, cc *common.ComplianceResults) {
+	totalFindings, totalCompliant, totalNonCompliant := computeAuditTotals(cc)
 
 	md.H2("Compliance Audit Summary")
 	md.Table(markdown.TableSet{
 		Header: []string{"Metric", "Value"},
-		Rows:   summaryRows,
+		Rows: [][]string{
+			{"Mode", cc.Mode},
+			{"Total Findings", strconv.Itoa(totalFindings)},
+			{"Compliant", strconv.Itoa(totalCompliant)},
+			{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
+		},
 	})
 
-	// Per-plugin summary statistics
-	if len(cc.PluginResults) > 0 {
-		for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
-			result := cc.PluginResults[pluginName]
-			md.H3(pluginName)
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		md.H3(pluginName)
+		md.BulletList(pluginSummaryItems(cc.PluginResults[pluginName])...)
+	}
+}
 
-			if result.Summary == nil {
-				md.BulletList("Summary: no data available")
-			} else {
-				items := []string{fmt.Sprintf("Findings: %d", result.Summary.TotalFindings)}
+// computeAuditTotals returns (totalFindings, totalCompliant, totalNonCompliant),
+// preferring cc.Summary when available. When Summary is nil, totals are
+// derived per-plugin: plugin Summary when present, otherwise findings count
+// plus a Controls-based compliant/non-compliant tally (UNKNOWN excluded).
+//
+//nolint:nonamedreturns // named returns document the 3-int contract; the unnamed form trips gocritic.unnamedResult
+func computeAuditTotals(cc *common.ComplianceResults) (total, compliant, nonCompliant int) {
+	if cc.Summary != nil {
+		return cc.Summary.TotalFindings, cc.Summary.Compliant, cc.Summary.NonCompliant
+	}
 
-				items = append(items,
-					fmt.Sprintf("Compliant: %d", result.Summary.Compliant),
-					fmt.Sprintf("Non-Compliant: %d", result.Summary.NonCompliant),
-				)
-
-				if result.Summary.CriticalFindings > 0 {
-					items = append(items, fmt.Sprintf("Critical: %d", result.Summary.CriticalFindings))
-				}
-
-				if result.Summary.HighFindings > 0 {
-					items = append(items, fmt.Sprintf("High: %d", result.Summary.HighFindings))
-				}
-
-				if result.Summary.MediumFindings > 0 {
-					items = append(items, fmt.Sprintf("Medium: %d", result.Summary.MediumFindings))
-				}
-
-				if result.Summary.LowFindings > 0 {
-					items = append(items, fmt.Sprintf("Low: %d", result.Summary.LowFindings))
-				}
-
-				if result.Summary.InfoFindings > 0 {
-					items = append(items, fmt.Sprintf("Informational: %d", result.Summary.InfoFindings))
-				}
-
-				md.BulletList(items...)
+	total = len(cc.Findings)
+	for _, pluginName := range slices.Sorted(maps.Keys(cc.PluginResults)) {
+		pr := cc.PluginResults[pluginName]
+		if pr.Summary != nil {
+			total += pr.Summary.TotalFindings
+			compliant += pr.Summary.Compliant
+			nonCompliant += pr.Summary.NonCompliant
+			continue
+		}
+		total += len(pr.Findings)
+		for _, ctrl := range pr.Controls {
+			switch ctrl.Status {
+			case common.ControlStatusPass:
+				compliant++
+			case common.ControlStatusFail:
+				nonCompliant++
 			}
 		}
 	}
+	return total, compliant, nonCompliant
+}
 
-	// ── Audit metadata (at the very end) ──
+// writeAuditMetadata emits the final "Audit Metadata" table when Metadata
+// is non-empty. Keys are sorted for determinism.
+func writeAuditMetadata(md *markdown.Markdown, cc *common.ComplianceResults) {
+	if len(cc.Metadata) == 0 {
+		return
+	}
+	md.H2("Audit Metadata")
+	metadataTable := markdown.TableSet{
+		Header: []string{"Key", "Value"},
+		Rows:   make([][]string, 0, len(cc.Metadata)),
+	}
+	for _, key := range slices.Sorted(maps.Keys(cc.Metadata)) {
+		metadataTable.Rows = append(metadataTable.Rows, []string{
+			EscapePipeForMarkdown(key),
+			EscapePipeForMarkdown(fmt.Sprintf("%v", cc.Metadata[key])),
+		})
+	}
+	md.Table(metadataTable)
+}
 
-	if len(cc.Metadata) > 0 {
-		md.H2("Audit Metadata")
-		metadataTable := markdown.TableSet{
-			Header: []string{"Key", "Value"},
-			Rows:   make([][]string, 0, len(cc.Metadata)),
-		}
-
-		for _, key := range slices.Sorted(maps.Keys(cc.Metadata)) {
-			metadataTable.Rows = append(metadataTable.Rows, []string{
-				EscapePipeForMarkdown(key),
-				EscapePipeForMarkdown(fmt.Sprintf("%v", cc.Metadata[key])),
-			})
-		}
-
-		md.Table(metadataTable)
+// pluginSummaryItems renders a per-plugin summary as bullet list items. When
+// no Summary is attached, a single "no data available" entry is returned so
+// the H3 heading is not left dangling.
+func pluginSummaryItems(result common.PluginComplianceResult) []string {
+	if result.Summary == nil {
+		return []string{"Summary: no data available"}
 	}
 
-	//nolint:errcheck,gosec // Build writes to bytes.Buffer which cannot fail
-	md.Build()
+	items := []string{
+		fmt.Sprintf("Findings: %d", result.Summary.TotalFindings),
+		fmt.Sprintf("Compliant: %d", result.Summary.Compliant),
+		fmt.Sprintf("Non-Compliant: %d", result.Summary.NonCompliant),
+	}
 
-	return buf.String()
+	severityCounts := []struct {
+		label string
+		count int
+	}{
+		{"Critical", result.Summary.CriticalFindings},
+		{"High", result.Summary.HighFindings},
+		{"Medium", result.Summary.MediumFindings},
+		{"Low", result.Summary.LowFindings},
+		{"Informational", result.Summary.InfoFindings},
+	}
+	for _, s := range severityCounts {
+		if s.count > 0 {
+			items = append(items, fmt.Sprintf("%s: %d", s.label, s.count))
+		}
+	}
+	return items
 }
 
 // writePluginControlsTable renders a unified controls table for a plugin with a Status column.

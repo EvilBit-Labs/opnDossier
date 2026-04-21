@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestRulesEquivalent(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -790,82 +791,96 @@ func TestCoreProcessor_RealWorldConfigurations(t *testing.T) {
 
 			t.Logf("Processing %s with %d firewall rules", filepath.Base(testFile), len(rules))
 
-			// Test duplicate rule detection
-			duplicateCount := 0
-
-			for i, rule1 := range rules {
-				for j := i + 1; j < len(rules); j++ {
-					rule2 := rules[j]
-					if analysis.RulesEquivalent(rule1, rule2) {
-						duplicateCount++
-
-						t.Logf("Found duplicate rules: rule[%d] and rule[%d]", i, j)
-						t.Logf(
-							"  Rule[%d]: %s %s on %v from %s",
-							i,
-							rule1.Type,
-							rule1.IPProtocol,
-							rule1.Interfaces,
-							rule1.Source.Address,
-						)
-						t.Logf(
-							"  Rule[%d]: %s %s on %v from %s",
-							j,
-							rule2.Type,
-							rule2.IPProtocol,
-							rule2.Interfaces,
-							rule2.Source.Address,
-						)
-					}
-				}
-			}
-
-			// Test dead rule detection
-			deadRuleCount := 0
-
-			for i, rule := range rules {
-				if rule.Type == common.RuleTypeBlock && rule.Source.Address == anyAddress {
-					// Check if there are rules after this block-all rule
-					if i < len(rules)-1 {
-						deadRuleCount++
-
-						t.Logf("Found potential dead rules after block-all rule at position %d", i+1)
-					}
-				}
-			}
-
-			// Test security analysis
-			securityIssues := 0
-
-			for i, rule := range rules {
-				if rule.Type == common.RuleTypePass && rule.Source.Address == anyAddress && rule.Description == "" {
-					securityIssues++
-
-					t.Logf("Found overly broad pass rule at position %d without description", i+1)
-				}
-			}
+			dup := countDuplicateRules(t, rules)
+			dead := countDeadRulesAfterBlockAll(t, rules, anyAddress)
+			security := countBroadPassRules(t, rules, anyAddress)
 
 			t.Logf("Analysis results for %s:", filepath.Base(testFile))
 			t.Logf("  - Total rules: %d", len(rules))
-			t.Logf("  - Duplicate rules found: %d", duplicateCount)
-			t.Logf("  - Dead rules found: %d", deadRuleCount)
-			t.Logf("  - Security issues found: %d", securityIssues)
+			t.Logf("  - Duplicate rules found: %d", dup)
+			t.Logf("  - Dead rules found: %d", dead)
+			t.Logf("  - Security issues found: %d", security)
 
 			// Verify that our implementation can handle all rule types in the test files
 			for i, rule := range rules {
 				t.Run(fmt.Sprintf("rule_%d_validation", i), func(t *testing.T) {
-					// Test that all required fields are present
 					assert.NotEmpty(t, rule.Type, "Rule %d should have a type", i)
 					assert.NotEmpty(t, rule.IPProtocol, "Rule %d should have an IP protocol", i)
 					assert.NotEmpty(t, rule.Interfaces, "Rule %d should have an interface", i)
-
-					// Test that the rule can be compared with itself
 					assert.True(t, analysis.RulesEquivalent(rule, rule),
 						"Rule %d should be equivalent to itself", i)
 				})
 			}
 		})
 	}
+}
+
+// countDuplicateRules logs and counts rule pairs that RulesEquivalent considers
+// duplicates. Extracted from TestCoreProcessor_RealWorldConfigurations so the
+// main test body is flat enough to clear gocognit.
+func countDuplicateRules(t *testing.T, rules []common.FirewallRule) int {
+	t.Helper()
+	count := 0
+	for i, rule1 := range rules {
+		for j := i + 1; j < len(rules); j++ {
+			rule2 := rules[j]
+			if !analysis.RulesEquivalent(rule1, rule2) {
+				continue
+			}
+			count++
+			t.Logf("Found duplicate rules: rule[%d] and rule[%d]", i, j)
+			t.Logf(
+				"  Rule[%d]: %s %s on %v from %s",
+				i,
+				rule1.Type,
+				rule1.IPProtocol,
+				rule1.Interfaces,
+				rule1.Source.Address,
+			)
+			t.Logf(
+				"  Rule[%d]: %s %s on %v from %s",
+				j,
+				rule2.Type,
+				rule2.IPProtocol,
+				rule2.Interfaces,
+				rule2.Source.Address,
+			)
+		}
+	}
+	return count
+}
+
+// countDeadRulesAfterBlockAll counts positions where a "block from any"
+// rule has at least one rule following it (those later rules are
+// unreachable if iptables/pf stops at the first match).
+func countDeadRulesAfterBlockAll(t *testing.T, rules []common.FirewallRule, anyAddress string) int {
+	t.Helper()
+	count := 0
+	for i, rule := range rules {
+		if rule.Type != common.RuleTypeBlock || rule.Source.Address != anyAddress {
+			continue
+		}
+		if i < len(rules)-1 {
+			count++
+			t.Logf("Found potential dead rules after block-all rule at position %d", i+1)
+		}
+	}
+	return count
+}
+
+// countBroadPassRules counts undocumented pass-from-any rules — a security
+// smell because they permit traffic without an audit trail.
+func countBroadPassRules(t *testing.T, rules []common.FirewallRule, anyAddress string) int {
+	t.Helper()
+	count := 0
+	for i, rule := range rules {
+		if rule.Type != common.RuleTypePass || rule.Source.Address != anyAddress || rule.Description != "" {
+			continue
+		}
+		count++
+		t.Logf("Found overly broad pass rule at position %d without description", i+1)
+	}
+	return count
 }
 
 // TestCoreProcessor_ModelLimitations documents the current limitations of the model.

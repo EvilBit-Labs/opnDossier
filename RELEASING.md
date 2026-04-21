@@ -446,7 +446,7 @@ goreleaser release --clean --skip=sign
 
 ## macOS Signing (Quill)
 
-macOS binaries are signed and notarized using [Quill](https://github.com/anchore/quill), an open-source alternative to `gon` that works cross-platform. The post-build hook lives in `.goreleaser.yaml` (search for `quill sign-and-notarize`) and is invoked from `.github/workflows/release.yml` — see the `Run GoReleaser` step's `env` block, where the `QUILL_*` vars are wired from repository secrets.
+macOS binaries are signed and notarized using [Quill](https://github.com/anchore/quill), an open-source alternative to `gon` that works cross-platform. The post-build hook lives in `.goreleaser.yaml` (search for `quill sign-and-notarize`) and is invoked from `.github/workflows/release.yml` (see lines 97–102, where the `QUILL_*` env vars are wired in from repository secrets).
 
 All `QUILL_*` inputs are **optional**. If `QUILL_SIGN_P12` is unset the entire hook is a no-op — the universal binary ships unsigned and nothing downstream fails. Set every variable in the table below (as repository secrets for CI, or exported locally for manual builds) if you want a fully signed and notarized macOS release.
 

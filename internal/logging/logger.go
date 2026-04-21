@@ -2,7 +2,6 @@
 package logging
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -117,15 +116,6 @@ func parseLevel(level string) log.Level {
 	default:
 		return log.InfoLevel
 	}
-}
-
-// WithContext returns a logger with the provided context.
-// charmbracelet/log doesn't have built-in context support yet;
-// this signature exists so callers can pass ctx for future extraction of
-// trace IDs, request IDs, or cancellation-aware logging.
-func (l *Logger) WithContext(ctx context.Context) *Logger {
-	_ = ctx // TODO: extract trace/request IDs from ctx when logging middleware is added
-	return l
 }
 
 // WithPrefix returns a logger with the specified prefix.

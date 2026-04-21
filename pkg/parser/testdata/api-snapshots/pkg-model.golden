@@ -760,6 +760,12 @@ type DomainOverride struct {
 }
     DomainOverride represents a DNS domain override entry.
 
+type FindingSeverity = Severity
+    FindingSeverity is an alias for Severity, kept for backward compatibility in
+    tests.
+
+    Deprecated: Use Severity directly.
+
 type FirewallDirection string
     FirewallDirection represents the traffic direction a firewall rule applies
     to.

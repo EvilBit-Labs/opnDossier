@@ -28,20 +28,27 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - exhaustive - disabled: we'll come back to this after 1.0
-    # - exhaustruct - disabled: we'll come back to this after 1.0
+    - exhaustive
+    # - exhaustruct - Disabled: the project's idiom for declarative data (compliance
+    #   plugin Control tables, diff/sanitizer rule lists, config validation records)
+    #   is partial struct literals with intentionally zero-valued optional fields.
+    #   Exhaustruct flags 500+ of these as "missing fields" across internal/plugins/,
+    #   internal/diff/, internal/sanitizer/rules.go, internal/config/validation.go,
+    #   and internal/*/example.go. Fighting this would require either hundreds of
+    #   //nolint directives or a brittle struct-name exclude list. Go's zero-value
+    #   guarantee already covers the "forgot to initialize" case exhaustruct is
+    #   designed to catch, so the safety gain does not justify the maintenance cost.
     - exptostd
     - ginkgolinter
     - fatcontext
     - forbidigo
     - funcorder
-    # - funlen - Disabled: we'll come back to this after 1.0
+    - funlen
     - gocheckcompilerdirectives
     - gochecksumtype
-    # - gocognit - Disabled: we'll come back to this after 1.0
+    - gocognit
     - goconst
     - gocritic
-    # - gocyclo - Disabled in favor of cyclop (see disable section)
     - godot
     - gomoddirectives
     - goprintffuncname
@@ -57,7 +64,7 @@ linters:
     - mnd
     - musttag
     - nakedret
-    # - nestif - Disabled: we'll come back to this after 1.0
+    - nestif
     - nilerr
     - nilnesserr
     - nilnil
@@ -66,7 +73,14 @@ linters:
     - nonamedreturns
     - nosprintfhostport
     - perfsprint
-    # - prealloc # Disabled: this can be premature optimization
+    # - prealloc - Disabled: this can be premature optimization. Probed 2026-04-19:
+    #   12 findings, 8 of which are validator error-collector slices where the common
+    #   case is zero errors (preallocating cap=len(items) would over-allocate).
+    #   The 4 legitimate findings (guaranteed-length transforms in plaintext.go,
+    #   config_test.go, and plugin test helpers) are easier to catch in code review
+    #   than via a lint rule that also recommends the anti-pattern on validators.
+    #   AGENTS.md documents the manual-review expectation. See also: prealloc would
+    #   need an exclusion list per-directory to avoid steering us wrong.
     - predeclared
     - promlinter
     - protogetter
@@ -78,7 +92,10 @@ linters:
     - spancheck
     - sqlclosecheck
     - staticcheck
-    #- tagliatelle # Disabled: currently this is more trouble than it's worth
+    # - tagliatelle - Permanently disabled: the vendor-controlled config.xml schema
+    #   mixes casing conventions (hostname, descr, sourceport, created-time, Phase1).
+    #   Our Go types mirror that reality; enforcing a single case convention fights
+    #   the input format we do not control.
     - testableexamples
     - thelper
     - testifylint
@@ -105,14 +122,31 @@ linters:
       # forbidigo rule needs broader scope, switch to per-rule scoping.
       - path-except: 'cmd/.*\.go$'
         linters: [forbidigo]
+      # SA1019 deprecation warnings are expected in these test files — they
+      # exist specifically to exercise the deprecated config.Config flat
+      # fields (Verbose, Debug, Quiet, Theme, Format) until v2.0 removal.
+      # See GOTCHAS §21 "Config Flat→Nested Deprecation" and CHANGELOG
+      # Unreleased/Deprecated for removal tracking.
+      - path: 'internal/config/(config_test|config_coverage_test|validation_test)\.go$'
+        linters: [staticcheck]
+        text: 'SA1019:'
   disable:
     - gomodguard # Disabled: maybe someday, but not important right now
-    - gocyclo # Disabled in favor of cyclop
-    - testpackage
+    - gocyclo # Disabled in favor of cyclop (which supersedes it with per-package averages)
+    - testpackage # Disabled: tests live in the same package to exercise unexported helpers
     - gochecknoglobals # Disabled: causes issues with cobra commands
   settings:
     cyclop:
-      max-complexity: 50
+      # 25 (vs. Go default 15). Sweep on 2026-04-19 cleared the baseline
+      # at this threshold after the nestif/gocognit/funlen sweeps
+      # refactored the hot spots. The remaining 6 findings were the
+      # declarative XML dispatch (handleStartElement), flat field-check
+      # chains over the OPNsense DHCPv6 schema (HasDHCPv6Config,
+      # buildDHCPv6Items), and per-field test-equality assertions — each
+      # carries //nolint:cyclop with a scoped reason. Can tighten to 15
+      # once more schema-level dispatches move to reflection-based
+      # dispatch, but that is a larger refactor than this sweep.
+      max-complexity: 25
       package-average: 10.0
     gocritic:
       enabled-tags:
@@ -133,11 +167,6 @@ linters:
 
     embeddedstructfieldcheck:
       forbid-mutex: true
-    tagliatelle:
-      case:
-        overrides:
-          - pkg: pkg/parser/opnsense
-            ignore: true
 
     errcheck:
       check-type-assertions: true
@@ -150,29 +179,12 @@ linters:
       check:
         - switch
         - map
-    exhaustruct:
-      exclude:
-        - ^net/http.Client$
-        - ^net/http.Cookie$
-        - ^net/http.Request$
-        - ^net/http.Response$
-        - ^net/http.Server$
-        - ^net/http.Transport$
-        - ^net/url.URL$
-        - ^os/exec.Cmd$
-        - ^reflect.StructField$
-        - ^github.com/Shopify/sarama.Config$
-        - ^github.com/Shopify/sarama.ProducerMessage$
-        - ^github.com/mitchellh/mapstructure.DecoderConfig$
-        - ^github.com/prometheus/client_golang/.+Opts$
-        - ^github.com/spf13/cobra.Command$
-        - ^github.com/spf13/cobra.CompletionOptions$
-        - ^github.com/stretchr/testify/mock.Mock$
-        - ^github.com/testcontainers/testcontainers-go.+Request$
-        - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
-        - ^golang.org/x/tools/go/analysis.Analyzer$
-        - ^google.golang.org/protobuf/.+Options$
-        - ^gopkg.in/yaml.v3.Node$
+      # Any switch with a default: branch is treated as exhaustive. This
+      # matches the project's convention where partial switches on large
+      # enum-style types (e.g., reflect.Kind) include an explicit default
+      # that documents "no-op for kinds not listed" rather than listing
+      # every kind just to satisfy the linter.
+      default-signifies-exhaustive: true
     forbidigo:
       # Type-aware matching so we catch t.Parallel() regardless of the local
       # variable name (t, tt, tc, etc.).
@@ -189,12 +201,23 @@ linters:
     funcorder:
       struct-method: false
     funlen:
-      lines: 60
-      statements: 40
+      # 120/80 (vs. default 60/40). Sweep on 2026-04-19 cleared the baseline
+      # at these thresholds. Production code with genuine branching was
+      # refactored into helpers; test table declarations and declarative
+      # data tables (compliance.Control lists, sanitizer rule lists) carry
+      # //nolint:funlen with a reason. Can tighten to 80/50 in a follow-up
+      # once more test data is extracted to fixture files.
+      lines: 120
+      statements: 80
     gochecksumtype:
       default-signifies-exhaustive: false
     gocognit:
-      min-complexity: 30
+      # 40 (vs. Go default 15, skill-recommended 30). Sweep on 2026-04-19
+      # cleared the baseline at this threshold. Can tighten to 30 in a
+      # follow-up once more of the hot spots (validators, walker, test
+      # helpers) have settled; dropping in one step would re-open several
+      # of the same files this sweep just refactored.
+      min-complexity: 40
 
     gosec:
       excludes:
@@ -207,6 +230,13 @@ linters:
         - shadow # Disabled temporarily to focus on other issues first
     inamedparam:
       skip-single-param: true
+
+    nestif:
+      # 8 (vs. Go default 5). Complements cyclop + gocognit from the
+      # deep-nesting angle — catches "pyramid of doom" patterns that
+      # branching counts alone do not flag. Sweep on 2026-04-19 cleared
+      # the baseline; any re-add of a 9+-nested block will fail CI.
+      min-complexity: 8
 
     mnd:
       ignored-functions:

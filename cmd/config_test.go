@@ -38,7 +38,7 @@ func TestConfigCmdSubcommands(t *testing.T) {
 	require.NotNil(t, configCmd, "config command should exist")
 
 	// Get subcommand names
-	subcommandNames := make([]string, 0)
+	subcommandNames := make([]string, 0, len(configCmd.Commands()))
 	for _, cmd := range configCmd.Commands() {
 		subcommandNames = append(subcommandNames, cmd.Name())
 	}

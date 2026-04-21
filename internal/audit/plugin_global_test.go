@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +18,8 @@ import (
 )
 
 // TestGlobalPluginRegistry tests all global registry functions.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestGlobalPluginRegistry(t *testing.T) {
 	// Save and restore global state. We capture both the registry pointer
 	// and whether the singleton was already initialized so cleanup can
@@ -173,7 +176,34 @@ func TestGlobalPluginRegistry(t *testing.T) {
 	})
 }
 
+// assertLoadResultCounts fails the test when result's Loaded/Failed counters
+// do not match the expected values. Extracted from TestLoadDynamicPlugins so
+// each subtest body is a one-liner instead of repeating the same comparison.
+func assertLoadResultCounts(t *testing.T, result LoadResult, wantLoaded, wantFailed int) {
+	t.Helper()
+	if result.Loaded != wantLoaded || result.Failed() != wantFailed {
+		t.Errorf(
+			"LoadDynamicPlugins() Loaded=%d, Failed=%d; want %d, %d",
+			result.Loaded, result.Failed(), wantLoaded, wantFailed,
+		)
+	}
+}
+
+// assertLoadSucceededEmpty is the "loader returned no error and no work was
+// done" assertion common to TestLoadDynamicPlugins's no-op subtests
+// (nonexistent, empty, non-.so, nonexplicit-missing). Combining the two
+// checks into one helper keeps each subtest body to a single line.
+func assertLoadSucceededEmpty(t *testing.T, result LoadResult, err error) {
+	t.Helper()
+	if err != nil {
+		t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
+	}
+	assertLoadResultCounts(t, result, 0, 0)
+}
+
 // TestLoadDynamicPlugins tests the LoadDynamicPlugins functionality.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestLoadDynamicPlugins(t *testing.T) {
 	t.Parallel()
 
@@ -181,104 +211,58 @@ func TestLoadDynamicPlugins(t *testing.T) {
 
 	t.Run("nonexistent directory", func(t *testing.T) {
 		t.Parallel()
-
 		registry := NewPluginRegistry()
-		logger := newTestLogger(t)
-
-		result, err := registry.LoadDynamicPlugins(ctx, "/nonexistent/path/to/plugins", false, logger)
-		if err != nil {
-			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
-		}
-
-		if result.Loaded != 0 || result.Failed() != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
-		}
+		result, err := registry.LoadDynamicPlugins(ctx, "/nonexistent/path/to/plugins", false, newTestLogger(t))
+		assertLoadSucceededEmpty(t, result, err)
 	})
 
 	t.Run("empty directory", func(t *testing.T) {
 		t.Parallel()
-
 		registry := NewPluginRegistry()
-		logger := newTestLogger(t)
-
-		result, err := registry.LoadDynamicPlugins(ctx, t.TempDir(), false, logger)
-		if err != nil {
-			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
-		}
-
-		if result.Loaded != 0 || result.Failed() != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
-		}
+		result, err := registry.LoadDynamicPlugins(ctx, t.TempDir(), false, newTestLogger(t))
+		assertLoadSucceededEmpty(t, result, err)
 	})
 
 	t.Run("directory with non-.so files", func(t *testing.T) {
 		t.Parallel()
-
 		registry := NewPluginRegistry()
-		logger := newTestLogger(t)
 		dir := createTestDirWithNonSOFiles(t)
-
-		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
-		if err != nil {
-			t.Errorf("LoadDynamicPlugins() unexpected error: %v", err)
-		}
-
-		if result.Loaded != 0 || result.Failed() != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
-		}
+		result, err := registry.LoadDynamicPlugins(ctx, dir, false, newTestLogger(t))
+		assertLoadSucceededEmpty(t, result, err)
 	})
 
 	t.Run("explicit dir not found returns error", func(t *testing.T) {
 		t.Parallel()
-
 		registry := NewPluginRegistry()
-		logger := newTestLogger(t)
-
 		missingDir := filepath.Join(t.TempDir(), "explicit-missing")
-		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, true, logger)
+		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, true, newTestLogger(t))
 		if loadErr == nil {
 			t.Fatal("LoadDynamicPlugins() expected error for explicit missing directory")
 		}
-
 		if !strings.Contains(loadErr.Error(), "does not exist") {
 			t.Errorf("expected 'does not exist' in error, got: %v", loadErr)
 		}
-
-		if result.Loaded != 0 || result.Failed() != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
-		}
+		assertLoadResultCounts(t, result, 0, 0)
 	})
 
 	t.Run("nonexplicit dir not found emits Debug", func(t *testing.T) {
 		t.Parallel()
-
 		registry := NewPluginRegistry()
 
 		var buf strings.Builder
-		bufLogger, err := logging.New(logging.Config{
-			Level:  "debug",
-			Output: &buf,
-		})
+		bufLogger, err := logging.New(logging.Config{Level: "debug", Output: &buf})
 		if err != nil {
 			t.Fatalf("failed to create buffer logger: %v", err)
 		}
 
 		missingDir := filepath.Join(t.TempDir(), "optional-missing")
 		result, loadErr := registry.LoadDynamicPlugins(ctx, missingDir, false, bufLogger)
-		if loadErr != nil {
-			t.Errorf("LoadDynamicPlugins() unexpected error: %v", loadErr)
-		}
-
-		if result.Loaded != 0 || result.Failed() != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded=%d, Failed=%d; want 0, 0", result.Loaded, result.Failed())
-		}
+		assertLoadSucceededEmpty(t, result, loadErr)
 
 		logOutput := buf.String()
 		if !strings.Contains(logOutput, "DEBU") {
 			t.Errorf("expected DEBUG-level log for non-explicit missing directory, got:\n%s", logOutput)
 		}
-
-		// Should NOT contain WARN for the non-explicit case.
 		if strings.Contains(logOutput, "WARN") {
 			t.Errorf("did not expect WARN-level log for non-explicit missing directory, got:\n%s", logOutput)
 		}
@@ -286,33 +270,21 @@ func TestLoadDynamicPlugins(t *testing.T) {
 
 	t.Run("all .so files fail", func(t *testing.T) {
 		t.Parallel()
-
 		dir := createTestDirWithDummySOFiles(t, 3)
-
-		// Use injectable loader for deterministic, platform-independent failures.
 		registry := newPluginRegistryWithLoader(func(path string) (compliance.Plugin, error) {
 			return nil, fmt.Errorf("simulated failure for %s", path)
 		})
-		logger := newTestLogger(t)
 
-		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
+		result, err := registry.LoadDynamicPlugins(ctx, dir, false, newTestLogger(t))
 		if err == nil {
 			t.Error("LoadDynamicPlugins() expected error when all .so files fail")
 		}
-
-		if result.Loaded != 0 {
-			t.Errorf("LoadDynamicPlugins() Loaded = %d, want 0", result.Loaded)
-		}
-
-		if result.Failed() != 3 {
-			t.Fatalf("LoadDynamicPlugins() Failed = %d, want 3", result.Failed())
-		}
+		assertLoadResultCounts(t, result, 0, 3)
 
 		for _, f := range result.Failures {
 			if f.Err == nil {
 				t.Errorf("PluginLoadError for %q has nil Err", f.Name)
 			}
-
 			if filepath.Ext(f.Name) != ".so" {
 				t.Errorf("PluginLoadError Name %q does not end in .so", f.Name)
 			}
@@ -321,21 +293,9 @@ func TestLoadDynamicPlugins(t *testing.T) {
 
 	t.Run("partial failure — mixed success and failure", func(t *testing.T) {
 		t.Parallel()
+		fixture := setupMixedLoadPluginsDir(t)
+		dir, goodFile, badFile := fixture.dir, fixture.goodFile, fixture.badFile
 
-		// Create a directory with two .so files.
-		dir := t.TempDir()
-		goodFile := "good_plugin.so"
-		badFile := "bad_plugin.so"
-
-		for _, name := range []string{goodFile, badFile} {
-			err := os.WriteFile(filepath.Join(dir, name), []byte("stub"), 0o600)
-			if err != nil {
-				t.Fatalf("Failed to create %s: %v", name, err)
-			}
-		}
-
-		// Build a registry with a custom pluginLoader that succeeds for
-		// good_plugin.so and fails for bad_plugin.so.
 		registry := newPluginRegistryWithLoader(func(path string) (compliance.Plugin, error) {
 			if strings.Contains(path, "good_plugin") {
 				return &mockCompliancePlugin{
@@ -344,43 +304,54 @@ func TestLoadDynamicPlugins(t *testing.T) {
 					description: "A successfully loaded plugin",
 				}, nil
 			}
-
 			return nil, fmt.Errorf("simulated load failure for %s", path)
 		})
 
-		logger := newTestLogger(t)
-
-		result, err := registry.LoadDynamicPlugins(ctx, dir, false, logger)
+		result, err := registry.LoadDynamicPlugins(ctx, dir, false, newTestLogger(t))
 		if err == nil {
 			t.Error("LoadDynamicPlugins() expected error when some .so files fail")
 		}
-
-		if result.Loaded != 1 {
-			t.Errorf("LoadDynamicPlugins() Loaded = %d, want 1", result.Loaded)
-		}
-
-		if result.Failed() != 1 {
-			t.Errorf("LoadDynamicPlugins() Failed = %d, want 1", result.Failed())
-		}
+		assertLoadResultCounts(t, result, 1, 1)
 
 		if len(result.Failures) != 1 {
 			t.Fatalf("LoadDynamicPlugins() len(Failures) = %d, want 1", len(result.Failures))
 		}
-
 		if result.Failures[0].Name != badFile {
 			t.Errorf("LoadDynamicPlugins() Failures[0].Name = %q, want %q", result.Failures[0].Name, badFile)
 		}
-
 		if result.Failures[0].Err == nil {
 			t.Error("LoadDynamicPlugins() Failures[0].Err should not be nil")
 		}
 
-		// Verify the successfully loaded plugin was actually registered.
-		_, getErr := registry.GetPlugin("good-dynamic-plugin")
-		if getErr != nil {
+		_ = goodFile
+		if _, getErr := registry.GetPlugin("good-dynamic-plugin"); getErr != nil {
 			t.Errorf("expected good-dynamic-plugin to be registered, got error: %v", getErr)
 		}
 	})
+}
+
+// mixedLoadFixture groups the two filenames created by
+// setupMixedLoadPluginsDir so callers don't juggle three bare strings (which
+// gocritic flags as an unnamed-result ambiguity).
+type mixedLoadFixture struct {
+	dir, goodFile, badFile string
+}
+
+// setupMixedLoadPluginsDir creates a temp directory containing one "good"
+// and one "bad" plugin stub and returns the directory plus both filenames.
+func setupMixedLoadPluginsDir(t *testing.T) mixedLoadFixture {
+	t.Helper()
+	fx := mixedLoadFixture{
+		dir:      t.TempDir(),
+		goodFile: "good_plugin.so",
+		badFile:  "bad_plugin.so",
+	}
+	for _, name := range []string{fx.goodFile, fx.badFile} {
+		if err := os.WriteFile(filepath.Join(fx.dir, name), []byte("stub"), 0o600); err != nil {
+			t.Fatalf("Failed to create %s: %v", name, err)
+		}
+	}
+	return fx
 }
 
 // TestLoadDynamicPlugins_NilLogger verifies that LoadDynamicPlugins returns an
@@ -549,7 +520,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 
 		if err := pm.InitializePlugins(context.Background()); err != nil {
 			t.Fatalf("InitializePlugins() unexpected error: %v", err)
@@ -565,7 +536,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 
 		missingDir := filepath.Join(t.TempDir(), "does-not-exist")
 		pm.SetPluginDir(missingDir, true)
@@ -584,7 +555,7 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 		t.Parallel()
 
 		logger := newTestLogger(t)
-		pm := NewPluginManager(logger)
+		pm := NewPluginManager(logger, nil)
 		pm.SetPluginDir(t.TempDir(), false)
 
 		if err := pm.InitializePlugins(context.Background()); err != nil {
@@ -599,6 +570,8 @@ func TestPluginManager_SetPluginDir_Integration(t *testing.T) {
 }
 
 // TestPluginRegistry_CalculateSummary tests the calculateSummary method with various scenarios.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestPluginRegistry_CalculateSummary(t *testing.T) {
 	t.Parallel()
 
@@ -731,7 +704,7 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			summary := registry.calculateSummary(tt.result)
+			summary, _ := registry.calculateSummary(tt.result)
 			if summary == nil {
 				t.Error("calculateSummary() returned nil")
 				return
@@ -771,43 +744,37 @@ func TestPluginRegistry_CalculateSummary(t *testing.T) {
 
 			// Test compliance calculations
 			if tt.name == "compliance calculations" {
-				plugin1Compliance, exists := summary.Compliance["plugin1"]
-				if !exists {
-					t.Error("calculateSummary() missing compliance for plugin1")
-				} else {
-					if plugin1Compliance.Compliant != 2 {
-						t.Errorf("calculateSummary() plugin1 compliant = %v, want 2", plugin1Compliance.Compliant)
-					}
-					if plugin1Compliance.NonCompliant != 1 {
-						t.Errorf(
-							"calculateSummary() plugin1 non-compliant = %v, want 1",
-							plugin1Compliance.NonCompliant,
-						)
-					}
-					if plugin1Compliance.Total != 3 {
-						t.Errorf("calculateSummary() plugin1 total = %v, want 3", plugin1Compliance.Total)
-					}
-				}
-
-				plugin2Compliance, exists := summary.Compliance["plugin2"]
-				if !exists {
-					t.Error("calculateSummary() missing compliance for plugin2")
-				} else {
-					if plugin2Compliance.Compliant != 0 {
-						t.Errorf("calculateSummary() plugin2 compliant = %v, want 0", plugin2Compliance.Compliant)
-					}
-					if plugin2Compliance.NonCompliant != 2 {
-						t.Errorf(
-							"calculateSummary() plugin2 non-compliant = %v, want 2",
-							plugin2Compliance.NonCompliant,
-						)
-					}
-					if plugin2Compliance.Total != 2 {
-						t.Errorf("calculateSummary() plugin2 total = %v, want 2", plugin2Compliance.Total)
-					}
-				}
+				assertPluginCompliance(t, summary.Compliance, "plugin1", 2, 1, 3)
+				assertPluginCompliance(t, summary.Compliance, "plugin2", 0, 2, 2)
 			}
 		})
+	}
+}
+
+// assertPluginCompliance looks up the compliance entry for plugin and asserts
+// the per-plugin Compliant, NonCompliant, and Total counters match. Extracted
+// from TestCalculateSummary to keep the per-case body flat.
+func assertPluginCompliance(
+	t *testing.T,
+	complianceMap map[string]PluginCompliance,
+	plugin string,
+	wantCompliant, wantNonCompliant, wantTotal int,
+) {
+	t.Helper()
+
+	got, exists := complianceMap[plugin]
+	if !exists {
+		t.Errorf("calculateSummary() missing compliance for %s", plugin)
+		return
+	}
+	if got.Compliant != wantCompliant {
+		t.Errorf("calculateSummary() %s compliant = %v, want %v", plugin, got.Compliant, wantCompliant)
+	}
+	if got.NonCompliant != wantNonCompliant {
+		t.Errorf("calculateSummary() %s non-compliant = %v, want %v", plugin, got.NonCompliant, wantNonCompliant)
+	}
+	if got.Total != wantTotal {
+		t.Errorf("calculateSummary() %s total = %v, want %v", plugin, got.Total, wantTotal)
 	}
 }
 
@@ -1212,21 +1179,18 @@ type mockPluginWithFindings struct {
 	controls []compliance.Control
 }
 
-func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) []compliance.Finding {
-	return m.findings
-}
-
-func (m *mockPluginWithFindings) GetControls() []compliance.Control {
-	return m.controls
-}
-
-func (m *mockPluginWithFindings) EvaluatedControlIDs(_ *common.CommonDevice) []string {
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockPluginWithFindings) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
 	ids := make([]string, len(m.controls))
 	for i, c := range m.controls {
 		ids[i] = c.ID
 	}
 
-	return ids
+	return m.findings, ids, nil
+}
+
+func (m *mockPluginWithFindings) GetControls() []compliance.Control {
+	return compliance.CloneControls(m.controls)
 }
 
 func (m *mockPluginWithFindings) GetControlByID(id string) (*compliance.Control, error) {
@@ -1246,22 +1210,15 @@ type mockPanickingPlugin struct {
 }
 
 // RunChecks panics unconditionally to simulate a misbehaving plugin.
-func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) []compliance.Finding {
+//
+//nolint:gocritic // nonamedreturns enforced project-wide
+func (m *mockPanickingPlugin) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
 	panic("test panic")
 }
 
 // GetControls returns the controls configured on the mock.
 func (m *mockPanickingPlugin) GetControls() []compliance.Control {
-	return m.controls
-}
-
-func (m *mockPanickingPlugin) EvaluatedControlIDs(_ *common.CommonDevice) []string {
-	ids := make([]string, len(m.controls))
-	for i, c := range m.controls {
-		ids[i] = c.ID
-	}
-
-	return ids
+	return compliance.CloneControls(m.controls)
 }
 
 // GetControlByID returns the control matching the given ID.
@@ -1272,6 +1229,55 @@ func (m *mockPanickingPlugin) GetControlByID(id string) (*compliance.Control, er
 		}
 	}
 	return nil, compliance.ErrControlNotFound
+}
+
+// registerPluginsOrFatal creates a fresh registry and registers each plugin,
+// failing the test on the first registration error. Extracted from
+// TestRunComplianceChecks_PanickingPluginIsolation subtests to keep their body
+// short enough to clear the gocognit threshold.
+func registerPluginsOrFatal(t *testing.T, plugins []compliance.Plugin) *PluginRegistry {
+	t.Helper()
+	registry := NewPluginRegistry()
+	for _, p := range plugins {
+		if err := registry.RegisterPlugin(p); err != nil {
+			t.Fatalf("Failed to register plugin %q: %v", p.Name(), err)
+		}
+	}
+	return registry
+}
+
+// assertResultCounts checks aggregate counts on a ComplianceResult: total
+// findings, plugin-info entries, and Summary.TotalFindings.
+func assertResultCounts(t *testing.T, result *ComplianceResult, wantFindings, wantPlugins int) {
+	t.Helper()
+	if len(result.Findings) != wantFindings {
+		t.Errorf("Findings count = %d, want %d", len(result.Findings), wantFindings)
+	}
+	if len(result.PluginInfo) != wantPlugins {
+		t.Errorf("PluginInfo count = %d, want %d", len(result.PluginInfo), wantPlugins)
+	}
+	if result.Summary.TotalFindings != wantFindings {
+		t.Errorf("Summary.TotalFindings = %d, want %d", result.Summary.TotalFindings, wantFindings)
+	}
+}
+
+// assertPanickingPluginRetained verifies that the named panicking plugin is
+// present in PluginFindings (with no findings), PluginInfo, and the Compliance
+// map — the panic-recovery contract for RunComplianceChecks.
+func assertPanickingPluginRetained(t *testing.T, result *ComplianceResult, pluginName string) {
+	t.Helper()
+	pf, ok := result.PluginFindings[pluginName]
+	if !ok {
+		t.Errorf("Panicking plugin %q should be present in PluginFindings", pluginName)
+	} else if len(pf) > 0 {
+		t.Errorf("Panicking plugin %q should have no findings, got %d", pluginName, len(pf))
+	}
+	if _, ok := result.PluginInfo[pluginName]; !ok {
+		t.Errorf("Panicking plugin %q should be present in PluginInfo", pluginName)
+	}
+	if _, ok := result.Compliance[pluginName]; !ok {
+		t.Errorf("Panicking plugin %q should be present in Compliance map", pluginName)
+	}
 }
 
 // TestRunComplianceChecks_PanickingPluginIsolation verifies that a panicking
@@ -1340,55 +1346,19 @@ func TestRunComplianceChecks_PanickingPluginIsolation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			registry := NewPluginRegistry()
-			for _, p := range tt.plugins {
-				if err := registry.RegisterPlugin(p); err != nil {
-					t.Fatalf("Failed to register plugin %q: %v", p.Name(), err)
-				}
-			}
-
-			device := &common.CommonDevice{
-				System: common.System{Hostname: "test-host"},
-			}
+			registry := registerPluginsOrFatal(t, tt.plugins)
+			device := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
 
 			result, err := registry.RunComplianceChecks(device, tt.selectedPlugins, logger)
 			if err != nil {
 				t.Fatalf("RunComplianceChecks() unexpected error: %v", err)
 			}
-
 			if result == nil {
 				t.Fatal("RunComplianceChecks() returned nil result")
 			}
 
-			if len(result.Findings) != tt.wantFindingsCount {
-				t.Errorf("Findings count = %d, want %d", len(result.Findings), tt.wantFindingsCount)
-			}
-
-			if len(result.PluginInfo) != tt.wantPluginInfoCount {
-				t.Errorf("PluginInfo count = %d, want %d", len(result.PluginInfo), tt.wantPluginInfoCount)
-			}
-
-			if result.Summary.TotalFindings != tt.wantFindingsCount {
-				t.Errorf("Summary.TotalFindings = %d, want %d", result.Summary.TotalFindings, tt.wantFindingsCount)
-			}
-
-			// Panicking plugin must be present in PluginFindings with zero findings
-			pf, ok := result.PluginFindings["panicking-plugin"]
-			if !ok {
-				t.Error("Panicking plugin should be present in PluginFindings")
-			} else if len(pf) > 0 {
-				t.Errorf("Panicking plugin should have no findings, got %d", len(pf))
-			}
-
-			// Panicking plugin must be present in PluginInfo
-			if _, ok := result.PluginInfo["panicking-plugin"]; !ok {
-				t.Error("Panicking plugin should be present in PluginInfo")
-			}
-
-			// Panicking plugin must be present in Compliance map
-			if _, ok := result.Compliance["panicking-plugin"]; !ok {
-				t.Error("Panicking plugin should be present in Compliance map")
-			}
+			assertResultCounts(t, result, tt.wantFindingsCount, tt.wantPluginInfoCount)
+			assertPanickingPluginRetained(t, result, "panicking-plugin")
 		})
 	}
 
@@ -1531,7 +1501,7 @@ func TestRunComplianceChecks_PerPluginSeverityArithmetic(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	pm := NewPluginManager(logger)
+	pm := NewPluginManager(logger, nil)
 	ctx := context.Background()
 
 	if err := pm.InitializePlugins(ctx); err != nil {
@@ -1735,5 +1705,151 @@ func TestRunComplianceChecks_DuplicatePluginNames(t *testing.T) {
 
 	if result.Summary.PluginCount != 1 {
 		t.Errorf("Expected PluginCount=1, got %d", result.Summary.PluginCount)
+	}
+}
+
+// TestRunComplianceChecks_UnknownSeverityWarn verifies that RunComplianceChecks
+// emits a WARN log entry when the aggregated summary contains findings with
+// unrecognized severity values, satisfying the GOTCHAS §2.4 contract that the
+// top-level summary (not just the per-plugin path in mode_controller) surfaces
+// these counts to operators.
+func TestRunComplianceChecks_UnknownSeverityWarn(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	// Plugin that deliberately returns findings with unrecognized severity
+	// values. Using "chartreuse" / "vermilion" keeps the strings obviously
+	// non-standard so a reviewer recognizes the intent at a glance.
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-unknown-severity",
+			description: "Plugin returning unknown severities",
+			version:     "1.0.0",
+		},
+		findings: []compliance.Finding{
+			{
+				Type:        "compliance",
+				Severity:    "chartreuse",
+				Title:       "Unknown severity A",
+				Description: "Severity not in the known set",
+				Reference:   "CONTROL-001",
+				References:  []string{"CONTROL-001"},
+			},
+			{
+				Type:        "compliance",
+				Severity:    "vermilion",
+				Title:       "Unknown severity B",
+				Description: "Severity not in the known set",
+				Reference:   "CONTROL-002",
+				References:  []string{"CONTROL-002"},
+			},
+		},
+		controls: []compliance.Control{
+			{ID: "CONTROL-001", Title: "Control 1", Severity: severityCritical},
+			{ID: "CONTROL-002", Title: "Control 2", Severity: "medium"},
+		},
+	}
+
+	if err := registry.RegisterPlugin(mockPlugin); err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	// Capture log output at warn level so we can assert the warning fires.
+	var buf bytes.Buffer
+
+	logger, err := logging.New(logging.Config{Level: "warn", Output: &buf})
+	if err != nil {
+		t.Fatalf("Failed to construct test logger: %v", err)
+	}
+
+	testConfig := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
+
+	result, err := registry.RunComplianceChecks(testConfig, []string{"test-unknown-severity"}, logger)
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error = %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("RunComplianceChecks() returned nil result")
+	}
+
+	// Summary counters must stay zero for unknown severities — they are not
+	// coerced into a known bucket.
+	if got := result.Summary.CriticalFindings; got != 0 {
+		t.Errorf("unexpected CriticalFindings = %d; want 0", got)
+	}
+
+	if got := result.Summary.HighFindings; got != 0 {
+		t.Errorf("unexpected HighFindings = %d; want 0", got)
+	}
+
+	if got := result.Summary.TotalFindings; got != 2 {
+		t.Errorf("TotalFindings = %d; want 2", got)
+	}
+
+	out := buf.String()
+	if !strings.Contains(strings.ToUpper(out), "WARN") {
+		t.Errorf("expected WARN log entry in output; got %q", out)
+	}
+
+	if !strings.Contains(out, "unrecognized severity") {
+		t.Errorf("expected message about unrecognized severity; got %q", out)
+	}
+	// Two unknown-severity findings were emitted by the plugin.
+	if !strings.Contains(out, "unknownCount=2") {
+		t.Errorf("expected unknownCount=2 in log output; got %q", out)
+	}
+}
+
+// TestRunComplianceChecks_NoUnknownSeverity_NoWarn verifies that the WARN path
+// is silent when every finding has a recognized severity — the log buffer
+// should not mention unrecognized severity at all.
+func TestRunComplianceChecks_NoUnknownSeverity_NoWarn(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+
+	mockPlugin := &mockPluginWithFindings{
+		mockCompliancePlugin: mockCompliancePlugin{
+			name:        "test-known-severity",
+			description: "Plugin returning only known severities",
+			version:     "1.0.0",
+		},
+		findings: []compliance.Finding{
+			{
+				Type:        "compliance",
+				Severity:    severityHigh,
+				Title:       "Known severity",
+				Description: "High severity finding",
+				Reference:   "CONTROL-001",
+				References:  []string{"CONTROL-001"},
+			},
+		},
+		controls: []compliance.Control{
+			{ID: "CONTROL-001", Title: "Control 1", Severity: severityHigh},
+		},
+	}
+
+	if err := registry.RegisterPlugin(mockPlugin); err != nil {
+		t.Fatalf("Failed to register plugin: %v", err)
+	}
+
+	var buf bytes.Buffer
+
+	logger, err := logging.New(logging.Config{Level: "warn", Output: &buf})
+	if err != nil {
+		t.Fatalf("Failed to construct test logger: %v", err)
+	}
+
+	testConfig := &common.CommonDevice{System: common.System{Hostname: "test-host"}}
+
+	_, err = registry.RunComplianceChecks(testConfig, []string{"test-known-severity"}, logger)
+	if err != nil {
+		t.Fatalf("RunComplianceChecks() error = %v", err)
+	}
+
+	if out := buf.String(); strings.Contains(out, "unrecognized severity") {
+		t.Errorf("did not expect unrecognized-severity WARN; got %q", out)
 	}
 }

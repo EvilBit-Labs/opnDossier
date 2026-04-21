@@ -11,6 +11,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/validator"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"       // self-registers OPNsense parser via init()
 	pfparser "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense" // self-registers pfSense parser via init()
 	"github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense"
@@ -54,12 +55,9 @@ var rootCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra root command
 	Short: "opnDossier: A CLI tool for processing OPNsense and pfSense configuration files.",
 	Long: `opnDossier is a command-line interface (CLI) tool designed to process OPNsense
 and pfSense firewall configuration files (config.xml) and convert them into
-human-readable formats, primarily Markdown. This tool is built to assist
-network administrators and security professionals in documenting, auditing,
-and understanding their firewall configurations more effectively.
-
-opnDossier auto-detects the device type from the config.xml root element;
-use --device-type to force a parser (see shell completion for supported values).
+human-readable formats, primarily Markdown. This tool is built to assist network
+administrators and security professionals in documenting, auditing, and
+understanding their firewall configurations more effectively.
 
 WORKFLOW EXAMPLES:
   # Basic conversion workflow
@@ -224,9 +222,14 @@ func init() {
 	// Note: --json-output is registered on validateCmd only (not here as persistent).
 	// It has no effect on other commands. See issue #479, GOTCHAS.md §5.1.
 
-	// Parsing control flags
+	// Parsing control flags. The supported-devices list is derived from the
+	// parser registry so help text stays accurate as devices are added or
+	// removed. SupportedDevices() is the same source used by
+	// ValidateDeviceType error messages (see shared_flags.go).
 	rootCmd.PersistentFlags().
-		StringVar(&sharedDeviceType, "device-type", "", "Force device type (see shell completion for supported values). Bypasses auto-detection.")
+		StringVar(&sharedDeviceType, "device-type", "",
+			fmt.Sprintf("Force device type (supported: %s). Bypasses auto-detection.",
+				parser.DefaultRegistry().SupportedDevices()))
 	setFlagAnnotation(rootCmd.PersistentFlags(), "device-type", []string{"parsing"})
 
 	// Flag groups for better organization
@@ -258,7 +261,7 @@ func init() {
 	convCmd := &cobra.Command{
 		Use:               "conv [file ...]",
 		Short:             "Alias for 'convert' command",
-		Long:              "Alias for the 'convert' command. Converts OPNsense configuration files to structured formats.",
+		Long:              "Alias for the 'convert' command. Converts OPNsense or pfSense configuration files to structured formats.",
 		GroupID:           "core",
 		ValidArgsFunction: ValidXMLFiles,
 		RunE:              convertCmd.RunE,

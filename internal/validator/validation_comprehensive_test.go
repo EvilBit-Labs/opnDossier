@@ -10,6 +10,8 @@ import (
 
 // TestInterfaceReferences_TableDriven provides explicit table-driven tests for
 // unknown vs known interface references as required by the task.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestInterfaceReferences_TableDriven(t *testing.T) {
 	tests := []struct {
 		name               string
@@ -338,6 +340,8 @@ func TestInterfaceNameResolution_EdgeCases(t *testing.T) {
 
 // TestValidation_RealWorldScenarios tests complex real-world scenarios that combine
 // multiple validation aspects including opt interfaces.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidation_RealWorldScenarios(t *testing.T) {
 	t.Run("complex firewall configuration with opt interfaces", func(t *testing.T) {
 		config := &schema.OpnSenseDocument{

@@ -137,6 +137,10 @@ Check out the [Getting Started](user-guide/getting-started.md) tutorial, or brow
 - **[Examples](examples/index.md)** - Comprehensive usage examples and common workflows
 - **[About](about.md)** - Project overview and features
 
+### For AI Agents & Automation
+
+- **[For AI Agents & Automation](for-agents.md)** - Stable machine-readable interfaces (auto-generated CLI reference, JSON/YAML output schemas, exit codes, public Go API) in one place, kept in sync with the code via generators
+
 ### Developer Documentation
 
 - **[Architecture](development/architecture.md)** - System design and component interactions
