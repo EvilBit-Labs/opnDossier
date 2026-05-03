@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"strings"
-	"sync"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
@@ -26,9 +25,13 @@ type Processor interface {
 }
 
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
+//
+// CoreProcessor is stateless per call: logger and validateFn are set once in
+// NewCoreProcessor and read-only thereafter, and every per-call value is
+// local-scope. It is safe to share a single instance across goroutines, and
+// concurrent Process calls run in parallel.
 type CoreProcessor struct {
 	logger     *logging.Logger
-	mu         sync.Mutex // Protects concurrent access to the processor
 	validateFn func(*common.CommonDevice) []ValidationError
 }
 
@@ -62,10 +65,6 @@ func (p *CoreProcessor) Process(ctx context.Context, cfg *common.CommonDevice, o
 	if cfg == nil {
 		return nil, ErrConfigurationNil
 	}
-
-	// Lock to prevent race conditions when multiple goroutines access the processor
-	p.mu.Lock()
-	defer p.mu.Unlock()
 
 	// Apply options to get configuration
 	config := DefaultConfig()
