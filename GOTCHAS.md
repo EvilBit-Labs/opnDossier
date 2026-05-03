@@ -406,3 +406,30 @@ The one-shot lock is the enforcement point against a dynamically loaded complian
 - **Gotcha:** Test code that needs to swap validators across subtests uses the `ResetValidatorForTesting` / `ValidatorForTesting` helpers defined in `pkg/parser/pfsense/export_test.go`. These live in `_test.go` and therefore are NOT part of the public API — never promote them to a plain `.go` file.
 - **Gotcha:** The exported `SetValidator` is safe to call from any goroutine; concurrent writers race to win the `sync.Once`, but only one does. Readers never see a torn value because the holder is `atomic.Pointer[...]` — verified by `TestPfSense_SetValidator_Race` under `-race`.
 - **Regression tests:** `TestPfSense_SetValidator_CannotBeOverwritten` pins the stomp-protection invariant; `TestPfSense_SetValidator_Race` pins the concurrent-writer safety. Both live in `pkg/parser/pfsense/parser_test.go`. If either fails, the §20 defense has regressed.
+
+## 21. CoreProcessor Concurrency
+
+### 21.1 Stateless-Per-Call Invariant
+
+`internal/processor.CoreProcessor` is stateless per call. `logger` and `validateFn` are set once in `NewCoreProcessor` and are read-only thereafter; every per-call value (`config`, `normalizedCfg`, `validationErrors`, `report`) is local-scope. The `sync.Mutex` that previously guarded `Process()` was removed in NATS-35 because it protected no shared mutable state and serialized concurrent calls unnecessarily — a single shared `*CoreProcessor` is now safe to share across goroutines and `Process` calls run in parallel.
+
+- **Symptom of regression:** A future contributor adds a mutable field to `CoreProcessor` (e.g., a cache, counter, hot-reloaded config, or per-instance result accumulator). `go test -race ./internal/processor/...` flags a data race in `TestCoreProcessor_RaceConditions` or `TestCoreProcessor_ConcurrentSafety`.
+- **Fix:** Either remove the new field, scope it per-call (return it instead of storing on the receiver), or reinstate explicit synchronization with a comment naming exactly what shared state is being protected.
+- **Prevention:** Treat `CoreProcessor` like the converter packages — receivers carry construction-time configuration only; per-call state lives in locals. The struct doc comment in `internal/processor/processor.go` names the invariant and the caller contract; do not weaken either without re-evaluating thread safety.
+
+### 21.2 Caller Must Not Mutate `*CommonDevice` Concurrently With `Process()`
+
+`Process()` calls `normalize()` which performs a shallow struct copy of `*cfg` and then `slices.Clone`s only the fields it sorts or mutates. The remaining slices on the input (`Interfaces`, `VLANs`, `Bridges`, `CAs`, etc.) share their backing arrays with the caller's `*CommonDevice` for the duration of the call, and `report.NormalizedConfig` continues to share those backing arrays after the call returns.
+
+- **Gotcha:** If a caller mutates the input `*CommonDevice` while `Process()` is running, or while another consumer is reading `report.NormalizedConfig`, there is a data race that `-race` will catch. The removed §21.1 mutex never protected against this — it was a per-`CoreProcessor` lock, not a per-`*CommonDevice` lock.
+- **Caller contract:** The caller is responsible for not mutating the input struct concurrently with any `Process()` call that received it, and for not mutating it after passing it in if a downstream consumer is still reading `report.NormalizedConfig`. Pass a fresh or fully-quiesced `*CommonDevice` per call.
+- **Pre-existing:** This invariant existed before §21.1's mutex removal — the lock was released before `Process()` returned, so any post-return read of `NormalizedConfig` was already exposed to caller mutation. NATS-35 did not change the contract; it only made it visible.
+
+### 21.3 `Report.mu` and `WorkerPool.closedMu` Are Out of Scope for §21.1
+
+§21.1 explicitly removed only the `CoreProcessor.mu` field. Two other mutexes in `internal/processor/` guard real shared state and must remain:
+
+- **`Report.mu sync.RWMutex`** (`internal/processor/report.go`) — protects `Findings` during concurrent appends from `analyze`'s sub-goroutines. Each `Process()` call constructs its own `*Report`, but within that call multiple goroutines may call `AddFinding` concurrently.
+- **`WorkerPool.closedMu sync.RWMutex`** (`internal/processor/concurrent.go`) — channel-close guard in the worker pool used by `ProcessBatch`.
+
+Do not remove either of these in a "clean up the package's locks" sweep. They protect distinct invariants from the one §21.1 addressed.
