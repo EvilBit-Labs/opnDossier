@@ -1852,12 +1852,14 @@ func TestCoreProcessor_ConcurrentSafety(t *testing.T) {
 	}
 }
 
-// TestCoreProcessor_Process_ResultIsolation asserts that two concurrent
-// Process calls on a shared *CoreProcessor produce reports whose Findings
-// slices and Compliance maps are independent — no cross-call AddFinding
-// bleed and no shared map mutation. Pins the cross-call isolation gap that
-// TestCoreProcessor_ConcurrentSafety only covers indirectly via hostname
-// and statistics fields.
+// TestCoreProcessor_Process_ResultIsolation asserts that concurrent Process
+// calls on a shared *CoreProcessor with distinct inputs return distinct
+// *Report pointers (so a future singleton/pool regression in NewReport would
+// fail this test) and that each report's hostname tracks the input that
+// goroutine actually processed (so a config-bleed regression in normalize
+// or the analyze pipeline would fail this test). Pins the cross-call
+// isolation gap that TestCoreProcessor_ConcurrentSafety covers indirectly
+// via hostname and statistics fields.
 func TestCoreProcessor_Process_ResultIsolation(t *testing.T) {
 	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
@@ -1911,11 +1913,30 @@ func TestCoreProcessor_Process_ResultIsolation(t *testing.T) {
 		assert.Equal(t, hostnames[i], report.ConfigInfo.Hostname, "goroutine %d hostname mismatch", i)
 	}
 
-	// Distinct reports must not share the same Findings backing arrays across
-	// any severity bucket. Sentinel-mutation check: appending a uniquely-named
-	// finding to report[i]'s Critical bucket must not affect report[j]. Catches
-	// shared backing arrays that a future regression on per-call Report
-	// allocation would introduce.
+	// Per-call *Report allocation: distinct Process calls must return distinct
+	// *Report pointers. A regression that turns NewReport into a singleton or
+	// a pool would silently let multiple goroutines share one Report and one
+	// Findings struct, masking cross-call bleed under the existing -race
+	// coverage (which only catches receiver-state races, not shared per-call
+	// results).
+	for i := 1; i < len(reports); i++ {
+		assert.NotSame(
+			t,
+			reports[0],
+			reports[i],
+			"reports[0] and reports[%d] are the same *Report — NewReport returned a singleton/pooled instance",
+			i,
+		)
+	}
+
+	// Sentinel-mutation check on Findings.Critical: confirms that a write to
+	// one report's slice header does not surface in another's. Specifically
+	// catches a regression where NewReport is changed to share the Findings
+	// struct (and thus its slice headers) across calls — appending to
+	// reports[i].Findings.Critical would then bleed into every other report.
+	// This does NOT catch shared backing arrays with independent slice headers
+	// (headers diverge after the first append), but that scenario requires a
+	// deeper regression than the one this test guards against.
 	const sentinelTitle = "__isolation_sentinel__"
 	for i := range reports {
 		reports[i].Findings.Critical = append(reports[i].Findings.Critical, Finding{Title: sentinelTitle})
@@ -1931,7 +1952,7 @@ func TestCoreProcessor_Process_ResultIsolation(t *testing.T) {
 			t,
 			1,
 			sentinels,
-			"report[%d].Findings.Critical contains %d sentinels (expected 1) — slice backing array shared across goroutines",
+			"report[%d].Findings.Critical contains %d sentinels (expected 1) — Findings struct shared across goroutines",
 			i,
 			sentinels,
 		)

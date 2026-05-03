@@ -27,16 +27,22 @@ type Processor interface {
 // CoreProcessor implements the Processor interface with normalize, validate, analyze, and transform capabilities.
 //
 // CoreProcessor is stateless per call: logger and validateFn are set once in
-// NewCoreProcessor and read-only thereafter, and every per-call value is
-// local-scope. It is safe to share a single instance across goroutines, and
-// concurrent Process calls run in parallel.
+// NewCoreProcessor and are not reassigned by any production code path
+// thereafter (in-package tests inject test doubles via the unexported field;
+// see validate_test.go). Every per-call value is local-scope. It is safe to
+// share a single instance across goroutines, and concurrent Process calls
+// run in parallel.
 //
 // Caller contract: the input *common.CommonDevice must not be mutated
 // concurrently with any in-flight Process call that received it, and must
 // not be mutated while a downstream consumer is still reading the resulting
-// Report.NormalizedConfig — normalize() shallow-copies the input and clones
-// only the slices it sorts, so the remaining slice backing arrays are shared
-// with the caller. See GOTCHAS.md §21 for the full invariant.
+// Report.NormalizedConfig. normalize() shallow-copies the input and clones
+// the slices it sorts (FirewallRules, Users, Groups, Sysctl,
+// LoadBalancer.MonitorTypes) plus credential-bearing slices it never mutates
+// but defensively isolates from the caller (Certificates, DHCP and its
+// AdvancedV4/V6 pointers, VPN.WireGuard.Clients). All other CommonDevice
+// slices (Interfaces, VLANs, Bridges, CAs, etc.) share their backing arrays
+// with the caller's struct. See GOTCHAS.md §21 for the full invariant.
 type CoreProcessor struct {
 	logger     *logging.Logger
 	validateFn func(*common.CommonDevice) []ValidationError
