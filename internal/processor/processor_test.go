@@ -1809,16 +1809,19 @@ func TestStatistics_ZeroValues(t *testing.T) {
 	assert.GreaterOrEqual(t, stats.Summary.ConfigComplexity, 0)
 }
 
-// TestCoreProcessor_MutexProtection tests that the mutex protects concurrent access properly.
-func TestCoreProcessor_MutexProtection(t *testing.T) {
+// TestCoreProcessor_ConcurrentSafety asserts that 50 concurrent Process calls
+// on a single shared *CoreProcessor with the same input return non-nil reports
+// without errors and remain consistent on hostname plus key statistics. See
+// GOTCHAS.md §21 for the stateless-per-call invariant this test pins.
+func TestCoreProcessor_ConcurrentSafety(t *testing.T) {
 	processor, err := NewCoreProcessor(nil)
 	require.NoError(t, err)
 
 	ctx := context.Background()
 	config := generateSmallConfig()
 
-	// Test that processing is properly serialized
-	// We can't directly test mutex behavior, but we can ensure no data races occur
+	// 50 goroutines on one shared CoreProcessor — under -race, any reintroduced
+	// shared mutable state on the receiver will surface as a data race here.
 	var wg sync.WaitGroup
 	results := make([]*Report, 50)
 	errors := make([]error, 50)
@@ -1846,6 +1849,113 @@ func TestCoreProcessor_MutexProtection(t *testing.T) {
 		assert.Equal(t, results[0].ConfigInfo.Hostname, results[i].ConfigInfo.Hostname)
 		assert.Equal(t, results[0].Statistics.TotalUsers, results[i].Statistics.TotalUsers)
 		assert.Equal(t, results[0].Statistics.TotalFirewallRules, results[i].Statistics.TotalFirewallRules)
+	}
+}
+
+// TestCoreProcessor_Process_ResultIsolation asserts that concurrent Process
+// calls on a shared *CoreProcessor with distinct inputs return distinct
+// *Report pointers (so a future singleton/pool regression in NewReport would
+// fail this test) and that each report's hostname tracks the input that
+// goroutine actually processed (so a config-bleed regression in normalize
+// or the analyze pipeline would fail this test). Pins the cross-call
+// isolation gap that TestCoreProcessor_ConcurrentSafety covers indirectly
+// via hostname and statistics fields.
+func TestCoreProcessor_Process_ResultIsolation(t *testing.T) {
+	processor, err := NewCoreProcessor(nil)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	smallConfig := generateSmallConfig()
+	largeConfig := generateLargeConfig()
+	// Source hostnames from the fixtures themselves so this test stays in
+	// sync with the helpers, and avoid duplicating the string literals
+	// (which would trip goconst).
+	smallHostname := smallConfig.System.Hostname
+	largeHostname := largeConfig.System.Hostname
+
+	const goroutines = 16
+
+	var wg sync.WaitGroup
+	reports := make([]*Report, goroutines)
+	processErrs := make([]error, goroutines)
+	hostnames := make([]string, goroutines)
+
+	for i := range goroutines {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			cfg := smallConfig
+			expected := smallHostname
+			if idx%2 == 1 {
+				cfg = largeConfig
+				expected = largeHostname
+			}
+			hostnames[idx] = expected
+
+			report, perr := processor.Process(ctx, cfg, WithAllFeatures())
+			processErrs[idx] = perr
+			reports[idx] = report
+		}(i)
+	}
+
+	wg.Wait()
+
+	// require.* must be called from the test goroutine, not the worker
+	// goroutines (testifylint go-require) — collect outcomes above, assert here.
+	for i := range goroutines {
+		require.NoErrorf(t, processErrs[i], "goroutine %d returned error", i)
+		require.NotNilf(t, reports[i], "goroutine %d returned nil report", i)
+	}
+
+	// Each report's hostname must match the input the goroutine actually used —
+	// proves no cross-call config bleed.
+	for i, report := range reports {
+		assert.Equal(t, hostnames[i], report.ConfigInfo.Hostname, "goroutine %d hostname mismatch", i)
+	}
+
+	// Per-call *Report allocation: distinct Process calls must return distinct
+	// *Report pointers. A regression that turns NewReport into a singleton or
+	// a pool would silently let multiple goroutines share one Report and one
+	// Findings struct, masking cross-call bleed under the existing -race
+	// coverage (which only catches receiver-state races, not shared per-call
+	// results).
+	for i := 1; i < len(reports); i++ {
+		assert.NotSame(
+			t,
+			reports[0],
+			reports[i],
+			"reports[0] and reports[%d] are the same *Report — NewReport returned a singleton/pooled instance",
+			i,
+		)
+	}
+
+	// Sentinel-mutation check on Findings.Critical: confirms that a write to
+	// one report's slice header does not surface in another's. Specifically
+	// catches a regression where NewReport is changed to share the Findings
+	// struct (and thus its slice headers) across calls — appending to
+	// reports[i].Findings.Critical would then bleed into every other report.
+	// This does NOT catch shared backing arrays with independent slice headers
+	// (headers diverge after the first append), but that scenario requires a
+	// deeper regression than the one this test guards against.
+	const sentinelTitle = "__isolation_sentinel__"
+	for i := range reports {
+		reports[i].Findings.Critical = append(reports[i].Findings.Critical, Finding{Title: sentinelTitle})
+	}
+	for i, report := range reports {
+		var sentinels int
+		for _, f := range report.Findings.Critical {
+			if f.Title == sentinelTitle {
+				sentinels++
+			}
+		}
+		assert.Equal(
+			t,
+			1,
+			sentinels,
+			"report[%d].Findings.Critical contains %d sentinels (expected 1) — Findings struct shared across goroutines",
+			i,
+			sentinels,
+		)
 	}
 }
 

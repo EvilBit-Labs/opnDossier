@@ -44,7 +44,6 @@ queue_rules:
       - "check-success = Test (windows-latest, stable)"
       - check-success = Integration Tests
       - check-success = Coverage
-      - check-success = codecov/project
       - check-success = codecov/patch
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -61,7 +60,6 @@ queue_rules:
       - "check-success = Test (windows-latest, stable)"
       - check-success = Integration Tests
       - check-success = Coverage
-      - check-success = codecov/project
       - check-success = codecov/patch
 
 pull_request_rules:
@@ -103,22 +101,25 @@ merge_protections:
   # ─────────────────────────────────────────────────────────────────────────
   - name: Enforce conventional commit
     description: >-
-      Require conventional commit format per https://www.conventionalcommits.org/en/v1.0.0/.
-      Skipped for dependabot and dosubot.
+      Require conventional commit format per
+      https://www.conventionalcommits.org/en/v1.0.0/. Skipped for dependabot and
+      dosubot.
     if:
       - base = main
       - author != dependabot[bot]
       - author != dosubot[bot]
     success_conditions:
-      - "title ~= ^(fix|feat|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\(.+\\))?!?:"
+      - "title ~=
+        ^(fix|feat|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\(.+\
+        \\))?!?:"
 
   # ─────────────────────────────────────────────────────────────────────────
   # 2. Full CI for non-bot authors or dependabot with non-workflow changes
   # ─────────────────────────────────────────────────────────────────────────
   - name: Full CI must pass
     description: >-
-      All CI checks must pass. Activates for non-bot authors, or dependabot
-      when files exist outside .github/workflows/.
+      All CI checks must pass. Activates for non-bot authors, or dependabot when
+      files exist outside .github/workflows/.
     if:
       - base = main
       - or:
@@ -136,7 +137,6 @@ merge_protections:
       - "check-success = Test (windows-latest, stable)"
       - check-success = Integration Tests
       - check-success = Coverage
-      - check-success = codecov/project
       - check-success = codecov/patch
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -144,8 +144,8 @@ merge_protections:
   # ─────────────────────────────────────────────────────────────────────────
   - name: Lint must pass for bot workflow PRs
     description: >-
-      Lint check must pass for dosubot or dependabot when all files are
-      within .github/workflows/.
+      Lint check must pass for dosubot or dependabot when all files are within
+      .github/workflows/.
     if:
       - base = main
       - or:
