@@ -19,6 +19,22 @@ When a data race occurs in a test touching global state, the Go race detector ma
 
 - **Rule of Thumb:** If a stateless utility function is reporting a race, check if a concurrent test is modifying a global variable.
 
+### 1.3 `require.*` Inside Goroutine Bodies Fails `testifylint go-require`
+
+`require.NoError` / `require.NotNil` and other `require.*` calls invoke `t.FailNow`, which is only valid on the test's main goroutine. The `testifylint` linter (`go-require` rule) flags any `require.*` inside a goroutine body — `golangci-lint run` will fail at commit time even when the test passes at runtime.
+
+- **Pattern:** collect per-goroutine outcomes into shared slices, then assert with `require.*` from the main test goroutine after `wg.Wait()`.
+- **Canonical example:** `TestCoreProcessor_Process_ResultIsolation` in `internal/processor/processor_test.go` — `processErrs` and `reports` slices are populated inside goroutines, asserted in a separate post-`wg.Wait()` loop.
+- **`assert.*` is fine inside goroutines** — it doesn't call `FailNow`. Use `assert` for soft checks during the goroutine, `require` for halt-the-test checks after the join.
+
+### 1.4 `goconst` Trips on Fixture-Derived String Duplication
+
+The `goconst` linter flags string literals appearing 3+ times in the same package. Tests that hand-write a hostname or other fixture-derived string already present in `generateSmallConfig`/`generateLargeConfig` add a fourth occurrence and fail lint.
+
+- **Wrong:** `expected := "small-config"` in a new test.
+- **Right:** `expected := smallConfig.System.Hostname` — sources from the fixture and stays in sync if the fixture changes.
+- **Avoid extracting a package-level constant** unless you're going to refactor the fixture builders to use it too — partial extraction keeps the lint warning and adds drift surface.
+
 ## 2. Plugin Architecture
 
 ### 2.1 Registry Independence
