@@ -239,3 +239,4 @@ vhs/opnDossier
 # the benchmark helper when missing or undersized. See
 # internal/sanitizer/testdata/README.md.
 internal/sanitizer/testdata/benchmark-10mb.xml
+.compound-engineering/*.local.yaml
