@@ -2,11 +2,11 @@ package opnsense_test
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
-	"github.com/stretchr/testify/require"
 )
 
 // natHeavyRuleCount is the per-direction rule count for the NAT-heavy
@@ -15,13 +15,20 @@ import (
 // regime where redundant EffectiveAddress() calls would matter at
 // runtime, so a future regression that reintroduced redundant calls
 // would surface as a measurable slowdown in this benchmark.
+//
+// Keep in sync with the sibling const in
+// pkg/parser/pfsense/converter_bench_test.go so OPNsense and pfSense
+// regression baselines stay directly comparable.
 const natHeavyRuleCount = 200
 
 // generateNATHeavyOPNsenseDocument returns an *schema.OpnSenseDocument
 // with only NAT populated — natHeavyRuleCount outbound rules and the
 // same number of inbound rules, with Source/Destination shapes rotated
-// across every branch of EffectiveAddress() (Network > Address > IsAny
-// > empty) so the benchmark exercises each priority-resolution path.
+// across three of the four EffectiveAddress() branches: Network,
+// Address, and IsAny. The empty-fallthrough branch is intentionally
+// not exercised because the converter's empty-check guard would
+// short-circuit those rules; correctness coverage of the empty branch
+// lives in pkg/schema/opnsense/security_test.go.
 func generateNATHeavyOPNsenseDocument(b *testing.B) *schema.OpnSenseDocument {
 	b.Helper()
 
@@ -67,9 +74,10 @@ func generateNATHeavyOPNsenseDocument(b *testing.B) *schema.OpnSenseDocument {
 	return doc
 }
 
-// buildNATRuleEndpoints rotates Source and Destination across the four
-// EffectiveAddress() resolution branches so the benchmark sees each
-// priority path under load.
+// buildNATRuleEndpoints rotates Source and Destination across three
+// of the four EffectiveAddress() resolution branches (Network,
+// Address, and IsAny) so the benchmark sees each non-empty priority
+// path under load.
 func buildNATRuleEndpoints(i int, anyPresent *string) (schema.Source, schema.Destination) {
 	switch i % 4 {
 	case 0:
@@ -106,35 +114,53 @@ func buildNATRuleEndpoints(i int, anyPresent *string) (schema.Source, schema.Des
 
 // BenchmarkConverter_OPNsense_NATHeavy exercises ConvertDocument against
 // a fixture loaded only with NAT (200 outbound + 200 inbound rules),
-// covering every EffectiveAddress() resolution branch. The OPNsense
-// converter caches each endpoint's resolved address into
-// common.RuleEndpoint.Address during conversion (single
-// EffectiveAddress() call per endpoint per rule); this benchmark locks
-// in that characteristic so a future regression that reintroduced
-// redundant calls would surface as a measurable slowdown.
+// covering three of the four EffectiveAddress() resolution branches
+// (Network, Address, IsAny). The OPNsense converter caches each
+// endpoint's resolved address into common.RuleEndpoint.Address during
+// conversion (single EffectiveAddress() call per endpoint per rule);
+// this benchmark locks in that characteristic so a future regression
+// that reintroduced redundant calls would surface as a measurable
+// slowdown.
 //
 // Run: go test -bench=BenchmarkConverter_OPNsense_NATHeavy -benchmem -count=3 -run=^$ ./pkg/parser/opnsense/
 //
-// See plan: docs/plans/2026-05-03-002-perf-nat-effectiveaddress-bench-plan.md
 // Refs: NATS-36, GH#288, NATS-103 perf epic.
 func BenchmarkConverter_OPNsense_NATHeavy(b *testing.B) {
 	doc := generateNATHeavyOPNsenseDocument(b)
 
+	// Sanity-check the conversion shape ONCE before timing starts so a
+	// regression that silently dropped NAT rules wouldn't show as a
+	// "fast" run. Doing this inside the timed loop would inflate
+	// allocs/op via testify's reflect path and ns/op via the assertion
+	// overhead, contaminating the regression-detection signal.
+	device, _, err := opnsense.ConvertDocument(doc)
+	if err != nil {
+		b.Fatal(err)
+	}
+	if device == nil {
+		b.Fatal("device is nil")
+	}
+	if got := len(device.NAT.OutboundRules); got != natHeavyRuleCount {
+		b.Fatalf("OutboundRules: got %d, want %d", got, natHeavyRuleCount)
+	}
+	if got := len(device.NAT.InboundRules); got != natHeavyRuleCount {
+		b.Fatalf("InboundRules: got %d, want %d", got, natHeavyRuleCount)
+	}
+
+	// runtime.GC() before ResetTimer pushes the heap into a known-clean
+	// state so per-iteration allocation jitter doesn't dominate the
+	// observed variance band. SetBytes normalizes throughput to MB/s
+	// across iterations, which is more stable across runs than ns/op
+	// alone for regression comparison.
 	b.ReportAllocs()
+	b.SetBytes(int64(natHeavyRuleCount) * 2)
+	runtime.GC()
 	b.ResetTimer()
 
 	for b.Loop() {
-		device, _, err := opnsense.ConvertDocument(doc)
+		_, _, err := opnsense.ConvertDocument(doc)
 		if err != nil {
 			b.Fatal(err)
 		}
-		// Sanity-check the conversion produced the expected shape so a
-		// regression that silently dropped NAT rules wouldn't show as a
-		// "fast" run.
-		if device == nil {
-			b.Fatal("device is nil")
-		}
-		require.Len(b, device.NAT.OutboundRules, natHeavyRuleCount)
-		require.Len(b, device.NAT.InboundRules, natHeavyRuleCount)
 	}
 }
