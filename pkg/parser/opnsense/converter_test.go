@@ -111,17 +111,16 @@ func TestConverter_Interfaces(t *testing.T) {
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
-	assert.Len(t, device.Interfaces, 2)
+	require.Len(t, device.Interfaces, 2)
 
-	// Find the WAN interface by name
-	var wan *common.Interface
-	for i := range device.Interfaces {
-		if device.Interfaces[i].Name == "wan" {
-			wan = &device.Interfaces[i]
-			break
-		}
-	}
-	require.NotNil(t, wan, "wan interface not found")
+	// convertInterfaces sorts the result by interface name to keep
+	// output deterministic across map-iteration orderings. Assert
+	// positional order so a future regression in the sort step shows
+	// up here, not silently in downstream golden output.
+	assert.Equal(t, "lan", device.Interfaces[0].Name, "interfaces should be sorted lexicographically")
+	assert.Equal(t, "wan", device.Interfaces[1].Name, "interfaces should be sorted lexicographically")
+
+	wan := &device.Interfaces[1]
 	assert.Equal(t, "igb0", wan.PhysicalIf)
 	assert.Equal(t, "WAN", wan.Description)
 	assert.True(t, wan.Enabled)
@@ -246,6 +245,9 @@ func TestConverter_DHCP(t *testing.T) {
 	t.Parallel()
 
 	doc := schema.NewOpnSenseDocument()
+	// Two scopes are required to exercise the sorted-keys idiom in
+	// convertDHCP — a single-entry fixture would sort correctly under
+	// any algorithm and could not catch an ordering regression.
 	doc.Dhcpd.Items["lan"] = schema.DhcpdInterface{
 		Enable:  "1",
 		Range:   schema.Range{From: "192.168.1.100", To: "192.168.1.200"},
@@ -262,14 +264,23 @@ func TestConverter_DHCP(t *testing.T) {
 			{Number: "66", Type: "text", Value: "tftp.example.com"},
 		},
 	}
+	doc.Dhcpd.Items["opt1"] = schema.DhcpdInterface{
+		Enable:  "1",
+		Range:   schema.Range{From: "10.10.0.100", To: "10.10.0.200"},
+		Gateway: "10.10.0.1",
+	}
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
-	require.Len(t, device.DHCP, 1)
+	require.Len(t, device.DHCP, 2)
+
+	// Assert positional order so a regression in the sorted-keys idiom
+	// surfaces here rather than silently in downstream output.
+	assert.Equal(t, "lan", device.DHCP[0].Interface, "scopes should be sorted lexicographically")
+	assert.Equal(t, "opt1", device.DHCP[1].Interface, "scopes should be sorted lexicographically")
 
 	scope := device.DHCP[0]
-	assert.Equal(t, "lan", scope.Interface)
 	assert.True(t, scope.Enabled)
 	assert.Equal(t, "192.168.1.100", scope.Range.From)
 	assert.Equal(t, "192.168.1.200", scope.Range.To)

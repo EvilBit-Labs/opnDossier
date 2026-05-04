@@ -41,14 +41,9 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 // the same initializer — any new map/slice added here is guaranteed to be
 // non-nil on both paths.
 //
-// The maps intentionally use the no-hint form. NATS-38 evaluated
-// pre-sizing them via len(cfg.Interfaces) and small-cardinality
-// constants; BenchmarkComputeStatistics showed no measurable gain on
-// realistic interface counts (3-30), and an iface-derived hint added
-// +1 alloc on the 100-fixture (10 interfaces) because Go pre-allocates
-// a separate bucket array once the hint crosses bucketCnt (8). Empty
-// maps stay header-only with no hint, which is already optimal for
-// the opnsense/pfSense distribution.
+// The maps intentionally use the no-hint form; pre-sizing with
+// len(cfg.Interfaces) was measured to regress the common 3-30
+// interface case. See BenchmarkComputeStatistics for the rationale.
 func newStatistics() *common.Statistics {
 	return &common.Statistics{
 		InterfacesByType: make(map[string]int),

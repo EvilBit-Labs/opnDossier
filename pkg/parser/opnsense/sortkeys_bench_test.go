@@ -2,10 +2,12 @@
 //
 // NATS-38 finding 4 proposes replacing slices.Sorted(maps.Keys(items))
 // with the single-allocation make([]K, 0, len(items)) + range +
-// slices.Sort pattern at three converter call sites. The ticket itself
+// slices.Sort pattern at the converter call sites. The ticket itself
 // flags this as marginal at typical map sizes; this bench is the
-// arbiter that decides whether to land it.
-package opnsense
+// arbiter that decided to land it across opnsense convertInterfaces,
+// opnsense convertDHCP, opnsense Kea reservation orphan check,
+// pfsense convertInterfaces, and pfsense convertDHCP.
+package opnsense_test
 
 import (
 	"fmt"
@@ -28,9 +30,9 @@ func BenchmarkSortedMapKeys_Sorted(b *testing.B) {
 		m := makeKeyMap(size)
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ResetTimer()
 			for b.Loop() {
-				for range slices.Sorted(maps.Keys(m)) { //nolint:revive // benchmark consumes the iterator
+				//nolint:revive // benchmark consumes the iterator with no per-element work
+				for range slices.Sorted(maps.Keys(m)) {
 				}
 			}
 		})
@@ -42,14 +44,14 @@ func BenchmarkSortedMapKeys_PreallocSort(b *testing.B) {
 		m := makeKeyMap(size)
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ResetTimer()
 			for b.Loop() {
 				keys := make([]string, 0, len(m))
 				for k := range m {
 					keys = append(keys, k)
 				}
 				slices.Sort(keys)
-				for range keys { //nolint:revive // benchmark consumes the slice
+				//nolint:revive // benchmark consumes the slice with no per-element work
+				for range keys {
 				}
 			}
 		})

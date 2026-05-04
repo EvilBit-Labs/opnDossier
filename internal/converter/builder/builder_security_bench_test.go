@@ -49,13 +49,57 @@ func generateFirewallRules(n int) []common.FirewallRule {
 
 // BenchmarkFirewallRulesTable measures the allocs/op and ns/op cost of
 // BuildFirewallRulesTableSet for representative table sizes. The 500-row
-// sub-bench is the merge gate for NATS-38 (R2: ≥30% allocs/op reduction).
+// sub-bench is the merge gate for the firewall-rule allocation work
+// (>=30% allocs/op reduction target).
 func BenchmarkFirewallRulesTable(b *testing.B) {
 	for _, size := range []int{100, 500} {
 		rules := generateFirewallRules(size)
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ResetTimer()
+			for b.Loop() {
+				_ = BuildFirewallRulesTableSet(rules)
+			}
+		})
+	}
+}
+
+// generateFirewallRulesWithInterfaceCount returns n rules whose Interfaces
+// slices have the requested length, exercising the FormatInterfacesAsLinks
+// branches for the empty-slice early return (count=0), single-link path
+// (count=1), and multi-link separator path (count>=2).
+func generateFirewallRulesWithInterfaceCount(n, ifaceCount int) []common.FirewallRule {
+	rules := make([]common.FirewallRule, 0, n)
+	for i := range n {
+		ifaces := make([]string, 0, ifaceCount)
+		for j := range ifaceCount {
+			if j == 0 {
+				ifaces = append(ifaces, "wan")
+			} else {
+				ifaces = append(ifaces, fmt.Sprintf("opt%d", j-1))
+			}
+		}
+		rules = append(rules, common.FirewallRule{
+			UUID:        fmt.Sprintf("rule-%d", i),
+			Type:        common.RuleTypePass,
+			Protocol:    "tcp",
+			Interfaces:  ifaces,
+			Source:      common.RuleEndpoint{Address: "10.0.0.0/24", Port: "any"},
+			Destination: common.RuleEndpoint{Address: "192.168.1.10", Port: "443"},
+			Description: fmt.Sprintf("rule %d", i),
+		})
+	}
+	return rules
+}
+
+// BenchmarkFirewallRulesTable_InterfaceCount exercises the
+// FormatInterfacesAsLinks paths the main bench under-covers — empty
+// slice, single-element, and multi-element — at a fixed row count.
+func BenchmarkFirewallRulesTable_InterfaceCount(b *testing.B) {
+	const rowCount = 100
+	for _, ifaceCount := range []int{0, 1, 4} {
+		rules := generateFirewallRulesWithInterfaceCount(rowCount, ifaceCount)
+		b.Run("ifaces="+strconv.Itoa(ifaceCount), func(b *testing.B) {
+			b.ReportAllocs()
 			for b.Loop() {
 				_ = BuildFirewallRulesTableSet(rules)
 			}

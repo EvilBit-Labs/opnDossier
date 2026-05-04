@@ -32,6 +32,15 @@ func TestFormatInterfacesAsLinks(t *testing.T) {
 			interfaces: []string{"WAN"},
 			want:       "[WAN](#wan-interface)",
 		},
+		{
+			// Pins the byte-identity invariant after the strings.Builder
+			// rewrite replaced markdown.Link / strings.Join. The output
+			// must remain "[<label>](#<lower>-interface), ..." for every
+			// element including mixed case.
+			name:       "mixed case multi-element",
+			interfaces: []string{"WAN", "lan", "OPT1"},
+			want:       "[WAN](#wan-interface), [lan](#lan-interface), [OPT1](#opt1-interface)",
+		},
 	}
 
 	for _, tt := range tests {

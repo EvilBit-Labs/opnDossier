@@ -31,7 +31,6 @@ func BenchmarkNewReport(b *testing.B) {
 	pc := Config{EnableStats: false}
 
 	b.ReportAllocs()
-	b.ResetTimer()
 	for b.Loop() {
 		_ = NewReport(cfg, pc)
 	}

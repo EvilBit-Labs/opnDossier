@@ -4,14 +4,17 @@
 // early return for nil cfg (no maps populated) and a populated path
 // with realistic interface and firewall-rule counts.
 //
-// History: NATS-38 considered pre-sizing the per-statistic maps via
-// len(cfg.Interfaces) and small-cardinality enum constants. Bench
-// measurements with the hint added showed:
+// History: pre-sizing the per-statistic maps via len(cfg.Interfaces)
+// and small-cardinality enum constants was evaluated and reverted.
+// Bench measurements with the hint added showed:
 //
 //   - 100-fixture (10 interfaces, 100 rules): 19 -> 20 allocs/op
-//     (+1, regression). The iface-derived hint (10) crossed Go's
-//     bucketCnt threshold of 8, forcing an immediate separate
-//     bucket-array allocation that the no-hint path avoided entirely.
+//     (+1, regression). Go's runtime sizes the inline bucket of an
+//     hmap to hold 8 key/value pairs; make(map[K]V, hint) with hint
+//     <= 8 produces 0 extra allocations, but hint >= 9 forces an
+//     immediate separate bucket-array allocation that the no-hint
+//     path avoids entirely. The iface-derived hint of 10 fell over
+//     this boundary.
 //   - 500-fixture (50 interfaces, 500 rules): 25 -> 22 allocs/op
 //     (-3, win). The hint avoided three rehash-grow cycles.
 //   - nil cfg: 6 -> 6 allocs/op (no change).
@@ -68,7 +71,6 @@ func BenchmarkComputeStatistics(b *testing.B) {
 		cfg := generateStatsFixture(size/10, size)
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ResetTimer()
 			for b.Loop() {
 				_ = ComputeStatistics(cfg)
 			}
@@ -78,7 +80,6 @@ func BenchmarkComputeStatistics(b *testing.B) {
 
 func BenchmarkComputeStatisticsNil(b *testing.B) {
 	b.ReportAllocs()
-	b.ResetTimer()
 	for b.Loop() {
 		_ = ComputeStatistics(nil)
 	}

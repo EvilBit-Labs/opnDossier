@@ -96,13 +96,9 @@ func NewReport(cfg *common.CommonDevice, processorConfig Config) *Report {
 	report := &Report{
 		GeneratedAt:     time.Now().UTC(),
 		ProcessorConfig: processorConfig,
-		// Per-severity slices intentionally use zero-cap make so an
-		// empty report stays a single 288 B allocation. Pre-sizing with
-		// capacity hints (e.g. 4/8/16/32/16) was measured against
-		// BenchmarkNewReport and made the empty-report path 6× more
-		// allocations and ~50× more bytes — most reports surface 0-3
-		// findings per severity, so eager preallocation is wasted heap.
-		// See NATS-38 plan U2 negative result.
+		// Per-severity slices intentionally use zero-cap make. Adding
+		// capacity hints regresses the common empty-report path; see
+		// BenchmarkNewReport for the measurement.
 		Findings: Findings{
 			Critical: make([]Finding, 0),
 			High:     make([]Finding, 0),
