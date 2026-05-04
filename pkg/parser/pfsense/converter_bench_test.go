@@ -144,6 +144,14 @@ func buildPfSenseNATRuleEndpoints(i int, anyPresent *string) (opnsense.Source, o
 // in NAT conversion would still show as a clean delta against this
 // constant baseline.
 //
+// Caveat: when a pfsenseKnownGaps entry is added or removed (e.g.,
+// when a new subsystem becomes implemented and a known-gap warning is
+// dropped), this benchmark's baseline will shift even though NAT
+// performance is unchanged. Re-baseline the numbers as part of that
+// subsystem-coverage work, not as a NAT regression. For finer-grained
+// regression detection on NAT conversion alone, exercise
+// EffectiveAddress() directly in pkg/schema/opnsense/security_test.go.
+//
 // Run: go test -bench=BenchmarkConverter_PfSense_NATHeavy -benchmem -count=3 -run=^$ ./pkg/parser/pfsense/
 //
 // Refs: NATS-36, GH#288, NATS-103 perf epic.
