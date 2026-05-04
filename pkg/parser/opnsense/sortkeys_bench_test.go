@@ -29,7 +29,7 @@ func BenchmarkSortedMapKeys_Sorted(b *testing.B) {
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for range b.N {
+			for b.Loop() {
 				for range slices.Sorted(maps.Keys(m)) { //nolint:revive // benchmark consumes the iterator
 				}
 			}
@@ -43,7 +43,7 @@ func BenchmarkSortedMapKeys_PreallocSort(b *testing.B) {
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for range b.N {
+			for b.Loop() {
 				keys := make([]string, 0, len(m))
 				for k := range m {
 					keys = append(keys, k)

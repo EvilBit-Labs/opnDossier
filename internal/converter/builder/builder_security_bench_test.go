@@ -56,7 +56,7 @@ func BenchmarkFirewallRulesTable(b *testing.B) {
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for range b.N {
+			for b.Loop() {
 				_ = BuildFirewallRulesTableSet(rules)
 			}
 		})

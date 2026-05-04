@@ -32,7 +32,7 @@ func BenchmarkNewReport(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = NewReport(cfg, pc)
 	}
 }

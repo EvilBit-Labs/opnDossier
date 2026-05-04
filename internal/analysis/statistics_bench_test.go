@@ -69,7 +69,7 @@ func BenchmarkComputeStatistics(b *testing.B) {
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for range b.N {
+			for b.Loop() {
 				_ = ComputeStatistics(cfg)
 			}
 		})
@@ -79,7 +79,7 @@ func BenchmarkComputeStatistics(b *testing.B) {
 func BenchmarkComputeStatisticsNil(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_ = ComputeStatistics(nil)
 	}
 }
