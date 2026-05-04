@@ -31,9 +31,17 @@ var escapeTableReplacer = strings.NewReplacer(
 
 // EscapeTableContent escapes content for safe display in markdown tables.
 // This function ensures that special Markdown characters don't break table formatting or rendering.
+//
+// The string fast path skips fmt.Sprintf("%v", ...) reflection boxing —
+// every caller in the per-row markdown table loops passes an already-
+// typed string, so the fmt machinery is pure overhead for the hot path.
 func EscapeTableContent(content any) string {
 	if content == nil {
 		return ""
+	}
+
+	if s, ok := content.(string); ok {
+		return strings.TrimSpace(escapeTableReplacer.Replace(s))
 	}
 
 	str := fmt.Sprintf("%v", content)
