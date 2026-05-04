@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+// namedString stands in for opnsense FirewallRuleType, IPProtocol, or
+// pfsense VIPMode in EscapeTableContent tests — it is a string-kind
+// alias whose unnamed-string type assertion fails but whose
+// reflect.Kind() returns reflect.String. The reflect-based fast path
+// must accept it without falling through to fmt.Sprintf.
+type namedString string
+
 func TestEscapeTableContent(t *testing.T) {
 	t.Parallel()
 
@@ -26,6 +33,14 @@ func TestEscapeTableContent(t *testing.T) {
 		{"empty string", "", ""},
 		{"multiple escapes", "*test_file|name*", "\\*test\\_file\\|name\\*"},
 		{"whitespace only", "  \n\r  ", ""},
+		// Named string types (e.g. opnsense FirewallRuleType, IPProtocol,
+		// VIPMode) are passed through EscapeTableContent by some markdown
+		// table builders. The reflect.Kind == String fast path must
+		// produce the same output as the unnamed-string and fmt.Sprintf
+		// paths.
+		{"named string type plain", namedString("plain"), "plain"},
+		{"named string type with specials", namedString("a|b*c"), "a\\|b\\*c"},
+		{"named string type empty", namedString(""), ""},
 	}
 
 	for _, tt := range tests {
