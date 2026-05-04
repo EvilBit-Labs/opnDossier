@@ -444,6 +444,9 @@ func TestConverter_DHCP(t *testing.T) {
 	t.Parallel()
 
 	doc := pfsenseSchema.NewDocument()
+	// Two scopes are required to exercise the sorted-keys idiom in
+	// convertDHCP — a single-entry fixture would sort correctly under
+	// any algorithm and could not catch an ordering regression.
 	doc.Dhcpd.Items["lan"] = pfsenseSchema.DhcpdInterface{
 		Enable: opnsense.BoolFlag(true),
 		Range:  opnsense.Range{From: "192.168.1.100", To: "192.168.1.200"},
@@ -454,13 +457,21 @@ func TestConverter_DHCP(t *testing.T) {
 			{Number: "6", Type: "text", Value: "8.8.8.8"},
 		},
 	}
+	doc.Dhcpd.Items["opt1"] = pfsenseSchema.DhcpdInterface{
+		Enable: opnsense.BoolFlag(true),
+		Range:  opnsense.Range{From: "10.10.0.100", To: "10.10.0.200"},
+	}
 
 	device, _, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	require.Len(t, device.DHCP, 1)
+	require.Len(t, device.DHCP, 2)
+
+	// Assert positional order so a regression in the sorted-keys idiom
+	// surfaces here rather than silently in downstream output.
+	assert.Equal(t, "lan", device.DHCP[0].Interface, "scopes should be sorted lexicographically")
+	assert.Equal(t, "opt1", device.DHCP[1].Interface, "scopes should be sorted lexicographically")
 
 	scope := device.DHCP[0]
-	assert.Equal(t, "lan", scope.Interface)
 	assert.True(t, scope.Enabled)
 	assert.Equal(t, "192.168.1.100", scope.Range.From)
 	assert.Equal(t, "192.168.1.200", scope.Range.To)

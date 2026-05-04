@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+// stringEscape applies the table-content escape rules to a single string.
+// Both fast paths in EscapeTableContent share this helper so the escape
+// strategy stays defined in one place.
+func stringEscape(s string) string {
+	return strings.TrimSpace(escapeTableReplacer.Replace(s))
+}
+
 // Pre-compiled regex for SanitizeID to avoid repeated compilation.
 // This pattern matches any sequence of non-alphanumeric characters.
 var sanitizeIDRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
@@ -31,14 +38,28 @@ var escapeTableReplacer = strings.NewReplacer(
 
 // EscapeTableContent escapes content for safe display in markdown tables.
 // This function ensures that special Markdown characters don't break table formatting or rendering.
+//
+// Two fast paths skip fmt.Sprintf("%v", ...) reflection boxing for
+// string-kind inputs — the unnamed string path covers the common
+// per-row formatter callers, and the reflect.Kind == String path
+// covers named string types like FirewallRuleType, IPProtocol, and
+// VIPMode that the markdown table builders also pass through. fmt
+// machinery is pure overhead for both shapes; reflection is cheaper
+// than fmt.Sprintf for the named-string case.
 func EscapeTableContent(content any) string {
 	if content == nil {
 		return ""
 	}
 
-	str := fmt.Sprintf("%v", content)
+	if s, ok := content.(string); ok {
+		return stringEscape(s)
+	}
 
-	return strings.TrimSpace(escapeTableReplacer.Replace(str))
+	if v := reflect.ValueOf(content); v.Kind() == reflect.String {
+		return stringEscape(v.String())
+	}
+
+	return stringEscape(fmt.Sprintf("%v", content))
 }
 
 // TruncateDescription truncates a description to the specified maximum length,

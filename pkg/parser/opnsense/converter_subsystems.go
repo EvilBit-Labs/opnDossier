@@ -2,7 +2,6 @@ package opnsense
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 
@@ -299,7 +298,14 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 		}
 	}
 
-	for _, subnetUUID := range slices.Sorted(maps.Keys(resBySubnet)) {
+	// Single-allocation sorted-keys idiom; see convertInterfaces.
+	subnetUUIDs := make([]string, 0, len(resBySubnet))
+	for k := range resBySubnet {
+		subnetUUIDs = append(subnetUUIDs, k)
+	}
+	slices.Sort(subnetUUIDs)
+
+	for _, subnetUUID := range subnetUUIDs {
 		if _, ok := seenSubnets[subnetUUID]; !ok {
 			c.addWarning(
 				"kea.dhcp4.reservations",

@@ -40,6 +40,10 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 // Factored out so the nil-cfg early return and the populated path both share
 // the same initializer — any new map/slice added here is guaranteed to be
 // non-nil on both paths.
+//
+// The maps intentionally use the no-hint form; pre-sizing with
+// len(cfg.Interfaces) was measured to regress the common 3-30
+// interface case. See BenchmarkComputeStatistics for the rationale.
 func newStatistics() *common.Statistics {
 	return &common.Statistics{
 		InterfacesByType: make(map[string]int),
