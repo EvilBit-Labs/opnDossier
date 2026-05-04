@@ -2,7 +2,6 @@ package opnsense
 
 import (
 	"fmt"
-	"maps"
 	"net/netip"
 	"slices"
 	"strings"
@@ -31,7 +30,14 @@ func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope
 	}
 
 	result := make([]common.DHCPScope, 0, len(items))
-	for _, key := range slices.Sorted(maps.Keys(items)) {
+	// Single-allocation sorted-keys idiom; see comment in convertInterfaces.
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
+	for _, key := range keys {
 		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,

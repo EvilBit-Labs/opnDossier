@@ -2,7 +2,6 @@ package pfsense
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -17,8 +16,15 @@ func (c *converter) convertInterfaces(doc *pfsense.Document) []common.Interface 
 		return nil
 	}
 
+	// Single-allocation sorted-keys idiom; see opnsense convertInterfaces.
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
 	result := make([]common.Interface, 0, len(items))
-	for _, key := range slices.Sorted(maps.Keys(items)) {
+	for _, key := range keys {
 		iface := items[key]
 		result = append(result, common.Interface{
 			Name:         key,

@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/nao1215/markdown"
 )
 
 // Display symbols and boolean string representations used for formatting report output.
@@ -25,18 +23,49 @@ const (
 // Each interface name is converted to a clickable link that references the corresponding interface configuration section.
 // The function returns inline markdown links (e.g., [wan](#wan-interface)), which the nao1215/markdown package
 // automatically converts to reference-style links when used in table cells.
+//
+// Implementation note: this is a hot path inside per-row markdown table
+// builders. The body uses a pre-grown strings.Builder rather than
+// markdown.Link + strings.Join to avoid the intermediate []string and
+// the per-link string allocations the markdown helper performs. Output
+// is byte-identical to the prior markdown.Link / strings.Join form.
 func FormatInterfacesAsLinks(interfaces []string) string {
 	if len(interfaces) == 0 {
 		return ""
 	}
 
-	links := make([]string, 0, len(interfaces))
+	// Per-link literal overhead: "[](#-interface)" = 15 bytes, plus the
+	// interface name appears twice (display label + anchor slug). Inter-
+	// link separator ", " adds 2 bytes between entries.
+	const (
+		perLinkOverhead = 15
+		ifaceCopies     = 2
+		separatorBytes  = 2
+	)
+	estimated := 0
 	for _, iface := range interfaces {
-		anchor := "#" + strings.ToLower(iface) + "-interface"
-		links = append(links, markdown.Link(iface, anchor))
+		estimated += ifaceCopies*len(iface) + perLinkOverhead
+	}
+	if len(interfaces) > 1 {
+		estimated += separatorBytes * (len(interfaces) - 1)
 	}
 
-	return strings.Join(links, ", ")
+	var b strings.Builder
+	b.Grow(estimated)
+	for i, iface := range interfaces {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteByte('[')
+		b.WriteString(iface)
+		b.WriteString("](#")
+		// strings.ToLower returns the original string unchanged when it
+		// has no uppercase runes, so already-lowercase interface names
+		// pay no allocation here.
+		b.WriteString(strings.ToLower(iface))
+		b.WriteString("-interface)")
+	}
+	return b.String()
 }
 
 // FormatBoolean formats a boolean value for display in markdown tables.

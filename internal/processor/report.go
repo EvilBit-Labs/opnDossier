@@ -96,6 +96,9 @@ func NewReport(cfg *common.CommonDevice, processorConfig Config) *Report {
 	report := &Report{
 		GeneratedAt:     time.Now().UTC(),
 		ProcessorConfig: processorConfig,
+		// Per-severity slices intentionally use zero-cap make. Adding
+		// capacity hints regresses the common empty-report path; see
+		// BenchmarkNewReport for the measurement.
 		Findings: Findings{
 			Critical: make([]Finding, 0),
 			High:     make([]Finding, 0),
