@@ -2,7 +2,6 @@ package pfsense
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 
@@ -18,8 +17,15 @@ func (c *converter) convertDHCP(doc *pfsense.Document) []common.DHCPScope {
 		return nil
 	}
 
+	// Single-allocation sorted-keys idiom; see opnsense convertInterfaces.
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
 	result := make([]common.DHCPScope, 0, len(items))
-	for _, key := range slices.Sorted(maps.Keys(items)) {
+	for _, key := range keys {
 		d := items[key]
 		scope := common.DHCPScope{
 			Interface:  key,
