@@ -26,6 +26,15 @@ func computePerformanceMetrics(stats *common.Statistics) *common.PerformanceMetr
 // redactedValue is the placeholder for sensitive fields in exported output.
 const redactedValue = "[REDACTED]"
 
+// snmpSensitiveDetailKeys lists the keys in Statistics.ServiceDetails[].Details
+// (for the SNMP service entry) whose values must be redacted on export.
+// Adding a new sensitive key — for example, an SNMPv3 authentication password
+// surfaced by a future analysis writer — is a one-line append here, not a
+// rewrite of the redaction loop in redactStatisticsServiceDetails.
+//
+//nolint:gochecknoglobals // immutable allowlist; mutation would be a security regression
+var snmpSensitiveDetailKeys = []string{"community"}
+
 // EnrichForExport populates the read-only enrichment fields on data in place
 // when they are nil: DeviceType (defaulting to OPNsense), Statistics, Analysis,
 // SecurityAssessment, and PerformanceMetrics. ComplianceResults is left alone —
@@ -79,6 +88,12 @@ func EnrichForExport(data *common.CommonDevice) {
 // enrich populates the read-only enrichment fields on dst in place when nil.
 // Callers must invoke enrich before any redaction so analysis.ComputeStatistics
 // and analysis.ComputeAnalysis observe unredacted input.
+//
+// Two callers, by design: EnrichForExport applies enrich to the caller's
+// device after a public-API nil guard, and prepareForExport applies it to its
+// shallow copy, where dst is the address of a value-copied struct and is
+// never nil. Keeping the populate logic in one place avoids drift between
+// the public memoization entry point and the per-export shallow-copy path.
 func enrich(dst *common.CommonDevice) {
 	if dst.DeviceType == "" {
 		dst.DeviceType = common.DeviceTypeOPNsense
@@ -237,16 +252,18 @@ func redactDHCPv6Secrets(cp *common.CommonDevice) {
 // ServiceDetails values are replaced with the redaction marker. The input is
 // not mutated: when redaction is required the function clones the Statistics
 // struct, the ServiceDetails slice, and the affected per-element Details map.
-// When no SNMP community redaction is needed, the input pointer is returned
+// When no SNMP entry carries any sensitive key, the input pointer is returned
 // unchanged. This non-mutating contract lets EnrichForExport memoize a single
 // Statistics across mixed redact=true and redact=false callers without leaking
 // redacted values into the caller's data.
 //
-// Every matching SNMP community entry is redacted, not just the first.
-// analysis.ComputeStatistics emits a single SNMP entry today, but a future
-// schema change (SNMPv3, separate read/write communities, multi-instance
-// agents) could surface multiple — leaving any of them in cleartext would be a
-// regression vs. the pre-NATS-37 in-place mutator.
+// Every matching SNMP entry is redacted (not just the first), and every key
+// in snmpSensitiveDetailKeys is redacted on each match.
+// analysis.ComputeStatistics emits a single SNMP entry with a single sensitive
+// key today, but a future schema change — SNMPv3 with both community and auth
+// password, separate read/write communities, multi-instance agents — could
+// surface multiple. Leaving any of them in cleartext would be a security
+// regression.
 func redactStatisticsServiceDetails(stats *common.Statistics) *common.Statistics {
 	if stats == nil {
 		return nil
@@ -260,7 +277,7 @@ func redactStatisticsServiceDetails(stats *common.Statistics) *common.Statistics
 		if stats.ServiceDetails[i].Details == nil {
 			continue
 		}
-		if _, ok := stats.ServiceDetails[i].Details["community"]; ok {
+		if hasSensitiveSNMPKey(stats.ServiceDetails[i].Details) {
 			matches = append(matches, i)
 		}
 	}
@@ -272,8 +289,21 @@ func redactStatisticsServiceDetails(stats *common.Statistics) *common.Statistics
 	out.ServiceDetails = slices.Clone(stats.ServiceDetails)
 	for _, idx := range matches {
 		out.ServiceDetails[idx].Details = maps.Clone(stats.ServiceDetails[idx].Details)
-		out.ServiceDetails[idx].Details["community"] = redactedValue
+		for _, key := range snmpSensitiveDetailKeys {
+			if _, ok := out.ServiceDetails[idx].Details[key]; ok {
+				out.ServiceDetails[idx].Details[key] = redactedValue
+			}
+		}
 	}
 
 	return &out
+}
+
+func hasSensitiveSNMPKey(details map[string]string) bool {
+	for _, key := range snmpSensitiveDetailKeys {
+		if _, ok := details[key]; ok {
+			return true
+		}
+	}
+	return false
 }

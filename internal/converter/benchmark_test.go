@@ -100,17 +100,16 @@ func BenchmarkMultiFormatExport(b *testing.B) {
 		}
 		ctx := context.Background()
 
-		b.Run(tc.name+"/PerFormatRecompute", runMultiFormatGenerate(ctx, gen, device, formats, false))
-		b.Run(tc.name+"/PreEnrichOnce", runMultiFormatGenerate(ctx, gen, device, formats, true))
+		// Headline sub-benchmarks: realistic multi-format CLI workload, including
+		// markdown rendering and JSON/YAML marshaling.
+		b.Run(tc.name+"/Generate_Recompute", runMultiFormatGenerate(ctx, gen, device, formats, false))
+		b.Run(tc.name+"/Generate_Enriched", runMultiFormatGenerate(ctx, gen, device, formats, true))
 
-		// Bare prepareForExport sub-benchmarks isolate the analysis cost from
-		// markdown rendering and JSON/YAML marshaling, so the memoization
-		// savings are visible without serialization noise diluting the signal.
-		// The headline `PerFormatRecompute` / `PreEnrichOnce` benchmarks above
-		// model the realistic multi-format CLI workload; these two model the
-		// per-format prep work alone.
-		b.Run(tc.name+"/PrepareForExportOnly_Recompute", runMultiFormatPrepare(device, formats, false))
-		b.Run(tc.name+"/PrepareForExportOnly_PreEnrich", runMultiFormatPrepare(device, formats, true))
+		// Bare prepareForExport sub-benchmarks: isolate the analysis cost from
+		// rendering and marshaling, so the memoization savings are visible
+		// without serialization noise diluting the signal.
+		b.Run(tc.name+"/Prepare_Recompute", runMultiFormatPrepare(device, formats, false))
+		b.Run(tc.name+"/Prepare_Enriched", runMultiFormatPrepare(device, formats, true))
 	}
 }
 
