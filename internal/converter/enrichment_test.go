@@ -3,6 +3,7 @@ package converter
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -10,6 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+)
+
+// Test fixture constants. Extracted to satisfy goconst (literals appearing
+// 3+ times in the same package fail lint per GOTCHAS §1.4).
+const (
+	testSecretValue  = "supersecret"
+	testSNMPLocation = "office"
 )
 
 func TestPrepareForExport_PopulatesStatistics(t *testing.T) {
@@ -57,6 +65,10 @@ func TestPrepareForExport_PreservesExistingStatistics(t *testing.T) {
 
 	assert.Same(t, existing, result.Statistics, "Existing Statistics should be preserved")
 	assert.Equal(t, 42, result.Statistics.TotalInterfaces)
+	// Content of the pre-populated Statistics must remain unchanged after a
+	// non-redact prepareForExport — proves the shallow-copy path does not
+	// inadvertently mutate the caller's struct.
+	assert.Equal(t, 42, device.Statistics.TotalInterfaces)
 }
 
 func TestPrepareForExport_PreservesExistingAnalysis(t *testing.T) {
@@ -86,6 +98,8 @@ func TestPrepareForExport_DoesNotMutateInput(t *testing.T) {
 	assert.Equal(t, common.DeviceTypeUnknown, device.DeviceType, "Original should not be mutated")
 	assert.Nil(t, device.Statistics, "Original should not be mutated")
 	assert.Nil(t, device.Analysis, "Original should not be mutated")
+	assert.Nil(t, device.SecurityAssessment, "Original should not be mutated")
+	assert.Nil(t, device.PerformanceMetrics, "Original should not be mutated")
 	assert.NotSame(t, device, result, "Result should be a different pointer")
 }
 
@@ -393,7 +407,7 @@ func TestPrepareForExport_RedactsSensitiveFields_JSON(t *testing.T) {
 		HighAvailability: common.HighAvailability{Password: "secret123"},
 		Users: []common.User{{
 			Name:    "admin",
-			APIKeys: []common.APIKey{{Key: "k1", Secret: "supersecret"}},
+			APIKeys: []common.APIKey{{Key: "k1", Secret: testSecretValue}},
 		}},
 		SNMP: common.SNMPConfig{ROCommunity: "private-community"},
 		Certificates: []common.Certificate{
@@ -646,7 +660,7 @@ func TestComputeStatistics_SNMPCommunityInServiceDetails(t *testing.T) {
 	device := &common.CommonDevice{
 		SNMP: common.SNMPConfig{
 			ROCommunity: "my-community",
-			SysLocation: "office",
+			SysLocation: testSNMPLocation,
 			SysContact:  "admin@example.com",
 		},
 	}
@@ -667,7 +681,7 @@ func TestComputeStatistics_SNMPCommunityInServiceDetails(t *testing.T) {
 	require.NotNil(t, snmpService, "SNMP Daemon should be in ServiceDetails")
 	assert.Equal(t, "my-community", snmpService.Details["community"],
 		"ServiceDetails should contain the actual SNMP community, not [REDACTED]")
-	assert.Equal(t, "office", snmpService.Details["location"])
+	assert.Equal(t, testSNMPLocation, snmpService.Details["location"])
 	assert.Equal(t, "admin@example.com", snmpService.Details["contact"])
 }
 
@@ -713,4 +727,254 @@ func TestPrepareForExport_Redact_SNMPCommunityInServiceDetails(t *testing.T) {
 
 func TestNewFieldsSerialization(t *testing.T) {
 	RunNewFieldsSerializationTests(t)
+}
+
+func TestEnrichForExport_PopulatesNilFields(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System: common.System{Hostname: "h", Domain: "d"},
+	}
+
+	EnrichForExport(device)
+
+	assert.Equal(t, common.DeviceTypeOPNsense, device.DeviceType)
+	require.NotNil(t, device.Statistics)
+	require.NotNil(t, device.Analysis)
+	require.NotNil(t, device.SecurityAssessment)
+	require.NotNil(t, device.PerformanceMetrics)
+}
+
+func TestEnrichForExport_PreservesExistingFields(t *testing.T) {
+	t.Parallel()
+
+	stats := &common.Statistics{TotalInterfaces: 7}
+	analysisIn := &common.Analysis{}
+	secAssess := &common.SecurityAssessment{}
+	perfMetrics := &common.PerformanceMetrics{}
+	device := &common.CommonDevice{
+		DeviceType:         common.DeviceTypePfSense,
+		Statistics:         stats,
+		Analysis:           analysisIn,
+		SecurityAssessment: secAssess,
+		PerformanceMetrics: perfMetrics,
+	}
+
+	EnrichForExport(device)
+
+	assert.Equal(t, common.DeviceTypePfSense, device.DeviceType, "existing DeviceType preserved")
+	assert.Same(t, stats, device.Statistics, "existing Statistics pointer preserved")
+	assert.Same(t, analysisIn, device.Analysis, "existing Analysis pointer preserved")
+	assert.Same(t, secAssess, device.SecurityAssessment, "existing SecurityAssessment pointer preserved")
+	assert.Same(t, perfMetrics, device.PerformanceMetrics, "existing PerformanceMetrics pointer preserved")
+}
+
+func TestEnrichForExport_NilDeviceIsSafe(t *testing.T) {
+	t.Parallel()
+
+	assert.NotPanics(t, func() {
+		EnrichForExport(nil)
+	})
+}
+
+func TestEnrichForExport_FanOutAcrossDevicesIsRaceClean(t *testing.T) {
+	// EnrichForExport's documented contract is "not safe for concurrent use on
+	// the same *CommonDevice", which implicitly says the *supported* pattern is
+	// fanning out across distinct devices in parallel — each goroutine owning
+	// its own *CommonDevice. Pin that with a -race regression: if a future
+	// refactor introduces hidden shared state inside enrich (e.g., a package
+	// cache), `go test -race` will catch it via this test.
+	//
+	// 3-reviewer cross-corroboration (correctness, security, adversarial)
+	// promoted this to anchor 100.
+	t.Parallel()
+
+	const goroutines = 8
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for range goroutines {
+		go func() {
+			defer wg.Done()
+			device := &common.CommonDevice{
+				System: common.System{Hostname: "race-test"},
+			}
+			EnrichForExport(device)
+			out := prepareForExport(device, true)
+			if out.Statistics == nil {
+				t.Errorf("Statistics nil after enrich + prepareForExport")
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
+	// Memoization invariant: after EnrichForExport, every prepareForExport call
+	// must reuse the cached Statistics/Analysis pointers (the heavy work runs
+	// once). This is the core NATS-37 contract — multi-format exports do not
+	// recompute analysis per format.
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System: common.System{Hostname: "h"},
+	}
+
+	EnrichForExport(device)
+
+	cachedStats := device.Statistics
+	cachedAnalysis := device.Analysis
+
+	for _, redact := range []bool{false, true} {
+		out := prepareForExport(device, redact)
+		assert.Same(t, cachedStats, device.Statistics,
+			"EnrichForExport result must outlive prepareForExport (redact=%v)", redact)
+		assert.Same(t, cachedAnalysis, device.Analysis,
+			"EnrichForExport result must outlive prepareForExport (redact=%v)", redact)
+		// Returned device must reuse the cached Analysis pointer regardless of
+		// redact (Analysis is never cloned).
+		assert.Same(t, cachedAnalysis, out.Analysis,
+			"returned device reuses cached Analysis (redact=%v)", redact)
+		// Returned device's Statistics pointer must equal the cached pointer
+		// when no SNMP community redaction is required (this device has no SNMP
+		// configured, so redactStatisticsServiceDetails returns input unchanged
+		// even on the redact=true branch).
+		assert.Same(
+			t,
+			cachedStats,
+			out.Statistics,
+			"redactStatisticsServiceDetails returns cached Statistics when no SNMP community present (redact=%v)",
+			redact,
+		)
+	}
+}
+
+func TestEnrichForExport_RedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
+	// Safety invariant: prepareForExport(redact=true) must not mutate the
+	// Statistics that EnrichForExport produced. Otherwise a subsequent
+	// non-redacted export would observe redacted values, and a caller that
+	// inspects device.Statistics after a redacted export would see leaked
+	// redaction markers.
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: testSecretValue,
+			SysLocation: testSNMPLocation,
+		},
+	}
+
+	EnrichForExport(device)
+
+	snmpDetailsBefore := snmpDetails(t, device.Statistics)
+	require.Equal(t, testSecretValue, snmpDetailsBefore["community"],
+		"baseline: enriched Statistics carries the unredacted community")
+
+	redacted := prepareForExport(device, true)
+
+	// Redacted export sees redacted community.
+	require.Equal(t, redactedValue, snmpDetails(t, redacted.Statistics)["community"])
+
+	// Cached Statistics on the original device retains the unredacted community.
+	assert.Equal(t, testSecretValue, snmpDetails(t, device.Statistics)["community"],
+		"cached Statistics must not be mutated by prepareForExport(redact=true)")
+
+	// And a subsequent non-redacted export still sees the real community.
+	plain := prepareForExport(device, false)
+	assert.Equal(t, testSecretValue, snmpDetails(t, plain.Statistics)["community"],
+		"non-redacted export after a redacted export still observes real values")
+}
+
+func TestEnrichForExport_NonRedactThenRedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
+	// Reverse-direction safety invariant for the redaction-leak contract: a
+	// caller that does a non-redacted export first, then a redacted export on
+	// the same enriched device, must see the redacted output carry [REDACTED]
+	// while the cached Statistics on the original device retains the
+	// unredacted community.
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: testSecretValue,
+			SysLocation: testSNMPLocation,
+		},
+	}
+
+	EnrichForExport(device)
+
+	plain := prepareForExport(device, false)
+	require.Equal(t, testSecretValue, snmpDetails(t, plain.Statistics)["community"],
+		"baseline: non-redact export observes the real community")
+
+	redacted := prepareForExport(device, true)
+	assert.Equal(t, redactedValue, snmpDetails(t, redacted.Statistics)["community"],
+		"redact export after a non-redact export still produces redacted output")
+	assert.Equal(t, testSecretValue, snmpDetails(t, device.Statistics)["community"],
+		"cached Statistics must not be mutated by the redact export that followed")
+}
+
+func TestRedactStatisticsServiceDetails_NoSNMPCommunity_ReturnsInputUnchanged(t *testing.T) {
+	// Pins the early-return-same-pointer path in redactStatisticsServiceDetails:
+	// when no SNMP entry has a "community" key, the function must return the
+	// input pointer verbatim (no struct/slice clone).
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		details map[string]string
+	}{
+		{name: "nil details", details: nil},
+		{name: "missing community key", details: map[string]string{"location": testSNMPLocation}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			stats := &common.Statistics{
+				ServiceDetails: []common.ServiceStatistics{
+					{Name: analysis.ServiceNameSNMP, Details: tc.details},
+				},
+			}
+			out := redactStatisticsServiceDetails(stats)
+			assert.Same(t, stats, out, "no-redaction path must return input pointer unchanged")
+		})
+	}
+}
+
+func TestRedactStatisticsServiceDetails_MultipleSNMPEntries_AllRedacted(t *testing.T) {
+	// Defense-in-depth: if a future analysis writer ever emits multiple SNMP
+	// service entries (SNMPv3, separate read/write communities, multi-instance
+	// agents), every one of them carries cleartext community on the unredacted
+	// path. The redactor must redact ALL matches, not just the first — this is
+	// the regression NATS-37's initial implementation introduced via an early
+	// `break` and the fix removed.
+	t.Parallel()
+
+	stats := &common.Statistics{
+		ServiceDetails: []common.ServiceStatistics{
+			{Name: analysis.ServiceNameSNMP, Details: map[string]string{"community": "first"}},
+			{Name: "Other Service", Details: map[string]string{"foo": "bar"}},
+			{Name: analysis.ServiceNameSNMP, Details: map[string]string{"community": "second"}},
+		},
+	}
+
+	out := redactStatisticsServiceDetails(stats)
+	require.NotNil(t, out)
+	assert.Equal(t, redactedValue, out.ServiceDetails[0].Details["community"], "first SNMP entry redacted")
+	assert.Equal(t, redactedValue, out.ServiceDetails[2].Details["community"], "second SNMP entry redacted")
+	// Input is not mutated.
+	assert.Equal(t, "first", stats.ServiceDetails[0].Details["community"], "input first SNMP entry unchanged")
+	assert.Equal(t, "second", stats.ServiceDetails[2].Details["community"], "input second SNMP entry unchanged")
+}
+
+func snmpDetails(t *testing.T, stats *common.Statistics) map[string]string {
+	t.Helper()
+	require.NotNil(t, stats)
+	for i := range stats.ServiceDetails {
+		if stats.ServiceDetails[i].Name == analysis.ServiceNameSNMP {
+			return stats.ServiceDetails[i].Details
+		}
+	}
+	t.Fatalf("SNMP service entry not found in ServiceDetails")
+	return nil
 }

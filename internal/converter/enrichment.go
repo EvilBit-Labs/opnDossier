@@ -26,11 +26,86 @@ func computePerformanceMetrics(stats *common.Statistics) *common.PerformanceMetr
 // redactedValue is the placeholder for sensitive fields in exported output.
 const redactedValue = "[REDACTED]"
 
+// EnrichForExport populates the read-only enrichment fields on data in place
+// when they are nil: DeviceType (defaulting to OPNsense), Statistics, Analysis,
+// SecurityAssessment, and PerformanceMetrics. ComplianceResults is left alone —
+// it is populated externally by the audit handler.
+//
+// EnrichForExport is the explicit memoization entry point for callers preparing
+// the same device for multiple format exports (e.g. JSON + YAML + Markdown).
+// computeStatistics and computeAnalysis are O(n) over interfaces, rules, and
+// services and dominate per-format export time; calling EnrichForExport once
+// before the format loop avoids recomputing them per format. Subsequent calls
+// to prepareForExport observe the populated fields via its shallow copy and
+// skip the heavy work.
+//
+// SECURITY: EnrichForExport does not redact sensitive fields. The resulting
+// *CommonDevice carries plaintext secrets — most notably the SNMP community
+// string in Statistics.ServiceDetails — because analysis.ComputeStatistics
+// observes unredacted input by design (presence checks must see real values).
+// Callers MUST NOT marshal or log the device directly after EnrichForExport.
+// Always pass the device through prepareForExport (or a downstream Generator
+// that calls prepareForExport) so the redact branch can produce a clone with
+// the sensitive fields stripped.
+//
+// Redaction is per-export and is applied by prepareForExport on its shallow
+// copy. The Statistics pointer produced here is reused by every subsequent
+// prepareForExport call — the redact-path clones the Statistics struct before
+// mutating ServiceDetails so a pre-enriched device is safe to share across
+// redact=true and redact=false callers.
+//
+// CACHE INVALIDATION: EnrichForExport memoizes Statistics and Analysis as a
+// snapshot of the device at call time. If the caller mutates a field that
+// feeds those computations (e.g., device.SNMP.ROCommunity, FirewallRules,
+// Interfaces) after calling EnrichForExport, the cached values go stale and
+// subsequent exports will reflect the pre-mutation state. Re-call
+// EnrichForExport (after first clearing the affected enrichment field) when
+// the underlying configuration changes between exports.
+//
+// EnrichForExport is not safe for concurrent use on the same *CommonDevice.
+// Callers preparing one device for parallel format exports must call
+// EnrichForExport once before fanning out.
+//
+// NOTE: analysis.ComputeStatistics and analysis.ComputeAnalysis intentionally
+// receive the unredacted data so that presence checks (e.g., "is SNMP
+// configured?") see real values.
+func EnrichForExport(data *common.CommonDevice) {
+	if data == nil {
+		return
+	}
+	enrich(data)
+}
+
+// enrich populates the read-only enrichment fields on dst in place when nil.
+// Callers must invoke enrich before any redaction so analysis.ComputeStatistics
+// and analysis.ComputeAnalysis observe unredacted input.
+func enrich(dst *common.CommonDevice) {
+	if dst.DeviceType == "" {
+		dst.DeviceType = common.DeviceTypeOPNsense
+	}
+	if dst.Statistics == nil {
+		dst.Statistics = analysis.ComputeStatistics(dst)
+	}
+	if dst.Analysis == nil {
+		dst.Analysis = analysis.ComputeAnalysis(dst)
+	}
+	if dst.SecurityAssessment == nil {
+		dst.SecurityAssessment = computeSecurityAssessment(dst.Statistics)
+	}
+	if dst.PerformanceMetrics == nil {
+		dst.PerformanceMetrics = computePerformanceMetrics(dst.Statistics)
+	}
+}
+
 // prepareForExport returns a shallow copy of the device with default DeviceType,
 // Statistics, Analysis, SecurityAssessment, and PerformanceMetrics populated when absent.
 // When redact is true, sensitive fields (passwords, private keys, API secrets, SNMP
 // community strings, WireGuard PSKs, DHCPv6 authentication secrets) are replaced with
 // [REDACTED]. When redact is false, sensitive fields are passed through as-is.
+//
+// prepareForExport does not mutate data. Callers that prepare the same device for
+// multiple format exports should call EnrichForExport first to memoize the
+// expensive Statistics and Analysis computations across calls.
 //
 // NOTE: analysis.ComputeStatistics and analysis.ComputeAnalysis intentionally receive
 // the original unredacted data so that presence checks (e.g., "is SNMP configured?")
@@ -38,32 +113,13 @@ const redactedValue = "[REDACTED]"
 func prepareForExport(data *common.CommonDevice, redact bool) *common.CommonDevice {
 	cp := *data
 
-	if cp.DeviceType == "" {
-		cp.DeviceType = common.DeviceTypeOPNsense
-	}
+	// enrich must run before redaction so analysis.ComputeStatistics and
+	// analysis.ComputeAnalysis observe unredacted input — see enrich godoc.
+	enrich(&cp)
 
 	if redact {
 		redactSensitiveFields(&cp)
-	}
-
-	if cp.Statistics == nil {
-		cp.Statistics = analysis.ComputeStatistics(data)
-	}
-
-	if redact {
-		redactStatisticsServiceDetails(cp.Statistics)
-	}
-
-	if cp.Analysis == nil {
-		cp.Analysis = analysis.ComputeAnalysis(data)
-	}
-
-	if cp.SecurityAssessment == nil {
-		cp.SecurityAssessment = computeSecurityAssessment(cp.Statistics)
-	}
-
-	if cp.PerformanceMetrics == nil {
-		cp.PerformanceMetrics = computePerformanceMetrics(cp.Statistics)
+		cp.Statistics = redactStatisticsServiceDetails(cp.Statistics)
 	}
 
 	// ComplianceResults is populated externally by the audit handler;
@@ -177,22 +233,47 @@ func redactDHCPv6Secrets(cp *common.CommonDevice) {
 	}
 }
 
-// redactStatisticsServiceDetails replaces sensitive values in Statistics.ServiceDetails
-// with the redaction marker. This is needed because analysis.ComputeStatistics intentionally
-// receives the original unredacted data for accurate presence detection, but the
-// resulting ServiceDetails may contain sensitive values (e.g., SNMP community strings).
-func redactStatisticsServiceDetails(stats *common.Statistics) {
+// redactStatisticsServiceDetails returns a Statistics whose sensitive
+// ServiceDetails values are replaced with the redaction marker. The input is
+// not mutated: when redaction is required the function clones the Statistics
+// struct, the ServiceDetails slice, and the affected per-element Details map.
+// When no SNMP community redaction is needed, the input pointer is returned
+// unchanged. This non-mutating contract lets EnrichForExport memoize a single
+// Statistics across mixed redact=true and redact=false callers without leaking
+// redacted values into the caller's data.
+//
+// Every matching SNMP community entry is redacted, not just the first.
+// analysis.ComputeStatistics emits a single SNMP entry today, but a future
+// schema change (SNMPv3, separate read/write communities, multi-instance
+// agents) could surface multiple — leaving any of them in cleartext would be a
+// regression vs. the pre-NATS-37 in-place mutator.
+func redactStatisticsServiceDetails(stats *common.Statistics) *common.Statistics {
 	if stats == nil {
-		return
+		return nil
 	}
 
+	var matches []int
 	for i := range stats.ServiceDetails {
-		if stats.ServiceDetails[i].Name == analysis.ServiceNameSNMP && stats.ServiceDetails[i].Details != nil {
-			if _, ok := stats.ServiceDetails[i].Details["community"]; ok {
-				// Deep-copy the map to avoid mutating shared state.
-				stats.ServiceDetails[i].Details = maps.Clone(stats.ServiceDetails[i].Details)
-				stats.ServiceDetails[i].Details["community"] = redactedValue
-			}
+		if stats.ServiceDetails[i].Name != analysis.ServiceNameSNMP {
+			continue
+		}
+		if stats.ServiceDetails[i].Details == nil {
+			continue
+		}
+		if _, ok := stats.ServiceDetails[i].Details["community"]; ok {
+			matches = append(matches, i)
 		}
 	}
+	if len(matches) == 0 {
+		return stats
+	}
+
+	out := *stats
+	out.ServiceDetails = slices.Clone(stats.ServiceDetails)
+	for _, idx := range matches {
+		out.ServiceDetails[idx].Details = maps.Clone(stats.ServiceDetails[idx].Details)
+		out.ServiceDetails[idx].Details["community"] = redactedValue
+	}
+
+	return &out
 }
