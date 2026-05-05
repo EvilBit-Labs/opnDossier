@@ -35,6 +35,14 @@ The `goconst` linter flags string literals appearing 3+ times in the same packag
 - **Right:** `expected := smallConfig.System.Hostname` — sources from the fixture and stays in sync if the fixture changes.
 - **Avoid extracting a package-level constant** unless you're going to refactor the fixture builders to use it too — partial extraction keeps the lint warning and adds drift surface.
 
+### 1.5 `gocognit` Threshold Is 40, Not the Default
+
+The `.golangci.yml` `gocognit` linter is configured to fail at cognitive complexity > 40 (the default is 30). Table-driven benchmark functions that fan out 4+ sub-benchmarks via `b.Run` routinely trip it — `BenchmarkMultiFormatExport` (NATS-37) was the canonical case.
+
+- **Fix pattern:** extract per-variant closures into helper functions returning `func(*testing.B)` (e.g., `runMultiFormatGenerate(ctx, gen, device, formats, preEnrich) func(*testing.B)`). Each helper drops the cognitive count of the enclosing function below the threshold without changing the test surface.
+- **Don't:** add `//nolint:gocognit` to mask it. The threshold catches a real readability drift; helper extraction fixes both the lint and the readability.
+- **Recurrence vector:** any test/benchmark orchestration function that grows from 2 to 4+ dispatch arms inside a `for _, tc := range cases` loop.
+
 ## 2. Plugin Architecture
 
 ### 2.1 Registry Independence
