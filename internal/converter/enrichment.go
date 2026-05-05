@@ -42,11 +42,11 @@ var snmpSensitiveDetailKeys = []string{"community"}
 //
 // EnrichForExport is the explicit memoization entry point for callers preparing
 // the same device for multiple format exports (e.g. JSON + YAML + Markdown).
-// computeStatistics and computeAnalysis are O(n) over interfaces, rules, and
-// services and dominate per-format export time; calling EnrichForExport once
-// before the format loop avoids recomputing them per format. Subsequent calls
-// to prepareForExport observe the populated fields via its shallow copy and
-// skip the heavy work.
+// analysis.ComputeStatistics and analysis.ComputeAnalysis are linear-or-worse
+// in the number of interfaces, rules, and services and dominate per-format
+// export time; calling EnrichForExport once before the format loop avoids
+// recomputing them per format. Subsequent prepareForExport calls reuse the
+// populated fields and skip the heavy work.
 //
 // SECURITY: EnrichForExport does not redact sensitive fields. The resulting
 // *CommonDevice carries plaintext secrets — most notably the SNMP community
@@ -75,6 +75,11 @@ var snmpSensitiveDetailKeys = []string{"community"}
 // Callers preparing one device for parallel format exports must call
 // EnrichForExport once before fanning out.
 //
+// EnrichForExport on a nil *CommonDevice is a documented no-op. Note that
+// the downstream prepareForExport will still panic on nil; callers must guard
+// nil at their own boundary (the JSONConverter / YAMLConverter wrappers and
+// HybridGenerator.Generate already do).
+//
 // NOTE: analysis.ComputeStatistics and analysis.ComputeAnalysis intentionally
 // receive the unredacted data so that presence checks (e.g., "is SNMP
 // configured?") see real values.
@@ -87,13 +92,9 @@ func EnrichForExport(data *common.CommonDevice) {
 
 // enrich populates the read-only enrichment fields on dst in place when nil.
 // Callers must invoke enrich before any redaction so analysis.ComputeStatistics
-// and analysis.ComputeAnalysis observe unredacted input.
-//
-// Two callers, by design: EnrichForExport applies enrich to the caller's
-// device after a public-API nil guard, and prepareForExport applies it to its
-// shallow copy, where dst is the address of a value-copied struct and is
-// never nil. Keeping the populate logic in one place avoids drift between
-// the public memoization entry point and the per-export shallow-copy path.
+// and analysis.ComputeAnalysis observe unredacted input. Callers must also
+// guarantee dst is non-nil; nil-checking is the public-API caller's
+// responsibility.
 func enrich(dst *common.CommonDevice) {
 	if dst.DeviceType == "" {
 		dst.DeviceType = common.DeviceTypeOPNsense
@@ -290,7 +291,13 @@ func redactStatisticsServiceDetails(stats *common.Statistics) *common.Statistics
 	for _, idx := range matches {
 		out.ServiceDetails[idx].Details = maps.Clone(stats.ServiceDetails[idx].Details)
 		for _, key := range snmpSensitiveDetailKeys {
-			if _, ok := out.ServiceDetails[idx].Details[key]; ok {
+			// Match the value-aware guard used by every other redactor in this
+			// file (cert/CA private keys, API key secrets, WireGuard PSKs,
+			// DHCPv6 secrets, HA password, SNMP ROCommunity): only replace when
+			// the value is actually present and non-empty. Stops empty-string
+			// placeholders from being flipped to "[REDACTED]", which would shift
+			// the semantic meaning a downstream consumer reads from the field.
+			if v, ok := out.ServiceDetails[idx].Details[key]; ok && v != "" {
 				out.ServiceDetails[idx].Details[key] = redactedValue
 			}
 		}
@@ -301,7 +308,7 @@ func redactStatisticsServiceDetails(stats *common.Statistics) *common.Statistics
 
 func hasSensitiveSNMPKey(details map[string]string) bool {
 	for _, key := range snmpSensitiveDetailKeys {
-		if _, ok := details[key]; ok {
+		if v, ok := details[key]; ok && v != "" {
 			return true
 		}
 	}

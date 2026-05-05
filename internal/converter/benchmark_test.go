@@ -48,11 +48,15 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 }
 
 // BenchmarkMultiFormatExport measures the per-format cost of preparing a single
-// device for multiple output formats (markdown + JSON + YAML, sequential). The
-// "PerFormatRecompute" variant is the pre-NATS-37 behavior where each format
-// generation re-runs analysis. The "PreEnrichOnce" variant calls
-// EnrichForExport before the format loop so the expensive analysis runs once
-// per device. The delta between the two is the speedup the ticket targets.
+// device for multiple output formats (markdown + JSON + YAML, sequential). Two
+// variant pairs run side-by-side:
+//
+//   - Generate_Recompute / Generate_Enriched: realistic CLI workload —
+//     full Generate() per format including markdown rendering and JSON/YAML
+//     marshaling. _Recompute is the pre-memoization baseline (no
+//     EnrichForExport); _Enriched calls EnrichForExport before the format loop.
+//   - Prepare_Recompute / Prepare_Enriched: bare prepareForExport calls only,
+//     isolating the analysis cost from rendering and serialization noise.
 //
 // The benchmark uses both a medium config (sample.config.2.xml, ~17KB) and the
 // large config (sample.config.6.xml, ~119KB) so reviewers can see how the
@@ -86,10 +90,10 @@ func BenchmarkMultiFormatExport(b *testing.B) {
 		}
 
 		// Precondition: the parsed device must start with nil enrichment fields
-		// so PerFormatRecompute genuinely re-runs analysis on each Generate call.
-		// If a future parser change pre-populates these, both sub-benchmarks
-		// would silently degenerate to the same workload and the speedup signal
-		// would vanish without a test failure.
+		// so the _Recompute variants genuinely re-run analysis on each call. If
+		// a future parser change pre-populates these, both _Recompute and
+		// _Enriched sub-benchmarks would silently degenerate to the same
+		// workload and the speedup signal would vanish without a test failure.
 		if device.Statistics != nil || device.Analysis != nil {
 			b.Fatalf("benchmark precondition violated: parsed device must have nil Statistics/Analysis")
 		}

@@ -777,32 +777,51 @@ func TestEnrichForExport_NilDeviceIsSafe(t *testing.T) {
 	})
 }
 
-func TestEnrichForExport_FanOutAcrossDevicesIsRaceClean(t *testing.T) {
-	// EnrichForExport's documented contract is "not safe for concurrent use on
-	// the same *CommonDevice", which implicitly says the *supported* pattern is
-	// fanning out across distinct devices in parallel — each goroutine owning
-	// its own *CommonDevice. Pin that with a -race regression: if a future
-	// refactor introduces hidden shared state inside enrich (e.g., a package
-	// cache), `go test -race` will catch it via this test.
-	//
-	// 3-reviewer cross-corroboration (correctness, security, adversarial)
-	// promoted this to anchor 100.
+func TestEnrichForExport_FanOutFromSingleEnrichedDeviceIsRaceClean(t *testing.T) {
+	// EnrichForExport's documented supported pattern is "one device, enrich
+	// once, fan out exports": a caller invokes EnrichForExport on a *CommonDevice,
+	// then dispatches concurrent prepareForExport calls that each consume the
+	// cached Statistics/Analysis pointers. This test pins that pattern under
+	// `go test -race`. If a future refactor starts mutating the cached
+	// Statistics from prepareForExport (e.g., the redact-path drops its
+	// clone-on-write), the race detector flags the concurrent reads against
+	// the fan-out write.
 	t.Parallel()
+
+	device := &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: testSecretValue,
+			SysLocation: testSNMPLocation,
+		},
+	}
+	EnrichForExport(device)
 
 	const goroutines = 8
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 
-	for range goroutines {
+	for i := range goroutines {
+		redact := i%2 == 0
 		go func() {
 			defer wg.Done()
-			device := &common.CommonDevice{
-				System: common.System{Hostname: "race-test"},
-			}
-			EnrichForExport(device)
-			out := prepareForExport(device, true)
+			out := prepareForExport(device, redact)
 			if out.Statistics == nil {
-				t.Errorf("Statistics nil after enrich + prepareForExport")
+				t.Errorf("Statistics nil after concurrent prepareForExport (redact=%v)", redact)
+				return
+			}
+			details := out.Statistics.ServiceDetails
+			for j := range details {
+				if details[j].Name != analysis.ServiceNameSNMP || details[j].Details == nil {
+					continue
+				}
+				got := details[j].Details["community"]
+				want := testSecretValue
+				if redact {
+					want = redactedValue
+				}
+				if got != want {
+					t.Errorf("redact=%v: SNMP community = %q, want %q", redact, got, want)
+				}
 			}
 		}()
 	}
@@ -812,8 +831,8 @@ func TestEnrichForExport_FanOutAcrossDevicesIsRaceClean(t *testing.T) {
 func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
 	// Memoization invariant: after EnrichForExport, every prepareForExport call
 	// must reuse the cached Statistics/Analysis pointers (the heavy work runs
-	// once). This is the core NATS-37 contract — multi-format exports do not
-	// recompute analysis per format.
+	// once). This is the core memoization contract — multi-format exports do
+	// not recompute analysis per format.
 	t.Parallel()
 
 	device := &common.CommonDevice{
@@ -827,26 +846,25 @@ func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
 
 	for _, redact := range []bool{false, true} {
 		out := prepareForExport(device, redact)
+		// Source-of-truth invariant: the cache on the input device is never
+		// mutated by prepareForExport, regardless of redact direction.
 		assert.Same(t, cachedStats, device.Statistics,
 			"EnrichForExport result must outlive prepareForExport (redact=%v)", redact)
 		assert.Same(t, cachedAnalysis, device.Analysis,
 			"EnrichForExport result must outlive prepareForExport (redact=%v)", redact)
-		// Returned device must reuse the cached Analysis pointer regardless of
-		// redact (Analysis is never cloned).
+		// Returned device reuses the cached Analysis pointer (Analysis is
+		// never cloned by the redact path).
 		assert.Same(t, cachedAnalysis, out.Analysis,
 			"returned device reuses cached Analysis (redact=%v)", redact)
-		// Returned device's Statistics pointer must equal the cached pointer
-		// when no SNMP community redaction is required (this device has no SNMP
-		// configured, so redactStatisticsServiceDetails returns input unchanged
-		// even on the redact=true branch).
-		assert.Same(
-			t,
-			cachedStats,
-			out.Statistics,
-			"redactStatisticsServiceDetails returns cached Statistics when no SNMP community present (redact=%v)",
-			redact,
-		)
 	}
+
+	// Returned-Statistics pointer identity on the non-redact path is the
+	// memoization invariant. The redact path's pointer identity depends on
+	// whether the fixture has SNMP redaction to do, so it is pinned separately
+	// by TestRedactStatisticsServiceDetails_NoSNMPCommunity_ReturnsInputUnchanged.
+	plain := prepareForExport(device, false)
+	assert.Same(t, cachedStats, plain.Statistics,
+		"non-redact path returns cached Statistics directly")
 }
 
 func TestEnrichForExport_RedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
@@ -945,9 +963,7 @@ func TestRedactStatisticsServiceDetails_MultipleSNMPEntries_AllRedacted(t *testi
 	// Defense-in-depth: if a future analysis writer ever emits multiple SNMP
 	// service entries (SNMPv3, separate read/write communities, multi-instance
 	// agents), every one of them carries cleartext community on the unredacted
-	// path. The redactor must redact ALL matches, not just the first — this is
-	// the regression NATS-37's initial implementation introduced via an early
-	// `break` and the fix removed.
+	// path. The redactor must redact ALL matches, not just the first.
 	t.Parallel()
 
 	stats := &common.Statistics{
