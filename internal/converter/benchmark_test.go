@@ -112,8 +112,12 @@ func BenchmarkMultiFormatExport(b *testing.B) {
 		// Bare prepareForExport sub-benchmarks: isolate the analysis cost from
 		// rendering and marshaling, so the memoization savings are visible
 		// without serialization noise diluting the signal.
-		b.Run(tc.name+"/Prepare_Recompute", runMultiFormatPrepare(device, formats, false))
-		b.Run(tc.name+"/Prepare_Enriched", runMultiFormatPrepare(device, formats, true))
+		b.Run(tc.name+"/Prepare_Recompute", runMultiFormatPrepare(device, formats, false, false))
+		b.Run(tc.name+"/Prepare_Enriched", runMultiFormatPrepare(device, formats, true, false))
+		// Redact-path variant on the memoized prepare: surfaces the clone-on-write
+		// cost in redactStatisticsServiceDetails (Statistics + ServiceDetails +
+		// Details map) on the production audit/export path.
+		b.Run(tc.name+"/Prepare_Enriched_Redact", runMultiFormatPrepare(device, formats, true, true))
 	}
 }
 
@@ -142,7 +146,7 @@ func runMultiFormatGenerate(
 	}
 }
 
-func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnrich bool) func(*testing.B) {
+func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnrich, redact bool) func(*testing.B) {
 	return func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
@@ -151,7 +155,7 @@ func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnr
 				EnrichForExport(&d)
 			}
 			for range formats {
-				_ = prepareForExport(&d, false)
+				_ = prepareForExport(&d, redact)
 			}
 		}
 	}

@@ -777,6 +777,39 @@ func TestEnrichForExport_NilDeviceIsSafe(t *testing.T) {
 	})
 }
 
+func TestEnrichForExport_ClearingStatisticsRefreshesDerivedFields(t *testing.T) {
+	// Cache-invalidation contract: when the caller clears Statistics to refresh
+	// after a config change, SecurityAssessment and PerformanceMetrics — both
+	// derived from Statistics — must also refresh. Otherwise the next export
+	// carries fresh statistics but stale derived metrics tied to the discarded
+	// Statistics.
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System: common.System{Hostname: "h"},
+	}
+	EnrichForExport(device)
+
+	priorStats := device.Statistics
+	priorSA := device.SecurityAssessment
+	priorPM := device.PerformanceMetrics
+	require.NotNil(t, priorStats)
+	require.NotNil(t, priorSA)
+	require.NotNil(t, priorPM)
+
+	// Simulate a config-change cache invalidation: clear only Statistics.
+	device.Statistics = nil
+
+	EnrichForExport(device)
+
+	require.NotNil(t, device.Statistics)
+	assert.NotSame(t, priorStats, device.Statistics, "Statistics refreshed after clear")
+	assert.NotSame(t, priorSA, device.SecurityAssessment,
+		"SecurityAssessment must refresh together with Statistics, not retain pointer to discarded view")
+	assert.NotSame(t, priorPM, device.PerformanceMetrics,
+		"PerformanceMetrics must refresh together with Statistics, not retain pointer to discarded view")
+}
+
 func TestEnrichForExport_FanOutFromSingleEnrichedDeviceIsRaceClean(t *testing.T) {
 	// EnrichForExport's documented supported pattern is "one device, enrich
 	// once, fan out exports": a caller invokes EnrichForExport on a *CommonDevice,
@@ -943,6 +976,10 @@ func TestRedactStatisticsServiceDetails_NoSNMPCommunity_ReturnsInputUnchanged(t 
 	}{
 		{name: "nil details", details: nil},
 		{name: "missing community key", details: map[string]string{"location": testSNMPLocation}},
+		// Empty-string community is treated as "not configured" by analysis —
+		// pin that the redactor's `ok && v != ""` guard returns the input
+		// pointer unchanged rather than flipping "" to "[REDACTED]".
+		{name: "empty community value", details: map[string]string{"community": "", "location": testSNMPLocation}},
 	}
 
 	for _, tc := range tests {

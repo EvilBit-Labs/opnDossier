@@ -68,8 +68,13 @@ var snmpSensitiveDetailKeys = []string{"community"}
 // feeds those computations (e.g., device.SNMP.ROCommunity, FirewallRules,
 // Interfaces) after calling EnrichForExport, the cached values go stale and
 // subsequent exports will reflect the pre-mutation state. Re-call
-// EnrichForExport (after first clearing the affected enrichment field) when
-// the underlying configuration changes between exports.
+// EnrichForExport after clearing the affected enrichment field when the
+// underlying configuration changes between exports.
+//
+// Clearing Statistics is sufficient to invalidate the Statistics-derived
+// fields too: SecurityAssessment and PerformanceMetrics are recomputed
+// together with Statistics. To refresh Analysis, clear Analysis. The two
+// caches are independent.
 //
 // EnrichForExport is not safe for concurrent use on the same *CommonDevice.
 // Callers preparing one device for parallel format exports must call
@@ -95,21 +100,35 @@ func EnrichForExport(data *common.CommonDevice) {
 // and analysis.ComputeAnalysis observe unredacted input. Callers must also
 // guarantee dst is non-nil; nil-checking is the public-API caller's
 // responsibility.
+//
+// SecurityAssessment and PerformanceMetrics are derived from Statistics. When
+// Statistics is (re)computed, both derived fields are also (re)computed so a
+// partial cache invalidation — caller clears only Statistics to refresh after
+// a config change — does not leave stale derived metrics tied to a Statistics
+// that no longer exists.
 func enrich(dst *common.CommonDevice) {
 	if dst.DeviceType == "" {
 		dst.DeviceType = common.DeviceTypeOPNsense
 	}
 	if dst.Statistics == nil {
 		dst.Statistics = analysis.ComputeStatistics(dst)
+		// Refresh derived fields together with Statistics. Existing values are
+		// intentionally overwritten — they were derived from a Statistics that
+		// has just been discarded.
+		dst.SecurityAssessment = computeSecurityAssessment(dst.Statistics)
+		dst.PerformanceMetrics = computePerformanceMetrics(dst.Statistics)
+	} else {
+		// Statistics preserved; populate derived fields when absent so callers
+		// who pre-populate Statistics alone still get a complete enrichment.
+		if dst.SecurityAssessment == nil {
+			dst.SecurityAssessment = computeSecurityAssessment(dst.Statistics)
+		}
+		if dst.PerformanceMetrics == nil {
+			dst.PerformanceMetrics = computePerformanceMetrics(dst.Statistics)
+		}
 	}
 	if dst.Analysis == nil {
 		dst.Analysis = analysis.ComputeAnalysis(dst)
-	}
-	if dst.SecurityAssessment == nil {
-		dst.SecurityAssessment = computeSecurityAssessment(dst.Statistics)
-	}
-	if dst.PerformanceMetrics == nil {
-		dst.PerformanceMetrics = computePerformanceMetrics(dst.Statistics)
 	}
 }
 
