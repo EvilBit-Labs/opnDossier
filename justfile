@@ -211,7 +211,21 @@ bench-mem:
 # Run comprehensive performance benchmarks
 [group('test')]
 bench-perf:
-    @{{ mise_exec }} go test -bench=. -run=^$ -benchtime=1s -count=3 ./internal/converter
+    @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -benchtime=1s -count=3 ./internal/converter
+
+# Capture CPU and memory profiles for converter export/rendering benchmarks
+[group('test')]
+bench-profile:
+    @{{ mise_exec }} go test -bench='Benchmark(MarkdownConverter_ToMarkdown|JSONConverter_ToJSON|YAMLConverter_ToYAML)' -run=^$ -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./internal/converter
+    @echo "Profiles written: cpu.prof, mem.prof"
+    @echo "Inspect with: mise exec -- go tool pprof cpu.prof"
+
+# Capture an execution trace for converter export/rendering benchmarks
+[group('test')]
+bench-trace:
+    @{{ mise_exec }} go test -bench='Benchmark(MarkdownConverter_ToMarkdown|JSONConverter_ToJSON|YAMLConverter_ToYAML)' -run=^$ -benchmem -trace=trace.out ./internal/converter
+    @echo "Trace written: trace.out"
+    @echo "Inspect with: mise exec -- go tool trace trace.out"
 
 # Save benchmark baseline for comparison
 [group('test')]

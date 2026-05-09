@@ -198,6 +198,23 @@ jobs:
             echo '```'
           } > startup-results.md
 
+      - name: Enforce startup benchmark budget
+        run: |
+          budget_ns=100000000 # 100ms
+          go test -bench=BenchmarkStartupVersion -run=^$ -benchmem ./cmd/... 2>&1 \
+            | grep -v -E "^(opnDossier version|Build date:|Git commit:)" \
+            | tee startup-budget.txt
+          startup_ns=$(awk '/BenchmarkStartupVersion/ { print $3; exit }' startup-budget.txt)
+          if [ -z "$startup_ns" ]; then
+            echo "BenchmarkStartupVersion result not found"
+            exit 1
+          fi
+          if [ "$startup_ns" -gt "$budget_ns" ]; then
+            echo "BenchmarkStartupVersion ${startup_ns}ns/op exceeds ${budget_ns}ns/op budget"
+            exit 1
+          fi
+          echo "BenchmarkStartupVersion ${startup_ns}ns/op is within ${budget_ns}ns/op budget"
+
       - name: Upload startup results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
