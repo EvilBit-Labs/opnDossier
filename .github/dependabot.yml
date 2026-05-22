@@ -4,7 +4,9 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: daily
+    cooldown:
+      default-days: 7
     rebase-strategy: "disabled"
     commit-message:
       prefix: "chore(deps)"
@@ -13,7 +15,9 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: daily
+    cooldown:
+      default-days: 7
     rebase-strategy: "disabled"
     commit-message:
       prefix: "chore(deps)"
@@ -22,7 +26,9 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: daily
+    cooldown:
+      default-days: 7
     rebase-strategy: "disabled"
     commit-message:
       prefix: "chore(deps)"
@@ -31,7 +37,9 @@ updates:
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: daily
+    cooldown:
+      default-days: 7
     rebase-strategy: "disabled"
     commit-message:
       prefix: "chore(deps)"
