@@ -16,6 +16,12 @@ var listPluginsJSONOutput bool //nolint:gochecknoglobals // Cobra flag variable
 // warnPluginDirTrustModel fires on stderr (matching `audit --plugin-dir`).
 var listPluginsPluginDir string //nolint:gochecknoglobals // Cobra flag variable
 
+// versionUnknown is the Version field substitute when per-plugin metadata
+// cannot be read (registry-lookup failure or panic in plugin.Version()).
+// Keeps the JSON envelope's Version field non-empty so machine consumers
+// can rely on its presence even in defensive paths.
+const versionUnknown = "unknown"
+
 // pluginEntry is the per-plugin record emitted by `list plugins --json`.
 // In text mode only Name is rendered; Description and Version are JSON-only.
 type pluginEntry struct {
@@ -59,7 +65,7 @@ structured array of {name, description, version} objects.`,
 
 func runListPlugins(cmd *cobra.Command, _ []string) error {
 	// Surface the dynamic-plugin trust-model warning whenever --plugin-dir
-	// is supplied, mirroring the audit command (cmd/audit.go:138).
+	// is supplied, mirroring the audit command (cmd/audit.go).
 	warnPluginDirTrustModel(cmd.ErrOrStderr(), listPluginsPluginDir)
 
 	pm := audit.NewPluginManager(logger, nil)
@@ -73,30 +79,83 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("initialize plugins: %w", err)
 	}
 
+	// Surface any dynamic plugin load failures. Per-plugin failures are
+	// non-fatal in InitializePlugins (the registry skips them), so without
+	// this loop an operator passing --plugin-dir cannot distinguish a
+	// successfully-loaded set from one where every .so was rejected.
+	// Mirrors cmd/audit_handler.go behavior so the list command does not
+	// silently swallow failures that audit would surface.
+	loadResult := pm.GetLoadResult()
+	if loadResult.Failed() > 0 {
+		for _, f := range loadResult.Failures {
+			logger.Warn("Dynamic plugin failed to load",
+				"plugin", f.Name,
+				"error", f.Err,
+			)
+		}
+	}
+
 	registry := pm.GetRegistry()
 	names := registry.ListPlugins()
 	entries := make([]listEntry, 0, len(names))
 
 	for _, n := range names {
-		p, err := registry.GetPlugin(n)
-		if err != nil {
-			// Should be unreachable — ListPlugins and GetPlugin read the
-			// same underlying map (GOTCHAS.md §2.2 note in plugin_manager.go).
-			// If it does happen, fall back to a name-only entry so the
-			// command still reports every plugin the registry knows.
-			entries = append(entries, pluginEntry{Name: n})
-
-			continue
-		}
-
-		entries = append(entries, pluginEntry{
-			Name:        p.Name(),
-			Description: p.Description(),
-			Version:     p.Version(),
-		})
+		entries = append(entries, readPluginMetadata(registry, n))
 	}
 
 	return emitList(cmd.OutOrStdout(), entries, listPluginsJSONOutput)
+}
+
+// readPluginMetadata invokes a plugin's Name/Description/Version with panic
+// recovery so a single malformed dynamic .so cannot DoS the enumeration.
+// audit.PluginRegistry.RunComplianceChecks has equivalent recovery
+// (GOTCHAS.md §2.2); list plugins inherits the same fault-isolation
+// requirement because the metadata getters can call into untrusted .so code.
+// Returns a populated pluginEntry on every path; on panic or registry
+// lookup failure, Version defaults to versionUnknown so the JSON envelope's
+// non-empty-Version invariant holds.
+func readPluginMetadata(registry *audit.PluginRegistry, name string) pluginEntry {
+	entry := pluginEntry{Name: name, Version: versionUnknown}
+
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Warn("Plugin metadata read panicked",
+				"plugin", name,
+				"recovered", fmt.Sprintf("%v", r),
+			)
+		}
+	}()
+
+	p, err := registry.GetPlugin(name)
+	if err != nil {
+		// Should be unreachable — ListPlugins and GetPlugin read the
+		// same underlying map (GOTCHAS.md §2.2 note in plugin_manager.go).
+		// If it does happen, log and keep the default entry so JSON
+		// consumers see Version="unknown" rather than empty.
+		logger.Warn("Listed plugin not retrievable from registry",
+			"plugin", name,
+			"error", err,
+		)
+
+		return entry
+	}
+
+	entry.Name = p.Name()
+	entry.Description = p.Description()
+	entry.Version = nonEmptyOr(p.Version(), versionUnknown)
+
+	return entry
+}
+
+// nonEmptyOr returns s when non-empty, fallback otherwise. Used so plugins
+// returning "" from Version() do not break the JSON envelope's non-empty
+// invariant.
+func nonEmptyOr(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+
+	return s
 }
 
 func init() {

@@ -93,3 +93,53 @@ func TestListDevices_Lightweight(t *testing.T) {
 		"list devices must be lightweight — registry enumeration only",
 	)
 }
+
+// TestListDevices_RootExecuteExitsZero exercises the full cobra dispatch
+// path (not just the helper) so the plan-promised R8 contract — "exit 0
+// on success, non-zero only on internal errors" — has a behavioral test
+// rather than only a helper-level one.
+func TestListDevices_RootExecuteExitsZero(t *testing.T) {
+	listDevicesTestCleanup(t)
+
+	root := GetRootCmd()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(buf)
+	root.SetArgs([]string{"list", "devices"})
+	t.Cleanup(func() {
+		root.SetArgs(nil)
+		root.SetOut(nil)
+		root.SetErr(nil)
+	})
+
+	// Cobra's Execute returns nil on success; a non-nil error here would
+	// propagate to DetermineExitCode and produce ExitGeneralError.
+	require.NoError(t, root.Execute(), "list devices must exit 0 on registry success")
+	assert.NotEmpty(t, buf.String(), "registered parsers should produce output")
+}
+
+// TestListDevices_JSONShapeContract pins the JSON envelope shape so future
+// field renames or removals surface as failing tests rather than silent
+// agent-side breakage. v1 schema is exactly {name, description}.
+func TestListDevices_JSONShapeContract(t *testing.T) {
+	listDevicesTestCleanup(t)
+	listDevicesJSONOutput = true
+
+	buf := &bytes.Buffer{}
+	listDevicesCmd.SetOut(buf)
+	t.Cleanup(func() { listDevicesCmd.SetOut(nil) })
+
+	require.NoError(t, runListDevices(listDevicesCmd, nil))
+
+	var generic []map[string]any
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &generic))
+	require.NotEmpty(t, generic)
+
+	expectedKeys := map[string]bool{"name": true, "description": true}
+	for i, entry := range generic {
+		require.Len(t, entry, len(expectedKeys), "entry %d must have %d fields", i, len(expectedKeys))
+		for k := range entry {
+			assert.True(t, expectedKeys[k], "entry %d has unexpected key %q (v1 schema is name, description)", i, k)
+		}
+	}
+}

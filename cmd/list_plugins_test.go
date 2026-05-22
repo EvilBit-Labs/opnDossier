@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -126,4 +127,99 @@ func TestListPlugins_RejectsPositionalArgs(t *testing.T) {
 
 	err := root.Execute()
 	require.Error(t, err, "list plugins does not accept positional arguments")
+}
+
+// TestListPlugins_SortStability pins the consecutive-invocation determinism
+// contract for `list plugins` (devices and formats have equivalents). Agents
+// diffing capability snapshots across invocations need byte-stable output.
+func TestListPlugins_SortStability(t *testing.T) {
+	listPluginsTestCleanup(t)
+
+	buf1 := &bytes.Buffer{}
+	listPluginsCmd.SetOut(buf1)
+	listPluginsCmd.SetErr(&bytes.Buffer{})
+	require.NoError(t, runListPlugins(listPluginsCmd, nil))
+
+	buf2 := &bytes.Buffer{}
+	listPluginsCmd.SetOut(buf2)
+	listPluginsCmd.SetErr(&bytes.Buffer{})
+	require.NoError(t, runListPlugins(listPluginsCmd, nil))
+
+	t.Cleanup(func() {
+		listPluginsCmd.SetOut(nil)
+		listPluginsCmd.SetErr(nil)
+	})
+
+	assert.Equal(t, buf1.String(), buf2.String(), "two consecutive invocations must produce identical output")
+}
+
+// TestListPlugins_JSONShapeContract pins the JSON envelope shape for the
+// plugins subcommand. Field set is `name`, `description`, `version`. Future
+// adds are forward-compatible, but renames or removals must surface as a
+// failing test (not a silent agent-side regression).
+func TestListPlugins_JSONShapeContract(t *testing.T) {
+	listPluginsTestCleanup(t)
+	listPluginsJSONOutput = true
+
+	buf := &bytes.Buffer{}
+	listPluginsCmd.SetOut(buf)
+	listPluginsCmd.SetErr(&bytes.Buffer{})
+	t.Cleanup(func() {
+		listPluginsCmd.SetOut(nil)
+		listPluginsCmd.SetErr(nil)
+	})
+
+	require.NoError(t, runListPlugins(listPluginsCmd, nil))
+
+	var generic []map[string]any
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &generic))
+	require.NotEmpty(t, generic, "built-in plugin registry must contain entries")
+
+	expectedKeys := map[string]bool{"name": true, "description": true, "version": true}
+	for i, entry := range generic {
+		require.Len(t, entry, len(expectedKeys), "entry %d must have %d fields", i, len(expectedKeys))
+		for k := range entry {
+			assert.True(
+				t,
+				expectedKeys[k],
+				"entry %d has unexpected key %q (v1 schema is name, description, version)",
+				i,
+				k,
+			)
+		}
+		_, nameOk := entry["name"].(string)
+		_, descOk := entry["description"].(string)
+		_, verOk := entry["version"].(string)
+		assert.True(t, nameOk, "entry %d: name must be string", i)
+		assert.True(t, descOk, "entry %d: description must be string", i)
+		assert.True(t, verOk, "entry %d: version must be string", i)
+		assert.NotEmpty(t, entry["name"], "entry %d: name must be non-empty", i)
+		assert.NotEmpty(
+			t,
+			entry["version"],
+			"entry %d: version must be non-empty (fallback to %q applies)",
+			i,
+			versionUnknown,
+		)
+	}
+}
+
+// TestListPlugins_FallbackVersionWhenLookupFails stresses the
+// readPluginMetadata fallback path: GetPlugin returns ErrPluginNotFound
+// for a name absent from the registry. The helper must return a populated
+// entry with Version=versionUnknown rather than an empty Version that
+// would violate the JSON envelope's non-empty Version contract.
+func TestListPlugins_FallbackVersionWhenLookupFails(t *testing.T) {
+	// Stress the readPluginMetadata fallback path: GetPlugin returns
+	// ErrPluginNotFound for a name absent from the registry. The helper
+	// must return a populated entry with Version=versionUnknown rather
+	// than an empty Version that would violate the JSON contract.
+	listPluginsTestCleanup(t)
+
+	pm := audit.NewPluginManager(logger, nil)
+	require.NoError(t, pm.InitializePlugins(t.Context()))
+
+	entry := readPluginMetadata(pm.GetRegistry(), "no-such-plugin-name-for-test")
+	assert.Equal(t, "no-such-plugin-name-for-test", entry.Name)
+	assert.Equal(t, versionUnknown, entry.Version, "fallback path must populate Version with %q", versionUnknown)
 }

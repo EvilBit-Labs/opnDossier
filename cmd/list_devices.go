@@ -22,9 +22,8 @@ func (e deviceEntry) name() string { return e.Name }
 // supports. The list is sourced from parser.DefaultRegistry() so it stays in
 // sync with whatever parsers are registered at init() time.
 var listDevicesCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "devices",
-	Short:   "List supported device-config parsers",
-	GroupID: "",
+	Use:   "devices",
+	Short: "List supported device-config parsers",
 	Annotations: map[string]string{
 		annotationLightweight: annotationValueOn, // Pure registry enumeration, no config load needed.
 	},

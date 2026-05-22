@@ -206,8 +206,8 @@ var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static 
 
 // deviceTypeDescriptions maps registered device types to their shell completion descriptions.
 var deviceTypeDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
-	deviceNameOPNsense: "OPNsense firewall configuration",
-	deviceNamePfSense:  "pfSense firewall configuration",
+	"opnsense": "OPNsense firewall configuration",
+	"pfsense":  "pfSense firewall configuration",
 }
 
 // ValidFormats provides shell completion for output format values.
@@ -269,9 +269,9 @@ func ValidAuditModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Sh
 // pluginDescriptions maps audit plugin names to their shell completion descriptions.
 // Plugins not in this map receive a generic "<name> plugin" description.
 var pluginDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
-	pluginNameStig:     "Security Technical Implementation Guide",
-	pluginNameSans:     "SANS Firewall Baseline",
-	pluginNameFirewall: "Firewall Configuration Analysis",
+	"stig":     "Security Technical Implementation Guide",
+	"sans":     "SANS Firewall Baseline",
+	"firewall": "Firewall Configuration Analysis",
 }
 
 // cachedPluginNames holds the result of a one-time PluginManager initialization.

@@ -32,6 +32,23 @@ const (
 	categoryWrap    = "wrap"
 )
 
+// YAML config-schema keys consumed by config_show.go and config_validate.go.
+// These mirror the field names in internal/config.Config and are part of the
+// v1 YAML config surface — renaming any of these without a migration breaks
+// existing user config files. Some values match a categoryXxx constant
+// because the flag name and config key happen to coincide; the constants
+// are kept distinct so renaming a category (help-rendering concern) cannot
+// silently break the config schema (user-data concern).
+const (
+	configKeyVerbose = "verbose"
+	configKeyFormat  = "format"
+	configKeyWrap    = "wrap"
+	configKeyDisplay = "display"
+	configKeyExport  = "export"
+	configKeyLogging = "logging"
+	configKeyWidth   = "width"
+)
+
 // Flag names that recur 3+ times across subcommand init() functions.
 const (
 	flagVerbose = "verbose"
@@ -64,6 +81,15 @@ const (
 	cmdNameVersion    = "version"
 )
 
+// User-facing display strings for primitive values. displayTrue / displayFalse
+// happen to match annotationValueOn / primitiveFalse but are semantically
+// distinct: these render in config-show output to humans, while
+// annotationValueOn flags Cobra metadata. Renaming annotationValueOn for any
+// reason must not silently retag the display string.
+const (
+	displayTrue = "true"
+)
+
 // Audit modes mirroring internal/audit.ModeBlue / ModeRed but kept as raw
 // strings here since cmd flag parsing accepts plain strings (the typed
 // ReportMode constants are consumed inside internal/audit).
@@ -86,16 +112,10 @@ const (
 	severityLow    = "low"
 )
 
-// Config section names that recur in config-show / config-validate routing.
-const (
-	configSectionExport = "export"
-)
-
 // Display-related primitives.
 const (
 	primitiveEmpty = "(empty)"
 	primitiveFalse = "false"
-	flagWidth      = "width"
 	cmdNameConfig  = "config"
 )
 
@@ -108,18 +128,4 @@ const (
 	outputFormatYAML     = "yaml"
 	outputFormatText     = "text"
 	outputFormatHTML     = "html"
-)
-
-// Device-parser names mirroring parser.DefaultRegistry() entries. Used by
-// the shell-completion description map and validation messages.
-const (
-	deviceNameOPNsense = "opnsense"
-	deviceNamePfSense  = "pfsense"
-)
-
-// Plugin names for shell-completion descriptions and tests.
-const (
-	pluginNameStig     = "stig"
-	pluginNameSans     = "sans"
-	pluginNameFirewall = "firewall"
 )

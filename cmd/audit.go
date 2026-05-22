@@ -127,15 +127,17 @@ var auditCmd = &cobra.Command{
 		// that return fabricated metadata. Results will be incomplete until the red
 		// team pipeline is fully implemented.
 		if strings.EqualFold(auditMode, auditModeRed) {
-			fmt.Fprintf(os.Stderr,
+			fmt.Fprintf(cmd.ErrOrStderr(),
 				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
 		}
 
 		// Warn when --plugin-dir is supplied — dynamic .so plugins execute with
 		// full process privileges and no signature verification (GOTCHAS §2.5).
 		// Mirrors the red-mode precedent above so the user sees the risk at the
-		// moment they opt into dynamic plugin loading.
-		warnPluginDirTrustModel(os.Stderr, auditPluginDir)
+		// moment they opt into dynamic plugin loading. Route through
+		// cmd.ErrOrStderr() rather than os.Stderr so tests can capture the
+		// warning (matches cmd/list_plugins.go's stream choice).
+		warnPluginDirTrustModel(cmd.ErrOrStderr(), auditPluginDir)
 
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.

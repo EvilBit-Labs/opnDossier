@@ -25,9 +25,8 @@ func (e formatEntry) name() string { return e.Name }
 // The list is sourced from converter.DefaultRegistry so it stays in sync with
 // whatever format handlers are registered at init() time.
 var listFormatsCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "formats",
-	Short:   "List available output formats",
-	GroupID: "",
+	Use:   "formats",
+	Short: "List available output formats",
 	Annotations: map[string]string{
 		annotationLightweight: annotationValueOn, // Pure registry enumeration, no config load needed.
 	},

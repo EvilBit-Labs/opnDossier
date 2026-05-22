@@ -39,6 +39,9 @@ Use the `list` subcommand group to enumerate what the running binary supports wi
 
 JSON shape is stable: `list plugins` returns `[{"name", "description", "version"}]`; `list devices` and `list formats` return `[{"name", "description"}]`. Empty registries return `[]` (never `null`) and exit code `0`.
 
+- **`list plugins` without `--plugin-dir` returns only built-in plugins** (`stig`, `sans`, `firewall`). Dynamic `.so` plugins are opt-in to keep the default invocation free of any local-filesystem dependency.
+- **Per-plugin dynamic load failures surface as `WARN` lines on stderr** (`plugin=<name> error=<reason>`); the command still exits `0` and the failing plugin is omitted from the returned array. Capture stderr alongside stdout when consuming `list plugins --plugin-dir` if you need full visibility.
+
 ## Machine-readable output formats
 
 `convert`, `audit`, and `display` all accept `--format` / `-f`. The structured formats below are the recommended consumers for automated pipelines.
@@ -68,6 +71,7 @@ For programmatic consumers embedding opnDossier as a library (not via the CLI), 
 - Exit code **non-zero** — fatal error; details on stderr
 - Non-fatal issues (unrecognized XML elements, missing subsystems, unresolved alias references) are reported as **warnings** on stderr and do not change the exit code
 - `audit --mode blue` exits 0 even when compliance checks fail; parse the audit output to detect findings
+- `list plugins`, `list devices`, and `list formats` exit **0** regardless of registry size — an empty registry yields `[]` (JSON) or an empty stdout (text) with exit code `0`. Non-zero only on internal errors such as plugin-manager initialization failure for `list plugins --plugin-dir <missing-path>`.
 
 ## Device support
 
