@@ -54,7 +54,7 @@ func registerDisplayFlagCompletions(cmd *cobra.Command) {
 var displayCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "display [file]",
 	Short:             "Display OPNsense configuration in formatted markdown.",
-	GroupID:           "core",
+	GroupID:           groupCore,
 	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Validate flag combinations specific to display command

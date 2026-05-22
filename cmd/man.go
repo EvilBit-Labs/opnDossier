@@ -14,7 +14,7 @@ import (
 var manCmd = &cobra.Command{
 	Use:     "man [output-directory]",
 	Short:   "Generate man pages",
-	GroupID: "utility",
+	GroupID: groupUtility,
 	Long: `Generate man pages for opnDossier and all of its commands.
 
 If no output directory is specified, man pages will be written to './man/'.

@@ -22,14 +22,14 @@ func init() {
 	// --json-output is validate-specific: outputs validation errors as JSON for machine consumption.
 	// Scoped here (not on rootCmd) so it only appears on commands that act on it (issue #479).
 	validateCmd.Flags().Bool("json-output", false, "Output errors in JSON format (for machine consumption)")
-	setFlagAnnotation(validateCmd.Flags(), "json-output", []string{"output"})
+	setFlagAnnotation(validateCmd.Flags(), "json-output", []string{categoryOutput})
 }
 
 // validateCmd is the cobra.Command for the validate subcommand.
 var validateCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "validate [file ...]",
 	Short:             "Validate OPNsense configuration files",
-	GroupID:           "utility",
+	GroupID:           groupUtility,
 	ValidArgsFunction: ValidXMLFiles,
 	Long: `The 'validate' command checks one or more OPNsense config.xml files for
 structural and semantic correctness without performing any conversion.

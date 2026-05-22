@@ -10,7 +10,7 @@ import (
 var completionCmd = &cobra.Command{
 	Use:     "completion [bash|zsh|fish|powershell]",
 	Short:   "Generate completion script",
-	GroupID: "utility",
+	GroupID: groupUtility,
 	Long: `To load completions:
 
 Bash:

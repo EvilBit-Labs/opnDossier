@@ -145,13 +145,13 @@ func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceR
 		switch strings.ToLower(f.Severity) {
 		case "critical":
 			totalCritical++
-		case "high":
+		case severityHigh:
 			totalHigh++
-		case "medium":
+		case severityMedium:
 			totalMedium++
-		case "low":
+		case severityLow:
 			totalLow++
-		case "info":
+		case logLevelInfo: // "info" is the severity label and the log level
 			totalInfo++
 		}
 	}

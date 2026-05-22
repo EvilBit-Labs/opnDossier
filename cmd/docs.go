@@ -26,7 +26,7 @@ const defaultDocsOutputDir = "docs/cli/"
 var docsCmd = &cobra.Command{
 	Use:     "docs [output-directory]",
 	Short:   "Generate markdown CLI reference",
-	GroupID: "utility",
+	GroupID: groupUtility,
 	Hidden:  true,
 	Long: `Generate a markdown CLI reference for opnDossier and every subcommand.
 

@@ -75,7 +75,7 @@ func init() {
 
 	configShowCmd.Flags().
 		BoolVar(&configShowJSONOutput, "json", false, "Output configuration in JSON format")
-	setFlagAnnotation(configShowCmd.Flags(), "json", []string{"output"})
+	setFlagAnnotation(configShowCmd.Flags(), "json", []string{categoryOutput})
 }
 
 // runConfigShow executes the config show command.
@@ -115,12 +115,12 @@ func buildConfigValues(cfg *config.Config) []ConfigValue {
 		// Flat fields
 		{Key: "input_file", Value: cfg.InputFile, Source: detectSource(cfg.InputFile, "")},
 		{Key: "output_file", Value: cfg.OutputFile, Source: detectSource(cfg.OutputFile, "")},
-		{Key: "verbose", Value: cfg.Verbose, Source: detectSourceBool(cfg.Verbose, false)},
+		{Key: flagVerbose, Value: cfg.Verbose, Source: detectSourceBool(cfg.Verbose, false)},
 		{Key: "quiet", Value: cfg.Quiet, Source: detectSourceBool(cfg.Quiet, false)},
 		{Key: "theme", Value: cfg.Theme, Source: detectSource(cfg.Theme, "")},
-		{Key: "format", Value: cfg.Format, Source: detectSource(cfg.Format, "markdown")},
+		{Key: categoryFormat, Value: cfg.Format, Source: detectSource(cfg.Format, "markdown")},
 		{Key: "sections", Value: cfg.Sections, Source: detectSourceSlice(cfg.Sections)},
-		{Key: "wrap", Value: cfg.WrapWidth, Source: detectSourceInt(cfg.WrapWidth, -1)},
+		{Key: categoryWrap, Value: cfg.WrapWidth, Source: detectSourceInt(cfg.WrapWidth, -1)},
 		{Key: "json_output", Value: cfg.JSONOutput, Source: detectSourceBool(cfg.JSONOutput, false)},
 		{Key: "minimal", Value: cfg.Minimal, Source: detectSourceBool(cfg.Minimal, false)},
 		{Key: "no_progress", Value: cfg.NoProgress, Source: detectSourceBool(cfg.NoProgress, false)},
@@ -313,14 +313,14 @@ func formatValueForDisplay(value any) string {
 	switch v := value.(type) {
 	case string:
 		if v == "" {
-			return "(empty)"
+			return primitiveEmpty
 		}
 		return v
 	case bool:
 		if v {
-			return "true"
+			return annotationValueOn
 		}
-		return "false"
+		return primitiveFalse
 	case int:
 		return strconv.Itoa(v)
 	case []string:

@@ -36,33 +36,33 @@ func init() {
 
 	// Audit-specific flags (shorter names since this is the dedicated audit command)
 	auditCmd.Flags().
-		StringVar(&auditMode, "mode", "blue", "Audit mode (blue|red)")
-	setFlagAnnotation(auditCmd.Flags(), "mode", []string{"audit"})
+		StringVar(&auditMode, "mode", auditModeBlue, "Audit mode (blue|red)")
+	setFlagAnnotation(auditCmd.Flags(), "mode", []string{categoryAudit})
 
 	auditCmd.Flags().
 		StringSliceVar(&auditPlugins, "plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
-	setFlagAnnotation(auditCmd.Flags(), "plugins", []string{"audit"})
+	setFlagAnnotation(auditCmd.Flags(), "plugins", []string{categoryAudit})
 
 	auditCmd.Flags().
 		StringVar(&auditPluginDir, "plugin-dir", "", pluginDirFlagUsage)
-	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{"audit"})
+	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{categoryAudit})
 
 	auditCmd.Flags().
 		BoolVar(&auditFailuresOnly, "failures-only", false, "Show only failing controls in blue mode plugin results tables")
-	setFlagAnnotation(auditCmd.Flags(), "failures-only", []string{"audit"})
+	setFlagAnnotation(auditCmd.Flags(), "failures-only", []string{categoryAudit})
 
 	// Output and format flags (reuse existing package-level variables)
 	auditCmd.Flags().
-		StringVarP(&format, "format", "f", "markdown", "Output format for audit report (markdown, json, yaml, text, html)")
-	setFlagAnnotation(auditCmd.Flags(), "format", []string{"output"})
+		StringVarP(&format, flagFormat, "f", defaultFormat, "Output format for audit report (markdown, json, yaml, text, html)")
+	setFlagAnnotation(auditCmd.Flags(), flagFormat, []string{categoryOutput})
 
 	auditCmd.Flags().
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving audit report (default: print to console)")
-	setFlagAnnotation(auditCmd.Flags(), "output", []string{"output"})
+	setFlagAnnotation(auditCmd.Flags(), "output", []string{categoryOutput})
 
 	auditCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
-	setFlagAnnotation(auditCmd.Flags(), "force", []string{"output"})
+	setFlagAnnotation(auditCmd.Flags(), "force", []string{categoryOutput})
 
 	// Add shared styling and content flags
 	addSharedContentFlags(auditCmd)
@@ -102,7 +102,7 @@ func registerAuditFlagCompletions(cmd *cobra.Command) {
 var auditCmd = &cobra.Command{
 	Use:               "audit [file ...]",
 	Short:             "Run security audit and compliance checks on OPNsense configurations.",
-	GroupID:           "audit",
+	GroupID:           groupAudit,
 	ValidArgsFunction: ValidXMLFiles,
 	Args:              cobra.MinimumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -117,7 +117,7 @@ var auditCmd = &cobra.Command{
 		normalizeConvertFlags()
 
 		// Validate audit mode
-		validModes := []string{"blue", "red"}
+		validModes := []string{auditModeBlue, auditModeRed}
 		if !slices.Contains(validModes, strings.ToLower(auditMode)) {
 			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
 				auditMode, strings.Join(validModes, ", "))
@@ -126,7 +126,7 @@ var auditCmd = &cobra.Command{
 		// Warn when red mode is selected — its analysis methods are placeholder stubs
 		// that return fabricated metadata. Results will be incomplete until the red
 		// team pipeline is fully implemented.
-		if strings.EqualFold(auditMode, "red") {
+		if strings.EqualFold(auditMode, auditModeRed) {
 			fmt.Fprintf(os.Stderr,
 				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
 		}
@@ -139,13 +139,13 @@ var auditCmd = &cobra.Command{
 
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.
-		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, "blue") {
+		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, auditModeBlue) {
 			return fmt.Errorf("--plugins is only supported with --mode blue; %q mode does not run compliance checks",
 				auditMode)
 		}
 
 		// Reject --failures-only when the selected mode does not execute compliance checks.
-		if auditFailuresOnly && !strings.EqualFold(auditMode, "blue") {
+		if auditFailuresOnly && !strings.EqualFold(auditMode, auditModeBlue) {
 			return fmt.Errorf(
 				"--failures-only is only supported with --mode blue; %q mode does not run compliance checks",
 				auditMode,

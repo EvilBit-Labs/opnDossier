@@ -86,7 +86,7 @@ func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *common.Co
 
 	// Configuration summary table
 	configRows := [][]string{
-		{"**Status**", "Enabled"},
+		{"**Status**", colEnabled},
 		{"**Mode**", detectionMode},
 	}
 
@@ -109,7 +109,7 @@ func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *common.Co
 
 	md.H4("Configuration Summary").
 		Table(markdown.TableSet{
-			Header: []string{"Setting", "Value"},
+			Header: []string{colSetting, colValue},
 			Rows:   configRows,
 		})
 
@@ -157,7 +157,7 @@ func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *common.Co
 
 	md.H4("Logging Configuration").
 		Table(markdown.TableSet{
-			Header: []string{"Setting", "Value"},
+			Header: []string{colSetting, colValue},
 			Rows:   logRows,
 		})
 
@@ -199,7 +199,7 @@ func (b *MarkdownBuilder) WriteFirewallRulesTable(
 func BuildFirewallRulesTableSet(rules []common.FirewallRule) *markdown.TableSet {
 	headers := []string{
 		"#",
-		"Interface",
+		colInterface,
 		"Action",
 		"IP Ver",
 		"Proto",
@@ -208,8 +208,8 @@ func BuildFirewallRulesTableSet(rules []common.FirewallRule) *markdown.TableSet 
 		"Target",
 		"Source Port",
 		"Dest Port",
-		"Enabled",
-		"Description",
+		colEnabled,
+		colDescription,
 	}
 
 	rows := make([][]string, 0, len(rules))

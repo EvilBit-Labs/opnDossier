@@ -53,7 +53,7 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 				})
 			}
 			md.Table(markdown.TableSet{
-				Header: []string{"Option Number", "Type", "Value"},
+				Header: []string{"Option Number", colType, colValue},
 				Rows:   numOptRows,
 			})
 		}
@@ -75,7 +75,7 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 
 	md.H3("DNS Resolver (Unbound)")
 	if data.DNS.Unbound.Enabled {
-		md.PlainTextf("%s: %s", markdown.Bold("Enabled"), formatters.FormatBool(data.DNS.Unbound.Enabled)).LF()
+		md.PlainTextf("%s: %s", markdown.Bold(colEnabled), formatters.FormatBool(data.DNS.Unbound.Enabled)).LF()
 	}
 
 	md.H3("SNMP")
@@ -105,7 +105,7 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 		}
 		md.H3("Load Balancer Monitors").
 			Table(markdown.TableSet{
-				Header: []string{"Name", "Type", "Description"},
+				Header: []string{colName, colType, colDescription},
 				Rows:   rows,
 			})
 	}
@@ -127,8 +127,8 @@ func (b *MarkdownBuilder) WriteDHCPSummaryTable(md *markdown.Markdown, scopes []
 // BuildDHCPSummaryTableSet builds the table data for DHCP scope summary.
 func BuildDHCPSummaryTableSet(scopes []common.DHCPScope) *markdown.TableSet {
 	headers := []string{
-		"Interface",
-		"Enabled",
+		colInterface,
+		colEnabled,
 		"Gateway",
 		"Range Start",
 		"Range End",
@@ -184,7 +184,7 @@ func BuildDHCPStaticLeasesTableSet(leases []common.DHCPStaticLease) *markdown.Ta
 		"Rootpath",
 		"Default Lease",
 		"Max Lease",
-		"Description",
+		colDescription,
 	}
 
 	rows := make([][]string, 0, len(leases))

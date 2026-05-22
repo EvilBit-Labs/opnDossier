@@ -19,9 +19,25 @@ The CLI reference in [docs/cli/](cli/opnDossier.md) is generated from the Cobra 
   - [`config init`](cli/opnDossier_config_init.md)
   - [`config show`](cli/opnDossier_config_show.md)
   - [`config validate`](cli/opnDossier_config_validate.md)
+- [`list`](cli/opnDossier_list.md) — enumerate supported capabilities (agent-friendly)
+  - [`list plugins`](cli/opnDossier_list_plugins.md)
+  - [`list devices`](cli/opnDossier_list_devices.md)
+  - [`list formats`](cli/opnDossier_list_formats.md)
 - [`man`](cli/opnDossier_man.md) — generate man pages
 - [`completion`](cli/opnDossier_completion.md) — shell completion scripts
 - [`version`](cli/opnDossier_version.md)
+
+## Capability discovery
+
+Use the `list` subcommand group to enumerate what the running binary supports without parsing `--help` text. Each subcommand emits one name per line by default, or a JSON array of objects with `--json`. Pass the discovered names directly to `--device-type`, `--format`, or `--plugins` on the consuming commands.
+
+| Question                                                | Command                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Which compliance plugins are available?                 | `opnDossier list plugins --json` (add `--plugin-dir DIR` to include dynamic `.so` plugins) |
+| Which device parsers can I target with `--device-type`? | `opnDossier list devices --json`                                                           |
+| Which output formats can I pass to `--format`?          | `opnDossier list formats --json`                                                           |
+
+JSON shape is stable: `list plugins` returns `[{"name", "description", "version"}]`; `list devices` and `list formats` return `[{"name", "description"}]`. Empty registries return `[]` (never `null`) and exit code `0`.
 
 ## Machine-readable output formats
 

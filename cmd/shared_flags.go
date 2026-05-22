@@ -72,7 +72,7 @@ func addSharedContentFlags(cmd *cobra.Command) {
 
 	cmd.Flags().
 		BoolVar(&sharedComprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
-	setFlagAnnotation(cmd.Flags(), "comprehensive", []string{"audit"})
+	setFlagAnnotation(cmd.Flags(), "comprehensive", []string{categoryAudit})
 }
 
 // addDisplayFlags adds display-related CLI flags to cmd.
@@ -81,7 +81,7 @@ func addSharedContentFlags(cmd *cobra.Command) {
 func addDisplayFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringVar(&sharedTheme, "theme", "", "Theme for rendering output (light, dark, auto, none)")
-	setFlagAnnotation(cmd.Flags(), "theme", []string{"display"})
+	setFlagAnnotation(cmd.Flags(), "theme", []string{categoryDisplay})
 }
 
 // addSharedRedactFlag adds the --redact flag to cmd for redacting sensitive fields
@@ -89,7 +89,7 @@ func addDisplayFlags(cmd *cobra.Command) {
 func addSharedRedactFlag(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedRedact, "redact", false, "Redact sensitive fields (passwords, keys, community strings) in output")
-	setFlagAnnotation(cmd.Flags(), "redact", []string{"output"})
+	setFlagAnnotation(cmd.Flags(), "redact", []string{categoryOutput})
 }
 
 // Constants for flag validation.
@@ -197,17 +197,17 @@ func ValidXMLFiles(_ *cobra.Command, _ []string, toComplete string) ([]string, c
 // When registering a new format in the DefaultRegistry, add a description here too.
 // Missing entries fall back to a generic description.
 var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
-	"markdown": "Standard markdown format (default)",
-	"json":     "JSON format for programmatic access",
-	"yaml":     "YAML format for configuration management",
-	"text":     "Plain text format (markdown without formatting)",
-	"html":     "Self-contained HTML report for web viewing",
+	outputFormatMarkdown: "Standard markdown format (default)",
+	outputFormatJSON:     "JSON format for programmatic access",
+	outputFormatYAML:     "YAML format for configuration management",
+	outputFormatText:     "Plain text format (markdown without formatting)",
+	outputFormatHTML:     "Self-contained HTML report for web viewing",
 }
 
 // deviceTypeDescriptions maps registered device types to their shell completion descriptions.
 var deviceTypeDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
-	"opnsense": "OPNsense firewall configuration",
-	"pfsense":  "pfSense firewall configuration",
+	deviceNameOPNsense: "OPNsense firewall configuration",
+	deviceNamePfSense:  "pfSense firewall configuration",
 }
 
 // ValidFormats provides shell completion for output format values.
@@ -269,9 +269,9 @@ func ValidAuditModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Sh
 // pluginDescriptions maps audit plugin names to their shell completion descriptions.
 // Plugins not in this map receive a generic "<name> plugin" description.
 var pluginDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
-	"stig":     "Security Technical Implementation Guide",
-	"sans":     "SANS Firewall Baseline",
-	"firewall": "Firewall Configuration Analysis",
+	pluginNameStig:     "Security Technical Implementation Guide",
+	pluginNameSans:     "SANS Firewall Baseline",
+	pluginNameFirewall: "Firewall Configuration Analysis",
 }
 
 // cachedPluginNames holds the result of a one-time PluginManager initialization.

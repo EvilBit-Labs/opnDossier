@@ -137,7 +137,7 @@ func ValidDiffSections(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 var diffCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "diff <old-config.xml> <new-config.xml>",
 	Short:             "Compare two OPNsense configuration files.",
-	GroupID:           "core",
+	GroupID:           groupCore,
 	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(_ *cobra.Command, _ []string) error {
 		return validateDiffFlags()
