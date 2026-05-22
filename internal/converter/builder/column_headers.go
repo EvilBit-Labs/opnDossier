@@ -13,7 +13,9 @@ package builder
 
 // Shared markdown table column headers. Repeated across the per-section
 // builder_*.go files so report tables align visually under the same
-// column when consumers concatenate sections.
+// column when consumers concatenate sections. Use these ONLY in `Header`
+// slices of a TableSet — see labelEnabled / labelMode below for the cell
+// or field-label variants.
 const (
 	colDescription = "Description"
 	colStatus      = "Status"
@@ -27,4 +29,14 @@ const (
 	colProtocol    = "Protocol"
 	colName        = "Name"
 	colTitle       = "Title"
+)
+
+// Field labels and cell values that share string value with column headers
+// but appear in different semantic positions — bold inline labels
+// ("**Enabled**: true"), row labels in two-column tables, or status cell
+// values. Kept as separate constants so renaming a column header for
+// alignment never silently retags an unrelated label or value.
+const (
+	labelEnabled = "Enabled"
+	labelMode    = "Mode"
 )

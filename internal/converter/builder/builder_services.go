@@ -75,7 +75,7 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 
 	md.H3("DNS Resolver (Unbound)")
 	if data.DNS.Unbound.Enabled {
-		md.PlainTextf("%s: %s", markdown.Bold(colEnabled), formatters.FormatBool(data.DNS.Unbound.Enabled)).LF()
+		md.PlainTextf("%s: %s", markdown.Bold(labelEnabled), formatters.FormatBool(data.DNS.Unbound.Enabled)).LF()
 	}
 
 	md.H3("SNMP")

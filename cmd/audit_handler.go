@@ -151,7 +151,7 @@ func mapAuditReportToComplianceResults(report *audit.Report) *common.ComplianceR
 			totalMedium++
 		case severityLow:
 			totalLow++
-		case logLevelInfo: // "info" is the severity label and the log level
+		case severityInfo:
 			totalInfo++
 		}
 	}

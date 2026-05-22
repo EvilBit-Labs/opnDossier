@@ -75,8 +75,12 @@ const (
 // Severity strings used in human-facing CLI output (audit findings table,
 // help text). Mirror internal/analysis.SeverityXxx values, kept as raw
 // strings here because the CLI surfaces these as plain text — not as the
-// typed Severity enum.
+// typed Severity enum. severityInfo matches the lowercase severity label
+// from analysis.SeverityInfo; logLevelInfo (above) shares the same string
+// value but is semantically a log level. The split is intentional so
+// renaming one does not silently retag the other.
 const (
+	severityInfo   = "info"
 	severityHigh   = "high"
 	severityMedium = "medium"
 	severityLow    = "low"
@@ -84,8 +88,7 @@ const (
 
 // Config section names that recur in config-show / config-validate routing.
 const (
-	configSectionExport  = "export"
-	configSectionDisplay = "display"
+	configSectionExport = "export"
 )
 
 // Display-related primitives.

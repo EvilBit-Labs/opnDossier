@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
@@ -70,7 +69,7 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 		pm.SetPluginDir(listPluginsPluginDir, true)
 	}
 
-	if err := pm.InitializePlugins(context.Background()); err != nil {
+	if err := pm.InitializePlugins(cmd.Context()); err != nil {
 		return fmt.Errorf("initialize plugins: %w", err)
 	}
 

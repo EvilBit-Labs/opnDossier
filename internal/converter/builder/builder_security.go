@@ -86,7 +86,7 @@ func (b *MarkdownBuilder) writeIDSSection(md *markdown.Markdown, data *common.Co
 
 	// Configuration summary table
 	configRows := [][]string{
-		{"**Status**", colEnabled},
+		{"**Status**", labelEnabled},
 		{"**Mode**", detectionMode},
 	}
 

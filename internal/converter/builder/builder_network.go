@@ -78,7 +78,7 @@ func buildInterfaceDetails(md *markdown.Markdown, iface common.Interface) {
 	if iface.PhysicalIf != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.PhysicalIf).LF()
 	}
-	md.PlainTextf("%s: %s", markdown.Bold(colEnabled), formatters.FormatBool(iface.Enabled)).LF()
+	md.PlainTextf("%s: %s", markdown.Bold(labelEnabled), formatters.FormatBool(iface.Enabled)).LF()
 	if iface.IPAddress != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Address"), iface.IPAddress).LF()
 	}

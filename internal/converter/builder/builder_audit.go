@@ -130,7 +130,7 @@ func writeAuditSummary(md *markdown.Markdown, cc *common.ComplianceResults) {
 	md.Table(markdown.TableSet{
 		Header: []string{"Metric", colValue},
 		Rows: [][]string{
-			{colMode, cc.Mode},
+			{labelMode, cc.Mode},
 			{"Total Findings", strconv.Itoa(totalFindings)},
 			{"Compliant", strconv.Itoa(totalCompliant)},
 			{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
