@@ -18,7 +18,11 @@ var listCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Short:   "Enumerate supported plugins, devices, and output formats",
 	GroupID: groupUtility,
 	Annotations: map[string]string{
-		annotationLightweight: annotationValueOn, // Parent emits help only; no heavy init.
+		// Applies only when `opnDossier list` is invoked alone — Cobra falls
+		// back to help, no heavy init needed. Subcommands set their own
+		// annotation independently: devices/formats are also lightweight,
+		// plugins is not (InitializePlugins runs there).
+		annotationLightweight: annotationValueOn,
 	},
 	Args: cobra.NoArgs,
 	Long: `The 'list' command group enumerates the capabilities the running opnDossier
@@ -85,9 +89,23 @@ func emitList(out io.Writer, items []listEntry, asJSON bool) error {
 	return nil
 }
 
-// listEntry is the shared interface implemented by per-subcommand entry types.
-// Text mode writes only the name(); JSON mode marshals the concrete type so
-// each subcommand can expose its own description/version/etc. fields.
+// listEntry is the shared interface implemented by per-subcommand entry
+// types. Text mode writes only the name(); JSON mode marshals the concrete
+// type so each subcommand can expose its own description/version/etc.
+// fields.
+//
+// Implementer contract:
+//   - JSON-marshal MUST produce an object containing a `name` field equal to
+//     the value returned by name(). This is what makes the
+//     interface-vs-JSON-envelope split coherent — text-mode consumers and
+//     JSON consumers both see the same identifying name for each entry.
+//   - name() MUST return a non-empty, line-safe string (no embedded
+//     newlines). The text-mode path emits one entry per line; an embedded
+//     newline would corrupt downstream parsers.
+//
+// Compliance is asserted by TestEmitList_JSONNameMatchesInterfaceName in
+// list_test.go. New listEntry implementers should be added to that test's
+// fixture table.
 type listEntry interface {
 	name() string
 }

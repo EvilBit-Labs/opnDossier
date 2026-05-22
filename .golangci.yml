@@ -125,8 +125,9 @@ linters:
       # SA1019 deprecation warnings are expected in these test files — they
       # exist specifically to exercise the deprecated config.Config flat
       # fields (Verbose, Debug, Quiet, Theme, Format) until v2.0 removal.
-      # See GOTCHAS §21 "Config Flat→Nested Deprecation" and CHANGELOG
-      # Unreleased/Deprecated for removal tracking.
+      # See CHANGELOG Unreleased/Deprecated for removal tracking; the
+      # cmd/config_show.go comment block at line 110 documents the same
+      # backward-compat rationale at the read site.
       - path: 'internal/config/(config_test|config_coverage_test|validation_test)\.go$'
         linters: [staticcheck]
         text: 'SA1019:'

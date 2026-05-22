@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -106,6 +107,23 @@ func TestListFormats_SortStability(t *testing.T) {
 	t.Cleanup(func() { listFormatsCmd.SetOut(nil) })
 
 	assert.Equal(t, buf1.String(), buf2.String(), "two consecutive invocations must produce identical output")
+}
+
+// TestListFormats_DescriptionMapCovered guards against drift where a format
+// handler is added to converter.DefaultRegistry but no matching
+// description-map entry is added to cmd/shared_flags.go. Without this
+// test the user sees the fallback "<name> format" description with no
+// signal that maintainer intent is missing.
+func TestListFormats_DescriptionMapCovered(t *testing.T) {
+	for _, name := range converter.DefaultRegistry.ValidFormats() {
+		_, ok := formatDescriptions[name]
+		assert.True(
+			t,
+			ok,
+			"converter.DefaultRegistry exposes format %q with no formatDescriptions entry — add one in cmd/shared_flags.go",
+			name,
+		)
+	}
 }
 
 // TestListFormats_JSONShapeContract pins the JSON envelope shape so future

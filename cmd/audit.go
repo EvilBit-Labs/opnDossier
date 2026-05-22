@@ -136,8 +136,13 @@ var auditCmd = &cobra.Command{
 		// Mirrors the red-mode precedent above so the user sees the risk at the
 		// moment they opt into dynamic plugin loading. Route through
 		// cmd.ErrOrStderr() rather than os.Stderr so tests can capture the
-		// warning (matches cmd/list_plugins.go's stream choice).
-		warnPluginDirTrustModel(cmd.ErrOrStderr(), auditPluginDir)
+		// warning (matches cmd/list_plugins.go's stream choice). Write errors
+		// are fatal — silently loading a dynamic .so without surfacing the
+		// trust-model warning is the regression this function exists to
+		// prevent.
+		if err := warnPluginDirTrustModel(cmd.ErrOrStderr(), auditPluginDir); err != nil {
+			return fmt.Errorf("emit trust-model warning: %w", err)
+		}
 
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.

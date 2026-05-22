@@ -72,4 +72,5 @@ func init() {
 		false,
 		"Emit a JSON array of {name, description} objects",
 	)
+	setFlagAnnotation(listFormatsCmd.Flags(), "json", []string{categoryOutput})
 }

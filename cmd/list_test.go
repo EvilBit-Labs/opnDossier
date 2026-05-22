@@ -32,6 +32,57 @@ func TestListCmd_Structure(t *testing.T) {
 	assert.True(t, listCmd.HasSubCommands(), "list must have subcommands registered via init()")
 }
 
+func TestListCmd_NoSubcommandPrintsHelp(t *testing.T) {
+	// Bare `opnDossier list` (no subcommand) should print help listing the
+	// three subcommands and exit 0. Cobra renders help by default for a
+	// parent without RunE; this test pins that behavior so a future
+	// contributor adding an unexpected RunE to listCmd fails the assertion.
+	root := GetRootCmd()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(buf)
+	root.SetArgs([]string{"list"})
+	t.Cleanup(func() {
+		root.SetArgs(nil)
+		root.SetOut(nil)
+		root.SetErr(nil)
+	})
+
+	require.NoError(t, root.Execute())
+	out := buf.String()
+	assert.Contains(t, out, "plugins", "help must mention plugins subcommand")
+	assert.Contains(t, out, "devices", "help must mention devices subcommand")
+	assert.Contains(t, out, "formats", "help must mention formats subcommand")
+}
+
+func TestListCmd_UnknownSubcommandFallsBackToHelp(t *testing.T) {
+	// The original plan called for unknown subcommands to error and exit
+	// non-zero. The actual Cobra wiring in this codebase falls back to
+	// printing help with exit 0 (matches the project's `config` parent
+	// command behavior — see cmd/config.go). Pin THAT contract so the
+	// fallback doesn't silently mutate into something else.
+	//
+	// Agents that need to detect typos should compare the printed output
+	// against the expected subcommand list — the parent's help text always
+	// names the three registered children.
+	root := GetRootCmd()
+	buf := &bytes.Buffer{}
+	root.SetOut(buf)
+	root.SetErr(buf)
+	root.SetArgs([]string{"list", "definitely-not-a-real-subcommand"})
+	t.Cleanup(func() {
+		root.SetArgs(nil)
+		root.SetOut(nil)
+		root.SetErr(nil)
+	})
+
+	require.NoError(t, root.Execute(), "Cobra falls back to help on unknown subcommand")
+	out := buf.String()
+	assert.Contains(t, out, "plugins", "fallback help must still list the subcommands")
+	assert.Contains(t, out, "devices")
+	assert.Contains(t, out, "formats")
+}
+
 func TestListCmd_RegisteredSubcommands(t *testing.T) {
 	// The three subcommands the NATS-148 contract promises. New subcommands
 	// added later should also appear here so this test serves as a registry
@@ -94,4 +145,34 @@ func TestEmitList_JSONMode_EmptyInputWritesEmptyArray(t *testing.T) {
 	var decoded []listTestEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
 	assert.Empty(t, decoded, "empty registry must emit JSON [] (not null)")
+}
+
+// TestEmitList_JSONNameMatchesInterfaceName pins the implicit contract that
+// every listEntry implementer marshals to a JSON object whose `name` field
+// equals the value returned by the interface's name() method. Without this,
+// a future struct satisfying listEntry could ship to agents with a missing
+// or mismatched `name` field and only manual inspection would catch it.
+func TestEmitList_JSONNameMatchesInterfaceName(t *testing.T) {
+	cases := []listEntry{
+		deviceEntry{Name: "opnsense", Description: "x"},
+		formatEntry{Name: "json", Description: "x"},
+		pluginEntry{Name: "stig", Description: "x", Version: "1.0"},
+	}
+
+	for _, entry := range cases {
+		t.Run(entry.name(), func(t *testing.T) {
+			buf := &bytes.Buffer{}
+			require.NoError(t, emitList(buf, []listEntry{entry}, true))
+
+			var decoded []map[string]any
+			require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
+			require.Len(t, decoded, 1)
+			assert.Equal(
+				t,
+				entry.name(),
+				decoded[0]["name"],
+				"JSON `name` field must equal interface name() return value",
+			)
+		})
+	}
 }

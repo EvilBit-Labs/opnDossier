@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
+	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,15 +98,24 @@ func TestListPlugins_PluginDirTriggersTrustModelWarning(t *testing.T) {
 	require.Error(t, err, "explicit missing plugin dir must surface an error")
 
 	// But the trust-model warning should already have been written before
-	// the error fired.
+	// the error fired. Anchor the assertions on distinguishing fragments of
+	// the actual security message — not just "Warning:" — so a future
+	// "make this prettier" rewrite that loses the security content fails
+	// this test.
 	warning := stderr.String()
+	assert.Contains(t, warning, "--plugin-dir", "warning must mention the flag")
 	assert.Contains(
 		t,
 		warning,
-		"Warning:",
-		"trust-model warning must be emitted to stderr when --plugin-dir is supplied",
+		"dynamic .so plugins",
+		"warning must explicitly call out dynamic shared object loading",
 	)
-	assert.Contains(t, warning, "--plugin-dir", "warning must mention the flag")
+	assert.Contains(
+		t,
+		warning,
+		"full process privileges",
+		"warning must convey privilege escalation risk to the operator",
+	)
 }
 
 func TestListPlugins_NotLightweight(t *testing.T) {
@@ -154,9 +165,13 @@ func TestListPlugins_SortStability(t *testing.T) {
 }
 
 // TestListPlugins_JSONShapeContract pins the JSON envelope shape for the
-// plugins subcommand. Field set is `name`, `description`, `version`. Future
-// adds are forward-compatible, but renames or removals must surface as a
-// failing test (not a silent agent-side regression).
+// plugins subcommand. The v1 schema is `name`, `description`, `version`
+// (required) plus optional `status` and `loadError` for failure paths.
+// Future field adds are forward-compatible; renames or removals must
+// surface as a failing test (not a silent agent-side regression).
+//
+// On a clean built-in run no entries should carry a `status` field —
+// Status is omitted from JSON when "ok" so the common case stays minimal.
 func TestListPlugins_JSONShapeContract(t *testing.T) {
 	listPluginsTestCleanup(t)
 	listPluginsJSONOutput = true
@@ -175,18 +190,25 @@ func TestListPlugins_JSONShapeContract(t *testing.T) {
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &generic))
 	require.NotEmpty(t, generic, "built-in plugin registry must contain entries")
 
-	expectedKeys := map[string]bool{"name": true, "description": true, "version": true}
+	// Required and optional keys per the v1 schema.
+	requiredKeys := map[string]bool{"name": true, "description": true, "version": true}
+	optionalKeys := map[string]bool{"status": true, "loadError": true}
+
 	for i, entry := range generic {
-		require.Len(t, entry, len(expectedKeys), "entry %d must have %d fields", i, len(expectedKeys))
 		for k := range entry {
 			assert.True(
 				t,
-				expectedKeys[k],
-				"entry %d has unexpected key %q (v1 schema is name, description, version)",
+				requiredKeys[k] || optionalKeys[k],
+				"entry %d has unexpected key %q (v1 schema is name, description, version, optionally status, loadError)",
 				i,
 				k,
 			)
 		}
+		for k := range requiredKeys {
+			_, present := entry[k]
+			assert.True(t, present, "entry %d missing required key %q", i, k)
+		}
+		// Field types
 		_, nameOk := entry["name"].(string)
 		_, descOk := entry["description"].(string)
 		_, verOk := entry["version"].(string)
@@ -198,22 +220,23 @@ func TestListPlugins_JSONShapeContract(t *testing.T) {
 			t,
 			entry["version"],
 			"entry %d: version must be non-empty (fallback to %q applies)",
-			i,
-			versionUnknown,
+			i, versionUnknown,
 		)
+		// Built-in plugins should not carry a status field — Status="ok"
+		// is omitted from JSON via `omitempty`.
+		_, hasStatus := entry["status"]
+		assert.False(t, hasStatus, "entry %d (%q) is a built-in and must not emit status field", i, entry["name"])
 	}
 }
 
 // TestListPlugins_FallbackVersionWhenLookupFails stresses the
-// readPluginMetadata fallback path: GetPlugin returns ErrPluginNotFound
-// for a name absent from the registry. The helper must return a populated
-// entry with Version=versionUnknown rather than an empty Version that
-// would violate the JSON envelope's non-empty Version contract.
+// readPluginMetadata lookup-failure path: GetPlugin returns
+// ErrPluginNotFound for a name absent from the registry. The helper must
+// return a populated entry with Version=versionUnknown and
+// Status=pluginStatusLookupFailed rather than an empty entry that would
+// violate the JSON envelope's non-empty-Version contract or silently look
+// like a normal "ok" entry.
 func TestListPlugins_FallbackVersionWhenLookupFails(t *testing.T) {
-	// Stress the readPluginMetadata fallback path: GetPlugin returns
-	// ErrPluginNotFound for a name absent from the registry. The helper
-	// must return a populated entry with Version=versionUnknown rather
-	// than an empty Version that would violate the JSON contract.
 	listPluginsTestCleanup(t)
 
 	pm := audit.NewPluginManager(logger, nil)
@@ -222,4 +245,117 @@ func TestListPlugins_FallbackVersionWhenLookupFails(t *testing.T) {
 	entry := readPluginMetadata(pm.GetRegistry(), "no-such-plugin-name-for-test")
 	assert.Equal(t, "no-such-plugin-name-for-test", entry.Name)
 	assert.Equal(t, versionUnknown, entry.Version, "fallback path must populate Version with %q", versionUnknown)
+	assert.Equal(t, pluginStatusLookupFailed, entry.Status, "lookup-failed entries must carry Status=lookup-failed")
 }
+
+// panicMetadataPlugin is a test fixture that panics from Description() or
+// Version(). Name() never panics because the audit registry calls Name()
+// during RegisterPlugin (internal/audit/plugin.go) — a plugin that panicked
+// in Name() would fail to register and never reach readPluginMetadata at
+// enumeration time. The realistic enumeration-time DoS vectors are
+// Description() and Version().
+type panicMetadataPlugin struct {
+	pluginName string
+	panicOn    string // "Description" | "Version"
+}
+
+func (p *panicMetadataPlugin) Name() string { return p.pluginName }
+
+func (p *panicMetadataPlugin) Description() string {
+	if p.panicOn == "Description" {
+		panic("simulated plugin Description() crash")
+	}
+
+	return "panic-test plugin"
+}
+
+func (p *panicMetadataPlugin) Version() string {
+	if p.panicOn == "Version" {
+		panic("simulated plugin Version() crash")
+	}
+
+	return "v0.0.0"
+}
+
+// RunChecks satisfies the compliance.Plugin interface; the three-value
+// return signature comes from the interface, not this fixture.
+//
+//nolint:gocritic // unnamedResult fires on the interface-dictated signature
+func (p *panicMetadataPlugin) RunChecks(_ *common.CommonDevice) ([]compliance.Finding, []string, error) {
+	return nil, nil, nil
+}
+
+func (p *panicMetadataPlugin) GetControls() []compliance.Control { return nil }
+
+func (p *panicMetadataPlugin) GetControlByID(_ string) (*compliance.Control, error) {
+	return nil, compliance.ErrControlNotFound
+}
+
+func (p *panicMetadataPlugin) ValidateConfiguration() error { return nil }
+
+// TestReadPluginMetadata_RecoversFromVersionPanic pins the fault-isolation
+// contract: a plugin whose Description() or Version() panics must not crash
+// `list plugins`. The recovered entry carries Status="panicked" so JSON
+// consumers can detect the failure without scraping stderr. (Name() is not
+// tested here — see panicMetadataPlugin's doc for why.)
+func TestReadPluginMetadata_RecoversFromVersionPanic(t *testing.T) {
+	cases := []struct {
+		name    string
+		panicOn string
+	}{
+		{"panic in Description", "Description"},
+		{"panic in Version", "Version"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := audit.NewPluginRegistry()
+			require.NoError(t, reg.RegisterPlugin(&panicMetadataPlugin{
+				pluginName: "panic-test-" + tc.panicOn,
+				panicOn:    tc.panicOn,
+			}))
+
+			entry := readPluginMetadata(reg, "panic-test-"+tc.panicOn)
+			assert.Equal(
+				t,
+				pluginStatusPanicked,
+				entry.Status,
+				"panic in %s must produce Status=panicked",
+				tc.panicOn,
+			)
+			assert.NotEmpty(t, entry.Name, "Name must be non-empty even after panic")
+			assert.Equal(t, versionUnknown, entry.Version, "Version must default to %q after panic", versionUnknown)
+		})
+	}
+}
+
+// TestListPlugins_LoadFailureSurfacesInJSON verifies that dynamic plugin
+// load failures appear as load-failed entries in the JSON envelope (not
+// only on stderr). Without this, agents piping --json | jq cannot detect
+// partial-load conditions and may treat a degraded enumeration as
+// authoritative.
+func TestListPlugins_LoadFailureSurfacesInJSON(t *testing.T) {
+	// Build a load failure directly: feed a constructed entry through the
+	// constructor and through emitList, then re-parse to confirm shape.
+	entry := newLoadFailedEntry("evil.so", assertableError{msg: "preflight rejected: world-writable"})
+	assert.Equal(t, "evil.so", entry.Name)
+	assert.Equal(t, pluginStatusLoadFailed, entry.Status, "load-failed entries must carry the documented Status")
+	assert.Equal(t, versionUnknown, entry.Version)
+	assert.Contains(t, entry.LoadError, "world-writable")
+
+	// Round-trip through JSON to confirm the loadError field surfaces.
+	buf := &bytes.Buffer{}
+	require.NoError(t, emitList(buf, []listEntry{entry}, true))
+
+	var decoded []map[string]any
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
+	require.Len(t, decoded, 1)
+	assert.Equal(t, pluginStatusLoadFailed, decoded[0]["status"])
+	assert.Contains(t, decoded[0]["loadError"], "world-writable")
+}
+
+// assertableError is a minimal error fixture for tests that need a known
+// error message in the JSON loadError field.
+type assertableError struct{ msg string }
+
+func (e assertableError) Error() string { return e.msg }

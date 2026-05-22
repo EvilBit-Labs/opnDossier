@@ -16,21 +16,84 @@ var listPluginsJSONOutput bool //nolint:gochecknoglobals // Cobra flag variable
 // warnPluginDirTrustModel fires on stderr (matching `audit --plugin-dir`).
 var listPluginsPluginDir string //nolint:gochecknoglobals // Cobra flag variable
 
-// versionUnknown is the Version field substitute when per-plugin metadata
-// cannot be read (registry-lookup failure or panic in plugin.Version()).
-// Keeps the JSON envelope's Version field non-empty so machine consumers
-// can rely on its presence even in defensive paths.
+// Plugin entry Status values. The Status field on pluginEntry distinguishes
+// successful enumeration from the failure paths so JSON consumers can
+// detect issues without guessing from a sentinel Version value (which can
+// collide with plugins that legitimately self-report any string,
+// including "unknown"). A normal entry leaves Status as "" so the field
+// is omitted from JSON via `omitempty`; failure entries carry one of the
+// pluginStatus* constants below.
+const (
+	pluginStatusPanicked      = "panicked"       // Name/Description/Version panicked
+	pluginStatusLookupFailed  = "lookup-failed"  // ListPlugins returned a name GetPlugin can't resolve
+	pluginStatusLoadFailed    = "load-failed"    // Dynamic .so failed preflight or plugin.Open
+	pluginStatusVersionFilled = "version-filled" // Version was empty, fallback applied
+)
+
+// versionUnknown substitutes for an empty Version when a plugin reports ""
+// but otherwise loaded successfully. Status="version-filled" signals the
+// substitution so consumers don't conflate it with a plugin that genuinely
+// self-reports "unknown".
 const versionUnknown = "unknown"
 
 // pluginEntry is the per-plugin record emitted by `list plugins --json`.
-// In text mode only Name is rendered; Description and Version are JSON-only.
+// In text mode only Name is rendered; the remaining fields are JSON-only.
+//
+// Status is omitted from JSON when "ok" so the common-case envelope stays
+// minimal. LoadError is populated only when Status == pluginStatusLoadFailed.
+//
+// Invariants enforced by the constructors (newPluginEntry / newLoadFailedEntry):
+//   - Name is always non-empty.
+//   - Version is always non-empty (versionUnknown when no real value available).
+//   - Status is one of the pluginStatus* constants.
+//
+// Direct struct literals bypass these invariants; prefer the constructors.
 type pluginEntry struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Version     string `json:"version"`
+	Status      string `json:"status,omitempty"`
+	LoadError   string `json:"loadError,omitempty"`
 }
 
 func (e pluginEntry) name() string { return e.Name }
+
+// newPluginEntry constructs an entry with non-empty Version. The common
+// success case leaves Status as "" so the JSON envelope stays minimal
+// (omitempty drops the field). If the plugin's Version() reports empty,
+// the entry is marked pluginStatusVersionFilled so consumers can tell the
+// fallback fired and that the plugin's self-reported version is not
+// available.
+func newPluginEntry(name, description, version string) pluginEntry {
+	entry := pluginEntry{
+		Name:        name,
+		Description: description,
+		Version:     version,
+	}
+	if version == "" {
+		entry.Version = versionUnknown
+		entry.Status = pluginStatusVersionFilled
+	}
+
+	return entry
+}
+
+// newLoadFailedEntry constructs an entry representing a dynamic plugin that
+// failed preflight or plugin.Open. Carries the underlying error message so
+// the JSON envelope is self-describing — agents don't need to scrape stderr.
+func newLoadFailedEntry(name string, err error) pluginEntry {
+	msg := ""
+	if err != nil {
+		msg = err.Error()
+	}
+
+	return pluginEntry{
+		Name:      name,
+		Version:   versionUnknown,
+		Status:    pluginStatusLoadFailed,
+		LoadError: msg,
+	}
+}
 
 // listPluginsCmd enumerates the compliance plugins the running binary can use.
 // Built-in plugins are always shown; dynamic .so plugins appear when an
@@ -51,7 +114,10 @@ directory containing them; that flag triggers the same trust-model warning
 and preflight checks that the audit command applies.
 
 By default the command writes one plugin name per line. Use --json to emit a
-structured array of {name, description, version} objects.`,
+structured array of {name, description, version, status, loadError?}
+objects. Status is "ok" for normal entries (and omitted from JSON), or one
+of "panicked", "lookup-failed", "load-failed", "version-filled" when the
+metadata could not be read normally.`,
 	Example: `  # Plain text, one plugin name per line
   opnDossier list plugins
 
@@ -65,8 +131,13 @@ structured array of {name, description, version} objects.`,
 
 func runListPlugins(cmd *cobra.Command, _ []string) error {
 	// Surface the dynamic-plugin trust-model warning whenever --plugin-dir
-	// is supplied, mirroring the audit command (cmd/audit.go).
-	warnPluginDirTrustModel(cmd.ErrOrStderr(), listPluginsPluginDir)
+	// is supplied, mirroring the audit command (cmd/audit.go). Treat write
+	// failure as fatal since this is a security-sensitive disclosure: better
+	// to abort than to load a dynamic .so without the operator having seen
+	// the warning.
+	if err := warnPluginDirTrustModel(cmd.ErrOrStderr(), listPluginsPluginDir); err != nil {
+		return fmt.Errorf("emit trust-model warning: %w", err)
+	}
 
 	pm := audit.NewPluginManager(logger, nil)
 	if listPluginsPluginDir != "" {
@@ -79,28 +150,26 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("initialize plugins: %w", err)
 	}
 
-	// Surface any dynamic plugin load failures. Per-plugin failures are
-	// non-fatal in InitializePlugins (the registry skips them), so without
-	// this loop an operator passing --plugin-dir cannot distinguish a
-	// successfully-loaded set from one where every .so was rejected.
-	// Mirrors cmd/audit_handler.go behavior so the list command does not
-	// silently swallow failures that audit would surface.
-	loadResult := pm.GetLoadResult()
-	if loadResult.Failed() > 0 {
-		for _, f := range loadResult.Failures {
-			logger.Warn("Dynamic plugin failed to load",
-				"plugin", f.Name,
-				"error", f.Err,
-			)
-		}
-	}
-
 	registry := pm.GetRegistry()
 	names := registry.ListPlugins()
-	entries := make([]listEntry, 0, len(names))
+
+	// Surface dynamic plugin load failures both via WARN logs (legacy
+	// stderr surface) AND inline in the JSON envelope as load-failed
+	// entries (machine-readable). Agents piping --json | jq no longer
+	// need to scrape stderr to detect partial loads.
+	loadResult := pm.GetLoadResult()
+	entries := make([]listEntry, 0, len(names)+loadResult.Failed())
 
 	for _, n := range names {
 		entries = append(entries, readPluginMetadata(registry, n))
+	}
+
+	for _, f := range loadResult.Failures {
+		logger.Warn("Dynamic plugin failed to load",
+			"plugin", f.Name,
+			"error", f.Err,
+		)
+		entries = append(entries, newLoadFailedEntry(f.Name, f.Err))
 	}
 
 	return emitList(cmd.OutOrStdout(), entries, listPluginsJSONOutput)
@@ -111,11 +180,24 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 // audit.PluginRegistry.RunComplianceChecks has equivalent recovery
 // (GOTCHAS.md §2.2); list plugins inherits the same fault-isolation
 // requirement because the metadata getters can call into untrusted .so code.
-// Returns a populated pluginEntry on every path; on panic or registry
-// lookup failure, Version defaults to versionUnknown so the JSON envelope's
-// non-empty-Version invariant holds.
-func readPluginMetadata(registry *audit.PluginRegistry, name string) pluginEntry {
-	entry := pluginEntry{Name: name, Version: versionUnknown}
+// Returns a populated pluginEntry on every path; the returned Status field
+// distinguishes "ok" / "panicked" / "lookup-failed" / "version-filled".
+//
+// The named return is required so the deferred recover can preserve the
+// pre-populated panic-fallback entry — Go returns the zero value on
+// recover() in unnamed-return functions, which would erase the Name and
+// versionUnknown defaults populated below.
+//
+//nolint:nonamedreturns // intentional: defer/recover needs to mutate the return value
+func readPluginMetadata(registry *audit.PluginRegistry, name string) (entry pluginEntry) {
+	// Seed the entry with safe defaults tagged "panicked". Success paths
+	// overwrite the whole value via newPluginEntry below; if a metadata
+	// getter panics, the defer/recover fires and this seed survives.
+	entry = pluginEntry{
+		Name:    name,
+		Version: versionUnknown,
+		Status:  pluginStatusPanicked,
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -129,33 +211,22 @@ func readPluginMetadata(registry *audit.PluginRegistry, name string) pluginEntry
 	p, err := registry.GetPlugin(name)
 	if err != nil {
 		// Should be unreachable — ListPlugins and GetPlugin read the
-		// same underlying map (GOTCHAS.md §2.2 note in plugin_manager.go).
-		// If it does happen, log and keep the default entry so JSON
-		// consumers see Version="unknown" rather than empty.
+		// same underlying map (see equivalent defensive note in
+		// internal/audit/plugin_manager.go and the explicit lookup-failed
+		// status here so consumers can detect the divergence if it ever
+		// happens).
 		logger.Warn("Listed plugin not retrievable from registry",
 			"plugin", name,
 			"error", err,
 		)
+		entry.Status = pluginStatusLookupFailed
 
 		return entry
 	}
 
-	entry.Name = p.Name()
-	entry.Description = p.Description()
-	entry.Version = nonEmptyOr(p.Version(), versionUnknown)
+	entry = newPluginEntry(p.Name(), p.Description(), p.Version())
 
 	return entry
-}
-
-// nonEmptyOr returns s when non-empty, fallback otherwise. Used so plugins
-// returning "" from Version() do not break the JSON envelope's non-empty
-// invariant.
-func nonEmptyOr(s, fallback string) string {
-	if s == "" {
-		return fallback
-	}
-
-	return s
 }
 
 func init() {
@@ -165,8 +236,9 @@ func init() {
 		&listPluginsJSONOutput,
 		"json",
 		false,
-		"Emit a JSON array of {name, description, version} objects",
+		"Emit a JSON array of {name, description, version, status?, loadError?} objects",
 	)
+	setFlagAnnotation(listPluginsCmd.Flags(), "json", []string{categoryOutput})
 
 	listPluginsCmd.Flags().StringVar(
 		&listPluginsPluginDir,

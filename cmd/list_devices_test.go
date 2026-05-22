@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -116,6 +117,23 @@ func TestListDevices_RootExecuteExitsZero(t *testing.T) {
 	// propagate to DetermineExitCode and produce ExitGeneralError.
 	require.NoError(t, root.Execute(), "list devices must exit 0 on registry success")
 	assert.NotEmpty(t, buf.String(), "registered parsers should produce output")
+}
+
+// TestListDevices_DescriptionMapCovered guards against drift where a parser
+// is added to parser.DefaultRegistry but no matching description-map entry
+// is added to cmd/shared_flags.go. Without this test the user sees the
+// fallback "<name> device type" description with no signal that maintainer
+// intent is missing.
+func TestListDevices_DescriptionMapCovered(t *testing.T) {
+	for _, name := range parser.DefaultRegistry().List() {
+		_, ok := deviceTypeDescriptions[name]
+		assert.True(
+			t,
+			ok,
+			"parser.DefaultRegistry() exposes device %q with no deviceTypeDescriptions entry — add one in cmd/shared_flags.go",
+			name,
+		)
+	}
 }
 
 // TestListDevices_JSONShapeContract pins the JSON envelope shape so future

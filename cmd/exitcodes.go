@@ -70,8 +70,10 @@ func OutputJSONError(err error, file string, exitCode int) {
 }
 
 // Error type strings used in JSON envelope output and the matching switch
-// arm of getErrorType. These strings are part of the CLI's JSON-output
-// contract and must stay stable across releases.
+// arm of getErrorType. These strings surface to consumers of `--json-output`
+// on the validate command, so changes risk breaking downstream parsers.
+// They are not currently documented in docs/for-agents.md; treat as
+// implicit contract — extend additively, do not rename.
 const (
 	errorTypeSuccess         = "success"
 	errorTypeGeneralError    = "general_error"

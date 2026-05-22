@@ -125,12 +125,21 @@ const pluginDirTrustModelWarning = "Warning: --plugin-dir loads dynamic .so plug
 // moment the risk materializes, before any .so file is opened.
 //
 // The warning format is stable and asserted in tests. See pluginDirTrustModelWarning.
-func warnPluginDirTrustModel(w io.Writer, pluginDir string) {
+//
+// Returns the underlying write error when w fails. Callers should treat a
+// non-nil return as fatal — silently loading a dynamic .so without the
+// operator having seen the trust-model warning is the security regression
+// this function exists to prevent.
+func warnPluginDirTrustModel(w io.Writer, pluginDir string) error {
 	if pluginDir == "" {
-		return
+		return nil
 	}
 
-	fmt.Fprint(w, pluginDirTrustModelWarning)
+	if _, err := fmt.Fprint(w, pluginDirTrustModelWarning); err != nil {
+		return fmt.Errorf("write trust-model warning: %w", err)
+	}
+
+	return nil
 }
 
 // ValidXMLFiles provides shell completion for XML configuration files.

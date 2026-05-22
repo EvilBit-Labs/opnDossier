@@ -490,7 +490,7 @@ func TestBuildInterfaceTableSet(t *testing.T) {
 		},
 	}
 
-	expectedHeaders := []string{colName, "Description", "IP Address", "CIDR", "Enabled"}
+	expectedHeaders := []string{colName, colDescription, "IP Address", "CIDR", colEnabled}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -546,7 +546,7 @@ func TestBuildUserTableSet(t *testing.T) {
 		},
 	}
 
-	expectedHeaders := []string{colName, "Description", "Group", "Scope"}
+	expectedHeaders := []string{colName, colDescription, "Group", "Scope"}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -589,7 +589,7 @@ func TestBuildGroupTableSet(t *testing.T) {
 		},
 	}
 
-	expectedHeaders := []string{colName, "Description", "Scope"}
+	expectedHeaders := []string{colName, colDescription, "Scope"}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

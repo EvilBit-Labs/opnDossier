@@ -22,14 +22,14 @@ const (
 // match a group ID (groupAudit and categoryAudit are both "audit") because
 // the same word is the natural label in both contexts; they are kept as
 // distinct constants so a rename in one context does not silently rename
-// the other.
+// the other. The set is intentionally narrow — only categories actually used
+// in flag annotations are declared. Add a new category here when wiring a
+// new annotation, not preemptively.
 const (
 	categoryAudit   = "audit"
 	categoryDisplay = "display"
-	categoryFormat  = "format"
 	categoryLogging = "logging"
 	categoryOutput  = "output"
-	categoryWrap    = "wrap"
 )
 
 // YAML config-schema keys consumed by config_show.go and config_validate.go.
@@ -81,14 +81,17 @@ const (
 	cmdNameVersion    = "version"
 )
 
-// User-facing display strings for primitive values. displayTrue / displayFalse
-// happen to match annotationValueOn / primitiveFalse but are semantically
-// distinct: these render in config-show output to humans, while
-// annotationValueOn flags Cobra metadata. Renaming annotationValueOn for any
-// reason must not silently retag the display string.
-const (
-	displayTrue = "true"
-)
+// displayTrue is the user-facing string rendered for boolean `true` in
+// config-show output. The value happens to match annotationValueOn but is
+// semantically distinct — annotationValueOn flags Cobra metadata,
+// displayTrue is human-readable text. Renaming annotationValueOn for any
+// reason must not silently retag this display string.
+//
+// The "false" branch reuses primitiveFalse (see Display-related primitives
+// block below); there is no displayFalse — primitiveFalse already serves
+// both the display and primitive contexts, and splitting them would not
+// have caught any realistic future rename.
+const displayTrue = "true"
 
 // Audit modes mirroring internal/audit.ModeBlue / ModeRed but kept as raw
 // strings here since cmd flag parsing accepts plain strings (the typed
@@ -99,17 +102,18 @@ const (
 )
 
 // Severity strings used in human-facing CLI output (audit findings table,
-// help text). Mirror internal/analysis.SeverityXxx values, kept as raw
-// strings here because the CLI surfaces these as plain text — not as the
-// typed Severity enum. severityInfo matches the lowercase severity label
-// from analysis.SeverityInfo; logLevelInfo (above) shares the same string
-// value but is semantically a log level. The split is intentional so
+// help text). Mirror internal/analysis.SeverityXxx values one-for-one, kept
+// as raw strings here because the CLI surfaces these as plain text — not as
+// the typed Severity enum. severityInfo matches the lowercase severity
+// label from analysis.SeverityInfo; logLevelInfo (above) shares the same
+// string value but is semantically a log level. The split is intentional so
 // renaming one does not silently retag the other.
 const (
-	severityInfo   = "info"
-	severityHigh   = "high"
-	severityMedium = "medium"
-	severityLow    = "low"
+	severityCritical = "critical"
+	severityHigh     = "high"
+	severityMedium   = "medium"
+	severityLow      = "low"
+	severityInfo     = "info"
 )
 
 // Display-related primitives.
