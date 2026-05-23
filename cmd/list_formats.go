@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"slices"
+
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/spf13/cobra"
 )
@@ -49,6 +51,12 @@ structured array of {name, description} objects.`,
 
 func runListFormats(cmd *cobra.Command, _ []string) error {
 	names := converter.DefaultRegistry.ValidFormats()
+	// Defensive sort at the command boundary even though the registry's
+	// ValidFormats() currently sorts (internal/converter/registry.go). Per
+	// AGENTS.md cmd/ convention: CLI output derived from a map must be
+	// sorted before rendering. Belt-and-suspenders against a future
+	// registry refactor that drops the internal sort.
+	slices.Sort(names)
 	entries := make([]listEntry, 0, len(names))
 
 	for _, n := range names {

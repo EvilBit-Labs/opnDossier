@@ -37,7 +37,7 @@ Use the `list` subcommand group to enumerate what the running binary supports wi
 | Which device parsers can I target with `--device-type`? | `opnDossier list devices --json`                                                           |
 | Which output formats can I pass to `--format`?          | `opnDossier list formats --json`                                                           |
 
-JSON shape is stable: `list plugins` returns `[{"name", "description", "version"}]`; `list devices` and `list formats` return `[{"name", "description"}]`. Empty registries return `[]` (never `null`) and exit code `0`.
+JSON shape is stable: `list plugins` returns `[{"name":"stig","description":"...","version":"1.0.0"}]` (plus optional `"status"` and `"loadError"` fields when a dynamic plugin failed to load); `list devices` and `list formats` return `[{"name":"opnsense","description":"..."}]`. Empty registries return `[]` (never `null`) and exit code `0`.
 
 - **`list plugins` without `--plugin-dir` returns only built-in plugins** (`stig`, `sans`, `firewall`). Dynamic `.so` plugins are opt-in to keep the default invocation free of any local-filesystem dependency.
 - **Per-plugin dynamic load failures surface as `WARN` lines on stderr** (`plugin=<name> error=<reason>`); the command still exits `0` and the failing plugin is omitted from the returned array. Capture stderr alongside stdout when consuming `list plugins --plugin-dir` if you need full visibility.

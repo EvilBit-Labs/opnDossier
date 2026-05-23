@@ -159,5 +159,12 @@ func TestListDevices_JSONShapeContract(t *testing.T) {
 		for k := range entry {
 			assert.True(t, expectedKeys[k], "entry %d has unexpected key %q (v1 schema is name, description)", i, k)
 		}
+		// Field types — catches a value-type regression where name or
+		// description silently becomes a non-string (e.g., a struct or
+		// number) but the key set remains correct.
+		_, nameOk := entry["name"].(string)
+		_, descOk := entry["description"].(string)
+		assert.True(t, nameOk, "entry %d: name must be string", i)
+		assert.True(t, descOk, "entry %d: description must be string", i)
 	}
 }

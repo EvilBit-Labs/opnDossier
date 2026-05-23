@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"slices"
+
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 	"github.com/spf13/cobra"
 )
@@ -45,6 +47,12 @@ array of {name, description} objects suitable for jq or other automation.`,
 
 func runListDevices(cmd *cobra.Command, _ []string) error {
 	names := parser.DefaultRegistry().List()
+	// Defensive sort at the command boundary even though the registry's
+	// List() currently sorts (pkg/parser/registry.go). Per AGENTS.md cmd/
+	// convention: CLI output derived from a map must be sorted before
+	// rendering. Belt-and-suspenders against a future registry refactor
+	// that drops the internal sort.
+	slices.Sort(names)
 	entries := make([]listEntry, 0, len(names))
 
 	for _, n := range names {

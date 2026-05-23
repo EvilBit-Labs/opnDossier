@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/spf13/cobra"
@@ -152,6 +153,12 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 
 	registry := pm.GetRegistry()
 	names := registry.ListPlugins()
+	// Defensive sort at the command boundary even though
+	// PluginRegistry.ListPlugins() currently sorts (internal/audit/plugin.go).
+	// Per AGENTS.md cmd/ convention: CLI output derived from a map must be
+	// sorted before rendering. Belt-and-suspenders against a future
+	// registry refactor that drops the internal sort.
+	slices.Sort(names)
 
 	// Surface dynamic plugin load failures both via WARN logs (legacy
 	// stderr surface) AND inline in the JSON envelope as load-failed

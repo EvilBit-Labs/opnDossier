@@ -146,6 +146,15 @@ func TestListPlugins_RejectsPositionalArgs(t *testing.T) {
 func TestListPlugins_SortStability(t *testing.T) {
 	listPluginsTestCleanup(t)
 
+	// Register cleanup BEFORE any require.NoError call that could abort
+	// the test mid-flight. If the first invocation panics or fails an
+	// inner require, leaking SetOut/SetErr buffers into later tests breaks
+	// output capture for the rest of the suite.
+	t.Cleanup(func() {
+		listPluginsCmd.SetOut(nil)
+		listPluginsCmd.SetErr(nil)
+	})
+
 	buf1 := &bytes.Buffer{}
 	listPluginsCmd.SetOut(buf1)
 	listPluginsCmd.SetErr(&bytes.Buffer{})
@@ -155,11 +164,6 @@ func TestListPlugins_SortStability(t *testing.T) {
 	listPluginsCmd.SetOut(buf2)
 	listPluginsCmd.SetErr(&bytes.Buffer{})
 	require.NoError(t, runListPlugins(listPluginsCmd, nil))
-
-	t.Cleanup(func() {
-		listPluginsCmd.SetOut(nil)
-		listPluginsCmd.SetErr(nil)
-	})
 
 	assert.Equal(t, buf1.String(), buf2.String(), "two consecutive invocations must produce identical output")
 }

@@ -96,6 +96,12 @@ func TestListFormats_Lightweight(t *testing.T) {
 func TestListFormats_SortStability(t *testing.T) {
 	listFormatsTestCleanup(t)
 
+	// Register cleanup BEFORE any require.NoError call that could abort
+	// the test mid-flight. If the first invocation panics or fails an
+	// inner require, leaking listFormatsCmd.SetOut(buf) into later tests
+	// breaks output capture for the rest of the suite.
+	t.Cleanup(func() { listFormatsCmd.SetOut(nil) })
+
 	buf1 := &bytes.Buffer{}
 	listFormatsCmd.SetOut(buf1)
 	require.NoError(t, runListFormats(listFormatsCmd, nil))
@@ -103,8 +109,6 @@ func TestListFormats_SortStability(t *testing.T) {
 	buf2 := &bytes.Buffer{}
 	listFormatsCmd.SetOut(buf2)
 	require.NoError(t, runListFormats(listFormatsCmd, nil))
-
-	t.Cleanup(func() { listFormatsCmd.SetOut(nil) })
 
 	assert.Equal(t, buf1.String(), buf2.String(), "two consecutive invocations must produce identical output")
 }
