@@ -40,15 +40,17 @@ const versionUnknown = "unknown"
 // pluginEntry is the per-plugin record emitted by `list plugins --json`.
 // In text mode only Name is rendered; the remaining fields are JSON-only.
 //
-// Status is omitted from JSON when "ok" so the common-case envelope stays
-// minimal. LoadError is populated only when Status == pluginStatusLoadFailed.
+// Status carries the lifecycle/failure tag — empty string ("") represents
+// the normal ok case and is dropped from JSON via `omitempty`. When set, it
+// is one of the pluginStatus* constants below. LoadError is populated only
+// when Status == pluginStatusLoadFailed.
 //
 // Invariants enforced by the constructors (newPluginEntry / newLoadFailedEntry):
 //   - Name is always non-empty.
 //   - Version is always non-empty (versionUnknown when no real value available).
-//   - Status is one of the pluginStatus* constants.
-//
-// Direct struct literals bypass these invariants; prefer the constructors.
+//   - Status is either "" (ok, omitted from JSON) OR one of the pluginStatus*
+//     constants. Direct struct literals can violate this — prefer the
+//     constructors.
 type pluginEntry struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -82,17 +84,29 @@ func newPluginEntry(name, description, version string) pluginEntry {
 // newLoadFailedEntry constructs an entry representing a dynamic plugin that
 // failed preflight or plugin.Open. Carries the underlying error message so
 // the JSON envelope is self-describing — agents don't need to scrape stderr.
+//
+// Description is set to a short failure summary derived from the error so
+// the JSON envelope's required `description` field is never empty for
+// load-failed entries (the plugin itself never loaded, so we cannot ask
+// it for a description). LoadError preserves the full underlying error
+// text for diagnostic use.
 func newLoadFailedEntry(name string, err error) pluginEntry {
 	msg := ""
 	if err != nil {
 		msg = err.Error()
 	}
 
+	description := "dynamic plugin failed to load"
+	if msg != "" {
+		description = "dynamic plugin failed to load: " + msg
+	}
+
 	return pluginEntry{
-		Name:      name,
-		Version:   versionUnknown,
-		Status:    pluginStatusLoadFailed,
-		LoadError: msg,
+		Name:        name,
+		Description: description,
+		Version:     versionUnknown,
+		Status:      pluginStatusLoadFailed,
+		LoadError:   msg,
 	}
 }
 

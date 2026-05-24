@@ -55,8 +55,13 @@ func init() {
 
 // emitList writes items to the command's stdout in either text or JSON form.
 // In text mode it writes one name per line. In JSON mode it pretty-prints the
-// items as a JSON array. Returns an error only when JSON marshaling fails;
-// callers should let the error propagate so DetermineExitCode maps it to
+// items as a JSON array. Returns an error on either:
+//   - JSON marshaling failure (only possible if a concrete listEntry has a
+//     marshaler that fails — should not happen for the current implementers).
+//   - Write failure to the underlying io.Writer (closed pipe, full disk,
+//     etc.) in either mode.
+//
+// Callers should let either error propagate so DetermineExitCode maps it to
 // ExitGeneralError. Empty input is never an error — empty registries write
 // nothing in text mode and "[]\n" in JSON mode.
 func emitList(out io.Writer, items []listEntry, asJSON bool) error {

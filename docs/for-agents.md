@@ -40,7 +40,7 @@ Use the `list` subcommand group to enumerate what the running binary supports wi
 JSON shape is stable: `list plugins` returns `[{"name":"stig","description":"...","version":"1.0.0"}]` (plus optional `"status"` and `"loadError"` fields when a dynamic plugin failed to load); `list devices` and `list formats` return `[{"name":"opnsense","description":"..."}]`. Empty registries return `[]` (never `null`) and exit code `0`.
 
 - **`list plugins` without `--plugin-dir` returns only built-in plugins** (`stig`, `sans`, `firewall`). Dynamic `.so` plugins are opt-in to keep the default invocation free of any local-filesystem dependency.
-- **Per-plugin dynamic load failures surface as `WARN` lines on stderr** (`plugin=<name> error=<reason>`); the command still exits `0` and the failing plugin is omitted from the returned array. Capture stderr alongside stdout when consuming `list plugins --plugin-dir` if you need full visibility.
+- **Per-plugin dynamic load failures surface inline AND on stderr.** JSON output includes a corresponding entry with `"status":"load-failed"` and `"loadError":"<reason>"` populated; stderr also emits a `WARN` line (`plugin=<name> error=<reason>`). The command still exits `0`. Capture stderr alongside stdout when consuming `list plugins --plugin-dir` if you want the full diagnostic trail, but the structured JSON envelope is self-describing.
 
 ## Machine-readable output formats
 
