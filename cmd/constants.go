@@ -64,6 +64,7 @@ const (
 	flagVerbose = "verbose"
 	flagDebug   = "debug"
 	flagFormat  = "format"
+	flagQuiet   = "quiet"
 )
 
 // Cobra Annotations key used to mark subcommands that skip the heavy
@@ -89,6 +90,8 @@ const (
 	defaultLogFormat  = "text"
 	annotationValueOn = "true" // The on-value for boolean Cobra Annotations.
 	cmdNameVersion    = "version"
+	cmdNameHelp       = "help"
+	cmdNameCompletion = "completion"
 )
 
 // displayTrue is the user-facing string rendered for boolean `true` in

@@ -44,9 +44,9 @@ var defaultLoggerConfig = logging.Config{ //nolint:gochecknoglobals // test over
 // lightweightCommands lists command names that don't need full initialization.
 // These commands skip config file loading and heavy logger setup for faster startup.
 var lightweightCommands = map[string]bool{ //nolint:gochecknoglobals // Static command list
-	cmdNameVersion: true,
-	"help":         true,
-	"completion":   true,
+	cmdNameVersion:    true,
+	cmdNameHelp:       true,
+	cmdNameCompletion: true,
 }
 
 // rootCmd represents the base command when called without any subcommands.
@@ -153,7 +153,7 @@ func setupFullContext(cmd *cobra.Command) error {
 	var loggerErr error
 	logger, loggerErr = logging.New(logging.Config{
 		Level:           logLevel,
-		Format:          defaultLogFormat, // Log format is hardcoded to "text" for consistency
+		Format:          defaultLogFormat, // Uses defaultLogFormat (text) for consistent output
 		Output:          os.Stderr,
 		ReportCaller:    true,
 		ReportTimestamp: true,
@@ -201,8 +201,8 @@ func init() {
 	rootCmd.PersistentFlags().
 		Bool(flagDebug, false, "Enable debug-level logging (all messages, for troubleshooting)")
 	setFlagAnnotation(rootCmd.PersistentFlags(), flagDebug, []flagCategory{categoryOutput})
-	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors and critical messages")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []flagCategory{categoryOutput})
+	rootCmd.PersistentFlags().BoolP(flagQuiet, "q", false, "Suppress all output except errors and critical messages")
+	setFlagAnnotation(rootCmd.PersistentFlags(), flagQuiet, []flagCategory{categoryOutput})
 
 	// Logging control flags
 	rootCmd.PersistentFlags().
@@ -237,7 +237,7 @@ func init() {
 
 	// Mark mutually exclusive flags
 	// Log level flags are mutually exclusive
-	rootCmd.MarkFlagsMutuallyExclusive(flagVerbose, "quiet", flagDebug)
+	rootCmd.MarkFlagsMutuallyExclusive(flagVerbose, flagQuiet, flagDebug)
 
 	// Add version command with lightweight annotation for fast startup
 	versionCmd := &cobra.Command{
