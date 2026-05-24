@@ -47,25 +47,25 @@ func init() {
 	sanitizeCmd.Flags().
 		StringVarP(&sanitizeMode, "mode", "m", SanitizeModeModerate,
 			"Sanitization mode: aggressive (public sharing), moderate (internal sharing), minimal (credentials + authserver values)")
-	setFlagAnnotation(sanitizeCmd.Flags(), "mode", []string{"sanitize"})
+	setFlagAnnotation(sanitizeCmd.Flags(), "mode", []flagCategory{categorySanitize})
 
 	// Output flag
 	sanitizeCmd.Flags().
 		StringVarP(&sanitizeOutputFile, "output", "o", "",
 			"Output file path for sanitized configuration (default: print to console)")
-	setFlagAnnotation(sanitizeCmd.Flags(), "output", []string{"output"})
+	setFlagAnnotation(sanitizeCmd.Flags(), "output", []flagCategory{categoryOutput})
 
 	// Mapping file flag
 	sanitizeCmd.Flags().
 		StringVar(&sanitizeMappingFile, "mapping", "",
 			"Output path for mapping file (JSON) that documents original→redacted mappings")
-	setFlagAnnotation(sanitizeCmd.Flags(), "mapping", []string{"output"})
+	setFlagAnnotation(sanitizeCmd.Flags(), "mapping", []flagCategory{categoryOutput})
 
 	// Force flag
 	sanitizeCmd.Flags().
 		BoolVar(&sanitizeForce, "force", false,
 			"Force overwrite existing files without prompting for confirmation")
-	setFlagAnnotation(sanitizeCmd.Flags(), "force", []string{"output"})
+	setFlagAnnotation(sanitizeCmd.Flags(), "force", []flagCategory{categoryOutput})
 
 	// Register flag completion functions
 	registerSanitizeFlagCompletions(sanitizeCmd)
@@ -99,7 +99,7 @@ func ValidSanitizeModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra
 var sanitizeCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "sanitize [file]",
 	Short:             "Redact sensitive data from OPNsense configuration files.",
-	GroupID:           "utility",
+	GroupID:           groupUtility,
 	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(_ *cobra.Command, _ []string) error {
 		// Validate sanitize mode

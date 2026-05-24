@@ -88,7 +88,7 @@ func writeAuditSecurityAndInventory(md *markdown.Markdown, cc *common.Compliance
 	if len(securityFindings) > 0 {
 		md.H3("Security Findings")
 		findingsTable := markdown.TableSet{
-			Header: []string{"Severity", "Component", "Title", "Recommendation"},
+			Header: []string{colSeverity, "Component", colTitle, "Recommendation"},
 			Rows:   make([][]string, 0, len(securityFindings)),
 		}
 		for _, f := range securityFindings {
@@ -105,7 +105,7 @@ func writeAuditSecurityAndInventory(md *markdown.Markdown, cc *common.Compliance
 	if len(inventoryFindings) > 0 {
 		md.H3("Configuration Notes")
 		notesTable := markdown.TableSet{
-			Header: []string{"Component", "Title", "Details"},
+			Header: []string{"Component", colTitle, "Details"},
 			Rows:   make([][]string, 0, len(inventoryFindings)),
 		}
 		for _, f := range inventoryFindings {
@@ -128,9 +128,9 @@ func writeAuditSummary(md *markdown.Markdown, cc *common.ComplianceResults) {
 
 	md.H2("Compliance Audit Summary")
 	md.Table(markdown.TableSet{
-		Header: []string{"Metric", "Value"},
+		Header: []string{"Metric", colValue},
 		Rows: [][]string{
-			{"Mode", cc.Mode},
+			{labelMode, cc.Mode},
 			{"Total Findings", strconv.Itoa(totalFindings)},
 			{"Compliant", strconv.Itoa(totalCompliant)},
 			{"Non-Compliant", strconv.Itoa(totalNonCompliant)},
@@ -184,7 +184,7 @@ func writeAuditMetadata(md *markdown.Markdown, cc *common.ComplianceResults) {
 	}
 	md.H2("Audit Metadata")
 	metadataTable := markdown.TableSet{
-		Header: []string{"Key", "Value"},
+		Header: []string{"Key", colValue},
 		Rows:   make([][]string, 0, len(cc.Metadata)),
 	}
 	for _, key := range slices.Sorted(maps.Keys(cc.Metadata)) {
@@ -243,7 +243,7 @@ func (b *MarkdownBuilder) writePluginControlsTable(
 	})
 
 	controlTable := markdown.TableSet{
-		Header: []string{"Control ID", "Title", "Severity", "Category", "Status"},
+		Header: []string{"Control ID", colTitle, colSeverity, "Category", colStatus},
 		Rows:   make([][]string, 0, len(sortedControls)),
 	}
 
@@ -287,7 +287,7 @@ func (b *MarkdownBuilder) writePluginFindingsTable(
 ) {
 	md.H4(pluginName + " Plugin Findings")
 	pluginTable := markdown.TableSet{
-		Header: []string{"Control", "Severity", "Title", "Description"},
+		Header: []string{"Control", colSeverity, colTitle, colDescription},
 		Rows:   make([][]string, 0, len(result.Findings)),
 	}
 

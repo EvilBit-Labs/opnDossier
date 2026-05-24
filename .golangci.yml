@@ -125,11 +125,105 @@ linters:
       # SA1019 deprecation warnings are expected in these test files — they
       # exist specifically to exercise the deprecated config.Config flat
       # fields (Verbose, Debug, Quiet, Theme, Format) until v2.0 removal.
-      # See GOTCHAS §21 "Config Flat→Nested Deprecation" and CHANGELOG
-      # Unreleased/Deprecated for removal tracking.
+      # See CHANGELOG Unreleased/Deprecated for removal tracking; the
+      # cmd/config_show.go comment block at line 110 documents the same
+      # backward-compat rationale at the read site.
       - path: 'internal/config/(config_test|config_coverage_test|validation_test)\.go$'
         linters: [staticcheck]
         text: 'SA1019:'
+      # goconst is disabled on _test.go files. Test tables routinely repeat
+      # fixture strings (network labels "wan"/"lan", truthy/falsy keywords
+      # "yes"/"no"/"true", canned IPs like "192.168.1.1", short identifiers
+      # like "test"/"opnsense"/"pfsense"). Extracting each into a constant
+      # hurts test readability — the case row stops being self-describing
+      # because reviewers must jump to the constant block to see what value
+      # is actually being exercised. Same rationale documented for
+      # tagliatelle (vendor schema casing) and exhaustruct (Go zero-value
+      # safety already covers the gap). Production code (.go non-test)
+      # remains subject to goconst.
+      - path: '_test\.go$'
+        linters: [goconst]
+      # goconst also disabled on rule/control tables, validators, and
+      # formatters that intentionally repeat short literal labels in
+      # declarative data — compliance control IDs, sanitizer rule field
+      # patterns, theme color names, validation error tags, NAT/diff
+      # categorization strings. These files are config-as-code where the
+      # literal IS the value being declared; extracting constants adds
+      # indirection without aiding maintenance. Same rationale documented
+      # for tagliatelle (vendor schema casing) and exhaustruct (Go zero-
+      # value safety already covers the gap).
+      - path: 'internal/plugins/(firewall|sans|stig)/.*\.go$'
+        linters: [goconst]
+      - path: 'internal/sanitizer/rules\.go$'
+        linters: [goconst]
+      - path: 'internal/converter/(formatters/.*\.go|builder/builder_nat\.go|registry\.go)$'
+        linters: [goconst]
+      - path: 'internal/validator/(pfsense\.go|validate_system\.go|demo\.go)$'
+        linters: [goconst]
+      - path: 'internal/processor/example\.go$'
+        linters: [goconst]
+      - path: 'internal/diff/security/patterns\.go$'
+        linters: [goconst]
+      - path: 'internal/display/theme\.go$'
+        linters: [goconst]
+      - path: 'internal/config/validation\.go$'
+        linters: [goconst]
+      # internal/validator security/network validators contain firewall
+      # rule field-value vocabulary ("any", "pass", "inet", "none",
+      # "track6") that mirrors OPNsense/pfSense XML element values. These
+      # ARE the values being validated; introducing a constant whose
+      # body is the same identifier the validator is matching against
+      # adds indirection without aiding readability.
+      - path: 'internal/validator/validate_(network|security)\.go$'
+        linters: [goconst]
+      # internal/processor analyze/validate/processor surfaces analysis
+      # labels ("performance", "configuration", "system", "none") that
+      # describe finding categories. They appear inline in the analysis
+      # output and the category vocabulary is the value, not an alias for
+      # one — extracting these adds a layer of redirection without
+      # reducing duplication risk.
+      - path: 'internal/processor/(analyze|validate|processor)\.go$'
+        linters: [goconst]
+      # internal/sanitizer/patterns.go contains protocol-keyword detection
+      # patterns ("key", "psk") used inline in regex/keyword tables. The
+      # literal IS the detection target.
+      - path: 'internal/sanitizer/patterns\.go$'
+        linters: [goconst]
+      # internal/diff/analyzer_* per-section files use SecurityImpact
+      # severity strings ("medium") that already have typed constants in
+      # internal/diff (SecurityImpactMedium). The cross-package counter
+      # flags them because goconst counts string-value equality, not
+      # constant references. The typed constants are used; goconst sees
+      # the underlying string literal.
+      - path: 'internal/diff/analyzer_.*\.go$'
+        linters: [goconst]
+      # internal/export/file.go uses "validate_path" 12x as an error/log
+      # field key. Field-key strings stay inline for readability.
+      - path: 'internal/export/file\.go$'
+        linters: [goconst]
+      # internal/converter/markdown.go and internal/display/display.go
+      # contain a small number of remaining inline labels ("Description",
+      # "Name", "custom") used in display/rendering contexts. Same
+      # rationale as builder_* column headers — they're presentation
+      # strings, not API identifiers.
+      - path: 'internal/converter/markdown\.go$'
+        linters: [goconst]
+      - path: 'internal/display/display\.go$'
+        linters: [goconst]
+      # internal/config/config.go uses dotted config path strings
+      # ("export.directory", "logging.level") as map keys. These ARE the
+      # config paths being looked up; a constant whose body is the same
+      # string as its name adds nothing.
+      - path: 'internal/config/config\.go$'
+        linters: [goconst]
+      # cmd/diff.go and cmd/list*.go contain a small set of remaining
+      # inline strings that are either declarative section-filter data
+      # (system/firewall/nat/dns/vpn/certificates in diff) or single-use
+      # subcommand names in list*.go where the only repetitions are in
+      # excluded test files. Carve these out individually to keep the
+      # cmd package goconst-clean.
+      - path: 'cmd/(diff|list|list_devices|list_formats|list_plugins|display)\.go$'
+        linters: [goconst]
   disable:
     - gomodguard # Disabled: maybe someday, but not important right now
     - gocyclo # Disabled in favor of cyclop (which supersedes it with per-package averages)
@@ -167,6 +261,22 @@ linters:
 
     embeddedstructfieldcheck:
       forbid-mutex: true
+
+    goconst:
+      # Skip _test.go files entirely when counting occurrences. Without
+      # this, test-table fixture strings (which we deliberately exclude
+      # from the linter under exclusions.rules) still inflate the
+      # occurrence count and force production code that happens to share
+      # a literal with a test fixture to introduce an unnecessary
+      # constant. The exclusion-by-path-and-counting-by-everything dual
+      # behavior was the root cause of the 2026-05-21 sweep needing 17+
+      # extra production constants for "list" / "devices" / "formats"
+      # strings that each appear exactly once in production code but 3+
+      # times in their test files.
+      ignore-tests: true
+      # Default min-occurrences is 3. Keep the default; we want goconst
+      # to catch genuinely repeated production-code strings.
+      min-occurrences: 3
 
     errcheck:
       check-type-assertions: true

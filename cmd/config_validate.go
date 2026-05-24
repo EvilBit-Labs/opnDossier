@@ -286,37 +286,37 @@ func showLineContextPlain(content []byte, lineNum int) {
 // findUnknownKeys checks for unknown configuration keys.
 func findUnknownKeys(raw map[string]any) []string {
 	knownKeys := map[string]bool{
-		"input_file":  true,
-		"output_file": true,
-		"verbose":     true,
-		"quiet":       true,
-		"theme":       true,
-		"format":      true,
-		"sections":    true,
-		"wrap":        true,
-		"json_output": true,
-		"minimal":     true,
-		"no_progress": true,
-		"display":     true,
-		"export":      true,
-		"logging":     true,
-		"validation":  true,
+		"input_file":     true,
+		"output_file":    true,
+		configKeyVerbose: true,
+		"quiet":          true,
+		"theme":          true,
+		configKeyFormat:  true,
+		"sections":       true,
+		configKeyWrap:    true,
+		"json_output":    true,
+		"minimal":        true,
+		"no_progress":    true,
+		configKeyDisplay: true,
+		configKeyExport:  true,
+		configKeyLogging: true,
+		"validation":     true,
 	}
 
 	knownNestedKeys := map[string]map[string]bool{
-		"display": {
-			"width":               true,
+		configKeyDisplay: {
+			configKeyWidth:        true,
 			"pager":               true,
 			"syntax_highlighting": true,
 		},
-		"export": {
-			"format":    true,
-			"directory": true,
-			"backup":    true,
+		configKeyExport: {
+			configKeyFormat: true,
+			"directory":     true,
+			"backup":        true,
 		},
-		"logging": {
-			"level":  true,
-			"format": true,
+		configKeyLogging: {
+			"level":         true,
+			configKeyFormat: true,
 		},
 		"validation": {
 			"strict":            true,

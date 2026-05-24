@@ -51,7 +51,7 @@ func walkNode(title string, level int, node any) MDNode {
 	nodeType := reflect.TypeOf(node)
 
 	// Handle pointer types
-	if nodeValue.Kind() == reflect.Ptr {
+	if nodeValue.Kind() == reflect.Pointer {
 		if nodeValue.IsNil() {
 			return mdNode
 		}
@@ -61,7 +61,7 @@ func walkNode(title string, level int, node any) MDNode {
 	}
 
 	switch nodeValue.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if !nodeValue.IsNil() {
 			child := walkNode(title, level+1, nodeValue.Elem().Interface())
 			mdNode.Children = append(mdNode.Children, child)
@@ -136,7 +136,7 @@ func walkStructField(mdNode *MDNode, fieldType reflect.StructField, field reflec
 		if field.Len() > 0 {
 			mdNode.Body += formatFieldName(fieldType.Name) + ": " + field.String() + "\n"
 		}
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if !field.IsNil() {
 			mdNode.Children = append(mdNode.Children,
 				walkNode(formatFieldName(fieldType.Name), level+1, field.Interface()))

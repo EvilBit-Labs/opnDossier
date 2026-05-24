@@ -19,9 +19,28 @@ The CLI reference in [docs/cli/](cli/opnDossier.md) is generated from the Cobra 
   - [`config init`](cli/opnDossier_config_init.md)
   - [`config show`](cli/opnDossier_config_show.md)
   - [`config validate`](cli/opnDossier_config_validate.md)
+- [`list`](cli/opnDossier_list.md) — enumerate supported capabilities (agent-friendly)
+  - [`list plugins`](cli/opnDossier_list_plugins.md)
+  - [`list devices`](cli/opnDossier_list_devices.md)
+  - [`list formats`](cli/opnDossier_list_formats.md)
 - [`man`](cli/opnDossier_man.md) — generate man pages
 - [`completion`](cli/opnDossier_completion.md) — shell completion scripts
 - [`version`](cli/opnDossier_version.md)
+
+## Capability discovery
+
+Use the `list` subcommand group to enumerate what the running binary supports without parsing `--help` text. Each subcommand emits one name per line by default, or a JSON array of objects with `--json`. Pass the discovered names directly to `--device-type`, `--format`, or `--plugins` on the consuming commands.
+
+| Question                                                | Command                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Which compliance plugins are available?                 | `opnDossier list plugins --json` (add `--plugin-dir DIR` to include dynamic `.so` plugins) |
+| Which device parsers can I target with `--device-type`? | `opnDossier list devices --json`                                                           |
+| Which output formats can I pass to `--format`?          | `opnDossier list formats --json`                                                           |
+
+JSON shape is stable: `list plugins` returns `[{"name":"stig","description":"...","version":"1.0.0"}]` (plus optional `"status"` and `"loadError"` fields when a dynamic plugin failed to load); `list devices` and `list formats` return `[{"name":"opnsense","description":"..."}]`. Empty registries return `[]` (never `null`) and exit code `0`.
+
+- **`list plugins` without `--plugin-dir` returns only built-in plugins** (`stig`, `sans`, `firewall`). Dynamic `.so` plugins are opt-in to keep the default invocation free of any local-filesystem dependency.
+- **Per-plugin dynamic load failures surface inline AND on stderr.** JSON output includes a corresponding entry with `"status":"load-failed"` and `"loadError":"<reason>"` populated; stderr also emits a `WARN` line (`plugin=<name> error=<reason>`). The command still exits `0`. Capture stderr alongside stdout when consuming `list plugins --plugin-dir` if you want the full diagnostic trail, but the structured JSON envelope is self-describing.
 
 ## Machine-readable output formats
 
@@ -52,6 +71,7 @@ For programmatic consumers embedding opnDossier as a library (not via the CLI), 
 - Exit code **non-zero** — fatal error; details on stderr
 - Non-fatal issues (unrecognized XML elements, missing subsystems, unresolved alias references) are reported as **warnings** on stderr and do not change the exit code
 - `audit --mode blue` exits 0 even when compliance checks fail; parse the audit output to detect findings
+- `list plugins`, `list devices`, and `list formats` exit **0** regardless of registry size — an empty registry yields `[]` (JSON) or an empty stdout (text) with exit code `0`. Non-zero only on internal errors such as plugin-manager initialization failure for `list plugins --plugin-dir <missing-path>`.
 
 ## Device support
 

@@ -69,21 +69,36 @@ func OutputJSONError(err error, file string, exitCode int) {
 	fmt.Fprintln(os.Stderr, string(output))
 }
 
+// Error type strings used in JSON envelope output and the matching switch
+// arm of getErrorType. These strings surface to consumers of `--json-output`
+// on the validate command, so changes risk breaking downstream parsers.
+// They are not currently documented in docs/for-agents.md; treat as
+// implicit contract — extend additively, do not rename.
+const (
+	errorTypeSuccess         = "success"
+	errorTypeGeneralError    = "general_error"
+	errorTypeParseError      = "parse_error"
+	errorTypeValidationError = "validation_error"
+	errorTypeFileError       = "file_error"
+	errorTypeUnknownError    = "unknown_error"
+	jsonFieldSuccess         = "success"
+)
+
 // getErrorType returns a human-readable error type string for the exit code.
 func getErrorType(code int) string {
 	switch code {
 	case ExitSuccess:
-		return "success"
+		return errorTypeSuccess
 	case ExitGeneralError:
-		return "general_error"
+		return errorTypeGeneralError
 	case ExitParseError:
-		return "parse_error"
+		return errorTypeParseError
 	case ExitValidationError:
-		return "validation_error"
+		return errorTypeValidationError
 	case ExitFileError:
-		return "file_error"
+		return errorTypeFileError
 	default:
-		return "unknown_error"
+		return errorTypeUnknownError
 	}
 }
 
@@ -118,10 +133,10 @@ func ExitWithCode(code int) {
 // This is used when --json-output flag is enabled for machine consumption.
 func JSONSuccess(message, file string) {
 	output := map[string]any{
-		"success": true,
-		"message": message,
-		"file":    file,
-		"code":    ExitSuccess,
+		jsonFieldSuccess: true,
+		"message":        message,
+		"file":           file,
+		"code":           ExitSuccess,
 	}
 
 	jsonOutput, err := json.Marshal(output)

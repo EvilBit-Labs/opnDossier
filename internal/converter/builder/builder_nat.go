@@ -19,13 +19,13 @@ func BuildOutboundNATTableSet(rules []common.NATRule) *markdown.TableSet {
 	headers := []string{
 		"#",
 		"Direction",
-		"Interface",
+		colInterface,
 		"Source",
 		"Destination",
 		"Target",
-		"Protocol",
-		"Description",
-		"Status",
+		colProtocol,
+		colDescription,
+		colStatus,
 	}
 
 	rows := make([][]string, 0, len(rules))
@@ -98,14 +98,14 @@ func BuildInboundNATTableSet(rules []common.InboundNATRule) *markdown.TableSet {
 	headers := []string{
 		"#",
 		"Direction",
-		"Interface",
+		colInterface,
 		"External Port",
 		"Target IP",
 		"Target Port",
-		"Protocol",
-		"Description",
+		colProtocol,
+		colDescription,
 		"Priority",
-		"Status",
+		colStatus,
 	}
 
 	rows := make([][]string, 0, len(rules))
