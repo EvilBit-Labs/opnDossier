@@ -66,13 +66,13 @@ func init() {
 	// Output and format flags
 	convertCmd.Flags().
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving converted configuration (default: print to console)")
-	setFlagAnnotation(convertCmd.Flags(), "output", []string{"output"})
+	setFlagAnnotation(convertCmd.Flags(), "output", []flagCategory{categoryOutput})
 	convertCmd.Flags().
 		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml, text, html)")
-	setFlagAnnotation(convertCmd.Flags(), "format", []string{"output"})
+	setFlagAnnotation(convertCmd.Flags(), "format", []flagCategory{categoryOutput})
 	convertCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
-	setFlagAnnotation(convertCmd.Flags(), "force", []string{"output"})
+	setFlagAnnotation(convertCmd.Flags(), "force", []flagCategory{categoryOutput})
 
 	// Add shared styling and content flags
 	addSharedContentFlags(convertCmd)
@@ -105,7 +105,7 @@ func registerConvertFlagCompletions(cmd *cobra.Command) {
 var convertCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
 	Use:               "convert [file ...]",
 	Short:             "Convert OPNsense configuration files to structured formats.",
-	GroupID:           "core",
+	GroupID:           groupCore,
 	ValidArgsFunction: ValidXMLFiles,
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		// Get logger from CommandContext for validation warnings

@@ -125,7 +125,7 @@ func IsEmpty(value any) bool {
 		return rv.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return rv.Float() == 0
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		return rv.IsNil()
 	case reflect.Chan, reflect.Func:
 		return rv.IsNil()

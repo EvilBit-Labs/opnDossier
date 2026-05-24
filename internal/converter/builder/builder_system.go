@@ -51,7 +51,7 @@ func writeSystemWebGUI(md *markdown.Markdown, sys common.System) {
 		return
 	}
 	md.H3("Web GUI Configuration").
-		PlainTextf("%s: %s", markdown.Bold("Protocol"), sys.WebGUI.Protocol).LF()
+		PlainTextf("%s: %s", markdown.Bold(colProtocol), sys.WebGUI.Protocol).LF()
 }
 
 func writeSystemSettings(md *markdown.Markdown, sys common.System) {
@@ -133,7 +133,7 @@ func (b *MarkdownBuilder) WriteUserTable(md *markdown.Markdown, users []common.U
 
 // BuildUserTableSet builds the table data for system users.
 func BuildUserTableSet(users []common.User) *markdown.TableSet {
-	headers := []string{"Name", "Description", "Group", "Scope"}
+	headers := []string{colName, colDescription, "Group", "Scope"}
 
 	rows := make([][]string, 0, len(users))
 	for _, user := range users {
@@ -158,7 +158,7 @@ func (b *MarkdownBuilder) WriteGroupTable(md *markdown.Markdown, groups []common
 
 // BuildGroupTableSet builds the table data for system groups.
 func BuildGroupTableSet(groups []common.Group) *markdown.TableSet {
-	headers := []string{"Name", "Description", "Scope"}
+	headers := []string{colName, colDescription, "Scope"}
 
 	rows := make([][]string, 0, len(groups))
 	for _, group := range groups {
@@ -182,7 +182,7 @@ func (b *MarkdownBuilder) WriteSysctlTable(md *markdown.Markdown, sysctl []commo
 
 // BuildSysctlTableSet builds the table data for system tunables.
 func BuildSysctlTableSet(sysctl []common.SysctlItem) *markdown.TableSet {
-	headers := []string{"Tunable", "Value", "Description"}
+	headers := []string{"Tunable", colValue, colDescription}
 
 	rows := make([][]string, 0, len(sysctl))
 	for _, item := range sysctl {

@@ -55,8 +55,8 @@ require (
 	github.com/charmbracelet/ultraviolet v0.0.0-20260511121909-c840852527f3 // indirect; no tagged release (transitive of charm.land/lipgloss/v2 via charmbracelet/fang)
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260519012233-798e623c8447 // indirect; charmbracelet experimental pkg; no tagged release
-	github.com/charmbracelet/x/exp/slice v0.0.0-20260519012233-798e623c8447 // indirect; charmbracelet experimental pkg; no tagged release
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260524005558-961435f30453 // indirect; charmbracelet experimental pkg; no tagged release
+	github.com/charmbracelet/x/exp/slice v0.0.0-20260524005558-961435f30453 // indirect; charmbracelet experimental pkg; no tagged release
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect

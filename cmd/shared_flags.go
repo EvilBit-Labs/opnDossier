@@ -56,23 +56,23 @@ var (
 func addSharedContentFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)")
-	setFlagAnnotation(cmd.Flags(), "include-tunables", []string{"content"})
+	setFlagAnnotation(cmd.Flags(), "include-tunables", []flagCategory{categoryContent})
 
 	cmd.Flags().
 		StringSliceVar(&sharedSections, "section", []string{}, "Specific sections to include in output (comma-separated, e.g., system,network,firewall)")
-	setFlagAnnotation(cmd.Flags(), "section", []string{"content"})
+	setFlagAnnotation(cmd.Flags(), "section", []flagCategory{categoryContent})
 
 	cmd.Flags().
 		IntVar(&sharedWrapWidth, "wrap", -1, "Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120)")
-	setFlagAnnotation(cmd.Flags(), "wrap", []string{"formatting"})
+	setFlagAnnotation(cmd.Flags(), "wrap", []flagCategory{categoryFormatting})
 
 	cmd.Flags().
 		BoolVar(&sharedNoWrap, "no-wrap", false, "Disable text wrapping (alias for --wrap 0)")
-	setFlagAnnotation(cmd.Flags(), "no-wrap", []string{"formatting"})
+	setFlagAnnotation(cmd.Flags(), "no-wrap", []flagCategory{categoryFormatting})
 
 	cmd.Flags().
 		BoolVar(&sharedComprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
-	setFlagAnnotation(cmd.Flags(), "comprehensive", []string{"audit"})
+	setFlagAnnotation(cmd.Flags(), "comprehensive", []flagCategory{categoryAudit})
 }
 
 // addDisplayFlags adds display-related CLI flags to cmd.
@@ -81,7 +81,7 @@ func addSharedContentFlags(cmd *cobra.Command) {
 func addDisplayFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringVar(&sharedTheme, "theme", "", "Theme for rendering output (light, dark, auto, none)")
-	setFlagAnnotation(cmd.Flags(), "theme", []string{"display"})
+	setFlagAnnotation(cmd.Flags(), "theme", []flagCategory{categoryDisplay})
 }
 
 // addSharedRedactFlag adds the --redact flag to cmd for redacting sensitive fields
@@ -89,7 +89,7 @@ func addDisplayFlags(cmd *cobra.Command) {
 func addSharedRedactFlag(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedRedact, "redact", false, "Redact sensitive fields (passwords, keys, community strings) in output")
-	setFlagAnnotation(cmd.Flags(), "redact", []string{"output"})
+	setFlagAnnotation(cmd.Flags(), "redact", []flagCategory{categoryOutput})
 }
 
 // Constants for flag validation.
@@ -125,12 +125,21 @@ const pluginDirTrustModelWarning = "Warning: --plugin-dir loads dynamic .so plug
 // moment the risk materializes, before any .so file is opened.
 //
 // The warning format is stable and asserted in tests. See pluginDirTrustModelWarning.
-func warnPluginDirTrustModel(w io.Writer, pluginDir string) {
+//
+// Returns the underlying write error when w fails. Callers should treat a
+// non-nil return as fatal — silently loading a dynamic .so without the
+// operator having seen the trust-model warning is the security regression
+// this function exists to prevent.
+func warnPluginDirTrustModel(w io.Writer, pluginDir string) error {
 	if pluginDir == "" {
-		return
+		return nil
 	}
 
-	fmt.Fprint(w, pluginDirTrustModelWarning)
+	if _, err := fmt.Fprint(w, pluginDirTrustModelWarning); err != nil {
+		return fmt.Errorf("write trust-model warning: %w", err)
+	}
+
+	return nil
 }
 
 // ValidXMLFiles provides shell completion for XML configuration files.
@@ -197,11 +206,11 @@ func ValidXMLFiles(_ *cobra.Command, _ []string, toComplete string) ([]string, c
 // When registering a new format in the DefaultRegistry, add a description here too.
 // Missing entries fall back to a generic description.
 var formatDescriptions = map[string]string{ //nolint:gochecknoglobals // static lookup table
-	"markdown": "Standard markdown format (default)",
-	"json":     "JSON format for programmatic access",
-	"yaml":     "YAML format for configuration management",
-	"text":     "Plain text format (markdown without formatting)",
-	"html":     "Self-contained HTML report for web viewing",
+	outputFormatMarkdown: "Standard markdown format (default)",
+	outputFormatJSON:     "JSON format for programmatic access",
+	outputFormatYAML:     "YAML format for configuration management",
+	outputFormatText:     "Plain text format (markdown without formatting)",
+	outputFormatHTML:     "Self-contained HTML report for web viewing",
 }
 
 // deviceTypeDescriptions maps registered device types to their shell completion descriptions.

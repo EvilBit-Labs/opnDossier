@@ -43,7 +43,7 @@ func (b *MarkdownBuilder) WriteInterfaceTable(md *markdown.Markdown, interfaces 
 
 // BuildInterfaceTableSet builds the table data for network interfaces.
 func BuildInterfaceTableSet(interfaces []common.Interface) *markdown.TableSet {
-	headers := []string{"Name", "Description", "IP Address", "CIDR", "Enabled"}
+	headers := []string{colName, colDescription, "IP Address", "CIDR", colEnabled}
 
 	rows := make([][]string, 0, len(interfaces))
 	for _, iface := range interfaces {
@@ -78,7 +78,7 @@ func buildInterfaceDetails(md *markdown.Markdown, iface common.Interface) {
 	if iface.PhysicalIf != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("Physical Interface"), iface.PhysicalIf).LF()
 	}
-	md.PlainTextf("%s: %s", markdown.Bold("Enabled"), formatters.FormatBool(iface.Enabled)).LF()
+	md.PlainTextf("%s: %s", markdown.Bold(labelEnabled), formatters.FormatBool(iface.Enabled)).LF()
 	if iface.IPAddress != "" {
 		md.PlainTextf("%s: %s", markdown.Bold("IPv4 Address"), iface.IPAddress).LF()
 	}
@@ -112,7 +112,7 @@ func BuildVLANTableSet(vlans []common.VLAN) *markdown.TableSet {
 		"VLAN Interface",
 		"Physical Interface",
 		"VLAN Tag",
-		"Description",
+		colDescription,
 		"Created",
 		"Updated",
 	}
@@ -155,8 +155,8 @@ func BuildStaticRoutesTableSet(routes []common.StaticRoute) *markdown.TableSet {
 	headers := []string{
 		"Destination Network",
 		"Gateway",
-		"Description",
-		"Status",
+		colDescription,
+		colStatus,
 		"Created",
 		"Updated",
 	}

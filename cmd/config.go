@@ -7,9 +7,9 @@ import (
 
 // configCmd is the parent command for configuration management subcommands.
 var configCmd = &cobra.Command{ //nolint:gochecknoglobals // Cobra command
-	Use:     "config",
+	Use:     cmdNameConfig,
 	Short:   "Manage opnDossier configuration",
-	GroupID: "utility",
+	GroupID: groupUtility,
 	Long: `The 'config' command group provides utilities for managing opnDossier configuration.
 
 Subcommands:

@@ -44,7 +44,7 @@ func (g *Generator) GenerateReference(v any) string {
 // GenerateReferenceWithPrefix generates markdown documentation with a path prefix.
 func (g *Generator) GenerateReferenceWithPrefix(v any, prefix string) string {
 	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -54,7 +54,7 @@ func (g *Generator) GenerateReferenceWithPrefix(v any, prefix string) string {
 
 // extractFields extracts field information from a struct type.
 func (g *Generator) extractFields(t reflect.Type, prefix string) []FieldInfo {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -99,12 +99,12 @@ func (g *Generator) buildFieldInfo(field reflect.StructField, prefix string) Fie
 
 	// Check for nested struct types
 	elemType := field.Type
-	if elemType.Kind() == reflect.Ptr {
+	if elemType.Kind() == reflect.Pointer {
 		elemType = elemType.Elem()
 	}
 	if elemType.Kind() == reflect.Slice {
 		elemType = elemType.Elem()
-		if elemType.Kind() == reflect.Ptr {
+		if elemType.Kind() == reflect.Pointer {
 			elemType = elemType.Elem()
 		}
 	}
@@ -151,7 +151,7 @@ func (g *Generator) extractTagValue(tagString, key string) string {
 // Handles unnamed types by falling back to kind string representation.
 func (g *Generator) formatType(t reflect.Type) string {
 	switch t.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return "*" + g.formatType(t.Elem())
 	case reflect.Slice:
 		return "[]" + g.formatType(t.Elem())

@@ -36,33 +36,33 @@ func init() {
 
 	// Audit-specific flags (shorter names since this is the dedicated audit command)
 	auditCmd.Flags().
-		StringVar(&auditMode, "mode", "blue", "Audit mode (blue|red)")
-	setFlagAnnotation(auditCmd.Flags(), "mode", []string{"audit"})
+		StringVar(&auditMode, "mode", auditModeBlue, "Audit mode (blue|red)")
+	setFlagAnnotation(auditCmd.Flags(), "mode", []flagCategory{categoryAudit})
 
 	auditCmd.Flags().
 		StringSliceVar(&auditPlugins, "plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
-	setFlagAnnotation(auditCmd.Flags(), "plugins", []string{"audit"})
+	setFlagAnnotation(auditCmd.Flags(), "plugins", []flagCategory{categoryAudit})
 
 	auditCmd.Flags().
 		StringVar(&auditPluginDir, "plugin-dir", "", pluginDirFlagUsage)
-	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{"audit"})
+	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []flagCategory{categoryAudit})
 
 	auditCmd.Flags().
 		BoolVar(&auditFailuresOnly, "failures-only", false, "Show only failing controls in blue mode plugin results tables")
-	setFlagAnnotation(auditCmd.Flags(), "failures-only", []string{"audit"})
+	setFlagAnnotation(auditCmd.Flags(), "failures-only", []flagCategory{categoryAudit})
 
 	// Output and format flags (reuse existing package-level variables)
 	auditCmd.Flags().
-		StringVarP(&format, "format", "f", "markdown", "Output format for audit report (markdown, json, yaml, text, html)")
-	setFlagAnnotation(auditCmd.Flags(), "format", []string{"output"})
+		StringVarP(&format, flagFormat, "f", defaultFormat, "Output format for audit report (markdown, json, yaml, text, html)")
+	setFlagAnnotation(auditCmd.Flags(), flagFormat, []flagCategory{categoryOutput})
 
 	auditCmd.Flags().
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving audit report (default: print to console)")
-	setFlagAnnotation(auditCmd.Flags(), "output", []string{"output"})
+	setFlagAnnotation(auditCmd.Flags(), "output", []flagCategory{categoryOutput})
 
 	auditCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
-	setFlagAnnotation(auditCmd.Flags(), "force", []string{"output"})
+	setFlagAnnotation(auditCmd.Flags(), "force", []flagCategory{categoryOutput})
 
 	// Add shared styling and content flags
 	addSharedContentFlags(auditCmd)
@@ -102,7 +102,7 @@ func registerAuditFlagCompletions(cmd *cobra.Command) {
 var auditCmd = &cobra.Command{
 	Use:               "audit [file ...]",
 	Short:             "Run security audit and compliance checks on OPNsense configurations.",
-	GroupID:           "audit",
+	GroupID:           groupAudit,
 	ValidArgsFunction: ValidXMLFiles,
 	Args:              cobra.MinimumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -117,7 +117,7 @@ var auditCmd = &cobra.Command{
 		normalizeConvertFlags()
 
 		// Validate audit mode
-		validModes := []string{"blue", "red"}
+		validModes := []string{auditModeBlue, auditModeRed}
 		if !slices.Contains(validModes, strings.ToLower(auditMode)) {
 			return fmt.Errorf("invalid audit mode %q, must be one of: %s",
 				auditMode, strings.Join(validModes, ", "))
@@ -126,26 +126,33 @@ var auditCmd = &cobra.Command{
 		// Warn when red mode is selected — its analysis methods are placeholder stubs
 		// that return fabricated metadata. Results will be incomplete until the red
 		// team pipeline is fully implemented.
-		if strings.EqualFold(auditMode, "red") {
-			fmt.Fprintf(os.Stderr,
+		if strings.EqualFold(auditMode, auditModeRed) {
+			fmt.Fprintf(cmd.ErrOrStderr(),
 				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
 		}
 
 		// Warn when --plugin-dir is supplied — dynamic .so plugins execute with
 		// full process privileges and no signature verification (GOTCHAS §2.5).
 		// Mirrors the red-mode precedent above so the user sees the risk at the
-		// moment they opt into dynamic plugin loading.
-		warnPluginDirTrustModel(os.Stderr, auditPluginDir)
+		// moment they opt into dynamic plugin loading. Route through
+		// cmd.ErrOrStderr() rather than os.Stderr so tests can capture the
+		// warning (matches cmd/list_plugins.go's stream choice). Write errors
+		// are fatal — silently loading a dynamic .so without surfacing the
+		// trust-model warning is the regression this function exists to
+		// prevent.
+		if err := warnPluginDirTrustModel(cmd.ErrOrStderr(), auditPluginDir); err != nil {
+			return fmt.Errorf("emit trust-model warning: %w", err)
+		}
 
 		// Reject --plugins when the selected mode does not execute compliance checks.
 		// Only blue mode runs RunComplianceChecks; red mode ignores plugins.
-		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, "blue") {
+		if len(auditPlugins) > 0 && !strings.EqualFold(auditMode, auditModeBlue) {
 			return fmt.Errorf("--plugins is only supported with --mode blue; %q mode does not run compliance checks",
 				auditMode)
 		}
 
 		// Reject --failures-only when the selected mode does not execute compliance checks.
-		if auditFailuresOnly && !strings.EqualFold(auditMode, "blue") {
+		if auditFailuresOnly && !strings.EqualFold(auditMode, auditModeBlue) {
 			return fmt.Errorf(
 				"--failures-only is only supported with --mode blue; %q mode does not run compliance checks",
 				auditMode,
