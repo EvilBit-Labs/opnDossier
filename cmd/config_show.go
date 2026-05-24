@@ -77,7 +77,7 @@ func init() {
 
 	configShowCmd.Flags().
 		BoolVar(&configShowJSONOutput, "json", false, "Output configuration in JSON format")
-	setFlagAnnotation(configShowCmd.Flags(), "json", []string{categoryOutput})
+	setFlagAnnotation(configShowCmd.Flags(), "json", []flagCategory{categoryOutput})
 }
 
 // runConfigShow executes the config show command.

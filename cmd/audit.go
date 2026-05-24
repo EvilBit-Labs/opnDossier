@@ -37,32 +37,32 @@ func init() {
 	// Audit-specific flags (shorter names since this is the dedicated audit command)
 	auditCmd.Flags().
 		StringVar(&auditMode, "mode", auditModeBlue, "Audit mode (blue|red)")
-	setFlagAnnotation(auditCmd.Flags(), "mode", []string{categoryAudit})
+	setFlagAnnotation(auditCmd.Flags(), "mode", []flagCategory{categoryAudit})
 
 	auditCmd.Flags().
 		StringSliceVar(&auditPlugins, "plugins", []string{}, "Compliance plugins to run (stig,sans,firewall)")
-	setFlagAnnotation(auditCmd.Flags(), "plugins", []string{categoryAudit})
+	setFlagAnnotation(auditCmd.Flags(), "plugins", []flagCategory{categoryAudit})
 
 	auditCmd.Flags().
 		StringVar(&auditPluginDir, "plugin-dir", "", pluginDirFlagUsage)
-	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []string{categoryAudit})
+	setFlagAnnotation(auditCmd.Flags(), "plugin-dir", []flagCategory{categoryAudit})
 
 	auditCmd.Flags().
 		BoolVar(&auditFailuresOnly, "failures-only", false, "Show only failing controls in blue mode plugin results tables")
-	setFlagAnnotation(auditCmd.Flags(), "failures-only", []string{categoryAudit})
+	setFlagAnnotation(auditCmd.Flags(), "failures-only", []flagCategory{categoryAudit})
 
 	// Output and format flags (reuse existing package-level variables)
 	auditCmd.Flags().
 		StringVarP(&format, flagFormat, "f", defaultFormat, "Output format for audit report (markdown, json, yaml, text, html)")
-	setFlagAnnotation(auditCmd.Flags(), flagFormat, []string{categoryOutput})
+	setFlagAnnotation(auditCmd.Flags(), flagFormat, []flagCategory{categoryOutput})
 
 	auditCmd.Flags().
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving audit report (default: print to console)")
-	setFlagAnnotation(auditCmd.Flags(), "output", []string{categoryOutput})
+	setFlagAnnotation(auditCmd.Flags(), "output", []flagCategory{categoryOutput})
 
 	auditCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
-	setFlagAnnotation(auditCmd.Flags(), "force", []string{categoryOutput})
+	setFlagAnnotation(auditCmd.Flags(), "force", []flagCategory{categoryOutput})
 
 	// Add shared styling and content flags
 	addSharedContentFlags(auditCmd)

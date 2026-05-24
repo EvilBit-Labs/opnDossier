@@ -56,23 +56,23 @@ var (
 func addSharedContentFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedIncludeTunables, "include-tunables", false, "Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)")
-	setFlagAnnotation(cmd.Flags(), "include-tunables", []string{"content"})
+	setFlagAnnotation(cmd.Flags(), "include-tunables", []flagCategory{categoryContent})
 
 	cmd.Flags().
 		StringSliceVar(&sharedSections, "section", []string{}, "Specific sections to include in output (comma-separated, e.g., system,network,firewall)")
-	setFlagAnnotation(cmd.Flags(), "section", []string{"content"})
+	setFlagAnnotation(cmd.Flags(), "section", []flagCategory{categoryContent})
 
 	cmd.Flags().
 		IntVar(&sharedWrapWidth, "wrap", -1, "Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120)")
-	setFlagAnnotation(cmd.Flags(), "wrap", []string{"formatting"})
+	setFlagAnnotation(cmd.Flags(), "wrap", []flagCategory{categoryFormatting})
 
 	cmd.Flags().
 		BoolVar(&sharedNoWrap, "no-wrap", false, "Disable text wrapping (alias for --wrap 0)")
-	setFlagAnnotation(cmd.Flags(), "no-wrap", []string{"formatting"})
+	setFlagAnnotation(cmd.Flags(), "no-wrap", []flagCategory{categoryFormatting})
 
 	cmd.Flags().
 		BoolVar(&sharedComprehensive, "comprehensive", false, "Generate comprehensive detailed reports with full configuration analysis")
-	setFlagAnnotation(cmd.Flags(), "comprehensive", []string{categoryAudit})
+	setFlagAnnotation(cmd.Flags(), "comprehensive", []flagCategory{categoryAudit})
 }
 
 // addDisplayFlags adds display-related CLI flags to cmd.
@@ -81,7 +81,7 @@ func addSharedContentFlags(cmd *cobra.Command) {
 func addDisplayFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringVar(&sharedTheme, "theme", "", "Theme for rendering output (light, dark, auto, none)")
-	setFlagAnnotation(cmd.Flags(), "theme", []string{categoryDisplay})
+	setFlagAnnotation(cmd.Flags(), "theme", []flagCategory{categoryDisplay})
 }
 
 // addSharedRedactFlag adds the --redact flag to cmd for redacting sensitive fields
@@ -89,7 +89,7 @@ func addDisplayFlags(cmd *cobra.Command) {
 func addSharedRedactFlag(cmd *cobra.Command) {
 	cmd.Flags().
 		BoolVar(&sharedRedact, "redact", false, "Redact sensitive fields (passwords, keys, community strings) in output")
-	setFlagAnnotation(cmd.Flags(), "redact", []string{categoryOutput})
+	setFlagAnnotation(cmd.Flags(), "redact", []flagCategory{categoryOutput})
 }
 
 // Constants for flag validation.

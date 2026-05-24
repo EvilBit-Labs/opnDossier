@@ -4,6 +4,9 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -363,3 +366,100 @@ func TestListPlugins_LoadFailureSurfacesInJSON(t *testing.T) {
 type assertableError struct{ msg string }
 
 func (e assertableError) Error() string { return e.msg }
+
+// TestListPlugins_DynamicPluginDirEndToEnd drives the full runListPlugins
+// pipeline against a real --plugin-dir on disk. The test creates a stub
+// .so file in a temp directory; the file will fail plugin.Open (or
+// preflight) because it isn't a real shared object, and that failure
+// must:
+//
+//   - propagate through pm.InitializePlugins -> pm.GetLoadResult()
+//   - surface inline in the JSON envelope as a load-failed entry with
+//     a non-empty LoadError
+//   - emit the trust-model warning to stderr before any load attempt
+//   - leave exit code 0 (failures are surfaced, not fatal — matching
+//     the documented contract in docs/for-agents.md)
+//
+// Cross-platform: skipped on Windows because Go's plugin package and
+// the preflight permission-bit checks are POSIX-only (GOTCHAS.md §2.5).
+// This is the end-to-end happy path for the --plugin-dir code path; the
+// helper-level TestListPlugins_LoadFailureSurfacesInJSON exercises the
+// JSON shape independently via newLoadFailedEntry, but this test wires
+// the full PluginManager.SetPluginDir -> InitializePlugins ->
+// GetLoadResult chain that runListPlugins relies on.
+func TestListPlugins_DynamicPluginDirEndToEnd(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("dynamic plugin loading is POSIX-only (GOTCHAS.md §2.5)")
+	}
+
+	listPluginsTestCleanup(t)
+
+	pluginDir := t.TempDir()
+	stubPath := filepath.Join(pluginDir, "stub.so")
+	require.NoError(t, os.WriteFile(stubPath, []byte("not a real shared object"), 0o600))
+
+	listPluginsPluginDir = pluginDir
+	listPluginsJSONOutput = true
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	listPluginsCmd.SetOut(stdout)
+	listPluginsCmd.SetErr(stderr)
+	t.Cleanup(func() {
+		listPluginsCmd.SetOut(nil)
+		listPluginsCmd.SetErr(nil)
+	})
+
+	// Run the full subcommand. A stub .so will fail to open; the
+	// failure must surface in the JSON envelope, NOT abort the command.
+	require.NoError(t, runListPlugins(listPluginsCmd, nil), "load failures must not be fatal")
+
+	// Trust-model warning must have fired before the load attempt.
+	warning := stderr.String()
+	assert.Contains(t, warning, "--plugin-dir", "trust-model warning must mention --plugin-dir")
+	assert.Contains(t, warning, "dynamic .so plugins", "trust-model warning must explicitly call out .so loading")
+
+	// JSON envelope must contain a load-failed entry for stub.so.
+	var entries []pluginEntry
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &entries))
+
+	var stub *pluginEntry
+	for i := range entries {
+		if entries[i].Name == "stub.so" {
+			stub = &entries[i]
+
+			break
+		}
+	}
+
+	require.NotNil(t, stub, "stub.so must appear as a load-failed entry in the JSON envelope")
+	assert.Equal(
+		t,
+		pluginStatusLoadFailed,
+		stub.Status,
+		"stub.so must carry Status=load-failed; got %q",
+		stub.Status,
+	)
+	assert.NotEmpty(t, stub.LoadError, "load-failed entries must populate LoadError with the underlying failure reason")
+	assert.NotEmpty(
+		t,
+		stub.Description,
+		"load-failed entries must have non-empty Description (JSON envelope invariant)",
+	)
+	assert.Equal(t, versionUnknown, stub.Version, "load-failed entries must default Version to %q", versionUnknown)
+
+	// Built-in plugins must still be enumerated alongside the failure.
+	builtinFound := 0
+	for _, e := range entries {
+		switch e.Name {
+		case "stig", "sans", "firewall":
+			builtinFound++
+		}
+	}
+	assert.GreaterOrEqual(
+		t,
+		builtinFound,
+		1,
+		"built-in plugins must still appear even when --plugin-dir has load failures",
+	)
+}

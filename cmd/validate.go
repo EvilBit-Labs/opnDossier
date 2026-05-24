@@ -22,7 +22,7 @@ func init() {
 	// --json-output is validate-specific: outputs validation errors as JSON for machine consumption.
 	// Scoped here (not on rootCmd) so it only appears on commands that act on it (issue #479).
 	validateCmd.Flags().Bool("json-output", false, "Output errors in JSON format (for machine consumption)")
-	setFlagAnnotation(validateCmd.Flags(), "json-output", []string{categoryOutput})
+	setFlagAnnotation(validateCmd.Flags(), "json-output", []flagCategory{categoryOutput})
 }
 
 // validateCmd is the cobra.Command for the validate subcommand.

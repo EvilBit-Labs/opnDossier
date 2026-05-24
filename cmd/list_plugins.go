@@ -259,7 +259,7 @@ func init() {
 		false,
 		"Emit a JSON array of {name, description, version, status?, loadError?} objects",
 	)
-	setFlagAnnotation(listPluginsCmd.Flags(), "json", []string{categoryOutput})
+	setFlagAnnotation(listPluginsCmd.Flags(), "json", []flagCategory{categoryOutput})
 
 	listPluginsCmd.Flags().StringVar(
 		&listPluginsPluginDir,
@@ -270,5 +270,5 @@ func init() {
 
 	// Match the audit command's annotation so tooling that filters by
 	// flag-category sees plugin-dir consistently across commands.
-	setFlagAnnotation(listPluginsCmd.Flags(), "plugin-dir", []string{categoryAudit})
+	setFlagAnnotation(listPluginsCmd.Flags(), "plugin-dir", []flagCategory{categoryAudit})
 }

@@ -168,11 +168,11 @@ func init() {
 
 	configInitCmd.Flags().
 		StringVarP(&configInitOutputPath, "output", "o", "", "Output path for configuration file (default: ~/.opnDossier.yaml)")
-	setFlagAnnotation(configInitCmd.Flags(), "output", []string{categoryOutput})
+	setFlagAnnotation(configInitCmd.Flags(), "output", []flagCategory{categoryOutput})
 
 	configInitCmd.Flags().
 		BoolVarP(&configInitForce, "force", "f", false, "Overwrite existing configuration file")
-	setFlagAnnotation(configInitCmd.Flags(), "force", []string{categoryOutput})
+	setFlagAnnotation(configInitCmd.Flags(), "force", []flagCategory{categoryOutput})
 }
 
 // runConfigInit executes the config init command.

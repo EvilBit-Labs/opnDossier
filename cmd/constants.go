@@ -17,19 +17,29 @@ const (
 	groupUtility = "utility"
 )
 
+// flagCategory is the typed string for the "category" annotation
+// setFlagAnnotation writes onto a flag. Defining a distinct type stops
+// callers from accidentally passing a groupID, configKey, or arbitrary
+// string here — the compiler rejects the mismatch.
+type flagCategory string
+
 // Flag categories passed to setFlagAnnotation. These determine which "Flags"
 // section a flag is listed under in the per-command help output. Some values
 // match a group ID (groupAudit and categoryAudit are both "audit") because
 // the same word is the natural label in both contexts; they are kept as
-// distinct constants so a rename in one context does not silently rename
-// the other. The set is intentionally narrow — only categories actually used
-// in flag annotations are declared. Add a new category here when wiring a
-// new annotation, not preemptively.
+// distinct typed constants so a rename in one context does not silently
+// rename the other.
 const (
-	categoryAudit   = "audit"
-	categoryDisplay = "display"
-	categoryLogging = "logging"
-	categoryOutput  = "output"
+	categoryAudit         flagCategory = "audit"
+	categoryConfiguration flagCategory = "configuration"
+	categoryContent       flagCategory = "content"
+	categoryDisplay       flagCategory = "display"
+	categoryFormatting    flagCategory = "formatting"
+	categoryLogging       flagCategory = "logging"
+	categoryOutput        flagCategory = "output"
+	categoryParsing       flagCategory = "parsing"
+	categoryProgress      flagCategory = "progress"
+	categorySanitize      flagCategory = "sanitize"
 )
 
 // YAML config-schema keys consumed by config_show.go and config_validate.go.

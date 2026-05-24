@@ -76,5 +76,5 @@ func init() {
 		false,
 		"Emit a JSON array of {name, description} objects",
 	)
-	setFlagAnnotation(listDevicesCmd.Flags(), "json", []string{categoryOutput})
+	setFlagAnnotation(listDevicesCmd.Flags(), "json", []flagCategory{categoryOutput})
 }

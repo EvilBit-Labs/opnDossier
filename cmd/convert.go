@@ -66,13 +66,13 @@ func init() {
 	// Output and format flags
 	convertCmd.Flags().
 		StringVarP(&outputFile, "output", "o", "", "Output file path for saving converted configuration (default: print to console)")
-	setFlagAnnotation(convertCmd.Flags(), "output", []string{categoryOutput})
+	setFlagAnnotation(convertCmd.Flags(), "output", []flagCategory{categoryOutput})
 	convertCmd.Flags().
 		StringVarP(&format, "format", "f", "markdown", "Output format for conversion (markdown, json, yaml, text, html)")
-	setFlagAnnotation(convertCmd.Flags(), "format", []string{categoryOutput})
+	setFlagAnnotation(convertCmd.Flags(), "format", []flagCategory{categoryOutput})
 	convertCmd.Flags().
 		BoolVar(&force, "force", false, "Force overwrite existing files without prompting for confirmation")
-	setFlagAnnotation(convertCmd.Flags(), "force", []string{categoryOutput})
+	setFlagAnnotation(convertCmd.Flags(), "force", []flagCategory{categoryOutput})
 
 	// Add shared styling and content flags
 	addSharedContentFlags(convertCmd)

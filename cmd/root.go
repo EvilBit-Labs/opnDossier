@@ -192,33 +192,33 @@ func init() {
 	// Configuration flags
 	rootCmd.PersistentFlags().
 		StringVar(&cfgFile, "config", "", "Configuration file path (default: $HOME/.opnDossier.yaml)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "config", []string{"configuration"})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "config", []flagCategory{categoryConfiguration})
 
 	// Output control flags (mutually exclusive: quiet < default(warn) < verbose < debug)
 	rootCmd.PersistentFlags().
 		BoolP(flagVerbose, "v", false, "Enable info-level logging (warnings, errors, and informational messages)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), flagVerbose, []string{categoryOutput})
+	setFlagAnnotation(rootCmd.PersistentFlags(), flagVerbose, []flagCategory{categoryOutput})
 	rootCmd.PersistentFlags().
 		Bool(flagDebug, false, "Enable debug-level logging (all messages, for troubleshooting)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), flagDebug, []string{categoryOutput})
+	setFlagAnnotation(rootCmd.PersistentFlags(), flagDebug, []flagCategory{categoryOutput})
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Suppress all output except errors and critical messages")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []string{categoryOutput})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "quiet", []flagCategory{categoryOutput})
 
 	// Logging control flags
 	rootCmd.PersistentFlags().
 		Bool("timestamps", false, "Include timestamps in log output")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "timestamps", []string{categoryLogging})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "timestamps", []flagCategory{categoryLogging})
 
 	// Progress and display control flags
 	rootCmd.PersistentFlags().
 		Bool("no-progress", false, "Disable progress indicators")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "no-progress", []string{"progress"})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "no-progress", []flagCategory{categoryProgress})
 	rootCmd.PersistentFlags().
 		String("color", "auto", "Color output mode (auto, always, never)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "color", []string{categoryDisplay})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "color", []flagCategory{categoryDisplay})
 	rootCmd.PersistentFlags().
 		Bool("minimal", false, "Minimal output mode (suppresses progress and verbose messages)")
-	setFlagAnnotation(rootCmd.PersistentFlags(), "minimal", []string{categoryOutput})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "minimal", []flagCategory{categoryOutput})
 	// Note: --json-output is registered on validateCmd only (not here as persistent).
 	// It has no effect on other commands. See issue #479, GOTCHAS.md §5.1.
 
@@ -230,7 +230,7 @@ func init() {
 		StringVar(&sharedDeviceType, "device-type", "",
 			fmt.Sprintf("Force device type (supported: %s). Bypasses auto-detection.",
 				parser.DefaultRegistry().SupportedDevices()))
-	setFlagAnnotation(rootCmd.PersistentFlags(), "device-type", []string{"parsing"})
+	setFlagAnnotation(rootCmd.PersistentFlags(), "device-type", []flagCategory{categoryParsing})
 
 	// Flag groups for better organization
 	rootCmd.PersistentFlags().SortFlags = false
@@ -394,7 +394,14 @@ func GetFlagsByCategory(cmd *cobra.Command) map[string][]string {
 }
 
 // setFlagAnnotation safely sets a flag annotation and logs any errors.
-func setFlagAnnotation(flags *pflag.FlagSet, flagName string, values []string) {
+// The typed flagCategory parameter is what makes callsites compile-time
+// safe against accidentally passing a groupID or unrelated string.
+func setFlagAnnotation(flags *pflag.FlagSet, flagName string, categories []flagCategory) {
+	values := make([]string, len(categories))
+	for i, c := range categories {
+		values[i] = string(c)
+	}
+
 	if err := flags.SetAnnotation(flagName, "category", values); err != nil {
 		// In init functions, we can't return errors, so we log them
 		// This should never happen with valid flag names
