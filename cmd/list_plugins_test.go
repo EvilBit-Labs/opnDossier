@@ -463,3 +463,47 @@ func TestListPlugins_DynamicPluginDirEndToEnd(t *testing.T) {
 		"built-in plugins must still appear even when --plugin-dir has load failures",
 	)
 }
+
+// TestListPlugins_DynamicPluginLoadFailureHiddenFromTextMode verifies the
+// pipeline-safety contract for text mode: `list plugins --plugin-dir` in
+// text mode must NOT include load-failed plugin names in stdout because
+// the documented contract is that the output is safe to pipe directly into
+// --plugins. A name like `stub.so` that won't actually load would break
+// `opnDossier list plugins --plugin-dir ./plugins | xargs -I{} opnDossier
+// audit --plugins {} config.xml`. Stderr WARN logs still fire (via the
+// shared logger) so the operator has a diagnostic trail.
+func TestListPlugins_DynamicPluginLoadFailureHiddenFromTextMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("dynamic plugin loading is POSIX-only (GOTCHAS.md §2.5)")
+	}
+
+	listPluginsTestCleanup(t)
+
+	pluginDir := t.TempDir()
+	stubPath := filepath.Join(pluginDir, "stub.so")
+	require.NoError(t, os.WriteFile(stubPath, []byte("not a real shared object"), 0o600))
+
+	listPluginsPluginDir = pluginDir
+	// listPluginsJSONOutput stays false — this test exercises the text-mode path.
+
+	stdout := &bytes.Buffer{}
+	listPluginsCmd.SetOut(stdout)
+	listPluginsCmd.SetErr(&bytes.Buffer{})
+	t.Cleanup(func() {
+		listPluginsCmd.SetOut(nil)
+		listPluginsCmd.SetErr(nil)
+	})
+
+	require.NoError(t, runListPlugins(listPluginsCmd, nil), "load failures must not be fatal")
+
+	// Text-mode stdout must contain built-ins but NOT stub.so. Agents
+	// piping into --plugins must never see a name that won't actually load.
+	stdoutLines := strings.Split(strings.TrimRight(stdout.String(), "\n"), "\n")
+	assert.Contains(t, stdoutLines, "stig", "built-in plugins must appear in text mode")
+	assert.NotContains(
+		t,
+		stdoutLines,
+		"stub.so",
+		"text-mode output must NOT include load-failed plugin names (pipeline-safety contract)",
+	)
+}

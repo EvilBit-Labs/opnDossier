@@ -128,11 +128,15 @@ include dynamically-loaded .so plugins, pass --plugin-dir pointing at the
 directory containing them; that flag triggers the same trust-model warning
 and preflight checks that the audit command applies.
 
-By default the command writes one plugin name per line. Use --json to emit a
-structured array of {name, description, version, status, loadError?}
-objects. Status is "ok" for normal entries (and omitted from JSON), or one
-of "panicked", "lookup-failed", "load-failed", "version-filled" when the
-metadata could not be read normally.`,
+By default the command writes one plugin name per line — text mode is safe
+to pipe directly into --plugins because only successfully-registered plugins
+appear. Use --json to emit a structured array of
+{name, description, version, status?, loadError?} objects. The status field
+is omitted entirely for normal entries; when present it carries one of
+"panicked", "lookup-failed", "load-failed", or "version-filled" so JSON
+consumers can detect failure modes without scraping stderr. Dynamic plugin
+load failures also surface as WARN lines on stderr in both text and JSON
+modes.`,
 	Example: `  # Plain text, one plugin name per line
   opnDossier list plugins
 
@@ -174,12 +178,22 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 	// registry refactor that drops the internal sort.
 	slices.Sort(names)
 
-	// Surface dynamic plugin load failures both via WARN logs (legacy
-	// stderr surface) AND inline in the JSON envelope as load-failed
-	// entries (machine-readable). Agents piping --json | jq no longer
-	// need to scrape stderr to detect partial loads.
+	// Surface dynamic plugin load failures. WARN logs fire on stderr in
+	// every mode so operators always have a diagnostic trail. Load-failed
+	// entries are appended to the JSON envelope (machine-readable
+	// detection without scraping stderr) but NOT to the text-mode output
+	// — text mode's one-name-per-line contract promises pipeline safety,
+	// so `list plugins --plugin-dir | xargs ... --plugins ...` must never
+	// include a name that won't actually load. Agents needing failure
+	// visibility should use --json (where status="load-failed" + loadError
+	// are populated) or capture stderr.
 	loadResult := pm.GetLoadResult()
-	entries := make([]listEntry, 0, len(names)+loadResult.Failed())
+	capHint := len(names)
+	if listPluginsJSONOutput {
+		capHint += loadResult.Failed()
+	}
+
+	entries := make([]listEntry, 0, capHint)
 
 	for _, n := range names {
 		entries = append(entries, readPluginMetadata(registry, n))
@@ -190,7 +204,9 @@ func runListPlugins(cmd *cobra.Command, _ []string) error {
 			"plugin", f.Name,
 			"error", f.Err,
 		)
-		entries = append(entries, newLoadFailedEntry(f.Name, f.Err))
+		if listPluginsJSONOutput {
+			entries = append(entries, newLoadFailedEntry(f.Name, f.Err))
+		}
 	}
 
 	return emitList(cmd.OutOrStdout(), entries, listPluginsJSONOutput)
