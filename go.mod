@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/log v1.0.0
 	github.com/clbanning/mxj v1.8.4
-	github.com/go-playground/validator/v10 v10.30.2
+	github.com/go-playground/validator/v10 v10.30.3
 	github.com/k3a/html2text v1.4.0
 	github.com/nao1215/markdown v0.13.0
 	github.com/sebdah/goldie/v2 v2.8.0
@@ -107,7 +107,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect; no tagged release (transitive of charmbracelet/colorprofile via fang)
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect; upstream policy: x/exp ships only as pseudo-versions
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
