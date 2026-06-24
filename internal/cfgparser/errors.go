@@ -106,8 +106,7 @@ func WrapXMLSyntaxError(err error, elementPath string) error {
 		return nil
 	}
 
-	var syntaxErr *xml.SyntaxError
-	if errors.As(err, &syntaxErr) {
+	if syntaxErr, ok := errors.AsType[*xml.SyntaxError](err); ok {
 		message := syntaxErr.Msg
 
 		// Add element path context if available
@@ -151,8 +150,7 @@ func IsValidationError(err error) bool {
 // GetParseError extracts a ParseError from an error chain.
 // GetParseError extracts a ParseError from the error chain, or returns nil if none is found.
 func GetParseError(err error) *ParseError {
-	var parseErr *ParseError
-	if errors.As(err, &parseErr) {
+	if parseErr, ok := errors.AsType[*ParseError](err); ok {
 		return parseErr
 	}
 
@@ -162,8 +160,7 @@ func GetParseError(err error) *ParseError {
 // GetValidationError extracts a ValidationError from an error chain.
 // GetValidationError extracts a ValidationError from the error chain, or returns nil if none is found.
 func GetValidationError(err error) *ValidationError {
-	var validationErr *ValidationError
-	if errors.As(err, &validationErr) {
+	if validationErr, ok := errors.AsType[*ValidationError](err); ok {
 		return validationErr
 	}
 
@@ -252,8 +249,7 @@ func WrapXMLSyntaxErrorWithOffset(err error, elementPath string, dec *xml.Decode
 		return nil
 	}
 
-	var syntaxErr *xml.SyntaxError
-	if errors.As(err, &syntaxErr) {
+	if syntaxErr, ok := errors.AsType[*xml.SyntaxError](err); ok {
 		message := syntaxErr.Msg
 
 		// Add element path context if available
