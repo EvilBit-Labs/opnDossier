@@ -87,7 +87,7 @@ func TestWorkerPoolMultipleJobs(t *testing.T) {
 	defer wp.Close()
 
 	numJobs := 100
-	var submitted int32
+	var submitted atomic.Int32
 
 	// Submit jobs concurrently
 	go func() {
@@ -100,7 +100,7 @@ func TestWorkerPoolMultipleJobs(t *testing.T) {
 				},
 			}
 			if err := wp.Submit(job); err == nil {
-				atomic.AddInt32(&submitted, 1)
+				submitted.Add(1)
 			}
 		}
 	}()
