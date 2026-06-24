@@ -45,7 +45,15 @@ jobs:
           cache: true
 
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        # Pinned to v1.3.0: v1.4.0 bundles golang.org/x/tools v0.46.0, whose
+        # typesinternal.ForEachElement panics ("called on type containing
+        # *types.TypeParam") when analyzing this module's generics, crashing the
+        # scan. v1.3.0 bundles x/tools v0.44.0, which predates the bug. The vuln
+        # database is fetched at runtime, so scan coverage is unaffected by the
+        # scanner pin. Revisit once a govulncheck release ships an x/tools that
+        # fixes the ForEachElement TypeParam panic (track golang.org/x/tools
+        # releases > v0.46.0 and bump to @latest once verified).
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
 
       - name: Run govulncheck
         run: govulncheck ./...

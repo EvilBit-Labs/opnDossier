@@ -114,7 +114,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.txt
-          fail_ci_if_error: true
+          # Dependabot PRs run without access to CODECOV_TOKEN, so the tokenless
+          # upload to a protected branch is rejected. Only enforce upload success
+          # where the token is available; tests themselves still run above and
+          # gate the job regardless of actor.
+          fail_ci_if_error: ${{ github.actor != 'dependabot[bot]' }}
 
   # ─────────────────────────────────────────────────────────────────────────
   # Build - Verify builds across platforms
