@@ -4,9 +4,9 @@
 
 ## Overview
 
-opnDossier is a command-line tool for network operators and security professionals working with OPNsense and pfSense firewalls. Transform complex XML configuration files into clear, readable documentation and identify security issues, misconfigurations, and optimization opportunities.
+opnDossier is a command-line tool for network operators and security professionals who work with OPNsense and pfSense firewalls. It turns XML config files into readable documentation and flags security issues, misconfigurations, and dead firewall rules.
 
-Built for offline operation in secure environments - no external dependencies, no telemetry, complete airgapped support.
+It runs entirely offline, with no external dependencies and no telemetry, so it works in fully airgapped environments.
 
 ### What It Does
 
@@ -14,7 +14,7 @@ Built for offline operation in secure environments - no external dependencies, n
 - **Dead Rule Detection** - Find unreachable firewall rules and unused interfaces
 - **Configuration Validation** - Comprehensive checks for misconfigurations and best-practice issues
 - **Multi-Format Export** - Convert to markdown documentation, JSON, or YAML for integration
-- **Offline Operation** - Works completely offline, perfect for airgapped networks
+- **Offline Operation** - Works completely offline, suitable for airgapped networks
 
 > [!NOTE]
 > pfSense support is strong for core firewall and service areas, but some report and audit sections are still in progress. If you work with pfSense, see the [device support matrix](docs/user-guide/device-support-matrix.md) for current feature-by-feature coverage. When a pfSense area is not yet supported, opnDossier warns during processing so you can tell the difference between a product gap and a missing configuration.
@@ -134,15 +134,15 @@ Built-in validation against security and operational best practices.
 ### Output & Export
 
 - **Multi-format export** - Generate markdown documentation, JSON, or YAML output
-- **Terminal display** - Rich terminal output with syntax highlighting and theme support
+- **Terminal display** - Syntax-highlighted terminal output with theme support
 - **File export** - Save processed configurations with overwrite protection
 - **International character support** - UTF-8, US-ASCII, ISO-8859-1, and Windows-1252 input encodings
 
 ### Performance & Architecture
 
 - **Streaming processing** - Memory-efficient handling of large configuration files
-- **Fast & lightweight** - Built with Go for performance and reliability
-- **Offline operation** - Works completely offline, perfect for airgapped environments
+- **Fast & lightweight** - A single static Go binary with no runtime dependencies
+- **Offline operation** - Works completely offline, suitable for airgapped environments
 - **Cross-platform** - Native binaries for Linux, macOS, and Windows
 
 ### Security & Privacy
