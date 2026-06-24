@@ -586,8 +586,7 @@ func TestXMLParser_MalformedXML(t *testing.T) {
 			require.Error(t, err, tt.description)
 
 			// Check if it's a ParseError with line information
-			var parseErr *ParseError
-			if errors.As(err, &parseErr) {
+			if parseErr, ok := errors.AsType[*ParseError](err); ok {
 				assert.Positive(t, parseErr.Line, "ParseError should have line information")
 				assert.Contains(t, parseErr.Message, "opnsense", "ParseError should contain element context")
 			} else {
