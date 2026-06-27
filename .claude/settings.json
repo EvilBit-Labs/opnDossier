@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "ecc@everything-claude-code": true,
+    "compound-engineering@compound-engineering-plugin": true,
+    "golang-development@geoffjay-claude-plugins": true
+  }
+}

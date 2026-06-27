@@ -204,7 +204,6 @@ test-output.md
 # not project source. Contributors should not commit agent-specific
 # configs; use CONTRIBUTING.md and ARCHITECTURE.md for project standards.
 CLAUDE.md
-.claude/
 .cursorrules
 .cursor/
 .aider*
@@ -239,4 +238,6 @@ vhs/opnDossier
 # the benchmark helper when missing or undersized. See
 # internal/sanitizer/testdata/README.md.
 internal/sanitizer/testdata/benchmark-10mb.xml
-.compound-engineering/*.local.yaml
+
+**/*.local.yaml
+.claude/skills
