@@ -96,6 +96,8 @@ When documenting interfaces in prose, Mermaid diagrams, or code examples:
 - Update docs in the same commit as interface changes, not in follow-up PRs
 - See `docs/solutions/logic-errors/documentation-code-drift-interface-refactoring.md`
 
-## Agent Rules <!-- tessl-managed -->
+## Agent Rules
 
-@.tessl/RULES.md follow the [instructions](.tessl/RULES.md)
+### Post-Push CI Monitoring
+
+After any successful `git push`, immediately invoke the `github-action-monitor` skill to monitor the triggered GitHub Actions workflow runs and report pass/fail. Do not wait to be asked — this is part of the push workflow.
