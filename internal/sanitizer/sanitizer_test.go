@@ -351,8 +351,15 @@ func TestSanitizeXML_SNMPv3Password(t *testing.T) {
 			if err := s.SanitizeXML(strings.NewReader(xml), &output); err != nil {
 				t.Fatalf("SanitizeXML() error = %v", err)
 			}
-			if strings.Contains(output.String(), passwordBody) {
-				t.Errorf("mode=%q leaked SNMPv3 auth password: %s", mode, output.String())
+			result := output.String()
+			if strings.Contains(result, passwordBody) {
+				t.Errorf("mode=%q leaked SNMPv3 auth password: %s", mode, result)
+			}
+			// Assert the marker is present, not just that the cleartext is
+			// absent — catches the node being dropped/rewritten instead of
+			// redacted.
+			if !strings.Contains(result, "[REDACTED-PASSWORD]") {
+				t.Errorf("mode=%q missing password redaction marker: %s", mode, result)
 			}
 		})
 	}
