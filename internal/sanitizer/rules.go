@@ -338,8 +338,8 @@ func builtinRules() []Rule {
 				"tls_crypt", "tls_auth",
 				// SNMPv3 privacy/encryption key from the OPNsense net-snmp
 				// plugin (<OPNsense><netsnmp><user><enckey>). The bare "key"
-				// pattern above is exact-match only, so "enckey" needs its own
-				// alias. See GOTCHAS §11.3 and ADR-0001.
+				// pattern above is exact-match only (see exactMatchPatterns),
+				// so "enckey" needs its own substring alias. See ADR-0001.
 				"enckey", "enc_key",
 			},
 			ValueDetector: IsPrivateKey,

@@ -10,8 +10,10 @@ import (
 // serviceDetailRedactedValue is the placeholder written over sensitive
 // ServiceDetails values. It MUST remain "[REDACTED]" to preserve byte-identical
 // rendered output across the processor statistics path and the converter export
-// path — both delegate to RedactServiceDetails, so this string is the single
-// source of truth for the marker.
+// path — both delegate to RedactServiceDetails, so this constant is the single
+// source of truth for the ServiceDetails redaction marker. (The converter's
+// separate redactedValue const governs unrelated field redactions — certs, API
+// keys, WireGuard PSKs — and is not shared with this path.)
 const serviceDetailRedactedValue = "[REDACTED]"
 
 // snmpSensitiveDetailKeys lists the keys in ServiceStatistics.Details (for the
@@ -19,6 +21,11 @@ const serviceDetailRedactedValue = "[REDACTED]"
 // sensitive key — for example, an SNMPv3 authentication password surfaced once
 // the OPNsense net-snmp plugin namespace is parsed — is a one-line append here,
 // shared by every caller of RedactServiceDetails.
+//
+// When adding a key here, also verify the sanitizer's password/private_key
+// FieldPatterns in internal/sanitizer/rules.go cover the corresponding raw XML
+// element, so the raw-XML path stays in sync with this analysis path
+// (GOTCHAS §11.2).
 //
 //nolint:gochecknoglobals // immutable allowlist; mutation would be a security regression
 var snmpSensitiveDetailKeys = []string{"community"}

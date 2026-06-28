@@ -96,9 +96,11 @@ func generateStatistics(cfg *common.CommonDevice) *Statistics {
 	commonStats := analysis.ComputeStatistics(cfg)
 	// Redact sensitive service details on the shared statistics before translating
 	// into the processor type, using the same primitive as the converter export
-	// path (the single source of truth for SNMP redaction). commonStats is freshly
-	// owned by this call, so redacting it here is safe; translateCommonStats then
-	// copies the already-redacted Details maps.
+	// path. commonStats is freshly owned by this call, so redacting it here is
+	// safe; translateCommonStats then aliases the already-redacted Details maps
+	// (cloned by the primitive, so sharing the references is safe). The discarded
+	// bool is informational ("redaction occurred"), not an error — the primitive
+	// has no failure mode.
 	commonStats.ServiceDetails, _ = analysis.RedactServiceDetails(commonStats.ServiceDetails)
 
 	stats := translateCommonStats(commonStats)
