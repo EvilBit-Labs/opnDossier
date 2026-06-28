@@ -1055,7 +1055,7 @@ func TestRedactStatisticsServiceDetails_ConvergesWithProcessorPath(t *testing.T)
 	require.True(t, changed, "expected redaction to occur")
 	assert.Equal(t, processorDetails, converterStats.ServiceDetails,
 		"converter and processor redaction paths must produce identical ServiceDetails")
-	assert.Equal(t, "[REDACTED]", snmpDetails(t, converterStats)["community"])
+	assert.Equal(t, redactedValue, snmpDetails(t, converterStats)["community"])
 }
 
 // TestRedactStatisticsServiceDetails_NoSNMP_BothPathsAgree pins that the two
