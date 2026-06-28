@@ -1,8 +1,6 @@
 package processor
 
 import (
-	"maps"
-
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
@@ -91,31 +89,18 @@ type StatisticsSummary struct {
 	HasSecurityFeatures bool `json:"hasSecurityFeatures"`
 }
 
-// redactServiceDetails replaces sensitive values in the processor's ServiceDetails
-// with the redaction marker. The shared analysis.ComputeStatistics intentionally
-// returns raw values so callers can decide on redaction policy; the processor
-// always redacts before rendering or serializing.
-func redactServiceDetails(stats *Statistics) {
-	if stats == nil {
-		return
-	}
-
-	for i := range stats.ServiceDetails {
-		if stats.ServiceDetails[i].Name == analysis.ServiceNameSNMP && stats.ServiceDetails[i].Details != nil {
-			if _, ok := stats.ServiceDetails[i].Details["community"]; ok {
-				// Deep-copy the map to avoid mutating shared state.
-				stats.ServiceDetails[i].Details = maps.Clone(stats.ServiceDetails[i].Details)
-				stats.ServiceDetails[i].Details["community"] = redactedValue
-			}
-		}
-	}
-}
-
 // generateStatistics analyzes a device configuration and returns aggregated statistics.
 // It delegates to analysis.ComputeStatistics for shared logic, translates the result
 // into the processor's Statistics type, and adds IDS-specific fields.
 func generateStatistics(cfg *common.CommonDevice) *Statistics {
 	commonStats := analysis.ComputeStatistics(cfg)
+	// Redact sensitive service details on the shared statistics before translating
+	// into the processor type, using the same primitive as the converter export
+	// path (the single source of truth for SNMP redaction). commonStats is freshly
+	// owned by this call, so redacting it here is safe; translateCommonStats then
+	// copies the already-redacted Details maps.
+	commonStats.ServiceDetails, _ = analysis.RedactServiceDetails(commonStats.ServiceDetails)
+
 	stats := translateCommonStats(commonStats)
 
 	// IDS/IPS statistics — processor-specific fields not in common.Statistics
@@ -132,9 +117,6 @@ func generateStatistics(cfg *common.CommonDevice) *Statistics {
 			stats.IDSMode = "IDS (Detection Only)"
 		}
 	}
-
-	// Redact sensitive service details before the report can be rendered or serialized.
-	redactServiceDetails(stats)
 
 	return stats
 }

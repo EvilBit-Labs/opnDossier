@@ -1031,3 +1031,44 @@ func snmpDetails(t *testing.T, stats *common.Statistics) map[string]string {
 	t.Fatalf("SNMP service entry not found in ServiceDetails")
 	return nil
 }
+
+// TestRedactStatisticsServiceDetails_ConvergesWithProcessorPath pins R3: the
+// converter export path and the processor statistics path produce identical
+// ServiceDetails redaction for the same input, because both delegate to
+// analysis.RedactServiceDetails. The processor's generateStatistics applies the
+// primitive to commonStats.ServiceDetails before translating, so the operation
+// computed here is the exact processor-side redaction.
+func TestRedactStatisticsServiceDetails_ConvergesWithProcessorPath(t *testing.T) {
+	t.Parallel()
+
+	cfg := &common.CommonDevice{
+		SNMP: common.SNMPConfig{
+			ROCommunity: testSecretValue,
+			SysLocation: testSNMPLocation,
+		},
+	}
+
+	converterStats := redactStatisticsServiceDetails(analysis.ComputeStatistics(cfg))
+	processorDetails, changed := analysis.RedactServiceDetails(analysis.ComputeStatistics(cfg).ServiceDetails)
+
+	require.NotNil(t, converterStats)
+	require.True(t, changed, "expected redaction to occur")
+	assert.Equal(t, processorDetails, converterStats.ServiceDetails,
+		"converter and processor redaction paths must produce identical ServiceDetails")
+	assert.Equal(t, "[REDACTED]", snmpDetails(t, converterStats)["community"])
+}
+
+// TestRedactStatisticsServiceDetails_NoSNMP_BothPathsAgree pins that the two
+// paths still agree when there is nothing to redact.
+func TestRedactStatisticsServiceDetails_NoSNMP_BothPathsAgree(t *testing.T) {
+	t.Parallel()
+
+	cfg := &common.CommonDevice{}
+
+	converterStats := redactStatisticsServiceDetails(analysis.ComputeStatistics(cfg))
+	processorDetails, changed := analysis.RedactServiceDetails(analysis.ComputeStatistics(cfg).ServiceDetails)
+
+	require.NotNil(t, converterStats)
+	assert.False(t, changed, "no redaction expected with no SNMP service")
+	assert.Equal(t, processorDetails, converterStats.ServiceDetails)
+}
