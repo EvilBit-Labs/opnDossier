@@ -289,6 +289,82 @@ func TestSanitizeXML_OpenVPNStaticKey(t *testing.T) {
 	}
 }
 
+// TestSanitizeXML_SNMPv3EncKey verifies the OPNsense net-snmp plugin's
+// SNMPv3 privacy/encryption key (<enckey>) is redacted. Before ADR-0001's fix
+// the bare "key" pattern was exact-match only, so <enckey> leaked in cleartext
+// through the raw-XML sanitize path.
+func TestSanitizeXML_SNMPv3EncKey(t *testing.T) {
+	const encKeyBody = "s3cr3t-privacy-key-value"
+
+	fixtures := []struct {
+		name string
+		xml  string
+	}{
+		{
+			name: "netsnmp_enckey",
+			xml: "<opnsense><OPNsense><netsnmp><user><users><user><enckey>" +
+				encKeyBody +
+				"</enckey></user></users></user></netsnmp></OPNsense></opnsense>",
+		},
+		{
+			name: "enc_key_alias",
+			xml: "<opnsense><OPNsense><netsnmp><user><users><user><enc_key>" +
+				encKeyBody +
+				"</enc_key></user></users></user></netsnmp></OPNsense></opnsense>",
+		},
+	}
+
+	for _, mode := range ValidModes() {
+		for _, fx := range fixtures {
+			t.Run(string(mode)+"_"+fx.name, func(t *testing.T) {
+				s := NewSanitizer(mode)
+				var output bytes.Buffer
+				if err := s.SanitizeXML(strings.NewReader(fx.xml), &output); err != nil {
+					t.Fatalf("SanitizeXML() error = %v", err)
+				}
+				result := output.String()
+				if strings.Contains(result, encKeyBody) {
+					t.Errorf("mode=%q fixture=%q leaked SNMPv3 enckey: %s", mode, fx.name, result)
+				}
+				if !strings.Contains(result, "[REDACTED-PRIVATE-KEY]") {
+					t.Errorf("mode=%q fixture=%q missing redaction marker: %s", mode, fx.name, result)
+				}
+			})
+		}
+	}
+}
+
+// TestSanitizeXML_SNMPv3Password verifies the net-snmp plugin's SNMPv3 auth
+// passphrase (<password>) is redacted via the generic password rule — guards
+// against an accidental rule reshuffle when the enckey alias was added.
+func TestSanitizeXML_SNMPv3Password(t *testing.T) {
+	const passwordBody = "s3cr3t-auth-passphrase"
+
+	xml := "<opnsense><OPNsense><netsnmp><user><users><user><password>" +
+		passwordBody +
+		"</password></user></users></user></netsnmp></OPNsense></opnsense>"
+
+	for _, mode := range ValidModes() {
+		t.Run(string(mode), func(t *testing.T) {
+			s := NewSanitizer(mode)
+			var output bytes.Buffer
+			if err := s.SanitizeXML(strings.NewReader(xml), &output); err != nil {
+				t.Fatalf("SanitizeXML() error = %v", err)
+			}
+			result := output.String()
+			if strings.Contains(result, passwordBody) {
+				t.Errorf("mode=%q leaked SNMPv3 auth password: %s", mode, result)
+			}
+			// Assert the marker is present, not just that the cleartext is
+			// absent — catches the node being dropped/rewritten instead of
+			// redacted.
+			if !strings.Contains(result, "[REDACTED-PASSWORD]") {
+				t.Errorf("mode=%q missing password redaction marker: %s", mode, result)
+			}
+		})
+	}
+}
+
 // TestSanitizeXML_OpenVPN_TLS_NoFalsePositives guards against over-broad
 // redaction of the `tls` substring. The <tls> wrapper on Suricata eveLog
 // and the <tls> log-level enum under the IPsec strongSwan daemon syslog

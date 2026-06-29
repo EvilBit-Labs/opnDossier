@@ -1,14 +1,8 @@
-exclude = [
-  "venv/**",
-  "**/node_modules/**",
-  "**/*.txt",
-  "**/*.mdc",
-  "**/*.tpl.md",
-  "**/CHANGELOG.md",
-  "target/**",
-  "megalinter-reports/**",
-  "THIRD_PARTY_NOTICES",
-]
+# NOTE: file exclusions are handled by the mdformat pre-commit hook's native
+# `exclude:` regex in .pre-commit-config.yaml, NOT here. mdformat's own `exclude`
+# config key requires the hook to run under Python 3.13+ (pre-commit builds the
+# hook venv with its own interpreter, currently 3.11), so using it breaks
+# `pre-commit run`. The pre-commit `exclude:` regex is Python-version independent.
 validate = true
 number = true
 wrap = "no"
