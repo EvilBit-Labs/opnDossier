@@ -198,7 +198,7 @@ Validate and sanitize all inputs at system boundaries. CLI arguments, configurat
 
 Use restrictive file permissions for sensitive material. Configuration files and any outputs containing sensitive data should be written with `0600` permissions.
 
-Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. The SNMP community redaction logic in `internal/processor/report.go` is the canonical example of how sensitive values should be handled.
+Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. The SNMP ServiceDetails redaction logic in `internal/analysis/statistics_redact.go` (specifically the `RedactServiceDetails` function) is the canonical example of how sensitive values should be handled.
 
 Never commit secrets to source control. Use environment variables or secure secret storage when a secret is genuinely required. For the full vulnerability reporting process and threat model, see `SECURITY.md` and `docs/security/security-assurance.md`.
 

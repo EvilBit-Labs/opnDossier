@@ -462,3 +462,24 @@ All other slices on the input (`Interfaces`, `VLANs`, `Bridges`, `CAs`, etc.) sh
 - **`WorkerPool.closedMu sync.RWMutex`** (`internal/processor/concurrent.go`) — channel-close guard in the worker pool used by `ProcessBatch`. Concrete: prevents a `send on closed channel` panic when one goroutine calls `Close()` while another is mid-`Submit`.
 
 Do not remove either of these in a "clean up the package's locks" sweep. They protect distinct invariants from the one §21.1 addressed.
+
+## 22. Documentation Tooling
+
+### 22.1 mdformat Collapses Consecutive `**Label**:` Lines
+
+With `wrap = "no"` in `.mdformat.toml`, mdformat joins consecutive `**Label**:` lines onto a SINGLE line. ADR frontmatter written as three lines —
+
+```markdown
+**Date**: YYYY-MM-DD
+**Status**: accepted
+**Deciders**: ...
+```
+
+— renders after the pre-commit hook as one line: `**Date**: YYYY-MM-DD **Status**: accepted **Deciders**: ...`. That collapsed form is canonical.
+
+- **Gotcha:** Do not "fix" these back onto separate lines — the `mdformat` pre-commit hook re-collapses them and the edit will not survive a commit. Both `docs/adr/template.md` and the ADRs are kept in the collapsed form, so they are already mutually consistent.
+- **Gotcha:** Reviewers (e.g. CodeRabbit) sometimes flag the collapsed frontmatter as a layout defect and suggest splitting the lines. That suggestion is a false positive against this repo's formatter — decline it.
+
+### 22.2 mdformat Excludes Live in `.pre-commit-config.yaml`, Not `.mdformat.toml`
+
+File exclusions for the `mdformat` hook are the pre-commit hook's native `exclude:` regex in `.pre-commit-config.yaml` (currently `*.golden.md`, `docs/cli/`, `CHANGELOG.md`, `*.tpl.md`). Do NOT reintroduce an `exclude = [...]` list in `.mdformat.toml`: that feature requires the hook to run under Python 3.13+, but pre-commit builds the hook venv with its own interpreter (3.11 today), so it fails on every markdown file with `'exclude' patterns are only available on Python 3.13+`.
