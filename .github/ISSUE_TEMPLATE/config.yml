@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/EvilBit-Labs/opnDossier/discussions
+    about: Ask usage questions, share configs, or discuss ideas before filing an issue.
+  - name: Documentation
+    url: https://opndossier.com/
+    about: Read the full documentation, CLI reference, and output schemas.
+  - name: Report a security vulnerability
+    url: https://github.com/EvilBit-Labs/opnDossier/security/advisories/new
+    about: Report vulnerabilities privately — never in a public issue. See SECURITY.md.

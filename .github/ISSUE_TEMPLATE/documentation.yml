@@ -1,0 +1,39 @@
+name: Documentation Issue
+description: Report something incorrect, unclear, or missing in the docs
+title: "docs: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us keep the documentation accurate. This covers the docs site
+        (<https://opndossier.com/>), in-repo Markdown, and the auto-generated CLI reference.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I have searched [existing issues](../issues?q=is%3Aissue) and this is not a duplicate.
+          required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: URL or file path of the affected documentation.
+      placeholder: "https://opndossier.com/... or docs/development/architecture.md"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+      description: Describe the issue. Quote the current text if it is incorrect.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: What should it say instead?
+    validations:
+      required: false
