@@ -1,0 +1,90 @@
+name: Bug Report
+description: Report a defect in opnDossier so it can be reproduced and fixed
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the
+        sections below so we can reproduce and fix the problem quickly.
+
+        > **Security issues:** do **not** open a public issue. Follow the
+        > [Security Policy](https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md) to report vulnerabilities privately.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I have searched [existing issues](https://github.com/EvilBit-Labs/opnDossier/issues?q=is%3Aissue) and this is not a duplicate.
+          required: true
+        - label: I am running the latest release (or a recent commit) of opnDossier.
+          required: true
+        - label: This report does not contain unredacted secrets from my `config.xml` (use `opnDossier sanitize` first).
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands and inputs needed to trigger the bug.
+      placeholder: |
+        1. Run `opnDossier audit config.xml --mode blue`
+        2. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened. Include full error messages or stack traces.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: opnDossier version
+      description: Output of `opnDossier version` (or the commit hash if built from source).
+      placeholder: "v1.5.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other (note in additional context)
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version (only if built from source)
+      description: Output of `go version`.
+      placeholder: "go version go1.26.4 darwin/arm64"
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Sanitized config snippets, logs, screenshots, or anything else that helps.
+    validations:
+      required: false
