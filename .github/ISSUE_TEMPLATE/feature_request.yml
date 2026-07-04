@@ -1,0 +1,49 @@
+name: Feature Request
+description: Suggest a new capability or enhancement for opnDossier
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. opnDossier is a focused OPNsense/pfSense
+        auditing tool — proposals that sharpen that core value are the most likely to land.
+        Please describe the problem before the solution.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I have searched [existing issues](https://github.com/EvilBit-Labs/opnDossier/issues?q=is%3Aissue) and this is not a duplicate.
+          required: true
+        - label: This request is in scope for a configuration auditing tool (not general firewall management).
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve? Who is affected and when?
+      placeholder: "As an operator auditing a config, I can't ..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe how you envision this working, including CLI flags or output changes.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you weighed and why you rejected them.
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mockups, sample output, related tools, or references.
+    validations:
+      required: false
