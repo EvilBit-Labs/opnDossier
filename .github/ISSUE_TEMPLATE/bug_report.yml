@@ -10,13 +10,13 @@ body:
         sections below so we can reproduce and fix the problem quickly.
 
         > **Security issues:** do **not** open a public issue. Follow the
-        > [Security Policy](../blob/main/SECURITY.md) to report vulnerabilities privately.
+        > [Security Policy](https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md) to report vulnerabilities privately.
   - type: checkboxes
     id: preflight
     attributes:
       label: Preflight checklist
       options:
-        - label: I have searched [existing issues](../issues?q=is%3Aissue) and this is not a duplicate.
+        - label: I have searched [existing issues](https://github.com/EvilBit-Labs/opnDossier/issues?q=is%3Aissue) and this is not a duplicate.
           required: true
         - label: I am running the latest release (or a recent commit) of opnDossier.
           required: true

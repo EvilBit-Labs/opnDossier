@@ -14,7 +14,7 @@ body:
     attributes:
       label: Preflight checklist
       options:
-        - label: I have searched [existing issues](../issues?q=is%3Aissue) and this is not a duplicate.
+        - label: I have searched [existing issues](https://github.com/EvilBit-Labs/opnDossier/issues?q=is%3Aissue) and this is not a duplicate.
           required: true
         - label: This request is in scope for a configuration auditing tool (not general firewall management).
           required: true
