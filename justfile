@@ -369,26 +369,19 @@ generate-demos:
 
 # Generate changelog
 [group('docs')]
-changelog: _require-git-cliff
+changelog:
     @{{ mise_exec }} git-cliff --output CHANGELOG.md
 
 # Generate changelog for a specific version
 [group('docs')]
-changelog-version version: _require-git-cliff
+changelog-version version:
     @{{ mise_exec }} git-cliff --tag {{ version }} --output CHANGELOG.md
 
 # Generate changelog for unreleased changes only
 [group('docs')]
-changelog-unreleased: _require-git-cliff
+changelog-unreleased:
     @{{ mise_exec }} git-cliff --unreleased --output CHANGELOG.md
 
-[private]
-_require-git-cliff:
-    #!/usr/bin/env bash
-    if ! command -v git-cliff >/dev/null 2>&1; then
-        echo "Error: git-cliff not found. Run 'just install' to install it."
-        exit 1
-    fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Security

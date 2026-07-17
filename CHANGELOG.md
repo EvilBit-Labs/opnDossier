@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-07-17
+
+### Added
+
+- Add initial strategy document outlining project goals and approach
+
+- **cmd**: Add list subcommand group (plugins, devices, formats) + goconst sweep ([#623](https://github.com/EvilBit-Labs/opnDossier/pull/623))
+
+
+### Changed
+
+- Updated changelog to reflect v1.5.0
+
+- Update RELEASE_NOTES.md for v1.5.0 release, highlighting API stability, OpenVPN key redaction, and boolean parsing improvements
+
+- Clean up project.yml by removing outdated comments and organizing language list
+
+- Add .local.yaml files to .gitignore for compound-engineering
+
+- **processor**: Remove CoreProcessor mutex serialization ([#598](https://github.com/EvilBit-Labs/opnDossier/pull/598))
+
+- **mergify**: Upgrade configuration to current format ([#599](https://github.com/EvilBit-Labs/opnDossier/pull/599))
+
+- **converter**: NATS-36 add NAT-heavy conversion benchmarks ([#601](https://github.com/EvilBit-Labs/opnDossier/pull/601))
+
+- **conventions**: Add PR body and commit message content standard ([#603](https://github.com/EvilBit-Labs/opnDossier/pull/603))
+
+- **converter**: NATS-38 cut firewall-row allocations 41% via formatter and converter idioms ([#604](https://github.com/EvilBit-Labs/opnDossier/pull/604))
+
+- **mergify**: Drop codecov/patch from merge gate ([#605](https://github.com/EvilBit-Labs/opnDossier/pull/605))
+
+- **converter**: NATS-37 memoize statistics and analysis for multi-format exports ([#608](https://github.com/EvilBit-Labs/opnDossier/pull/608))
+
+- **gotchas**: Add note on gocognit threshold adjustment for cognitive complexity
+
+- **bench**: Add export/display/validator benchmarks and startup budget gate
+
+- **serena**: Restore inline config documentation in project.yml
+
+- Remove .gitignore for .agents/skills
+
+- Update versions for JetBrains/go-modern-guidelines and Jeffallan/claude-skills
+
+- Add _update-mise to update-deps for improved dependency management
+
+- Refine README phrasing for offline operation and static binary
+
+- Configure Claude AI plugins and update gitignore
+
+- Remove tessl integration ([#665](https://github.com/EvilBit-Labs/opnDossier/pull/665))
+
+- Deduplicate SNMP ServiceDetails redaction + close SNMPv3 enckey sanitizer leak (NATS-163) ([#667](https://github.com/EvilBit-Labs/opnDossier/pull/667))
+
+- Modernize issue templates, add SUPPORT.md and FUNDING.yml ([#676](https://github.com/EvilBit-Labs/opnDossier/pull/676))
+
+- Bump Go toolchain to 1.26.5 for GO-2026-5856 ([#683](https://github.com/EvilBit-Labs/opnDossier/pull/683))
+
+
+### Fixed
+
+- **ci**: Fix govulncheck crash, remediate stdlib CVEs, unblock Dependabot coverage ([#656](https://github.com/EvilBit-Labs/opnDossier/pull/656))
+
+
 ## [1.5.0] - 2026-04-21
 
 ### Added
