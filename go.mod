@@ -22,7 +22,7 @@ require (
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-emoji v1.0.6
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/term v0.43.0
+	golang.org/x/term v0.45.0
 	golang.org/x/text v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -111,6 +111,6 @@ require (
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect; upstream policy: x/exp ships only as pseudo-versions
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect; no tagged release (test-only transitive of gopkg.in/yaml.v3)
 )
