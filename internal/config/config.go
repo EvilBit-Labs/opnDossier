@@ -207,8 +207,9 @@ func LoadConfigWithViper(cfgFile string, v *viper.Viper) (*Config, error) {
 
 	// Read config file if it exists
 	if err := v.ReadInConfig(); err != nil {
-		var configFileNotFoundError viper.ConfigFileNotFoundError
-		if !errors.As(err, &configFileNotFoundError) {
+		// The typed match value is intentionally discarded; only presence matters.
+		//nolint:errcheck // errors.AsType's first return is the matched value, not an error to handle
+		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); !ok {
 			// Return error only for non-config-file-not-found errors
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
