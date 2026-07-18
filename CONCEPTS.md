@@ -31,3 +31,13 @@ A framework-free configuration smell that no compliance plugin owns at per-eleme
 ### ExploitNotes
 
 The impact-and-context framing attached to a red-mode exposure finding: why an exposure matters to a defender or an attacker, never how to exploit it. ExploitNotes carry no weaponized or step-by-step instructions — this boundary is enforced mechanically by a denylist run over the generated notes, not by authoring discipline. A sharper-tone variant adjusts tone only and never changes the safety property.
+
+## Device model
+
+### Named-object reference layer
+
+An additive registry (`NamedObjects`) and reference concept (`ObjectRef`) on `CommonDevice` that lets a device parser preserve object-oriented config as named object definitions plus rule-level references to them, alongside the existing resolved-inline-value fields. Resolved values are always populated so existing pf-family checks keep firing unmodified; the reference is optional and stays empty for devices (OPNsense, pfSense) that have no named-object concept. Unlocks reference-integrity checks like dangling-object detection without a schema rewrite.
+
+### DeviceBundle
+
+The planned container for a config file that yields more than one `CommonDevice` from a single parse — the deferred FortiGate VDOM case, where each VDOM (plus the global scope) becomes its own device rather than being merged into one. Not yet implemented: today's parsers are single-`CommonDevice`-per-file only, and a VDOM-bearing FortiGate config is detected and warned rather than expanded into a DeviceBundle.
