@@ -580,6 +580,26 @@ func TestDetectSecurityIssues(t *testing.T) {
 			},
 			wantCount: 0,
 		},
+		{
+			// Covers AE5 / U1 consolidation: the pre-consolidation exact-match
+			// WAN check (`slices.Contains(rule.Interfaces, "wan")`) misses
+			// multi-WAN interfaces like "wan2". This is the regression test
+			// pinning the fix to route through the canonical
+			// analysis.RuleReachability helper instead.
+			name: "wan2 permissive rule is detected (multi-WAN)",
+			cfg: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:       common.RuleTypePass,
+						Interfaces: []string{"wan2"},
+						Source:     common.RuleEndpoint{Address: "any"},
+					},
+				},
+			},
+			wantCount:      1,
+			wantIssues:     []string{"Overly Permissive WAN Rule"},
+			wantSeverities: []common.Severity{common.SeverityHigh},
+		},
 	}
 
 	for _, tt := range tests {
