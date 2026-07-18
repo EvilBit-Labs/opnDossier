@@ -1538,6 +1538,8 @@ func TestRedMode_WANHygieneObservationBecomesExposure(t *testing.T) {
 // invariants against known-bad and known-good configs: multi-WAN, floating,
 // and IPv6 exposure must be surfaced; a NAT rule with no matching pass rule and
 // an all-LAN config must not be reported WAN-exposed.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestRedMode_RegressionBattery(t *testing.T) {
 	t.Parallel()
 
@@ -1595,6 +1597,84 @@ func TestRedMode_RegressionBattery(t *testing.T) {
 			wantFindingPrefix: "WAN-Exposed Service: SSH",
 		},
 		{
+			name: "port range: SSH exposed when WAN rule permits a range covering 22",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "20-25"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: SSH",
+		},
+		{
+			name: "port list: SSH exposed when WAN rule permits a comma list containing 22",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "80,22,443"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: SSH",
+		},
+		{
+			name: "port range miss: SSH not exposed when WAN rule range excludes 22",
+			device: &common.CommonDevice{
+				System: common.System{
+					SSH:    common.SSH{Enabled: true, Port: "22"},
+					WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS},
+				},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "8000-9000"},
+					},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+		{
+			name: "port alias: unresolvable alias over-reports SSH as exposed (safe direction)",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "MgmtPorts"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: SSH",
+		},
+		{
+			name: "SNMP exposed via WAN rule permitting 161",
+			device: &common.CommonDevice{
+				SNMP:       common.SNMPConfig{ROCommunity: "public"},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "161"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: SNMP",
+		},
+		{
 			name: "R3 NAT with no matching pass rule is not WAN-exposed",
 			device: &common.CommonDevice{
 				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
@@ -1642,6 +1722,111 @@ func TestRedMode_RegressionBattery(t *testing.T) {
 				t.Errorf("expected a finding titled %q, got %+v", tt.wantFindingPrefix, report.Findings)
 			}
 		})
+	}
+}
+
+// TestRedMode_WeakNATRule_PositivePath covers the addWeakNATRules Finding-
+// emitting branch (R15): a WAN inbound NAT rule correlated with an enabled WAN
+// pass rule produces a "WAN-Reachable Port Forward" Finding with AttackSurface.
+func TestRedMode_WeakNATRule_PositivePath(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{Type: common.RuleTypePass, Interfaces: []string{"wan"}},
+		},
+		NAT: common.NATConfig{
+			InboundRules: []common.InboundNATRule{
+				{Interfaces: []string{"wan"}, ExternalPort: "3389", Protocol: "tcp"},
+			},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	if got := report.Metadata["weak_nat_rules_count"]; got != 1 {
+		t.Fatalf("weak_nat_rules_count = %v, want 1", got)
+	}
+
+	nat, ok := findingByTitlePrefix(report.Findings, "WAN-Reachable Port Forward")
+	if !ok {
+		t.Fatalf("expected a WAN-Reachable Port Forward finding, got %+v", report.Findings)
+	}
+	if nat.AttackSurface == nil || !slices.Contains(nat.AttackSurface.Ports, 3389) {
+		t.Errorf("NAT finding AttackSurface = %+v, want Ports to contain 3389", nat.AttackSurface)
+	}
+}
+
+// TestRedMode_FindingsOrderedBySeverity covers R16: red exposure findings lead
+// with the most urgent. A WebGUI exposure (critical) must sort ahead of an SSH
+// exposure (high) when both are WAN-reachable via a broad any-port WAN rule.
+func TestRedMode_FindingsOrderedBySeverity(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System: common.System{
+			SSH:    common.SSH{Enabled: true, Port: "22"},
+			WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS},
+		},
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}},
+		// Any-port WAN rule exposes every management service.
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:       common.RuleTypePass,
+				Interfaces: []string{"wan"},
+				Source:     common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	if len(report.Findings) < 2 {
+		t.Fatalf("expected >= 2 findings, got %d: %+v", len(report.Findings), report.Findings)
+	}
+	// The first finding must be the critical WebGUI exposure, ahead of SSH (high).
+	if report.Findings[0].Severity != string(analysis.SeverityCritical) {
+		t.Errorf("first finding severity = %q, want %q (most urgent leads)",
+			report.Findings[0].Severity, analysis.SeverityCritical)
+	}
+}
+
+// TestRedMode_AnyToAnyComponentCollision pins the intended one-exposure-per-
+// config-element behavior (A3): when a WAN-scoped any-to-any pass rule triggers
+// both the "Overly Permissive WAN Rule" and "Any-to-Any Pass Rule" observations
+// on the same filter.rule[N] Component, addAttackSurfaces emits exactly one
+// exposure finding for that element — the shared engine appends the permissive-
+// WAN observation first, so it is the one retained. This is deliberate: a single
+// rule is one exposure, not two.
+func TestRedMode_AnyToAnyComponentCollision(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	count := 0
+	for _, f := range report.Findings {
+		if f.Component == "filter.rule[0]" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("filter.rule[0] exposure findings = %d, want exactly 1 (one exposure per config element)", count)
 	}
 }
 

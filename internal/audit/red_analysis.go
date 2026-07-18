@@ -122,13 +122,14 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 }
 
 // wanRulePermitsPort reports whether any WAN-reachable enabled firewall pass
-// rule or WAN-reachable inbound NAT rule permits the given port. A rule whose
-// destination port is empty or "any" permits every port — the over-report
-// (safe) direction consistent with the slice-1 NAT reachability choice — while
-// a rule with a specific port permits only an exact match.
+// rule or WAN-reachable inbound NAT rule permits the given port. Port matching
+// biases toward over-reporting exposure (the safe direction for a security
+// tool): an empty or "any" rule port permits every port, a numeric range or
+// comma-list is matched by containment, and an unresolvable port alias is
+// treated as permitting the port rather than silently classifying the service
+// as safely LAN-only. Only a concrete numeric port that does not contain the
+// service port is treated as non-permitting. See rulePortPermits.
 func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
-	portStr := strconv.Itoa(port)
-
 	for _, rule := range device.FirewallRules {
 		if rule.Disabled || rule.Type != common.RuleTypePass {
 			continue
@@ -138,7 +139,7 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 			continue
 		}
 
-		if rulePortPermits(rule.Destination.Port, portStr) {
+		if rulePortPermits(rule.Destination.Port, port) {
 			return true
 		}
 	}
@@ -148,7 +149,7 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 			continue
 		}
 
-		if rulePortPermits(nat.ExternalPort, portStr) {
+		if rulePortPermits(nat.ExternalPort, port) {
 			return true
 		}
 	}
@@ -157,14 +158,78 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 }
 
 // rulePortPermits reports whether a rule's destination/external port permits
-// traffic to the given service port. An empty or "any" rule port permits every
-// port (over-report direction); otherwise an exact string match is required.
-func rulePortPermits(rulePort, servicePort string) bool {
+// traffic to the given numeric service port.
+//
+// An empty or "any" rule port permits every port. Otherwise the rule port is
+// parsed as a comma-separated list whose entries are each either a concrete
+// numeric port or a numeric "N-M" range; a match is exact-numeric or
+// range-containment. A token that is neither numeric nor a numeric range is an
+// OPNsense/pfSense port alias we cannot resolve without the alias table, so it
+// is treated as permitting the port — the over-report (safe) direction,
+// consistent with the empty/"any" handling. This deliberately never
+// under-reports: a possibly-exposed service is never classified as safely
+// LAN-only on unresolvable input, because a false negative in a security audit
+// is worse than a false positive.
+func rulePortPermits(rulePort string, servicePort int) bool {
 	if rulePort == "" || rulePort == constants.NetworkAny {
 		return true
 	}
 
-	return rulePort == servicePort
+	for token := range strings.SplitSeq(rulePort, ",") {
+		token = strings.TrimSpace(token)
+		if token == "" {
+			continue
+		}
+
+		if lo, hi, ok := parsePortRange(token); ok {
+			if servicePort >= lo && servicePort <= hi {
+				return true
+			}
+
+			continue
+		}
+
+		if p, err := strconv.Atoi(token); err == nil {
+			if p == servicePort {
+				return true
+			}
+
+			continue
+		}
+
+		// Non-numeric, non-range token (a port alias): unresolvable here, so
+		// over-report rather than emit a false negative.
+		return true
+	}
+
+	return false
+}
+
+// portRangeParts is the expected number of parts in a "start-end" port range.
+const portRangeParts = 2
+
+// parsePortRange parses a "N-M" numeric port range into inclusive low/high
+// bounds, normalizing reversed bounds. The third result is false when token is
+// not a numeric range.
+//
+//nolint:gocritic // nonamedreturns enforced project-wide
+func parsePortRange(token string) (int, int, bool) {
+	parts := strings.SplitN(token, "-", portRangeParts)
+	if len(parts) != portRangeParts {
+		return 0, 0, false
+	}
+
+	lo, errLo := strconv.Atoi(strings.TrimSpace(parts[0]))
+	hi, errHi := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if errLo != nil || errHi != nil {
+		return 0, 0, false
+	}
+
+	if lo > hi {
+		lo, hi = hi, lo
+	}
+
+	return lo, hi, true
 }
 
 // parsePort parses a port string, returning fallback when the string is empty
@@ -293,7 +358,10 @@ func (r *Report) addWeakNATRules() {
 // service list is computed once by generateRedReport and shared with
 // addWANExposedServices.
 func (r *Report) addAdminPortals(services []exposedService) {
-	portals := make([]adminPortal, 0, len(services))
+	// No capacity hint: the loop filters out non-portal services (SNMP), so the
+	// final length is not known ahead of time (AGENTS.md item 7).
+	var portals []adminPortal
+
 	for _, svc := range services {
 		if svc.kind != exploitKindWebGUI && svc.kind != exploitKindSSH {
 			continue
