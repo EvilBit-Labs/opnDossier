@@ -241,13 +241,16 @@ func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
 	observations := analysis.ScanObservations(report.Configuration)
+	// serviceExposures is computed once and shared by the WAN-exposed-service
+	// findings and the admin-portal inventory, which need the identical list.
+	services := serviceExposures(report.Configuration)
 
 	// Order matters: the Finding-producing methods run before addAttackSurfaces,
 	// which de-dupes shared-engine observations against Findings already emitted
 	// for the same config element.
-	report.addWANExposedServices()
+	report.addWANExposedServices(services)
 	report.addWeakNATRules()
-	report.addAdminPortals()
+	report.addAdminPortals(services)
 	report.addAttackSurfaces(observations)
 	report.addEnumerationData()
 

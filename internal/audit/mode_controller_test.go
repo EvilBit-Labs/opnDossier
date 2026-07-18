@@ -1147,7 +1147,7 @@ func TestReport_RedAnalysisMethods(t *testing.T) {
 	t.Run("addWANExposedServices", func(t *testing.T) {
 		t.Parallel()
 		report := newReport()
-		report.addWANExposedServices()
+		report.addWANExposedServices(serviceExposures(report.Configuration))
 
 		if got := report.Metadata["wan_exposed_services_count"]; got != 0 {
 			t.Errorf("wan_exposed_services_count = %v, want 0 (no WAN rule permits a service port)", got)
@@ -1170,7 +1170,7 @@ func TestReport_RedAnalysisMethods(t *testing.T) {
 	t.Run("addAdminPortals", func(t *testing.T) {
 		t.Parallel()
 		report := newReport()
-		report.addAdminPortals()
+		report.addAdminPortals(serviceExposures(report.Configuration))
 
 		portals, ok := report.Metadata["admin_portals"].([]adminPortal)
 		if !ok {
@@ -1378,9 +1378,10 @@ func newRedReport(device *common.CommonDevice) *Report {
 // the same order as generateRedReport.
 func runRedAnalysis(report *Report) {
 	observations := analysis.ScanObservations(report.Configuration)
-	report.addWANExposedServices()
+	services := serviceExposures(report.Configuration)
+	report.addWANExposedServices(services)
 	report.addWeakNATRules()
-	report.addAdminPortals()
+	report.addAdminPortals(services)
 	report.addAttackSurfaces(observations)
 	report.addEnumerationData()
 }

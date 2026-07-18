@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -181,15 +182,39 @@ func parsePort(s string, fallback int) int {
 	return p
 }
 
+// newExposureFinding builds a red-mode exposure Finding: an analysis.Finding of
+// type findingTypeExposure wrapped with AttackSurface detail and an
+// impact/context ExploitNote for the given exposure kind. Shared by the three
+// red Finding producers so the wrapper shape lives in exactly one place while
+// each producer keeps its own distinct filtering logic.
+func newExposureFinding(
+	severity analysis.Severity,
+	title, description, recommendation, component string,
+	surface *AttackSurface,
+	kind exploitNoteKind,
+) Finding {
+	return Finding{
+		Finding: analysis.Finding{
+			Type:           findingTypeExposure,
+			Severity:       string(severity),
+			Title:          title,
+			Description:    description,
+			Recommendation: recommendation,
+			Component:      component,
+		},
+		AttackSurface: surface,
+		ExploitNotes:  exploitNoteFor(kind, false),
+	}
+}
+
 // addWANExposedServices renders each WAN-reachable management service as a
 // red-mode Finding carrying AttackSurface detail and an impact/context
 // ExploitNote (R15, R17, R19). This is the primary red Findings producer: SSH,
 // SNMP, and the WebGUI management plane each land in report.Findings when a WAN
 // rule permits their port. LAN-only services are excluded from Findings and
-// recorded in the admin-portal inventory instead (R16).
-func (r *Report) addWANExposedServices() {
-	services := serviceExposures(r.Configuration)
-
+// recorded in the admin-portal inventory instead (R16). The service list is
+// computed once by generateRedReport and shared with addAdminPortals.
+func (r *Report) addWANExposedServices(services []exposedService) {
 	count := 0
 	for _, svc := range services {
 		if svc.reachability != analysis.WANReachable {
@@ -197,23 +222,20 @@ func (r *Report) addWANExposedServices() {
 		}
 
 		count++
-		r.Findings = append(r.Findings, Finding{
-			Finding: analysis.Finding{
-				Type:           findingTypeExposure,
-				Severity:       string(svc.severity),
-				Title:          "WAN-Exposed Service: " + svc.displayName,
-				Description:    svc.description,
-				Recommendation: svc.recommendation,
-				Component:      svc.component,
-			},
-			AttackSurface: &AttackSurface{
+		r.Findings = append(r.Findings, newExposureFinding(
+			svc.severity,
+			"WAN-Exposed Service: "+svc.displayName,
+			svc.description,
+			svc.recommendation,
+			svc.component,
+			&AttackSurface{
 				Type:            "wan-exposed-service",
 				Ports:           portsOf(svc.port),
 				Services:        []string{svc.name},
 				Vulnerabilities: svc.vulnerabilities,
 			},
-			ExploitNotes: exploitNoteFor(svc.kind, false),
-		})
+			svc.kind,
+		))
 	}
 
 	r.Metadata["wan_exposed_services_count"] = count
@@ -239,26 +261,23 @@ func (r *Report) addWeakNATRules() {
 		}
 
 		count++
-		r.Findings = append(r.Findings, Finding{
-			Finding: analysis.Finding{
-				Type:     findingTypeExposure,
-				Severity: string(analysis.SeverityHigh),
-				Title:    "WAN-Reachable Port Forward",
-				Description: fmt.Sprintf(
-					"Inbound NAT rule %d forwards WAN traffic to an internal host and correlates with an enabled WAN pass rule, exposing the internal service to untrusted networks.",
-					i+1,
-				),
-				Recommendation: "Restrict the source scope of the port forward and its associated pass rule, or remove the rule if the exposure is unnecessary.",
-				Component:      fmt.Sprintf("nat.inbound[%d]", i),
-			},
-			AttackSurface: &AttackSurface{
+		r.Findings = append(r.Findings, newExposureFinding(
+			analysis.SeverityHigh,
+			"WAN-Reachable Port Forward",
+			fmt.Sprintf(
+				"Inbound NAT rule %d forwards WAN traffic to an internal host and correlates with an enabled WAN pass rule, exposing the internal service to untrusted networks.",
+				i+1,
+			),
+			"Restrict the source scope of the port forward and its associated pass rule, or remove the rule if the exposure is unnecessary.",
+			fmt.Sprintf("nat.inbound[%d]", i),
+			&AttackSurface{
 				Type:            "port-forward",
 				Ports:           portsOf(parsePort(nat.ExternalPort, unknownPort)),
 				Services:        natServices(nat),
 				Vulnerabilities: []string{"exposed-internal-host"},
 			},
-			ExploitNotes: exploitNoteFor(exploitKindPortForward, false),
-		})
+			exploitKindPortForward,
+		))
 	}
 
 	r.Metadata["weak_nat_rules_count"] = count
@@ -270,10 +289,10 @@ func (r *Report) addWeakNATRules() {
 // addWANExposedServices, so re-emitting it here would double-count the same
 // exposure. The inventory retains LAN-only portals (tagged "lan") so a reader
 // sees every management plane, satisfying the AE3 both-halves invariant — the
-// LAN-only portal is present here and absent from the WAN-exposed Findings.
-func (r *Report) addAdminPortals() {
-	services := serviceExposures(r.Configuration)
-
+// LAN-only portal is present here and absent from the WAN-exposed Findings. The
+// service list is computed once by generateRedReport and shared with
+// addWANExposedServices.
+func (r *Report) addAdminPortals(services []exposedService) {
 	portals := make([]adminPortal, 0, len(services))
 	for _, svc := range services {
 		if svc.kind != exploitKindWebGUI && svc.kind != exploitKindSSH {
@@ -288,7 +307,7 @@ func (r *Report) addAdminPortals() {
 	}
 
 	slices.SortFunc(portals, func(a, b adminPortal) int {
-		return cmpString(a.Name, b.Name)
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	r.Metadata["admin_portals"] = portals
@@ -333,21 +352,18 @@ func (r *Report) addAttackSurfaces(observations []analysis.Observation) {
 
 		count++
 		existing[obs.Component] = struct{}{}
-		r.Findings = append(r.Findings, Finding{
-			Finding: analysis.Finding{
-				Type:           findingTypeExposure,
-				Severity:       string(obs.Severity),
-				Title:          "Exposed Weakness: " + obs.Title,
-				Description:    obs.Description,
-				Recommendation: obs.Recommendation,
-				Component:      obs.Component,
-			},
-			AttackSurface: &AttackSurface{
+		r.Findings = append(r.Findings, newExposureFinding(
+			obs.Severity,
+			"Exposed Weakness: "+obs.Title,
+			obs.Description,
+			obs.Recommendation,
+			obs.Component,
+			&AttackSurface{
 				Type:            "config-weakness",
 				Vulnerabilities: []string{obs.Title},
 			},
-			ExploitNotes: exploitNoteFor(exploitKindConfigWeakness, false),
-		})
+			exploitKindConfigWeakness,
+		))
 	}
 
 	r.Metadata["attack_surfaces_count"] = count
@@ -425,16 +441,4 @@ func natServices(nat common.InboundNATRule) []string {
 	}
 
 	return []string{}
-}
-
-// cmpString is a minimal string comparator for slices.SortFunc.
-func cmpString(a, b string) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	default:
-		return 0
-	}
 }
