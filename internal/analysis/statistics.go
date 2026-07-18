@@ -201,13 +201,12 @@ func populateSystemStats(stats *common.Statistics, cfg *common.CommonDevice) {
 }
 
 func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice) {
-	if wan := FindInterface(cfg.Interfaces, "wan"); wan != nil {
-		if wan.BlockPrivate {
-			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
-		}
-		if wan.BlockBogons {
-			stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
-		}
+	blockPrivate, blockBogons := wanBlockingFlags(cfg.Interfaces)
+	if blockPrivate {
+		stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
+	}
+	if blockBogons {
+		stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Bogon Networks")
 	}
 	if cfg.System.WebGUI.Protocol == constants.ProtocolHTTPS {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
@@ -215,6 +214,36 @@ func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice
 	if cfg.System.DisableNATReflection {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}
+}
+
+// wanBlockingFlags reports whether ANY WAN-reachable interface has
+// BlockPrivate/BlockBogons enabled, respectively. Using the canonical
+// reachability helper (rather than a single exact-name lookup) means
+// multi-WAN configurations (e.g. "wan2") are no longer silently dropped from
+// SecurityFeatures. Each flag is a single boolean across all WAN interfaces
+// so a device with multiple WAN interfaces does not emit duplicate feature
+// strings.
+//
+//nolint:gocritic // unnamedResult retained; project-wide nonamedreturns disables the typical fix.
+func wanBlockingFlags(ifaces []common.Interface) (bool, bool) {
+	blockPrivate := false
+	blockBogons := false
+
+	for _, iface := range ifaces {
+		if InterfaceReachability(iface) != WANReachable {
+			continue
+		}
+
+		if iface.BlockPrivate {
+			blockPrivate = true
+		}
+
+		if iface.BlockBogons {
+			blockBogons = true
+		}
+	}
+
+	return blockPrivate, blockBogons
 }
 
 // sortStatisticsLists enforces deterministic ordering on every slice-typed

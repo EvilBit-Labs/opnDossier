@@ -149,6 +149,27 @@ func TestComputeStatistics(t *testing.T) {
 			wantHasSecFeatures: true,
 			wantSecFeatures:    []string{"NAT Reflection Disabled"},
 		},
+		{
+			// Covers AE5 / U1 consolidation: the pre-consolidation exact-match
+			// `FindInterface(cfg.Interfaces, "wan")` site misses multi-WAN
+			// interfaces named "wan2", so BlockPrivate/BlockBogons on a
+			// secondary WAN interface were silently dropped from
+			// SecurityFeatures. Regression test pinning the fix.
+			name: "wan2 interface security features detected (multi-WAN)",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{
+						Name:         "wan2",
+						Enabled:      true,
+						BlockPrivate: true,
+						BlockBogons:  true,
+					},
+				},
+			},
+			wantInterfaces:     1,
+			wantHasSecFeatures: true,
+			wantSecFeatures:    []string{"Block Private Networks", "Block Bogon Networks"},
+		},
 	}
 
 	for _, tt := range tests {

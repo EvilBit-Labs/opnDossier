@@ -192,7 +192,8 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 
 			// Warn if plugin produced findings with unrecognized severity values.
 			if counts := countSeverities(pluginFindings); counts.unknown > 0 {
-				mc.logger.Warn("Plugin produced findings with unrecognized severity",
+				mc.logger.Warn(
+					"Plugin produced findings with unrecognized severity",
 					"plugin", pluginName,
 					"unknownCount", counts.unknown,
 				)
@@ -213,8 +214,12 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 		report.Metadata["compliance_check_time"] = time.Now().Format(time.RFC3339)
 	}
 
-	// Add blue team specific analysis
-	report.addSecurityFindings()
+	// Run the shared detection engine once (KTD1-KTD3) and render its
+	// observations as blue hygiene findings, de-duplicated against the
+	// compliance findings just aggregated above.
+	observations := analysis.ScanObservations(report.Configuration)
+
+	report.addSecurityFindings(observations)
 	report.addComplianceAnalysis()
 	report.addRecommendations()
 	report.addStructuredConfigurationTables()
@@ -283,32 +288,202 @@ func (r *Report) TotalFindingsCount() int {
 	return total
 }
 
-// addSecurityFindings adds security findings to the blue team report.
-func (r *Report) addSecurityFindings() {
-	// Add placeholder security analysis
+// Rank constants for the R12 severity/reachability ordering below. Lower
+// values sort first (most urgent / most exposed leads).
+const (
+	rankCritical = iota
+	rankHigh
+	rankMedium
+	rankLow
+	rankInfo
+)
+
+const (
+	rankWANReachable = iota
+	rankLANOnly
+	rankLocal
+)
+
+// severityOrder ranks analysis.Severity from most to least urgent for R12
+// ordering (blue leads with the most severe findings).
+var severityOrder = map[analysis.Severity]int{
+	analysis.SeverityCritical: rankCritical,
+	analysis.SeverityHigh:     rankHigh,
+	analysis.SeverityMedium:   rankMedium,
+	analysis.SeverityLow:      rankLow,
+	analysis.SeverityInfo:     rankInfo,
+}
+
+// reachabilityOrder ranks analysis.Reachability from most to least exposed
+// for R12 ordering (blue leads with the most exposed findings within a
+// severity tier).
+var reachabilityOrder = map[analysis.Reachability]int{
+	analysis.WANReachable: rankWANReachable,
+	analysis.LANOnly:      rankLANOnly,
+	analysis.Local:        rankLocal,
+}
+
+// dedupeAgainstPluginFindings implements the R9/KTD4 de-dupe: a hygiene
+// observation is suppressed only when it references the same originating
+// config element (an exact Component string match) as a finding a fired
+// compliance plugin already emitted — never merely a shared category. This
+// deliberately uses `never merely a shared category` as the failure-safe
+// direction: with today's coarse-grained plugin Component values (e.g.
+// "firewall-rules"), few observations will match, but that under-matching
+// is the safe direction for a security tool — it never hides a finding that
+// should be shown.
+func (r *Report) dedupeAgainstPluginFindings(observations []analysis.Observation) []analysis.Observation {
+	fired := make(map[string]struct{})
+
+	for _, cr := range r.Compliance {
+		for _, f := range cr.Findings {
+			if f.Component != "" {
+				fired[f.Component] = struct{}{}
+			}
+		}
+	}
+
+	var deduped []analysis.Observation
+
+	for _, obs := range observations {
+		if _, matched := fired[obs.Component]; matched {
+			continue
+		}
+
+		deduped = append(deduped, obs)
+	}
+
+	return deduped
+}
+
+// addSecurityFindings renders the shared engine's observations as blue
+// hygiene findings appended to report.Findings (R7, R8), de-duplicated
+// against fired plugin controls (R9) and ordered by severity then
+// reachability (R12).
+func (r *Report) addSecurityFindings(observations []analysis.Observation) {
+	hygiene := r.dedupeAgainstPluginFindings(observations)
+
+	slices.SortStableFunc(hygiene, func(a, b analysis.Observation) int {
+		if sevDiff := severityOrder[a.Severity] - severityOrder[b.Severity]; sevDiff != 0 {
+			return sevDiff
+		}
+
+		return reachabilityOrder[a.Reachability] - reachabilityOrder[b.Reachability]
+	})
+
+	findings := make([]Finding, 0, len(hygiene))
+	for _, obs := range hygiene {
+		findings = append(findings, Finding{Finding: obs.ToFinding()})
+	}
+
+	r.Findings = append(r.Findings, findings...)
+
 	r.Metadata["security_scan_completed"] = true
 	r.Metadata["security_findings_count"] = r.TotalFindingsCount()
 }
 
-// addComplianceAnalysis adds compliance analysis to the blue team report.
+// addComplianceAnalysis derives the compliance-frameworks list from the
+// plugins actually executed (keys of report.Compliance, populated by
+// generateBlueReport), replacing the hardcoded three-framework list (R10).
 func (r *Report) addComplianceAnalysis() {
-	// Add placeholder compliance analysis
+	frameworks := make([]string, 0, len(r.Compliance))
+	for name := range r.Compliance {
+		frameworks = append(frameworks, strings.ToUpper(name))
+	}
+
+	slices.Sort(frameworks)
+
 	r.Metadata["compliance_check_completed"] = true
-	r.Metadata["compliance_frameworks"] = []string{"STIG", "NIST", "SANS"}
+	r.Metadata["compliance_frameworks"] = frameworks
 }
 
-// addRecommendations adds recommendations to the blue team report.
+// Recommendation groups the recommendation text synthesized for a single
+// configuration component across hygiene findings and compliance-plugin
+// findings (R11).
+type Recommendation struct {
+	// Component identifies the configuration component the recommendations apply to.
+	Component string `json:"component"`
+	// Recommendations lists the distinct recommendation strings for this component.
+	Recommendations []string `json:"recommendations"`
+}
+
+// addRecommendations synthesizes recommendations from the union of blue
+// hygiene findings (report.Findings) and compliance-plugin findings
+// (report.Compliance[*].Findings), grouped by Component, with a count
+// reflecting the real number of distinct recommendations (R11).
 func (r *Report) addRecommendations() {
-	// Add placeholder recommendations
+	grouped := make(map[string][]string)
+	order := make([]string, 0)
+
+	record := func(component, recommendation string) {
+		if recommendation == "" {
+			return
+		}
+
+		if _, exists := grouped[component]; !exists {
+			order = append(order, component)
+		}
+
+		if slices.Contains(grouped[component], recommendation) {
+			return
+		}
+
+		grouped[component] = append(grouped[component], recommendation)
+	}
+
+	for _, f := range r.Findings {
+		record(f.Component, f.Recommendation)
+	}
+
+	for _, cr := range r.Compliance {
+		for _, f := range cr.Findings {
+			record(f.Component, f.Recommendation)
+		}
+	}
+
+	slices.Sort(order)
+
+	recommendations := make([]Recommendation, 0, len(order))
+	count := 0
+
+	for _, component := range order {
+		recs := grouped[component]
+		recommendations = append(recommendations, Recommendation{Component: component, Recommendations: recs})
+		count += len(recs)
+	}
+
 	r.Metadata["recommendations_generated"] = true
-	r.Metadata["recommendation_count"] = 0
+	r.Metadata["recommendation_count"] = count
+	r.Metadata["recommendations"] = recommendations
 }
 
-// addStructuredConfigurationTables adds structured configuration tables to the blue team report.
+// ConfigSummaryTable is a single structured configuration-summary row built
+// from real configuration counts (R13).
+type ConfigSummaryTable struct {
+	// Category names the configuration element category being summarized.
+	Category string `json:"category"`
+	// Count is the number of configured elements in this category.
+	Count int `json:"count"`
+}
+
+// addStructuredConfigurationTables builds configuration summary tables from
+// actual configuration counts (interfaces, firewall rules, NAT rules,
+// users), replacing the hardcoded table count (R13).
 func (r *Report) addStructuredConfigurationTables() {
-	// Add placeholder structured tables
+	var tables []ConfigSummaryTable
+
+	if cfg := r.Configuration; cfg != nil {
+		tables = []ConfigSummaryTable{
+			{Category: "interfaces", Count: len(cfg.Interfaces)},
+			{Category: "firewallRules", Count: len(cfg.FirewallRules)},
+			{Category: "natRules", Count: len(cfg.NAT.InboundRules) + len(cfg.NAT.OutboundRules)},
+			{Category: "users", Count: len(cfg.Users)},
+		}
+	}
+
 	r.Metadata["structured_tables_generated"] = true
-	r.Metadata["table_count"] = 5
+	r.Metadata["table_count"] = len(tables)
+	r.Metadata["configuration_tables"] = tables
 }
 
 // stubMarker returns the canonical "not yet implemented" metadata value for

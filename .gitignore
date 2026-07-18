@@ -241,3 +241,4 @@ internal/sanitizer/testdata/benchmark-10mb.xml
 
 **/*.local.yaml
 .claude/skills
+.dosu/
