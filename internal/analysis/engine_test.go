@@ -147,6 +147,23 @@ func TestDetectWeakCryptoDefaults(t *testing.T) {
 			},
 			wantCount: 2,
 		},
+		{
+			name: "standard hardening suffix with excluded weak classes stays silent",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{
+					CipherString: "HIGH:!aNULL:!MD5:!RC4:!3DES:!DES:!EXPORT",
+					MinProtocol:  "TLSv1.2",
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "mixed list with an actively-enabled weak selector still fires",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:!aNULL:!MD5:RC4-SHA", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 1,
+		},
 	}
 
 	for _, tt := range tests {

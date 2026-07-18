@@ -81,21 +81,33 @@ func InterfaceReachability(iface common.Interface) Reachability {
 //     does not by itself widen a rule's reach beyond its interface list.
 //   - Unscoped floating rules (Floating == true with an empty rule.Interfaces),
 //     which apply to every interface and are therefore WAN-reachable whenever
-//     any WAN interface exists on the device.
+//     any live WAN interface exists on the device.
 //   - IPv6-only WAN interfaces (rule.IPProtocol == IPProtocolInet6 bound to a
 //     WAN-named interface) — the WAN-name match alone is sufficient; the
 //     interface's IPv6Address is not required to be non-empty because a
 //     misconfigured/unassigned address must not mask a real exposure.
+//
+// Enabled-state handling is deliberately asymmetric between the two binding
+// styles. The unscoped-floating path resolves against the actual interface
+// list via InterfaceReachability, which treats a disabled interface as Local —
+// a device-wide rule cannot reach a WAN that is administratively down, and
+// nothing in rule.Interfaces tells us which interfaces exist. The
+// interface-scoped path, by contrast, trusts the operator's explicit binding:
+// a rule bound by name to "wan" is classified as governing WAN traffic by
+// intent, independent of the interface's current admin state (a disabled
+// interface merely makes the rule inert, which is a separate concern from
+// where the rule is scoped). It also keeps classification working for rules
+// that reference an interface name not present in the passed-in ifaces slice.
 func RuleReachability(rule common.FirewallRule, ifaces []common.Interface) Reachability {
 	// An unscoped floating rule (no interface list) applies device-wide, so it
-	// is WAN-reachable whenever any WAN interface exists. A floating rule WITH an
-	// explicit interface list is scoped to exactly those interfaces — the same
-	// as a non-floating rule — so it falls through to the name check below.
-	// Treating every floating rule as device-wide would false-positive a
+	// is WAN-reachable whenever any live WAN interface exists. A floating rule
+	// WITH an explicit interface list is scoped to exactly those interfaces —
+	// the same as a non-floating rule — so it falls through to the name check
+	// below. Treating every floating rule as device-wide would false-positive a
 	// LAN-scoped floating rule (e.g. an anti-lockout rule) as WAN-reachable.
 	if rule.Floating && len(rule.Interfaces) == 0 {
 		if slices.ContainsFunc(ifaces, func(iface common.Interface) bool {
-			return IsWANInterfaceName(iface.Name)
+			return InterfaceReachability(iface) == WANReachable
 		}) {
 			return WANReachable
 		}

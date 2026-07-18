@@ -1096,38 +1096,23 @@ func TestReport_AnalysisMethods(t *testing.T) {
 	t.Run("addStructuredConfigurationTables", func(t *testing.T) {
 		report.addStructuredConfigurationTables()
 
-		tableCount, ok := report.Metadata["table_count"].(int)
-		if !ok {
-			t.Fatalf("table_count = %v (%T), want int", report.Metadata["table_count"], report.Metadata["table_count"])
-		}
-
-		tables, ok := report.Metadata["configuration_tables"].([]ConfigSummaryTable)
+		summary, ok := report.Metadata["configuration_summary"].(ConfigSummary)
 		if !ok {
 			t.Fatalf(
-				"configuration_tables = %v (%T), want []ConfigSummaryTable",
-				report.Metadata["configuration_tables"],
-				report.Metadata["configuration_tables"],
+				"configuration_summary = %v (%T), want ConfigSummary",
+				report.Metadata["configuration_summary"],
+				report.Metadata["configuration_summary"],
 			)
 		}
-		if tableCount != len(tables) {
-			t.Errorf("table_count = %d, want len(configuration_tables) = %d", tableCount, len(tables))
-		}
 
-		wantCounts := map[string]int{
-			"interfaces":    2,
-			"firewallRules": 1,
-			"natRules":      0,
-			"users":         1,
+		want := ConfigSummary{
+			Interfaces:    2,
+			FirewallRules: 1,
+			NATRules:      0,
+			Users:         1,
 		}
-		for _, tbl := range tables {
-			want, known := wantCounts[tbl.Category]
-			if !known {
-				t.Errorf("unexpected table category %q", tbl.Category)
-				continue
-			}
-			if tbl.Count != want {
-				t.Errorf("table %q count = %d, want %d", tbl.Category, tbl.Count, want)
-			}
+		if summary != want {
+			t.Errorf("configuration_summary = %+v, want %+v", summary, want)
 		}
 	})
 

@@ -393,7 +393,9 @@ func (r *Report) addComplianceAnalysis() {
 
 	slices.Sort(frameworks)
 
-	r.Metadata["compliance_check_completed"] = true
+	// Report completion honestly: with an empty Compliance map no compliance
+	// plugin actually executed, so the check is not "completed".
+	r.Metadata["compliance_check_completed"] = len(r.Compliance) > 0
 	r.Metadata["compliance_frameworks"] = frameworks
 }
 
@@ -448,6 +450,10 @@ func (r *Report) addRecommendations() {
 
 	for _, component := range order {
 		recs := grouped[component]
+		// Sort within each component: recs accumulate from r.Compliance, whose
+		// map iteration order is non-deterministic, so unsorted output would
+		// vary run to run (§3.1 map-iteration determinism).
+		slices.Sort(recs)
 		recommendations = append(recommendations, Recommendation{Component: component, Recommendations: recs})
 		count += len(recs)
 	}
@@ -457,33 +463,40 @@ func (r *Report) addRecommendations() {
 	r.Metadata["recommendations"] = recommendations
 }
 
-// ConfigSummaryTable is a single structured configuration-summary row built
-// from real configuration counts (R13).
-type ConfigSummaryTable struct {
-	// Category names the configuration element category being summarized.
-	Category string `json:"category"`
-	// Count is the number of configured elements in this category.
-	Count int `json:"count"`
+// ConfigSummary captures per-category configuration-element counts from the
+// normalized configuration using explicit named fields rather than
+// category/count rows (R13). This keeps the structured-config surface typed
+// (AGENTS.md: prefer structured config data over flat summary tables); any
+// future audit overlays belong in their own metadata keys rather than being
+// encoded as additional summary rows.
+type ConfigSummary struct {
+	// Interfaces is the number of configured interfaces.
+	Interfaces int `json:"interfaces"`
+	// FirewallRules is the number of configured firewall rules.
+	FirewallRules int `json:"firewallRules"`
+	// NATRules is the combined number of inbound and outbound NAT rules.
+	NATRules int `json:"natRules"`
+	// Users is the number of configured user accounts.
+	Users int `json:"users"`
 }
 
-// addStructuredConfigurationTables builds configuration summary tables from
+// addStructuredConfigurationTables builds the configuration summary from
 // actual configuration counts (interfaces, firewall rules, NAT rules,
 // users), replacing the hardcoded table count (R13).
 func (r *Report) addStructuredConfigurationTables() {
-	var tables []ConfigSummaryTable
+	var summary ConfigSummary
 
 	if cfg := r.Configuration; cfg != nil {
-		tables = []ConfigSummaryTable{
-			{Category: "interfaces", Count: len(cfg.Interfaces)},
-			{Category: "firewallRules", Count: len(cfg.FirewallRules)},
-			{Category: "natRules", Count: len(cfg.NAT.InboundRules) + len(cfg.NAT.OutboundRules)},
-			{Category: "users", Count: len(cfg.Users)},
+		summary = ConfigSummary{
+			Interfaces:    len(cfg.Interfaces),
+			FirewallRules: len(cfg.FirewallRules),
+			NATRules:      len(cfg.NAT.InboundRules) + len(cfg.NAT.OutboundRules),
+			Users:         len(cfg.Users),
 		}
 	}
 
 	r.Metadata["structured_tables_generated"] = true
-	r.Metadata["table_count"] = len(tables)
-	r.Metadata["configuration_tables"] = tables
+	r.Metadata["configuration_summary"] = summary
 }
 
 // stubMarker returns the canonical "not yet implemented" metadata value for

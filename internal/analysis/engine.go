@@ -120,13 +120,15 @@ func detectWeakCryptoDefaults(cfg *common.CommonDevice) []Observation {
 
 	var observations []Observation
 
-	// containsWeakCipherToken is a plain substring match against the
-	// OpenSSL cipher string. It does not parse OpenSSL cipher-list grammar
-	// (e.g. a leading "!" excludes a cipher class rather than including
-	// it), so a string that *excludes* a weak class (like "!aNULL") can
-	// still match the "NULL" substring. Confidence is Medium rather than
-	// High to reflect that known limitation; the observation is still
-	// always surfaced per R6 (confidence never gates a match).
+	// containsWeakCipherToken splits the OpenSSL cipher string on its
+	// list separators and honors the "!"/"-" exclusion prefixes, so a
+	// string that *excludes* a weak class (the standard
+	// "!aNULL:!MD5:!RC4:!3DES" hardening suffix) no longer
+	// false-positives. Confidence stays Medium rather than High because
+	// macro selectors like HIGH/ALL/DEFAULT can still implicitly pull in
+	// a weak cipher without any literal weak token for us to match; the
+	// observation is still always surfaced per R6 (confidence never
+	// gates a match).
 	if token, ok := containsWeakCipherToken(cfg.Trust.CipherString); ok {
 		observations = append(observations, Observation{
 			Severity:     SeverityMedium,
@@ -162,18 +164,41 @@ func detectWeakCryptoDefaults(cfg *common.CommonDevice) []Observation {
 	return observations
 }
 
-// containsWeakCipherToken reports whether cipherString contains any known
-// weak-cipher token, returning the matched token for use in the finding
-// description.
+// cipherListSeparators are the delimiters OpenSSL recognizes between
+// selectors in a cipher string (colon, comma, and whitespace).
+const cipherListSeparators = ": ,\t"
+
+// containsWeakCipherToken reports whether any actively-enabled selector in the
+// OpenSSL cipherString contains a known weak-cipher token, returning the
+// matched token for use in the finding description.
+//
+// The cipher string is split into individual selectors and each is checked
+// against its OpenSSL prefix operator: "!" and "-" exclude a cipher class (it
+// is not enabled and must not raise a finding), while "+" only reorders and
+// leaves the cipher enabled. A weak token is reported only when it appears in
+// a selector that is actually enabled.
 func containsWeakCipherToken(cipherString string) (string, bool) {
 	if cipherString == "" {
 		return "", false
 	}
 
-	upper := strings.ToUpper(cipherString)
-	for _, token := range weakCipherTokens {
-		if strings.Contains(upper, token) {
-			return token, true
+	selectors := strings.FieldsFunc(cipherString, func(r rune) bool {
+		return strings.ContainsRune(cipherListSeparators, r)
+	})
+
+	for _, selector := range selectors {
+		switch selector[0] {
+		case '!', '-':
+			continue
+		case '+':
+			selector = selector[1:]
+		}
+
+		upper := strings.ToUpper(selector)
+		for _, token := range weakCipherTokens {
+			if strings.Contains(upper, token) {
+				return token, true
+			}
 		}
 	}
 
