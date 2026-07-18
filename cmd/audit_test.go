@@ -555,3 +555,36 @@ func TestAuditCmdPreRunEPluginDirTrustModelWarning(t *testing.T) {
 		})
 	}
 }
+
+// TestAuditCmdPreRunERedModeEmitsNoStubWarning covers R22: red mode now
+// performs real analysis, so PreRunE must no longer emit the removed
+// "experimental / not yet fully implemented" stub warning.
+func TestAuditCmdPreRunERedModeEmitsNoStubWarning(t *testing.T) {
+	auditSnap := captureAuditFlags()
+	sharedSnap := captureSharedFlags()
+	t.Cleanup(func() {
+		auditSnap.restore()
+		sharedSnap.restore()
+	})
+
+	tempCmd := &cobra.Command{}
+	tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
+	tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
+	tempCmd.Flags().StringVar(&auditPluginDir, "plugin-dir", "", "")
+	tempCmd.Flags().StringVar(&outputFile, "output", "", "")
+	tempCmd.Flags().StringVar(&format, "format", "markdown", "")
+	tempCmd.Flags().Bool("no-wrap", false, "")
+	tempCmd.Flags().Int("wrap", -1, "")
+
+	require.NoError(t, tempCmd.Flags().Set("mode", "red"))
+
+	stderr := captureStderr(t, func() {
+		err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
+		require.NoError(t, err)
+	})
+
+	assert.NotContains(t, stderr, "experimental",
+		"red mode must not emit the removed stub warning")
+	assert.NotContains(t, stderr, "not yet fully implemented",
+		"red mode must not emit the removed stub warning")
+}

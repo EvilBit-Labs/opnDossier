@@ -123,14 +123,6 @@ var auditCmd = &cobra.Command{
 				auditMode, strings.Join(validModes, ", "))
 		}
 
-		// Warn when red mode is selected — its analysis methods are placeholder stubs
-		// that return fabricated metadata. Results will be incomplete until the red
-		// team pipeline is fully implemented.
-		if strings.EqualFold(auditMode, auditModeRed) {
-			fmt.Fprintf(cmd.ErrOrStderr(),
-				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
-		}
-
 		// Warn when --plugin-dir is supplied — dynamic .so plugins execute with
 		// full process privileges and no signature verification (GOTCHAS §2.5).
 		// Mirrors the red-mode precedent above so the user sees the risk at the
