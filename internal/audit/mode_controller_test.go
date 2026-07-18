@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -984,7 +985,11 @@ func TestReport_EmptySummary(t *testing.T) {
 	}
 }
 
-//nolint:tparallel // Subtests share mutable report state and cannot run concurrently
+// TestReport_AnalysisMethods exercises the blue-mode add* methods against a
+// config with a known-bad WebGUI protocol, asserting real derived values
+// (R23) rather than merely non-empty metadata.
+//
+//nolint:tparallel,funlen // subtests share mutable report state and cannot run concurrently; length is subtests asserting real values, not complexity
 func TestReport_AnalysisMethods(t *testing.T) {
 	t.Parallel()
 
@@ -995,43 +1000,134 @@ func TestReport_AnalysisMethods(t *testing.T) {
 			System: common.System{
 				Hostname: "test-host",
 				Domain:   "test.local",
+				WebGUI:   common.WebGUI{Protocol: "http"},
 			},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
+			},
+			FirewallRules: []common.FirewallRule{
+				{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
+			},
+			Users: []common.User{{Name: "admin"}},
 		},
 		Findings:   make([]Finding, 0),
 		Compliance: make(map[string]ComplianceResult),
 		Metadata:   make(map[string]any),
 	}
 
-	// Test the analysis methods that add metadata to the report
+	// Test the analysis methods that add metadata to the report. R23: assert
+	// real values derived from the config, not merely that metadata is
+	// non-empty.
 	t.Run("addSecurityFindings", func(t *testing.T) {
-		report.addSecurityFindings()
-		// Verify that security findings were added
-		if len(report.Metadata) == 0 {
-			t.Error("addSecurityFindings() should add security findings to the report")
+		observations := analysis.ScanObservations(report.Configuration)
+		report.addSecurityFindings(observations)
+
+		if len(report.Findings) == 0 {
+			t.Fatal("addSecurityFindings() should append hygiene findings for an insecure WebGUI config")
+		}
+
+		found := false
+		for _, f := range report.Findings {
+			if f.Title == "Insecure Web GUI Protocol" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf(
+				"addSecurityFindings() findings = %+v, want a finding titled %q",
+				report.Findings,
+				"Insecure Web GUI Protocol",
+			)
+		}
+
+		if got := report.Metadata["security_findings_count"]; got != report.TotalFindingsCount() {
+			t.Errorf("security_findings_count = %v, want %d", got, report.TotalFindingsCount())
 		}
 	})
 
 	t.Run("addComplianceAnalysis", func(t *testing.T) {
 		report.addComplianceAnalysis()
-		// Verify that compliance analysis was added
-		if len(report.Metadata) == 0 {
-			t.Error("addComplianceAnalysis() should add compliance analysis to the report")
+
+		frameworks, ok := report.Metadata["compliance_frameworks"].([]string)
+		if !ok {
+			t.Fatalf(
+				"compliance_frameworks = %v (%T), want []string",
+				report.Metadata["compliance_frameworks"],
+				report.Metadata["compliance_frameworks"],
+			)
+		}
+		// No plugins were executed against this hand-built report, so the
+		// frameworks list must be empty — never the old hardcoded
+		// ["STIG","NIST","SANS"].
+		if len(frameworks) != 0 {
+			t.Errorf("compliance_frameworks = %v, want empty (no plugins executed)", frameworks)
 		}
 	})
 
 	t.Run("addRecommendations", func(t *testing.T) {
 		report.addRecommendations()
-		// Verify that recommendations were added
-		if len(report.Metadata) == 0 {
-			t.Error("addRecommendations() should add recommendations to the report")
+
+		count, ok := report.Metadata["recommendation_count"].(int)
+		if !ok {
+			t.Fatalf(
+				"recommendation_count = %v (%T), want int",
+				report.Metadata["recommendation_count"],
+				report.Metadata["recommendation_count"],
+			)
+		}
+		if count == 0 {
+			t.Error("recommendation_count = 0, want > 0 given the hygiene findings from the insecure config")
+		}
+
+		recs, ok := report.Metadata["recommendations"].([]Recommendation)
+		if !ok {
+			t.Fatalf(
+				"recommendations = %v (%T), want []Recommendation",
+				report.Metadata["recommendations"],
+				report.Metadata["recommendations"],
+			)
+		}
+		if len(recs) == 0 {
+			t.Error("recommendations should be non-empty")
 		}
 	})
 
 	t.Run("addStructuredConfigurationTables", func(t *testing.T) {
 		report.addStructuredConfigurationTables()
-		// Verify that structured configuration tables were added
-		if len(report.Metadata) == 0 {
-			t.Error("addStructuredConfigurationTables() should add structured configuration tables to the report")
+
+		tableCount, ok := report.Metadata["table_count"].(int)
+		if !ok {
+			t.Fatalf("table_count = %v (%T), want int", report.Metadata["table_count"], report.Metadata["table_count"])
+		}
+
+		tables, ok := report.Metadata["configuration_tables"].([]ConfigSummaryTable)
+		if !ok {
+			t.Fatalf(
+				"configuration_tables = %v (%T), want []ConfigSummaryTable",
+				report.Metadata["configuration_tables"],
+				report.Metadata["configuration_tables"],
+			)
+		}
+		if tableCount != len(tables) {
+			t.Errorf("table_count = %d, want len(configuration_tables) = %d", tableCount, len(tables))
+		}
+
+		wantCounts := map[string]int{
+			"interfaces":    2,
+			"firewallRules": 1,
+			"natRules":      0,
+			"users":         1,
+		}
+		for _, tbl := range tables {
+			want, known := wantCounts[tbl.Category]
+			if !known {
+				t.Errorf("unexpected table category %q", tbl.Category)
+				continue
+			}
+			if tbl.Count != want {
+				t.Errorf("table %q count = %d, want %d", tbl.Category, tbl.Count, want)
+			}
 		}
 	})
 
@@ -1085,6 +1181,145 @@ func assertStubMarker(t *testing.T, report *Report, key string) {
 	stub, ok := marker["stub"].(bool)
 	if !ok || !stub {
 		t.Errorf("metadata[%q].stub: expected true, got %v", key, marker["stub"])
+	}
+}
+
+// TestAddSecurityFindings_DedupeAgainstFiredPluginControls covers AE1
+// (R8, R9): a hygiene observation referencing the same config element (an
+// exact Component match) as a fired plugin finding is suppressed, while a
+// hygiene observation on a different element in the same category is still
+// emitted.
+func TestAddSecurityFindings_DedupeAgainstFiredPluginControls(t *testing.T) {
+	t.Parallel()
+
+	report := &Report{
+		Mode:          ModeBlue,
+		Configuration: &common.CommonDevice{},
+		Findings:      make([]Finding, 0),
+		Compliance: map[string]ComplianceResult{
+			"firewall": {
+				Findings: []compliance.Finding{
+					{
+						Type:      "compliance",
+						Severity:  "high",
+						Title:     "Any Source on WAN Inbound",
+						Component: "filter.rule[0]",
+					},
+				},
+			},
+		},
+		Metadata: make(map[string]any),
+	}
+
+	observations := []analysis.Observation{
+		{
+			Severity:       analysis.SeverityHigh,
+			Confidence:     analysis.ConfidenceHigh,
+			Reachability:   analysis.WANReachable,
+			Component:      "filter.rule[0]",
+			Title:          "Overly Permissive WAN Rule",
+			Description:    "Rule 1 allows any source to pass traffic on WAN interface",
+			Recommendation: "Restrict source networks",
+		},
+		{
+			Severity:       analysis.SeverityHigh,
+			Confidence:     analysis.ConfidenceHigh,
+			Reachability:   analysis.WANReachable,
+			Component:      "filter.rule[1]",
+			Title:          "Overly Permissive WAN Rule",
+			Description:    "Rule 2 allows any source to pass traffic on WAN interface",
+			Recommendation: "Restrict source networks",
+		},
+	}
+
+	report.addSecurityFindings(observations)
+
+	if len(report.Findings) != 1 {
+		t.Fatalf(
+			"addSecurityFindings() len(Findings) = %d, want 1 (rule[0] suppressed as a duplicate of the fired plugin control, rule[1] retained)",
+			len(report.Findings),
+		)
+	}
+
+	if report.Findings[0].Component != "filter.rule[1]" {
+		t.Errorf(
+			"addSecurityFindings() surviving finding Component = %q, want %q",
+			report.Findings[0].Component, "filter.rule[1]",
+		)
+	}
+}
+
+// TestAddSecurityFindings_OrderedBySeverityThenReachability covers R12:
+// hygiene findings are ordered by severity (most urgent first), then by
+// reachability (most exposed first) within a severity tier.
+func TestAddSecurityFindings_OrderedBySeverityThenReachability(t *testing.T) {
+	t.Parallel()
+
+	report := &Report{
+		Mode:          ModeBlue,
+		Configuration: &common.CommonDevice{},
+		Findings:      make([]Finding, 0),
+		Compliance:    make(map[string]ComplianceResult),
+		Metadata:      make(map[string]any),
+	}
+
+	observations := []analysis.Observation{
+		{Severity: analysis.SeverityMedium, Reachability: analysis.WANReachable, Component: "a", Title: "medium-wan"},
+		{Severity: analysis.SeverityCritical, Reachability: analysis.Local, Component: "b", Title: "critical-local"},
+		{Severity: analysis.SeverityHigh, Reachability: analysis.LANOnly, Component: "c", Title: "high-lan"},
+		{Severity: analysis.SeverityHigh, Reachability: analysis.WANReachable, Component: "d", Title: "high-wan"},
+	}
+
+	report.addSecurityFindings(observations)
+
+	wantOrder := []string{"critical-local", "high-wan", "high-lan", "medium-wan"}
+	gotOrder := make([]string, len(report.Findings))
+	for i, f := range report.Findings {
+		gotOrder[i] = f.Title
+	}
+
+	if !slices.Equal(gotOrder, wantOrder) {
+		t.Errorf("addSecurityFindings() order = %v, want %v", gotOrder, wantOrder)
+	}
+}
+
+// TestAddComplianceAnalysis_FrameworksDerivedFromExecutedPlugins covers AE4
+// (R10): `--plugins stig` produces a compliance_frameworks list of exactly
+// ["STIG"], not the previously hardcoded ["STIG","NIST","SANS"].
+func TestAddComplianceAnalysis_FrameworksDerivedFromExecutedPlugins(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+	if err := registry.RegisterPlugin(stig.NewPlugin()); err != nil {
+		t.Fatalf("RegisterPlugin(stig): %v", err)
+	}
+
+	logger := newTestLogger(t)
+	controller := NewModeController(registry, logger)
+
+	device := &common.CommonDevice{
+		System: common.System{Hostname: "fw", Domain: "example.com"},
+	}
+
+	report, err := controller.GenerateReport(context.Background(), device, &ModeConfig{
+		Mode:            ModeBlue,
+		SelectedPlugins: []string{"stig"},
+	})
+	if err != nil {
+		t.Fatalf("GenerateReport() unexpected error: %v", err)
+	}
+
+	frameworks, ok := report.Metadata["compliance_frameworks"].([]string)
+	if !ok {
+		t.Fatalf(
+			"compliance_frameworks = %v (%T), want []string",
+			report.Metadata["compliance_frameworks"], report.Metadata["compliance_frameworks"],
+		)
+	}
+
+	want := []string{"STIG"}
+	if !slices.Equal(frameworks, want) {
+		t.Errorf("compliance_frameworks = %v, want %v", frameworks, want)
 	}
 }
 

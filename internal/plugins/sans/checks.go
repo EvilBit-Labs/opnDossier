@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
@@ -38,12 +39,6 @@ var appLayerProxyPackages = []string{
 	"squid",
 }
 
-// isWANInterface reports whether the interface name represents a WAN interface.
-func isWANInterface(name string) bool {
-	lower := strings.ToLower(name)
-	return lower == "wan" || strings.HasPrefix(lower, "wan")
-}
-
 // isDMZOrOPTInterface reports whether the interface name represents a DMZ or OPT interface.
 func isDMZOrOPTInterface(name string) bool {
 	lower := strings.ToLower(name)
@@ -64,7 +59,7 @@ func enabledPassRules(device *common.CommonDevice) []common.FirewallRule {
 
 // ruleAppliesToWAN reports whether a firewall rule applies to any WAN interface.
 func ruleAppliesToWAN(rule common.FirewallRule) bool {
-	return slices.ContainsFunc(rule.Interfaces, isWANInterface)
+	return slices.ContainsFunc(rule.Interfaces, analysis.IsWANInterfaceName)
 }
 
 // portMatchesDangerous checks whether a port specification matches any dangerous port.
@@ -330,7 +325,7 @@ func (sp *Plugin) checkAntiSpoofing(device *common.CommonDevice) checkResult {
 
 	hasWAN := false
 	for _, iface := range device.Interfaces {
-		if !iface.Enabled || !isWANInterface(iface.Name) {
+		if !iface.Enabled || !analysis.IsWANInterfaceName(iface.Name) {
 			continue
 		}
 		hasWAN = true
