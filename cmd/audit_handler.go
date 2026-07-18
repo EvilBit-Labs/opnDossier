@@ -39,6 +39,7 @@ func handleAuditMode(
 		Mode:            mode,
 		Comprehensive:   opt.Comprehensive,
 		SelectedPlugins: auditOpts.SelectedPlugins,
+		Blackhat:        auditOpts.Blackhat,
 	}
 
 	pm := audit.NewPluginManager(logger, nil)

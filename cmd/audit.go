@@ -28,6 +28,7 @@ var (
 	auditPlugins      []string //nolint:gochecknoglobals // Cobra flag variable — selected compliance plugins
 	auditPluginDir    string   //nolint:gochecknoglobals // Cobra flag variable — dynamic plugin directory
 	auditFailuresOnly bool     //nolint:gochecknoglobals // Cobra flag variable — show only failing controls
+	auditBlackhat     bool     //nolint:gochecknoglobals // Cobra flag variable — red-mode sharper-tone ExploitNotes
 )
 
 // init registers the audit command with the root command and configures its command-line flags.
@@ -50,6 +51,10 @@ func init() {
 	auditCmd.Flags().
 		BoolVar(&auditFailuresOnly, "failures-only", false, "Show only failing controls in blue mode plugin results tables")
 	setFlagAnnotation(auditCmd.Flags(), "failures-only", []flagCategory{categoryAudit})
+
+	auditCmd.Flags().
+		BoolVar(&auditBlackhat, "audit-blackhat", false, "Sharpen the tone of red mode ExploitNotes (red mode only; impact/context only, no attack instructions)")
+	setFlagAnnotation(auditCmd.Flags(), "audit-blackhat", []flagCategory{categoryAudit})
 
 	// Output and format flags (reuse existing package-level variables)
 	auditCmd.Flags().
@@ -147,6 +152,15 @@ var auditCmd = &cobra.Command{
 		if auditFailuresOnly && !strings.EqualFold(auditMode, auditModeBlue) {
 			return fmt.Errorf(
 				"--failures-only is only supported with --mode blue; %q mode does not run compliance checks",
+				auditMode,
+			)
+		}
+
+		// Reject --audit-blackhat outside red mode — it only sharpens red-mode
+		// ExploitNote tone, and blue mode emits no ExploitNotes.
+		if auditBlackhat && !strings.EqualFold(auditMode, auditModeRed) {
+			return fmt.Errorf(
+				"--audit-blackhat is only supported with --mode red; %q mode emits no exploit notes",
 				auditMode,
 			)
 		}
@@ -465,6 +479,7 @@ func generateAuditOutput(
 		AuditMode:       auditMode,
 		SelectedPlugins: auditPlugins,
 		FailuresOnly:    auditFailuresOnly,
+		Blackhat:        auditBlackhat,
 	}
 
 	if auditPluginDir != "" {

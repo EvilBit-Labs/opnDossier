@@ -5,6 +5,7 @@ package opnsense
 // protocol (HTTP/HTTPS), SSL certificate reference, login autocomplete, and process limits.
 type WebGUIConfig struct {
 	Protocol          string   `xml:"protocol"                    json:"protocol"               yaml:"protocol"                    validate:"required,oneof=http https"`
+	Port              string   `xml:"port,omitempty"              json:"port,omitempty"         yaml:"port,omitempty"`
 	SSLCertRef        string   `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"   yaml:"sslCertRef,omitempty"`
 	LoginAutocomplete BoolFlag `xml:"loginautocomplete,omitempty" json:"loginAutocomplete"      yaml:"loginAutocomplete,omitempty"`
 	MaxProcesses      string   `xml:"max_procs,omitempty"         json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`

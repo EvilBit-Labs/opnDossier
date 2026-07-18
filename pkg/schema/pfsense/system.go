@@ -87,6 +87,7 @@ type User struct {
 // such as dashboard columns, CSS theme, login CSS, and alternate hostnames.
 type WebGUI struct {
 	Protocol          string            `xml:"protocol"                    json:"protocol"                   yaml:"protocol"`
+	Port              string            `xml:"port,omitempty"              json:"port,omitempty"             yaml:"port,omitempty"`
 	SSLCertRef        string            `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"       yaml:"sslCertRef,omitempty"`
 	LoginAutocomplete opnsense.BoolFlag `xml:"loginautocomplete,omitempty" json:"loginAutocomplete"          yaml:"loginAutocomplete,omitempty"`
 	MaxProcesses      string            `xml:"max_procs,omitempty"         json:"maxProcesses,omitempty"     yaml:"maxProcesses,omitempty"`

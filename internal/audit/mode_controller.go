@@ -67,6 +67,10 @@ type ModeConfig struct {
 	Comprehensive   bool
 	SelectedPlugins []string
 	TemplateDir     string
+	// Blackhat selects the sharper-tone red-mode ExploitNotes variant (R20).
+	// Tone only — it never changes which findings are reported and never
+	// introduces instructional content. Ignored outside red mode.
+	Blackhat bool
 }
 
 // ValidateModeConfig validates the mode configuration.
@@ -233,7 +237,7 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 // NAT exposures, as reachability-filtered red-mode Findings — WAN-reachable
 // items lead; LAN-only and local items are excluded from the exposure Findings
 // and retained only in the admin-portal inventory metadata (R15, R16).
-func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _ *ModeConfig) (*Report, error) {
+func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
 	mc.logger.Debug("Generating red team report")
 
 	// Add red team specific metadata
@@ -247,11 +251,11 @@ func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _
 
 	// Order matters: the Finding-producing methods run before addAttackSurfaces,
 	// which de-dupes shared-engine observations against Findings already emitted
-	// for the same config element.
-	report.addWANExposedServices(services)
-	report.addWeakNATRules()
+	// for the same config element. blackhat only sharpens ExploitNote tone.
+	report.addWANExposedServices(services, config.Blackhat)
+	report.addWeakNATRules(config.Blackhat)
 	report.addAdminPortals(services)
-	report.addAttackSurfaces(observations)
+	report.addAttackSurfaces(observations, config.Blackhat)
 	report.addEnumerationData()
 
 	return report, nil

@@ -1147,7 +1147,7 @@ func TestReport_RedAnalysisMethods(t *testing.T) {
 	t.Run("addWANExposedServices", func(t *testing.T) {
 		t.Parallel()
 		report := newReport()
-		report.addWANExposedServices(serviceExposures(report.Configuration))
+		report.addWANExposedServices(serviceExposures(report.Configuration), false)
 
 		if got := report.Metadata["wan_exposed_services_count"]; got != 0 {
 			t.Errorf("wan_exposed_services_count = %v, want 0 (no WAN rule permits a service port)", got)
@@ -1160,7 +1160,7 @@ func TestReport_RedAnalysisMethods(t *testing.T) {
 	t.Run("addWeakNATRules", func(t *testing.T) {
 		t.Parallel()
 		report := newReport()
-		report.addWeakNATRules()
+		report.addWeakNATRules(false)
 
 		if got := report.Metadata["weak_nat_rules_count"]; got != 0 {
 			t.Errorf("weak_nat_rules_count = %v, want 0 (no inbound NAT rules)", got)
@@ -1190,7 +1190,7 @@ func TestReport_RedAnalysisMethods(t *testing.T) {
 		t.Parallel()
 		report := newReport()
 		observations := analysis.ScanObservations(report.Configuration)
-		report.addAttackSurfaces(observations)
+		report.addAttackSurfaces(observations, false)
 
 		// The insecure-WebGUI observation is system-wide (Local), not WAN, so no
 		// observation is reframed as a red exposure for this fixture.
@@ -1379,10 +1379,10 @@ func newRedReport(device *common.CommonDevice) *Report {
 func runRedAnalysis(report *Report) {
 	observations := analysis.ScanObservations(report.Configuration)
 	services := serviceExposures(report.Configuration)
-	report.addWANExposedServices(services)
-	report.addWeakNATRules()
+	report.addWANExposedServices(services, false)
+	report.addWeakNATRules(false)
 	report.addAdminPortals(services)
-	report.addAttackSurfaces(observations)
+	report.addAttackSurfaces(observations, false)
 	report.addEnumerationData()
 }
 
@@ -1660,6 +1660,36 @@ func TestRedMode_RegressionBattery(t *testing.T) {
 			wantFindingPrefix: "WAN-Exposed Service: SSH",
 		},
 		{
+			name: "custom WebGUI port: exposed when WAN rule permits the configured port",
+			device: &common.CommonDevice{
+				System:     common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS, Port: "8443"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "8443"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: Web Administration Interface",
+		},
+		{
+			name: "custom WebGUI port: not exposed when WAN rule permits only the default 443",
+			device: &common.CommonDevice{
+				System:     common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS, Port: "8443"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+		{
 			name: "SNMP exposed via WAN rule permitting 161",
 			device: &common.CommonDevice{
 				SNMP:       common.SNMPConfig{ROCommunity: "public"},
@@ -1827,6 +1857,53 @@ func TestRedMode_AnyToAnyComponentCollision(t *testing.T) {
 	}
 	if count != 1 {
 		t.Errorf("filter.rule[0] exposure findings = %d, want exactly 1 (one exposure per config element)", count)
+	}
+}
+
+// TestRedMode_BlackhatChangesToneNotSafety covers AE7 and R20 end-to-end
+// through GenerateReport (the real ModeConfig.Blackhat wiring): the
+// --audit-blackhat variant changes the ExploitNote text but never introduces
+// instructional content — the R21 denylist passes for both tone variants.
+func TestRedMode_BlackhatChangesToneNotSafety(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{Type: common.RuleTypePass, Interfaces: []string{"wan"}, Destination: common.RuleEndpoint{Port: "22"}},
+		},
+	}
+
+	mc := NewModeController(NewPluginRegistry(), newTestLogger(t))
+
+	exploitNoteFrom := func(blackhat bool) string {
+		report, err := mc.GenerateReport(context.Background(), device, &ModeConfig{Mode: ModeRed, Blackhat: blackhat})
+		if err != nil {
+			t.Fatalf("GenerateReport(blackhat=%v) error = %v", blackhat, err)
+		}
+		ssh, ok := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SSH")
+		if !ok {
+			t.Fatalf("blackhat=%v: expected an SSH exposure finding, got %+v", blackhat, report.Findings)
+		}
+
+		return ssh.ExploitNotes
+	}
+
+	standard := exploitNoteFrom(false)
+	blackhat := exploitNoteFrom(true)
+
+	if standard == "" || blackhat == "" {
+		t.Fatal("both tone variants must produce a non-empty ExploitNote")
+	}
+	if standard == blackhat {
+		t.Error("--audit-blackhat must change the ExploitNote tone")
+	}
+	// The safety invariant holds regardless of tone.
+	for _, note := range []string{standard, blackhat} {
+		if pattern, unsafe := FindInstructionalContent(note); unsafe {
+			t.Errorf("ExploitNote matched instructional pattern %q (tone must not affect safety): %q", pattern, note)
+		}
 	}
 }
 

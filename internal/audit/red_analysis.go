@@ -58,11 +58,14 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 
 	services := make([]exposedService, 0, maxManagementServices)
 
-	// WebGUI is always listening; the only question is its reachability.
+	// WebGUI is always listening; the only question is its reachability. Use the
+	// configured custom port when the unified model carries one (pfSense sets it;
+	// OPNsense leaves it empty), otherwise the protocol default.
 	webGUIPort := portHTTPS
 	if device.System.WebGUI.Protocol != "" && device.System.WebGUI.Protocol != constants.ProtocolHTTPS {
 		webGUIPort = portHTTP
 	}
+	webGUIPort = parsePort(device.System.WebGUI.Port, webGUIPort)
 	services = append(services, exposedService{
 		kind:            exploitKindWebGUI,
 		name:            "webgui",
@@ -257,6 +260,7 @@ func newExposureFinding(
 	title, description, recommendation, component string,
 	surface *AttackSurface,
 	kind exploitNoteKind,
+	blackhat bool,
 ) Finding {
 	return Finding{
 		Finding: analysis.Finding{
@@ -268,7 +272,7 @@ func newExposureFinding(
 			Component:      component,
 		},
 		AttackSurface: surface,
-		ExploitNotes:  exploitNoteFor(kind, false),
+		ExploitNotes:  exploitNoteFor(kind, blackhat),
 	}
 }
 
@@ -278,8 +282,9 @@ func newExposureFinding(
 // SNMP, and the WebGUI management plane each land in report.Findings when a WAN
 // rule permits their port. LAN-only services are excluded from Findings and
 // recorded in the admin-portal inventory instead (R16). The service list is
-// computed once by generateRedReport and shared with addAdminPortals.
-func (r *Report) addWANExposedServices(services []exposedService) {
+// computed once by generateRedReport and shared with addAdminPortals. blackhat
+// only selects the sharper ExploitNote tone.
+func (r *Report) addWANExposedServices(services []exposedService, blackhat bool) {
 	count := 0
 	for _, svc := range services {
 		if svc.reachability != analysis.WANReachable {
@@ -300,6 +305,7 @@ func (r *Report) addWANExposedServices(services []exposedService) {
 				Vulnerabilities: svc.vulnerabilities,
 			},
 			svc.kind,
+			blackhat,
 		))
 	}
 
@@ -310,8 +316,9 @@ func (r *Report) addWANExposedServices(services []exposedService) {
 // addWeakNATRules renders each WAN-reachable inbound NAT port-forward as a
 // red-mode Finding (R15). A NAT rule is included only when it correlates with
 // an enabled WAN pass rule (via InboundNATRuleReachability, R3) — a port
-// forward with no matching pass rule is inert and is not reported.
-func (r *Report) addWeakNATRules() {
+// forward with no matching pass rule is inert and is not reported. blackhat only
+// selects the sharper ExploitNote tone.
+func (r *Report) addWeakNATRules(blackhat bool) {
 	device := r.Configuration
 	if device == nil {
 		r.Metadata["weak_nat_rules_count"] = 0
@@ -342,6 +349,7 @@ func (r *Report) addWeakNATRules() {
 				Vulnerabilities: []string{"exposed-internal-host"},
 			},
 			exploitKindPortForward,
+			blackhat,
 		))
 	}
 
@@ -399,8 +407,8 @@ type adminPortal struct {
 // Observations already surfaced as service/NAT Findings (matched by Component)
 // are skipped so an exposure is not double-counted. Only WAN-reachable
 // observations are included; LAN-only and local hygiene items are excluded from
-// the red exposure sections.
-func (r *Report) addAttackSurfaces(observations []analysis.Observation) {
+// the red exposure sections. blackhat only selects the sharper ExploitNote tone.
+func (r *Report) addAttackSurfaces(observations []analysis.Observation, blackhat bool) {
 	existing := make(map[string]struct{}, len(r.Findings))
 	for _, f := range r.Findings {
 		if f.Component != "" {
@@ -431,6 +439,7 @@ func (r *Report) addAttackSurfaces(observations []analysis.Observation) {
 				Vulnerabilities: []string{obs.Title},
 			},
 			exploitKindConfigWeakness,
+			blackhat,
 		))
 	}
 

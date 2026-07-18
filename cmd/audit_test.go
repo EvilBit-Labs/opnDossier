@@ -588,3 +588,49 @@ func TestAuditCmdPreRunERedModeEmitsNoStubWarning(t *testing.T) {
 	assert.NotContains(t, stderr, "not yet fully implemented",
 		"red mode must not emit the removed stub warning")
 }
+
+// TestAuditCmdPreRunEBlackhatRequiresRedMode covers R20: --audit-blackhat is
+// accepted in red mode and rejected in blue mode (it only affects red-mode
+// ExploitNote tone).
+func TestAuditCmdPreRunEBlackhatRequiresRedMode(t *testing.T) {
+	tests := []struct {
+		name    string
+		mode    string
+		wantErr bool
+	}{
+		{"blackhat with red mode is accepted", "red", false},
+		{"blackhat with blue mode is rejected", "blue", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			auditSnap := captureAuditFlags()
+			sharedSnap := captureSharedFlags()
+			t.Cleanup(func() {
+				auditSnap.restore()
+				sharedSnap.restore()
+			})
+
+			tempCmd := &cobra.Command{}
+			tempCmd.Flags().StringVar(&auditMode, "mode", "blue", "")
+			tempCmd.Flags().StringSliceVar(&auditPlugins, "plugins", []string{}, "")
+			tempCmd.Flags().StringVar(&auditPluginDir, "plugin-dir", "", "")
+			tempCmd.Flags().BoolVar(&auditBlackhat, "audit-blackhat", false, "")
+			tempCmd.Flags().StringVar(&outputFile, "output", "", "")
+			tempCmd.Flags().StringVar(&format, "format", "markdown", "")
+			tempCmd.Flags().Bool("no-wrap", false, "")
+			tempCmd.Flags().Int("wrap", -1, "")
+
+			require.NoError(t, tempCmd.Flags().Set("mode", tt.mode))
+			require.NoError(t, tempCmd.Flags().Set("audit-blackhat", "true"))
+
+			err := auditCmd.PreRunE(tempCmd, []string{"dummy.xml"})
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "--audit-blackhat is only supported with --mode red")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
