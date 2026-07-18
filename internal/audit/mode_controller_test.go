@@ -1533,6 +1533,117 @@ func TestRedMode_WANHygieneObservationBecomesExposure(t *testing.T) {
 	}
 }
 
+// TestRedMode_RegressionBattery (R23/R24) locks the red-mode correctness
+// invariants against known-bad and known-good configs: multi-WAN, floating,
+// and IPv6 exposure must be surfaced; a NAT rule with no matching pass rule and
+// an all-LAN config must not be reported WAN-exposed.
+func TestRedMode_RegressionBattery(t *testing.T) {
+	t.Parallel()
+
+	wanLAN := []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}}
+
+	tests := []struct {
+		name              string
+		device            *common.CommonDevice
+		wantFindingPrefix string // required Finding title prefix ("" = expect none)
+		wantNoWANExposure bool   // wan_exposed_services_count must be 0
+	}{
+		{
+			name: "AE5 multi-WAN: SSH exposed via WAN2 pass rule",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: []common.Interface{{Name: "wan2", Enabled: true}, {Name: "lan", Enabled: true}},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan2"},
+						Destination: common.RuleEndpoint{Port: "22"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: SSH",
+		},
+		{
+			name: "AE6 floating rule exposes WebGUI (lands in Findings)",
+			device: &common.CommonDevice{
+				System:     common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{Type: common.RuleTypePass, Floating: true, Destination: common.RuleEndpoint{Port: "443"}},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: Web Administration Interface",
+		},
+		{
+			name: "AE6 IPv6 WAN interface exposes SSH",
+			device: &common.CommonDevice{
+				System: common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true, IPv6Address: "2001:db8::1"},
+					{Name: "lan", Enabled: true},
+				},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						IPProtocol:  common.IPProtocolInet6,
+						Destination: common.RuleEndpoint{Port: "22"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: SSH",
+		},
+		{
+			name: "R3 NAT with no matching pass rule is not WAN-exposed",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: wanLAN,
+				NAT: common.NATConfig{
+					InboundRules: []common.InboundNATRule{
+						{Interfaces: []string{"wan"}, ExternalPort: "22"},
+					},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+		{
+			name: "clean all-LAN config has no WAN exposure",
+			device: &common.CommonDevice{
+				System: common.System{
+					SSH:    common.SSH{Enabled: true, Port: "22"},
+					WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS},
+				},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			report := newRedReport(tt.device)
+			runRedAnalysis(report)
+
+			if tt.wantNoWANExposure {
+				if got := report.Metadata["wan_exposed_services_count"]; got != 0 {
+					t.Errorf("wan_exposed_services_count = %v, want 0", got)
+				}
+
+				return
+			}
+
+			if _, ok := findingByTitlePrefix(report.Findings, tt.wantFindingPrefix); !ok {
+				t.Errorf("expected a finding titled %q, got %+v", tt.wantFindingPrefix, report.Findings)
+			}
+		})
+	}
+}
+
 // TestRedMode_NoStubMarkersRemain is the U5 verification gate: after full red
 // analysis, no metadata value carries the old `{not_implemented, stub}` marker
 // shape — every red method now performs real analysis.

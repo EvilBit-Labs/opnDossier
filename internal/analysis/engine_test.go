@@ -344,3 +344,37 @@ func TestScanObservations_ExportPathUnaffected(t *testing.T) {
 	analysisResult := analysis.ComputeAnalysis(cfg)
 	assert.Empty(t, analysisResult.SecurityIssues)
 }
+
+// TestScanObservations_DoesNotMutateExportPath (R4) pins the no-regression
+// contract for the JSON/YAML export consumers: running the shared engine over a
+// config must not alter what DetectSecurityIssues returns for that same config,
+// so internal/converter and internal/processor keep observing identical output.
+func TestScanObservations_DoesNotMutateExportPath(t *testing.T) {
+	t.Parallel()
+
+	cfg := &common.CommonDevice{
+		System: common.System{WebGUI: common.WebGUI{Protocol: "http"}},
+		SNMP:   common.SNMPConfig{ROCommunity: "public"},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
+			},
+		},
+	}
+
+	before := analysis.DetectSecurityIssues(cfg)
+	require.NotEmpty(t, before, "fixture must exercise the export-path detectors")
+
+	// Running the shared engine must not perturb the export path.
+	_ = analysis.ScanObservations(cfg)
+
+	after := analysis.DetectSecurityIssues(cfg)
+	assert.Equal(t, before, after, "ScanObservations must not mutate DetectSecurityIssues output")
+}
