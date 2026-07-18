@@ -4,6 +4,7 @@ package firewall
 import (
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
@@ -14,15 +15,6 @@ import (
 //
 
 const disabledRuleThreshold = 10
-
-// isWANInterface reports whether the given interface name represents a WAN
-// interface. The check is case-insensitive and matches "wan" as well as
-// prefixed variants like "wan2".
-func isWANInterface(name string) bool {
-	lower := strings.ToLower(name)
-
-	return lower == "wan" || strings.HasPrefix(lower, "wan")
-}
 
 // checkNoAnyAnyPassRules checks that no firewall pass rules exist with source,
 // destination, port, and protocol all set to "any". Such rules effectively
@@ -68,7 +60,7 @@ func (fp *Plugin) checkNoAnySourceOnWANInbound(device *common.CommonDevice) chec
 		}
 
 		for _, iface := range rule.Interfaces {
-			if isWANInterface(iface) && rule.Source.Address == constants.NetworkAny {
+			if analysis.IsWANInterfaceName(iface) && rule.Source.Address == constants.NetworkAny {
 				return checkResult{Result: false, Known: true}
 			}
 		}
@@ -194,7 +186,7 @@ func (fp *Plugin) checkPrivateAddressFilteringOnWAN(device *common.CommonDevice)
 
 	foundWAN := false
 	for _, iface := range device.Interfaces {
-		if isWANInterface(iface.Name) {
+		if analysis.IsWANInterfaceName(iface.Name) {
 			foundWAN = true
 			if !iface.BlockPrivate {
 				return checkResult{Result: false, Known: true}
@@ -218,7 +210,7 @@ func (fp *Plugin) checkBogonFilteringOnWAN(device *common.CommonDevice) checkRes
 
 	foundWAN := false
 	for _, iface := range device.Interfaces {
-		if isWANInterface(iface.Name) {
+		if analysis.IsWANInterfaceName(iface.Name) {
 			foundWAN = true
 			if !iface.BlockBogons {
 				return checkResult{Result: false, Known: true}

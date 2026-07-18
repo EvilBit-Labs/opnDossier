@@ -197,8 +197,8 @@ func DetectSecurityIssues(cfg *common.CommonDevice) []common.SecurityFinding {
 	}
 
 	for i, rule := range cfg.FirewallRules {
-		if rule.Type == common.RuleTypePass && rule.Source.Address == constants.NetworkAny &&
-			slices.Contains(rule.Interfaces, "wan") {
+		if !rule.Disabled && rule.Type == common.RuleTypePass && rule.Source.Address == constants.NetworkAny &&
+			RuleReachability(rule, cfg.Interfaces) == WANReachable {
 			findings = append(findings, common.SecurityFinding{
 				Component:      fmt.Sprintf("filter.rule[%d]", i),
 				Issue:          "Overly Permissive WAN Rule",
