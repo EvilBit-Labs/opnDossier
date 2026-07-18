@@ -1,0 +1,440 @@
+package audit
+
+import (
+	"fmt"
+	"slices"
+	"strconv"
+
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+)
+
+// Default listening ports for the in-scope management services. WebGUI has no
+// explicit port field, so it is inferred from the configured protocol.
+const (
+	portHTTPS   = 443
+	portHTTP    = 80
+	portSSH     = 22
+	portSNMP    = 161
+	unknownPort = 0
+)
+
+// maxManagementServices is the number of in-scope management services
+// (WebGUI, SSH, SNMP) — the upper bound for the serviceExposures slice.
+const maxManagementServices = 3
+
+// findingTypeExposure is the Finding.Type for every red-mode exposure finding.
+const findingTypeExposure = "exposure"
+
+// exposedService describes an in-scope management/system service and where it
+// is reachable from. Reachability is computed by correlating the service's
+// listening port against the device's WAN-reachable firewall and inbound-NAT
+// rules (R17) — a service is WAN-reachable only when an actual rule permits its
+// port, never on the service being enabled alone.
+type exposedService struct {
+	kind            exploitNoteKind
+	name            string
+	displayName     string
+	severity        analysis.Severity
+	component       string
+	port            int
+	reachability    analysis.Reachability
+	description     string
+	recommendation  string
+	vulnerabilities []string
+}
+
+// serviceExposures enumerates the in-scope management services present on the
+// device (WebGUI is always present; SSH when enabled; SNMP when a read-only
+// community is configured) and classifies each as WAN-reachable or LAN-only by
+// correlating its port against WAN-reachable rules. Local-only services are not
+// possible here — a configured management service is at least LAN-reachable.
+func serviceExposures(device *common.CommonDevice) []exposedService {
+	if device == nil {
+		return nil
+	}
+
+	services := make([]exposedService, 0, maxManagementServices)
+
+	// WebGUI is always listening; the only question is its reachability.
+	webGUIPort := portHTTPS
+	if device.System.WebGUI.Protocol != "" && device.System.WebGUI.Protocol != constants.ProtocolHTTPS {
+		webGUIPort = portHTTP
+	}
+	services = append(services, exposedService{
+		kind:            exploitKindWebGUI,
+		name:            "webgui",
+		displayName:     "Web Administration Interface",
+		severity:        analysis.SeverityCritical,
+		component:       "system.webgui.protocol",
+		port:            webGUIPort,
+		reachability:    serviceReachability(device, webGUIPort),
+		description:     "The web administration interface is reachable from a WAN interface, exposing the device management plane to untrusted networks.",
+		recommendation:  "Restrict web GUI access to management networks via firewall rules, and never expose it directly to the WAN.",
+		vulnerabilities: []string{"exposed-management-interface"},
+	})
+
+	if device.System.SSH.Enabled {
+		sshPort := parsePort(device.System.SSH.Port, portSSH)
+		services = append(services, exposedService{
+			kind:            exploitKindSSH,
+			name:            "ssh",
+			displayName:     "SSH Remote Administration",
+			severity:        analysis.SeverityHigh,
+			component:       "system.ssh",
+			port:            sshPort,
+			reachability:    serviceReachability(device, sshPort),
+			description:     "The SSH administration service is reachable from a WAN interface, exposing remote shell access to untrusted networks.",
+			recommendation:  "Restrict SSH to management networks via firewall rules, or disable it if remote shell access is not required.",
+			vulnerabilities: []string{"exposed-remote-admin"},
+		})
+	}
+
+	if device.SNMP.ROCommunity != "" {
+		services = append(services, exposedService{
+			kind:            exploitKindSNMP,
+			name:            "snmp",
+			displayName:     "SNMP Management Service",
+			severity:        analysis.SeverityHigh,
+			component:       "snmpd",
+			port:            portSNMP,
+			reachability:    serviceReachability(device, portSNMP),
+			description:     "The SNMP management service is reachable from a WAN interface, exposing device and topology information to untrusted networks.",
+			recommendation:  "Restrict SNMP to management networks, migrate to SNMPv3 with authPriv, or disable SNMP if unused.",
+			vulnerabilities: []string{"exposed-snmp"},
+		})
+	}
+
+	return services
+}
+
+// serviceReachability classifies a service by port: WAN-reachable when a
+// WAN-reachable firewall pass rule or inbound NAT rule permits that port,
+// otherwise LAN-only. A configured management service is never Local.
+func serviceReachability(device *common.CommonDevice, port int) analysis.Reachability {
+	if wanRulePermitsPort(device, port) {
+		return analysis.WANReachable
+	}
+
+	return analysis.LANOnly
+}
+
+// wanRulePermitsPort reports whether any WAN-reachable enabled firewall pass
+// rule or WAN-reachable inbound NAT rule permits the given port. A rule whose
+// destination port is empty or "any" permits every port — the over-report
+// (safe) direction consistent with the slice-1 NAT reachability choice — while
+// a rule with a specific port permits only an exact match.
+func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
+	portStr := strconv.Itoa(port)
+
+	for _, rule := range device.FirewallRules {
+		if rule.Disabled || rule.Type != common.RuleTypePass {
+			continue
+		}
+
+		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable {
+			continue
+		}
+
+		if rulePortPermits(rule.Destination.Port, portStr) {
+			return true
+		}
+	}
+
+	for _, nat := range device.NAT.InboundRules {
+		if analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
+			continue
+		}
+
+		if rulePortPermits(nat.ExternalPort, portStr) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// rulePortPermits reports whether a rule's destination/external port permits
+// traffic to the given service port. An empty or "any" rule port permits every
+// port (over-report direction); otherwise an exact string match is required.
+func rulePortPermits(rulePort, servicePort string) bool {
+	if rulePort == "" || rulePort == constants.NetworkAny {
+		return true
+	}
+
+	return rulePort == servicePort
+}
+
+// parsePort parses a port string, returning fallback when the string is empty
+// or non-numeric.
+func parsePort(s string, fallback int) int {
+	if s == "" {
+		return fallback
+	}
+
+	p, err := strconv.Atoi(s)
+	if err != nil {
+		return fallback
+	}
+
+	return p
+}
+
+// addWANExposedServices renders each WAN-reachable management service as a
+// red-mode Finding carrying AttackSurface detail and an impact/context
+// ExploitNote (R15, R17, R19). This is the primary red Findings producer: SSH,
+// SNMP, and the WebGUI management plane each land in report.Findings when a WAN
+// rule permits their port. LAN-only services are excluded from Findings and
+// recorded in the admin-portal inventory instead (R16).
+func (r *Report) addWANExposedServices() {
+	services := serviceExposures(r.Configuration)
+
+	count := 0
+	for _, svc := range services {
+		if svc.reachability != analysis.WANReachable {
+			continue
+		}
+
+		count++
+		r.Findings = append(r.Findings, Finding{
+			Finding: analysis.Finding{
+				Type:           findingTypeExposure,
+				Severity:       string(svc.severity),
+				Title:          "WAN-Exposed Service: " + svc.displayName,
+				Description:    svc.description,
+				Recommendation: svc.recommendation,
+				Component:      svc.component,
+			},
+			AttackSurface: &AttackSurface{
+				Type:            "wan-exposed-service",
+				Ports:           portsOf(svc.port),
+				Services:        []string{svc.name},
+				Vulnerabilities: svc.vulnerabilities,
+			},
+			ExploitNotes: exploitNoteFor(svc.kind, false),
+		})
+	}
+
+	r.Metadata["wan_exposed_services_count"] = count
+	r.Metadata["wan_exposure_scan_completed"] = true
+}
+
+// addWeakNATRules renders each WAN-reachable inbound NAT port-forward as a
+// red-mode Finding (R15). A NAT rule is included only when it correlates with
+// an enabled WAN pass rule (via InboundNATRuleReachability, R3) — a port
+// forward with no matching pass rule is inert and is not reported.
+func (r *Report) addWeakNATRules() {
+	device := r.Configuration
+	if device == nil {
+		r.Metadata["weak_nat_rules_count"] = 0
+
+		return
+	}
+
+	count := 0
+	for i, nat := range device.NAT.InboundRules {
+		if analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
+			continue
+		}
+
+		count++
+		r.Findings = append(r.Findings, Finding{
+			Finding: analysis.Finding{
+				Type:     findingTypeExposure,
+				Severity: string(analysis.SeverityHigh),
+				Title:    "WAN-Reachable Port Forward",
+				Description: fmt.Sprintf(
+					"Inbound NAT rule %d forwards WAN traffic to an internal host and correlates with an enabled WAN pass rule, exposing the internal service to untrusted networks.",
+					i+1,
+				),
+				Recommendation: "Restrict the source scope of the port forward and its associated pass rule, or remove the rule if the exposure is unnecessary.",
+				Component:      fmt.Sprintf("nat.inbound[%d]", i),
+			},
+			AttackSurface: &AttackSurface{
+				Type:            "port-forward",
+				Ports:           portsOf(parsePort(nat.ExternalPort, unknownPort)),
+				Services:        natServices(nat),
+				Vulnerabilities: []string{"exposed-internal-host"},
+			},
+			ExploitNotes: exploitNoteFor(exploitKindPortForward, false),
+		})
+	}
+
+	r.Metadata["weak_nat_rules_count"] = count
+}
+
+// addAdminPortals records a structured inventory of the device's management
+// portals (WebGUI, SSH) tagged with reachability. This is metadata, not
+// Findings: a WAN-reachable portal is already surfaced as a Finding by
+// addWANExposedServices, so re-emitting it here would double-count the same
+// exposure. The inventory retains LAN-only portals (tagged "lan") so a reader
+// sees every management plane, satisfying the AE3 both-halves invariant — the
+// LAN-only portal is present here and absent from the WAN-exposed Findings.
+func (r *Report) addAdminPortals() {
+	services := serviceExposures(r.Configuration)
+
+	portals := make([]adminPortal, 0, len(services))
+	for _, svc := range services {
+		if svc.kind != exploitKindWebGUI && svc.kind != exploitKindSSH {
+			continue
+		}
+
+		portals = append(portals, adminPortal{
+			Name:         svc.name,
+			Port:         svc.port,
+			Reachability: string(svc.reachability),
+		})
+	}
+
+	slices.SortFunc(portals, func(a, b adminPortal) int {
+		return cmpString(a.Name, b.Name)
+	})
+
+	r.Metadata["admin_portals"] = portals
+	r.Metadata["admin_portals_count"] = len(portals)
+}
+
+// adminPortal is one management-plane entry in the red-mode admin-portal
+// inventory metadata.
+type adminPortal struct {
+	// Name is the portal service name (e.g. "webgui", "ssh").
+	Name string `json:"name"`
+	// Port is the portal's listening port.
+	Port int `json:"port"`
+	// Reachability is where the portal is reachable from ("wan", "lan", "local").
+	Reachability string `json:"reachability"`
+}
+
+// addAttackSurfaces renders the shared engine's WAN-reachable hygiene
+// observations as red-mode exposure Findings (R16): a config weakness that is
+// internet-reachable is adversarially relevant and reframed as exposure.
+// Observations already surfaced as service/NAT Findings (matched by Component)
+// are skipped so an exposure is not double-counted. Only WAN-reachable
+// observations are included; LAN-only and local hygiene items are excluded from
+// the red exposure sections.
+func (r *Report) addAttackSurfaces(observations []analysis.Observation) {
+	existing := make(map[string]struct{}, len(r.Findings))
+	for _, f := range r.Findings {
+		if f.Component != "" {
+			existing[f.Component] = struct{}{}
+		}
+	}
+
+	count := 0
+	for _, obs := range observations {
+		if obs.Reachability != analysis.WANReachable {
+			continue
+		}
+
+		if _, seen := existing[obs.Component]; seen {
+			continue
+		}
+
+		count++
+		existing[obs.Component] = struct{}{}
+		r.Findings = append(r.Findings, Finding{
+			Finding: analysis.Finding{
+				Type:           findingTypeExposure,
+				Severity:       string(obs.Severity),
+				Title:          "Exposed Weakness: " + obs.Title,
+				Description:    obs.Description,
+				Recommendation: obs.Recommendation,
+				Component:      obs.Component,
+			},
+			AttackSurface: &AttackSurface{
+				Type:            "config-weakness",
+				Vulnerabilities: []string{obs.Title},
+			},
+			ExploitNotes: exploitNoteFor(exploitKindConfigWeakness, false),
+		})
+	}
+
+	r.Metadata["attack_surfaces_count"] = count
+
+	// R16: WAN-reachable exposures lead. All red Findings are WAN-reachable by
+	// construction, so order them by severity (most urgent first).
+	r.sortRedFindingsBySeverity()
+}
+
+// sortRedFindingsBySeverity orders report.Findings by severity, most urgent
+// first, using the shared severityOrder ranking. Stable so equal-severity
+// findings keep their producer order (services, then NAT, then attack
+// surfaces).
+func (r *Report) sortRedFindingsBySeverity() {
+	slices.SortStableFunc(r.Findings, func(a, b Finding) int {
+		return severityOrder[analysis.Severity(a.Severity)] - severityOrder[analysis.Severity(b.Severity)]
+	})
+}
+
+// addEnumerationData records a structured reconnaissance summary of the device
+// (element counts an attacker would enumerate). Metadata, not Findings — these
+// are inventory facts, not exposures.
+func (r *Report) addEnumerationData() {
+	var data enumerationData
+
+	if cfg := r.Configuration; cfg != nil {
+		data.Interfaces = len(cfg.Interfaces)
+		for _, iface := range cfg.Interfaces {
+			if analysis.InterfaceReachability(iface) == analysis.WANReachable {
+				data.WANInterfaces++
+			}
+		}
+
+		data.FirewallRules = len(cfg.FirewallRules)
+		data.InboundNATRules = len(cfg.NAT.InboundRules)
+		data.Users = len(cfg.Users)
+		data.Groups = len(cfg.Groups)
+	}
+
+	r.Metadata["enumeration_data"] = data
+	r.Metadata["enumeration_completed"] = true
+}
+
+// enumerationData is the red-mode reconnaissance summary metadata.
+type enumerationData struct {
+	// Interfaces is the number of configured interfaces.
+	Interfaces int `json:"interfaces"`
+	// WANInterfaces is the number of WAN-reachable interfaces.
+	WANInterfaces int `json:"wanInterfaces"`
+	// FirewallRules is the number of configured firewall rules.
+	FirewallRules int `json:"firewallRules"`
+	// InboundNATRules is the number of inbound NAT (port-forward) rules.
+	InboundNATRules int `json:"inboundNatRules"`
+	// Users is the number of configured user accounts.
+	Users int `json:"users"`
+	// Groups is the number of configured groups.
+	Groups int `json:"groups"`
+}
+
+// portsOf returns a single-element port slice, or an empty slice when the port
+// is unknown, so AttackSurface.Ports never carries a meaningless zero.
+func portsOf(port int) []int {
+	if port == unknownPort {
+		return []int{}
+	}
+
+	return []int{port}
+}
+
+// natServices returns a best-effort service label slice for an inbound NAT
+// rule, using its layer-4 protocol when present.
+func natServices(nat common.InboundNATRule) []string {
+	if nat.Protocol != "" {
+		return []string{nat.Protocol}
+	}
+
+	return []string{}
+}
+
+// cmpString is a minimal string comparator for slices.SortFunc.
+func cmpString(a, b string) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	default:
+		return 0
+	}
+}

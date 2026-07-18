@@ -4,10 +4,12 @@ import (
 	"context"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
@@ -989,7 +991,7 @@ func TestReport_EmptySummary(t *testing.T) {
 // config with a known-bad WebGUI protocol, asserting real derived values
 // (R23) rather than merely non-empty metadata.
 //
-//nolint:tparallel,funlen // subtests share mutable report state and cannot run concurrently; length is subtests asserting real values, not complexity
+//nolint:tparallel // subtests share mutable report state and cannot run concurrently
 func TestReport_AnalysisMethods(t *testing.T) {
 	t.Parallel()
 
@@ -1115,58 +1117,110 @@ func TestReport_AnalysisMethods(t *testing.T) {
 			t.Errorf("configuration_summary = %+v, want %+v", summary, want)
 		}
 	})
+}
+
+// TestReport_RedAnalysisMethods exercises the five red-mode analysis methods
+// against a fixture with WebGUI=http, an enabled WAN interface, and a single
+// LAN-scoped pass rule. No WAN rule permits any management port, so nothing is
+// WAN-exposed — the counts are all zero and the WebGUI portal is retained as
+// LAN-only in the inventory.
+func TestReport_RedAnalysisMethods(t *testing.T) {
+	t.Parallel()
+
+	newReport := func() *Report {
+		return newRedReport(&common.CommonDevice{
+			System: common.System{
+				Hostname: "test-host",
+				WebGUI:   common.WebGUI{Protocol: "http"},
+			},
+			Interfaces: []common.Interface{
+				{Name: "wan", Enabled: true},
+				{Name: "lan", Enabled: true},
+			},
+			FirewallRules: []common.FirewallRule{
+				{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
+			},
+			Users: []common.User{{Name: "admin"}},
+		})
+	}
 
 	t.Run("addWANExposedServices", func(t *testing.T) {
+		t.Parallel()
+		report := newReport()
 		report.addWANExposedServices()
-		assertStubMarker(t, report, "wan_exposed_services")
+
+		if got := report.Metadata["wan_exposed_services_count"]; got != 0 {
+			t.Errorf("wan_exposed_services_count = %v, want 0 (no WAN rule permits a service port)", got)
+		}
+		if report.Metadata["wan_exposure_scan_completed"] != true {
+			t.Error("wan_exposure_scan_completed should be true")
+		}
 	})
 
 	t.Run("addWeakNATRules", func(t *testing.T) {
+		t.Parallel()
+		report := newReport()
 		report.addWeakNATRules()
-		assertStubMarker(t, report, "weak_nat_rules")
+
+		if got := report.Metadata["weak_nat_rules_count"]; got != 0 {
+			t.Errorf("weak_nat_rules_count = %v, want 0 (no inbound NAT rules)", got)
+		}
 	})
 
 	t.Run("addAdminPortals", func(t *testing.T) {
+		t.Parallel()
+		report := newReport()
 		report.addAdminPortals()
-		assertStubMarker(t, report, "admin_portals")
+
+		portals, ok := report.Metadata["admin_portals"].([]adminPortal)
+		if !ok {
+			t.Fatalf("admin_portals = %v (%T), want []adminPortal",
+				report.Metadata["admin_portals"], report.Metadata["admin_portals"])
+		}
+		// WebGUI is always present (SSH is not enabled in this fixture), LAN-only.
+		if len(portals) != 1 {
+			t.Fatalf("admin_portals len = %d, want 1 (webgui)", len(portals))
+		}
+		if portals[0].Name != "webgui" || portals[0].Reachability != string(analysis.LANOnly) {
+			t.Errorf("admin_portals[0] = %+v, want webgui tagged lan", portals[0])
+		}
 	})
 
 	t.Run("addAttackSurfaces", func(t *testing.T) {
-		report.addAttackSurfaces()
-		assertStubMarker(t, report, "attack_surfaces")
+		t.Parallel()
+		report := newReport()
+		observations := analysis.ScanObservations(report.Configuration)
+		report.addAttackSurfaces(observations)
+
+		// The insecure-WebGUI observation is system-wide (Local), not WAN, so no
+		// observation is reframed as a red exposure for this fixture.
+		if got := report.Metadata["attack_surfaces_count"]; got != 0 {
+			t.Errorf("attack_surfaces_count = %v, want 0 (no WAN-reachable observation)", got)
+		}
 	})
 
 	t.Run("addEnumerationData", func(t *testing.T) {
+		t.Parallel()
+		report := newReport()
 		report.addEnumerationData()
-		assertStubMarker(t, report, "enumeration_data")
+
+		data, ok := report.Metadata["enumeration_data"].(enumerationData)
+		if !ok {
+			t.Fatalf("enumeration_data = %v (%T), want enumerationData",
+				report.Metadata["enumeration_data"], report.Metadata["enumeration_data"])
+		}
+		want := enumerationData{
+			Interfaces:      2,
+			WANInterfaces:   1,
+			FirewallRules:   1,
+			InboundNATRules: 0,
+			Users:           1,
+			Groups:          0,
+		}
+		if data != want {
+			t.Errorf("enumeration_data = %+v, want %+v", data, want)
+		}
 	})
-}
-
-// assertStubMarker verifies that a red-mode stub analysis method emitted the
-// canonical `{not_implemented: true, stub: true}` marker under the expected
-// metadata key. See GOTCHAS §8.4.
-func assertStubMarker(t *testing.T, report *Report, key string) {
-	t.Helper()
-
-	raw, ok := report.Metadata[key]
-	if !ok {
-		t.Fatalf("expected metadata key %q to be set, but it was absent", key)
-	}
-
-	marker, ok := raw.(map[string]any)
-	if !ok {
-		t.Fatalf("metadata[%q]: expected map[string]any, got %T", key, raw)
-	}
-
-	notImpl, ok := marker["not_implemented"].(bool)
-	if !ok || !notImpl {
-		t.Errorf("metadata[%q].not_implemented: expected true, got %v", key, marker["not_implemented"])
-	}
-
-	stub, ok := marker["stub"].(bool)
-	if !ok || !stub {
-		t.Errorf("metadata[%q].stub: expected true, got %v", key, marker["stub"])
-	}
 }
 
 // TestAddSecurityFindings_DedupeAgainstFiredPluginControls covers AE1
@@ -1308,37 +1362,202 @@ func TestAddComplianceAnalysis_FrameworksDerivedFromExecutedPlugins(t *testing.T
 	}
 }
 
-// TestRedModeMetadata_MarksStubsExplicitly asserts that every red-mode stub
-// analysis method emits an explicit `{not_implemented: true, stub: true}`
-// marker under a predictable key, so downstream consumers cannot mistake
-// stub output for real analysis. See GOTCHAS §8.4.
-func TestRedModeMetadata_MarksStubsExplicitly(t *testing.T) {
-	t.Parallel()
+// newRedReport builds a red-mode Report over the given device for red-analysis
+// tests.
+func newRedReport(device *common.CommonDevice) *Report {
+	return &Report{
+		Mode:          ModeRed,
+		Configuration: device,
+		Findings:      make([]Finding, 0),
+		Compliance:    make(map[string]ComplianceResult),
+		Metadata:      make(map[string]any),
+	}
+}
 
-	testCases := []struct {
-		name    string
-		key     string
-		trigger func(*Report)
-	}{
-		{"addWANExposedServices", "wan_exposed_services", (*Report).addWANExposedServices},
-		{"addWeakNATRules", "weak_nat_rules", (*Report).addWeakNATRules},
-		{"addAdminPortals", "admin_portals", (*Report).addAdminPortals},
-		{"addAttackSurfaces", "attack_surfaces", (*Report).addAttackSurfaces},
-		{"addEnumerationData", "enumeration_data", (*Report).addEnumerationData},
+// runRedAnalysis runs the full red-mode analysis pipeline over the report, in
+// the same order as generateRedReport.
+func runRedAnalysis(report *Report) {
+	observations := analysis.ScanObservations(report.Configuration)
+	report.addWANExposedServices()
+	report.addWeakNATRules()
+	report.addAdminPortals()
+	report.addAttackSurfaces(observations)
+	report.addEnumerationData()
+}
+
+// findingByTitlePrefix returns the first Finding whose Title starts with prefix.
+func findingByTitlePrefix(findings []Finding, prefix string) (Finding, bool) {
+	for _, f := range findings {
+		if strings.HasPrefix(f.Title, prefix) {
+			return f, true
+		}
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	return Finding{}, false
+}
 
-			report := &Report{
-				Mode:     ModeRed,
-				Metadata: make(map[string]any),
-			}
+// TestRedMode_SSHExposedViaWANPassRule covers AE2 and R19: a config allowing
+// SSH from a WAN source produces a non-zero exposed-service Finding for SSH,
+// tagged WAN-reachable with AttackSurface detail — the false negative the plan
+// was written to eliminate.
+func TestRedMode_SSHExposedViaWANPassRule(t *testing.T) {
+	t.Parallel()
 
-			tc.trigger(report)
-			assertStubMarker(t, report, tc.key)
-		})
+	device := &common.CommonDevice{
+		System: common.System{
+			SSH: common.SSH{Enabled: true, Port: "22"},
+		},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Port: "22"},
+			},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	if got := report.Metadata["wan_exposed_services_count"]; got == 0 {
+		t.Fatal("wan_exposed_services_count = 0, want > 0 (SSH exposed via WAN pass rule) — R19 false negative")
+	}
+
+	ssh, ok := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SSH")
+	if !ok {
+		t.Fatalf("expected a WAN-Exposed SSH finding, got findings %+v", report.Findings)
+	}
+	if ssh.AttackSurface == nil {
+		t.Fatal("SSH exposure finding must carry AttackSurface detail")
+	}
+	if !slices.Contains(ssh.AttackSurface.Ports, 22) {
+		t.Errorf("SSH AttackSurface.Ports = %v, want to contain 22", ssh.AttackSurface.Ports)
+	}
+	if ssh.ExploitNotes == "" {
+		t.Error("SSH exposure finding must carry an ExploitNote")
+	}
+}
+
+// TestRedMode_LANOnlyAdminPortalNotInWANLead covers AE3 (both halves): a
+// LAN-only admin portal is PRESENT in the admin-portal inventory tagged "lan"
+// AND ABSENT from the WAN-exposed Findings. Asserting only the absence would
+// let a "portal dropped entirely" regression pass.
+func TestRedMode_LANOnlyAdminPortalNotInWANLead(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System: common.System{
+			WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS},
+		},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
+		},
+		// Only a LAN pass rule — the WebGUI is reachable from LAN, never WAN.
+		FirewallRules: []common.FirewallRule{
+			{Type: common.RuleTypePass, Interfaces: []string{"lan"}},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	// Half 1: present in the inventory, tagged lan.
+	portals, ok := report.Metadata["admin_portals"].([]adminPortal)
+	if !ok {
+		t.Fatalf(
+			"admin_portals = %v (%T), want []adminPortal",
+			report.Metadata["admin_portals"],
+			report.Metadata["admin_portals"],
+		)
+	}
+	webgui, found := adminPortalByName(portals, "webgui")
+	if !found {
+		t.Fatalf("admin_portals must retain the LAN-only webgui portal, got %+v", portals)
+	}
+	if webgui.Reachability != string(analysis.LANOnly) {
+		t.Errorf("webgui portal reachability = %q, want %q", webgui.Reachability, analysis.LANOnly)
+	}
+
+	// Half 2: absent from the WAN-exposed Findings.
+	if _, present := findingByTitlePrefix(report.Findings, "WAN-Exposed Service"); present {
+		t.Errorf("a LAN-only portal must not appear in the WAN-exposed Findings, got %+v", report.Findings)
+	}
+}
+
+// adminPortalByName returns the portal with the given name.
+func adminPortalByName(portals []adminPortal, name string) (adminPortal, bool) {
+	for _, p := range portals {
+		if p.Name == name {
+			return p, true
+		}
+	}
+
+	return adminPortal{}, false
+}
+
+// TestRedMode_WANHygieneObservationBecomesExposure asserts a WAN-reachable
+// shared-engine hygiene observation (an any-to-any pass rule on WAN) is
+// reframed as a red exposure Finding via addAttackSurfaces.
+func TestRedMode_WANHygieneObservationBecomesExposure(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+				Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+			},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	if got := report.Metadata["attack_surfaces_count"]; got == 0 {
+		t.Fatal("attack_surfaces_count = 0, want > 0 (WAN any-to-any rule reframed as exposure)")
+	}
+	if _, ok := findingByTitlePrefix(report.Findings, "Exposed Weakness:"); !ok {
+		t.Errorf("expected a reframed 'Exposed Weakness' finding, got %+v", report.Findings)
+	}
+}
+
+// TestRedMode_NoStubMarkersRemain is the U5 verification gate: after full red
+// analysis, no metadata value carries the old `{not_implemented, stub}` marker
+// shape — every red method now performs real analysis.
+func TestRedMode_NoStubMarkersRemain(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{Type: common.RuleTypePass, Interfaces: []string{"wan"}, Destination: common.RuleEndpoint{Port: "22"}},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	for key, value := range report.Metadata {
+		marker, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		if marker["stub"] == true || marker["not_implemented"] == true {
+			t.Errorf("metadata[%q] still carries a stub marker: %v", key, marker)
+		}
 	}
 }
 

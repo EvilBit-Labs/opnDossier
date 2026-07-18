@@ -227,7 +227,12 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 	return report, nil
 }
 
-// generateRedReport generates an attacker-focused recon report highlighting attack surfaces.
+// generateRedReport generates an attacker-focused recon report highlighting
+// attack surfaces. It runs the shared detection engine once (KTD1-KTD3) and
+// renders its observations, together with correlated WAN-reachable service and
+// NAT exposures, as reachability-filtered red-mode Findings — WAN-reachable
+// items lead; LAN-only and local items are excluded from the exposure Findings
+// and retained only in the admin-portal inventory metadata (R15, R16).
 func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _ *ModeConfig) (*Report, error) {
 	mc.logger.Debug("Generating red team report")
 
@@ -235,11 +240,15 @@ func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _
 	report.Metadata["report_type"] = "red_team"
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
-	// Add red team specific analysis
+	observations := analysis.ScanObservations(report.Configuration)
+
+	// Order matters: the Finding-producing methods run before addAttackSurfaces,
+	// which de-dupes shared-engine observations against Findings already emitted
+	// for the same config element.
 	report.addWANExposedServices()
 	report.addWeakNATRules()
 	report.addAdminPortals()
-	report.addAttackSurfaces()
+	report.addAttackSurfaces(observations)
 	report.addEnumerationData()
 
 	return report, nil
@@ -499,51 +508,9 @@ func (r *Report) addStructuredConfigurationTables() {
 	r.Metadata["configuration_summary"] = summary
 }
 
-// stubMarker returns the canonical "not yet implemented" metadata value for
-// red-mode stub analysis methods. Emitting an explicit marker (rather than
-// fabricated non-zero counters) guarantees consumers cannot confuse stub
-// output for real analysis. See GOTCHAS §8.4.
-func stubMarker() map[string]any {
-	return map[string]any{
-		"not_implemented": true,
-		"stub":            true,
-	}
-}
-
-// addWANExposedServices adds WAN-exposed services analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addWANExposedServices() {
-	r.Metadata["wan_exposed_services"] = stubMarker()
-}
-
-// addWeakNATRules adds weak NAT rules analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addWeakNATRules() {
-	r.Metadata["weak_nat_rules"] = stubMarker()
-}
-
-// addAdminPortals adds admin portals analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addAdminPortals() {
-	r.Metadata["admin_portals"] = stubMarker()
-}
-
-// addAttackSurfaces adds attack surfaces analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addAttackSurfaces() {
-	r.Metadata["attack_surfaces"] = stubMarker()
-}
-
-// addEnumerationData adds enumeration data to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addEnumerationData() {
-	r.Metadata["enumeration_data"] = stubMarker()
-}
+// The red-mode analysis methods (addWANExposedServices, addWeakNATRules,
+// addAdminPortals, addAttackSurfaces, addEnumerationData) now perform real
+// observation-driven analysis and live in red_analysis.go.
 
 // ParseReportMode parses a string into a ReportMode, returning an error if invalid.
 //
