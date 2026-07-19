@@ -505,13 +505,13 @@ func (r *Report) addRecommendations() {
 // encoded as additional summary rows.
 type ConfigSummary struct {
 	// Interfaces is the number of configured interfaces.
-	Interfaces int `json:"interfaces"`
+	Interfaces int `json:"interfaces" yaml:"interfaces"`
 	// FirewallRules is the number of configured firewall rules.
-	FirewallRules int `json:"firewallRules"`
+	FirewallRules int `json:"firewallRules" yaml:"firewallRules"`
 	// NATRules is the combined number of inbound and outbound NAT rules.
-	NATRules int `json:"natRules"`
+	NATRules int `json:"natRules" yaml:"natRules"`
 	// Users is the number of configured user accounts.
-	Users int `json:"users"`
+	Users int `json:"users" yaml:"users"`
 }
 
 // addStructuredConfigurationTables builds the configuration summary from

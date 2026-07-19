@@ -18,6 +18,7 @@ type auditFlagSnapshot struct {
 	plugins      []string
 	pluginDir    string
 	failuresOnly bool
+	blackhat     bool
 	formatFlag   string
 	outputFile   string
 	forceFlag    bool
@@ -31,6 +32,7 @@ func captureAuditFlags() auditFlagSnapshot {
 		plugins:      auditPlugins,
 		pluginDir:    auditPluginDir,
 		failuresOnly: auditFailuresOnly,
+		blackhat:     auditBlackhat,
 		formatFlag:   format,
 		outputFile:   outputFile,
 		forceFlag:    force,
@@ -44,6 +46,7 @@ func (s auditFlagSnapshot) restore() {
 	auditPlugins = s.plugins
 	auditPluginDir = s.pluginDir
 	auditFailuresOnly = s.failuresOnly
+	auditBlackhat = s.blackhat
 	format = s.formatFlag
 	outputFile = s.outputFile
 	force = s.forceFlag

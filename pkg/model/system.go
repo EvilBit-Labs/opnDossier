@@ -80,8 +80,8 @@ type WebGUI struct {
 	// Protocol is the web GUI protocol (http or https).
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 	// Port is the web GUI listening port. Empty means the protocol default
-	// (443 for https, 80 for http). pfSense stores a custom port here; OPNsense
-	// leaves it empty (the GUI port is managed outside config.xml).
+	// (443 for https, 80 for http) applies; when present, it reflects a
+	// configured custom port from either vendor's config.xml.
 	Port string `json:"port,omitempty" yaml:"port,omitempty"`
 	// SSLCertRef is the reference ID of the SSL certificate used by the web GUI.
 	SSLCertRef string `json:"sslCertRef,omitempty" yaml:"sslCertRef,omitempty"`

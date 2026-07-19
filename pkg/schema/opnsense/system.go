@@ -4,7 +4,9 @@ package opnsense
 // WebGUIConfig represents the web management interface configuration, including
 // protocol (HTTP/HTTPS), SSL certificate reference, login autocomplete, and process limits.
 type WebGUIConfig struct {
-	Protocol          string   `xml:"protocol"                    json:"protocol"               yaml:"protocol"                    validate:"required,oneof=http https"`
+	Protocol string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+	// Port is the custom WebGUI listening port, if configured. Empty means the
+	// protocol default (80 for http, 443 for https) applies.
 	Port              string   `xml:"port,omitempty"              json:"port,omitempty"         yaml:"port,omitempty"`
 	SSLCertRef        string   `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"   yaml:"sslCertRef,omitempty"`
 	LoginAutocomplete BoolFlag `xml:"loginautocomplete,omitempty" json:"loginAutocomplete"      yaml:"loginAutocomplete,omitempty"`

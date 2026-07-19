@@ -21,8 +21,8 @@ AUDIT MODES:
   Select the audit perspective using the --mode flag:
 
     blue  - Defensive audit with security findings and recommendations (default)
-    red   - Attacker-focused recon report highlighting attack surfaces
-            (experimental — analysis methods are placeholder stubs)
+    red   - Attacker-focused recon report highlighting attack surfaces,
+            weak NAT rules, admin portals, and enumeration data
 
 COMPLIANCE PLUGINS (blue mode only):
   Select compliance checks with --plugins (requires --mode blue):
@@ -68,7 +68,7 @@ opnDossier audit [file ...] [flags]
   # Blue team defensive audit with specific plugins
   opnDossier audit config.xml --plugins stig,sans
 
-  # Red team attack surface analysis (experimental)
+  # Red team attack surface analysis
   opnDossier audit config.xml --mode red
 
   # Export audit report as JSON

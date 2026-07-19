@@ -589,8 +589,28 @@ func TestRedMode_RegressionBattery(t *testing.T) {
 			runRedAnalysis(report)
 
 			if tt.wantNoWANExposure {
+				// Assert every red exposure producer, not just the service
+				// count: a case like "R3 NAT with no matching pass rule" would
+				// still incorrectly pass if addWeakNATRules emitted a
+				// "WAN-Reachable Port Forward" Finding (that Finding is counted
+				// by weak_nat_rules_count, not wan_exposed_services_count), and
+				// likewise for addAttackSurfaces/attack_surfaces_count.
 				if got := report.Metadata["wan_exposed_services_count"]; got != 0 {
 					t.Errorf("wan_exposed_services_count = %v, want 0", got)
+				}
+
+				if got := report.Metadata["weak_nat_rules_count"]; got != 0 {
+					t.Errorf("weak_nat_rules_count = %v, want 0", got)
+				}
+
+				if got := report.Metadata["attack_surfaces_count"]; got != 0 {
+					t.Errorf("attack_surfaces_count = %v, want 0", got)
+				}
+
+				for _, f := range report.Findings {
+					if f.Type == findingTypeExposure {
+						t.Errorf("unexpected exposure finding: %+v", f)
+					}
 				}
 
 				return
@@ -634,6 +654,59 @@ func TestRedMode_WeakNATRule_PositivePath(t *testing.T) {
 	}
 	if nat.AttackSurface == nil || !slices.Contains(nat.AttackSurface.Ports, 3389) {
 		t.Errorf("NAT finding AttackSurface = %+v, want Ports to contain 3389", nat.AttackSurface)
+	}
+}
+
+// TestRedMode_NATForward_DoesNotExposeFirewallLocalService covers the
+// serviceReachability/wanRulePermitsPort correctness fix: a WAN-reachable NAT
+// port-forward must never be treated as evidence that the FIREWALL'S OWN
+// management service (WebGUI/SSH/SNMP) is WAN-reachable, even when the NAT
+// rule's ExternalPort happens to equal the management service's port. The NAT
+// rule here forwards WAN port 22 to an unrelated internal host
+// (InternalIP=192.0.2.50); the only firewall pass rule permits an unrelated
+// port (80). The port forward itself is a legitimate, separately-reported
+// exposure (weak_nat_rules_count == 1), but nothing in this config exposes the
+// firewall's own SSH daemon, so no "WAN-Exposed Service: SSH" finding may
+// appear.
+func TestRedMode_NATForward_DoesNotExposeFirewallLocalService(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Destination: common.RuleEndpoint{Port: "80"},
+			},
+		},
+		NAT: common.NATConfig{
+			InboundRules: []common.InboundNATRule{
+				{
+					Interfaces:   []string{"wan"},
+					ExternalPort: "22",
+					InternalIP:   "192.0.2.50",
+					InternalPort: "22",
+				},
+			},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	if got := report.Metadata["weak_nat_rules_count"]; got != 1 {
+		t.Errorf("weak_nat_rules_count = %v, want 1 (the port forward is a legitimate, distinct exposure)", got)
+	}
+
+	if got := report.Metadata["wan_exposed_services_count"]; got != 0 {
+		t.Errorf("wan_exposed_services_count = %v, want 0 (firewall-local SSH was never actually exposed)", got)
+	}
+
+	if _, ok := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SSH"); ok {
+		t.Errorf("unexpected WAN-Exposed Service: SSH finding — NAT forward to a distinct host must not "+
+			"be conflated with firewall-local service exposure: %+v", report.Findings)
 	}
 }
 

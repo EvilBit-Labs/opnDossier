@@ -164,6 +164,13 @@ func TestDetectWeakCryptoDefaults(t *testing.T) {
 			},
 			wantCount: 1,
 		},
+		{
+			name: "plus-prefixed reorder-only selector stays silent",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:+RC4", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 0,
+		},
 	}
 
 	for _, tt := range tests {

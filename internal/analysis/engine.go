@@ -182,9 +182,13 @@ const cipherListSeparators = ": ,\t"
 //
 // The cipher string is split into individual selectors and each is checked
 // against its OpenSSL prefix operator: "!" and "-" exclude a cipher class (it
-// is not enabled and must not raise a finding), while "+" only reorders and
-// leaves the cipher enabled. A weak token is reported only when it appears in
-// a selector that is actually enabled.
+// is not enabled and must not raise a finding). "+" moves any *already
+// enabled* matching ciphers to the end of the list — it never adds a cipher
+// that is not already selected by an earlier, unprefixed selector — so it
+// must not raise a finding on its own either (e.g. "HIGH:+RC4" does not
+// enable RC4 unless RC4 is also matched by "HIGH" or another unprefixed
+// selector, and this function only sees each selector in isolation). A weak
+// token is reported only when it appears in a plain (unprefixed) selector.
 func containsWeakCipherToken(cipherString string) (string, bool) {
 	if cipherString == "" {
 		return "", false
@@ -196,10 +200,8 @@ func containsWeakCipherToken(cipherString string) (string, bool) {
 
 	for _, selector := range selectors {
 		switch selector[0] {
-		case '!', '-':
+		case '!', '-', '+':
 			continue
-		case '+':
-			selector = selector[1:]
 		}
 
 		upper := strings.ToUpper(selector)

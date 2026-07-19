@@ -11,14 +11,23 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
-// Default listening ports for the in-scope management services. WebGUI has no
-// explicit port field, so it is inferred from the configured protocol.
+// Default listening ports for the in-scope management services. WebGUI uses
+// its configured custom port (device.System.WebGUI.Port) when the unified
+// model carries one; otherwise the port is inferred from the configured
+// protocol.
 const (
 	portHTTPS   = 443
 	portHTTP    = 80
 	portSSH     = 22
 	portSNMP    = 161
 	unknownPort = 0
+
+	// protocolHTTP is the WebGUI protocol value that selects the HTTP default
+	// port. Matched case-insensitively (constants.ProtocolHTTPS is the only
+	// other recognized value, and any other/unset protocol keeps the HTTPS
+	// default — the safer direction per R17: over-report exposure rather than
+	// mis-infer a lower-risk port from an unrecognized protocol string).
+	protocolHTTP = "http"
 )
 
 // maxManagementServices is the number of in-scope management services
@@ -64,11 +73,12 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 
 	services := make([]exposedService, 0, maxManagementServices)
 
-	// WebGUI is always listening; the only question is its reachability. Use the
-	// configured custom port when the unified model carries one (pfSense sets it;
-	// OPNsense leaves it empty), otherwise the protocol default.
+	// WebGUI is always listening; the only question is its reachability. Both
+	// OPNsense and pfSense parsers populate device.System.WebGUI.Port with the
+	// configured custom port when the config.xml sets one; the protocol default
+	// below applies only when the port is absent.
 	webGUIPort := portHTTPS
-	if device.System.WebGUI.Protocol != "" && device.System.WebGUI.Protocol != constants.ProtocolHTTPS {
+	if strings.EqualFold(device.System.WebGUI.Protocol, protocolHTTP) {
 		webGUIPort = portHTTP
 	}
 	webGUIPort = parsePort(device.System.WebGUI.Port, webGUIPort)
@@ -119,9 +129,21 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 	return services
 }
 
-// serviceReachability classifies a service by port: WAN-reachable when a
-// WAN-reachable firewall pass rule or inbound NAT rule permits that port,
-// otherwise LAN-only. A configured management service is never Local.
+// serviceReachability classifies a firewall-local management service (WebGUI,
+// SSH, SNMP) by port: WAN-reachable when a WAN-reachable firewall pass rule
+// permits that port, otherwise LAN-only. A configured management service is
+// never Local.
+//
+// Deliberately does NOT consult device.NAT.InboundRules: an inbound NAT rule
+// forwards WAN traffic to InboundNATRule.InternalIP — by construction a
+// different host than the firewall itself — so a NAT rule sharing the same
+// external port as a management service is never evidence that the
+// firewall's OWN service is WAN-reachable. Correlating NAT rules against
+// firewall-local ports produced a false positive: a NAT rule forwarding WAN
+// port 22 to an unrelated internal host's SSH would flag the firewall's own
+// SSH daemon (also on port 22) as exposed even with no pass rule ever
+// targeting the firewall directly. NAT rules are correlated separately, on
+// their own terms, by addWeakNATRules/InboundNATRuleReachability.
 func serviceReachability(device *common.CommonDevice, port int) analysis.Reachability {
 	if wanRulePermitsPort(device, port) {
 		return analysis.WANReachable
@@ -131,13 +153,13 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 }
 
 // wanRulePermitsPort reports whether any WAN-reachable enabled firewall pass
-// rule or WAN-reachable inbound NAT rule permits the given port. Port matching
-// biases toward over-reporting exposure (the safe direction for a security
-// tool): an empty or "any" rule port permits every port, a numeric range or
-// comma-list is matched by containment, and an unresolvable port alias is
-// treated as permitting the port rather than silently classifying the service
-// as safely LAN-only. Only a concrete numeric port that does not contain the
-// service port is treated as non-permitting. See rulePortPermits.
+// rule permits the given port. Port matching biases toward over-reporting
+// exposure (the safe direction for a security tool): an empty or "any" rule
+// port permits every port, a numeric range or comma-list is matched by
+// containment, and an unresolvable port alias is treated as permitting the
+// port rather than silently classifying the service as safely LAN-only. Only
+// a concrete numeric port that does not contain the service port is treated
+// as non-permitting. See rulePortPermits.
 func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	for _, rule := range device.FirewallRules {
 		if rule.Disabled || rule.Type != common.RuleTypePass {
@@ -149,16 +171,6 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 		}
 
 		if rulePortPermits(rule.Destination.Port, port) {
-			return true
-		}
-	}
-
-	for _, nat := range device.NAT.InboundRules {
-		if analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
-			continue
-		}
-
-		if rulePortPermits(nat.ExternalPort, port) {
 			return true
 		}
 	}
@@ -408,11 +420,11 @@ func (r *Report) addAdminPortals(services []exposedService) {
 // inventory metadata.
 type adminPortal struct {
 	// Name is the portal service name (e.g. "webgui", "ssh").
-	Name string `json:"name"`
+	Name string `json:"name" yaml:"name"`
 	// Port is the portal's listening port.
-	Port int `json:"port"`
+	Port int `json:"port" yaml:"port"`
 	// Reachability is where the portal is reachable from (wan, lan, or local).
-	Reachability analysis.Reachability `json:"reachability"`
+	Reachability analysis.Reachability `json:"reachability" yaml:"reachability"`
 }
 
 // addAttackSurfaces renders the shared engine's WAN-reachable hygiene
@@ -509,17 +521,17 @@ func (r *Report) addEnumerationData() {
 // enumerationData is the red-mode reconnaissance summary metadata.
 type enumerationData struct {
 	// Interfaces is the number of configured interfaces.
-	Interfaces int `json:"interfaces"`
+	Interfaces int `json:"interfaces" yaml:"interfaces"`
 	// WANInterfaces is the number of WAN-reachable interfaces.
-	WANInterfaces int `json:"wanInterfaces"`
+	WANInterfaces int `json:"wanInterfaces" yaml:"wanInterfaces"`
 	// FirewallRules is the number of configured firewall rules.
-	FirewallRules int `json:"firewallRules"`
+	FirewallRules int `json:"firewallRules" yaml:"firewallRules"`
 	// InboundNATRules is the number of inbound NAT (port-forward) rules.
-	InboundNATRules int `json:"inboundNatRules"`
+	InboundNATRules int `json:"inboundNatRules" yaml:"inboundNatRules"`
 	// Users is the number of configured user accounts.
-	Users int `json:"users"`
+	Users int `json:"users" yaml:"users"`
 	// Groups is the number of configured groups.
-	Groups int `json:"groups"`
+	Groups int `json:"groups" yaml:"groups"`
 }
 
 // portsOf returns a single-element port slice, or an empty slice when the port

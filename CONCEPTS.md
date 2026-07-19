@@ -1,6 +1,6 @@
 # Concepts
 
-Shared domain vocabulary for this project — entities, named processes, and status concepts with project-specific meaning. Seeded with core domain vocabulary, then accretes as ce-compound and ce-compound-refresh process learnings; direct edits are fine. Glossary only, not a spec or catch-all.
+Shared domain vocabulary for this project — entities, named processes, and status concepts with project-specific meaning. Seeded with core domain vocabulary and grows over time as new terms and learnings emerge; direct edits are fine. Glossary only, not a spec or catch-all.
 
 ## Audit analysis
 
@@ -36,7 +36,7 @@ The impact-and-context framing attached to a red-mode exposure finding: why an e
 
 ### Named-object reference layer
 
-An additive registry (`NamedObjects`) and reference concept (`ObjectRef`) on `CommonDevice` that lets a device parser preserve object-oriented config as named object definitions plus rule-level references to them, alongside the existing resolved-inline-value fields. Resolved values are always populated so existing pf-family checks keep firing unmodified; the reference is optional and stays empty for devices (OPNsense, pfSense) that have no named-object concept. Unlocks reference-integrity checks like dangling-object detection without a schema rewrite.
+Planned: an additive registry (`NamedObjects`) and reference concept (`ObjectRef`) on `CommonDevice` that would let a device parser preserve object-oriented config as named object definitions plus rule-level references to them, alongside the existing resolved-inline-value fields. Not yet implemented — `CommonDevice` does not currently expose these fields. The design intent is for resolved values to stay always populated so existing pf-family checks keep firing unmodified, with the reference layer optional and empty for devices (OPNsense, pfSense) that have no named-object concept, unlocking reference-integrity checks like dangling-object detection without a schema rewrite.
 
 ### DeviceBundle
 

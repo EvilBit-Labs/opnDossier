@@ -8,8 +8,8 @@ import (
 
 // TestWebGUIConfig_PortRoundTrip pins the XML round-trip invariant for the
 // WebGUI port field (standards.md "Adding New XML Fields" step 3): a populated
-// <port> survives marshal -> unmarshal, and an absent port is omitted so
-// existing config.xml files (which lack the element) round-trip unchanged.
+// <port> survives marshal -> unmarshal, and an absent port is omitted from
+// the marshaled output rather than emitted as an empty element.
 func TestWebGUIConfig_PortRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -31,8 +31,8 @@ func TestWebGUIConfig_PortRoundTrip(t *testing.T) {
 		t.Errorf("round-tripped Port = %q, want %q", out.Port, "8443")
 	}
 
-	// An absent port must be omitted, so configs without <port> round-trip
-	// byte-for-byte unchanged.
+	// An absent port must be omitted from the marshaled output, so existing
+	// config.xml files that lack the element are not given one.
 	emptyData, err := xml.Marshal(WebGUIConfig{Protocol: "https"})
 	if err != nil {
 		t.Fatalf("marshal empty: %v", err)

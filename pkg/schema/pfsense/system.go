@@ -86,7 +86,9 @@ type User struct {
 // It extends the OPNsense WebGUIConfig with pfSense-specific fields
 // such as dashboard columns, CSS theme, login CSS, and alternate hostnames.
 type WebGUI struct {
-	Protocol          string            `xml:"protocol"                    json:"protocol"                   yaml:"protocol"`
+	Protocol string `xml:"protocol" json:"protocol" yaml:"protocol"`
+	// Port is the custom WebGUI listening port, if configured. Empty means the
+	// protocol default (80 for http, 443 for https) applies.
 	Port              string            `xml:"port,omitempty"              json:"port,omitempty"             yaml:"port,omitempty"`
 	SSLCertRef        string            `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"       yaml:"sslCertRef,omitempty"`
 	LoginAutocomplete opnsense.BoolFlag `xml:"loginautocomplete,omitempty" json:"loginAutocomplete"          yaml:"loginAutocomplete,omitempty"`

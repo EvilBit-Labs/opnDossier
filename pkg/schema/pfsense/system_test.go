@@ -9,8 +9,8 @@ import (
 // TestWebGUI_PortRoundTrip pins the XML round-trip invariant for the pfSense
 // WebGUI port field (standards.md "Adding New XML Fields" step 3). pfSense
 // stores a custom web-configurator port as <system><webgui><port>; a populated
-// port must survive marshal -> unmarshal and an absent port must be omitted so
-// existing config.xml files round-trip unchanged.
+// port must survive marshal -> unmarshal and an absent port must be omitted
+// from the marshaled output rather than emitted as an empty element.
 func TestWebGUI_PortRoundTrip(t *testing.T) {
 	t.Parallel()
 
