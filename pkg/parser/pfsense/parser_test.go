@@ -242,6 +242,7 @@ func TestConverter_System(t *testing.T) {
 	doc.System.Bogons.Interval = "monthly"
 	doc.System.WebGUI = pfsenseSchema.WebGUI{
 		Protocol:          "https",
+		Port:              "8443",
 		SSLCertRef:        "cert-123",
 		LoginAutocomplete: true,
 		MaxProcesses:      "2",
@@ -277,6 +278,7 @@ func TestConverter_System(t *testing.T) {
 	assert.Equal(t, "adaptive", sys.PowerdNormalMode)
 	assert.Equal(t, "monthly", sys.Bogons.Interval)
 	assert.Equal(t, "https", sys.WebGUI.Protocol)
+	assert.Equal(t, "8443", sys.WebGUI.Port)
 	assert.Equal(t, "cert-123", sys.WebGUI.SSLCertRef)
 	assert.True(t, sys.WebGUI.LoginAutocomplete)
 	assert.Equal(t, "2", sys.WebGUI.MaxProcesses)

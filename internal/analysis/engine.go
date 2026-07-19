@@ -50,8 +50,16 @@ func adaptSecurityFindings(findings []common.SecurityFinding) []Observation {
 	observations := make([]Observation, 0, len(findings))
 
 	for _, f := range findings {
+		severity := Severity(f.Severity)
+		if !IsValidSeverity(severity) {
+			// common.Severity and analysis.Severity are independently defined
+			// enums; guard against drift between their vocabularies rather
+			// than silently propagating an unrecognized value.
+			severity = SeverityInfo
+		}
+
 		observations = append(observations, Observation{
-			Severity:       Severity(f.Severity),
+			Severity:       severity,
 			Confidence:     ConfidenceHigh,
 			Reachability:   securityFindingReachability(f),
 			Component:      f.Component,
@@ -120,13 +128,15 @@ func detectWeakCryptoDefaults(cfg *common.CommonDevice) []Observation {
 
 	var observations []Observation
 
-	// containsWeakCipherToken is a plain substring match against the
-	// OpenSSL cipher string. It does not parse OpenSSL cipher-list grammar
-	// (e.g. a leading "!" excludes a cipher class rather than including
-	// it), so a string that *excludes* a weak class (like "!aNULL") can
-	// still match the "NULL" substring. Confidence is Medium rather than
-	// High to reflect that known limitation; the observation is still
-	// always surfaced per R6 (confidence never gates a match).
+	// containsWeakCipherToken splits the OpenSSL cipher string on its
+	// list separators and honors the "!"/"-" exclusion prefixes, so a
+	// string that *excludes* a weak class (the standard
+	// "!aNULL:!MD5:!RC4:!3DES" hardening suffix) no longer
+	// false-positives. Confidence stays Medium rather than High because
+	// macro selectors like HIGH/ALL/DEFAULT can still implicitly pull in
+	// a weak cipher without any literal weak token for us to match; the
+	// observation is still always surfaced per R6 (confidence never
+	// gates a match).
 	if token, ok := containsWeakCipherToken(cfg.Trust.CipherString); ok {
 		observations = append(observations, Observation{
 			Severity:     SeverityMedium,
@@ -162,22 +172,76 @@ func detectWeakCryptoDefaults(cfg *common.CommonDevice) []Observation {
 	return observations
 }
 
-// containsWeakCipherToken reports whether cipherString contains any known
-// weak-cipher token, returning the matched token for use in the finding
-// description.
+// cipherListSeparators are the delimiters OpenSSL recognizes between
+// selectors in a cipher string (colon, comma, and whitespace).
+const cipherListSeparators = ": ,\t"
+
+// containsWeakCipherToken reports whether any actively-enabled selector in the
+// OpenSSL cipherString contains a known weak-cipher token, returning the
+// matched token for use in the finding description.
+//
+// The cipher string is split into individual selectors and each is checked
+// against its OpenSSL prefix operator: "!" and "-" exclude a cipher class (it
+// is not enabled and must not raise a finding). "+" moves any *already
+// enabled* matching ciphers to the end of the list — it never adds a cipher
+// that is not already selected by an earlier, unprefixed selector — so it
+// must not raise a finding on its own either (e.g. "HIGH:+RC4" does not
+// enable RC4 unless RC4 is also matched by "HIGH" or another unprefixed
+// selector). A weak token is reported only when it appears in a plain
+// (unprefixed) selector.
+//
+// The "!" operator differs from "-" in that it *permanently* deletes a cipher
+// class — a later plain selector can never re-enable it. So a plain "RC4"
+// following an earlier "!RC4" enables nothing ("!RC4:RC4" is safe), whereas
+// "-RC4:RC4" re-enables RC4 (the "-" removal is suppressible) and remains
+// reportable. Permanently-deleted tokens are collected in a first pass and a
+// matching plain selector is skipped.
 func containsWeakCipherToken(cipherString string) (string, bool) {
 	if cipherString == "" {
 		return "", false
 	}
 
-	upper := strings.ToUpper(cipherString)
-	for _, token := range weakCipherTokens {
-		if strings.Contains(upper, token) {
-			return token, true
+	selectors := strings.FieldsFunc(cipherString, func(r rune) bool {
+		return strings.ContainsRune(cipherListSeparators, r)
+	})
+
+	// First pass: collect the uppercased bodies of "!" selectors, which
+	// permanently delete a cipher class no later plain selector can restore.
+	var permanentlyDeleted []string
+	for _, selector := range selectors {
+		if selector[0] == '!' {
+			permanentlyDeleted = append(permanentlyDeleted, strings.ToUpper(selector[1:]))
+		}
+	}
+
+	for _, selector := range selectors {
+		switch selector[0] {
+		case '!', '-', '+':
+			continue
+		}
+
+		upper := strings.ToUpper(selector)
+		for _, token := range weakCipherTokens {
+			if strings.Contains(upper, token) && !tokenPermanentlyDeleted(token, permanentlyDeleted) {
+				return token, true
+			}
 		}
 	}
 
 	return "", false
+}
+
+// tokenPermanentlyDeleted reports whether a weak-cipher token was permanently
+// deleted by an earlier "!" selector, matching by the same substring rule used
+// for plain selectors (e.g. "!RC4" deletes the "RC4" token).
+func tokenPermanentlyDeleted(token string, permanentlyDeleted []string) bool {
+	for _, deleted := range permanentlyDeleted {
+		if strings.Contains(deleted, token) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // slicesContainsFold reports whether value case-insensitively matches any

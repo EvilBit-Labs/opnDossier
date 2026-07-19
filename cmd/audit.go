@@ -28,6 +28,7 @@ var (
 	auditPlugins      []string //nolint:gochecknoglobals // Cobra flag variable — selected compliance plugins
 	auditPluginDir    string   //nolint:gochecknoglobals // Cobra flag variable — dynamic plugin directory
 	auditFailuresOnly bool     //nolint:gochecknoglobals // Cobra flag variable — show only failing controls
+	auditBlackhat     bool     //nolint:gochecknoglobals // Cobra flag variable — red-mode sharper-tone ExploitNotes
 )
 
 // init registers the audit command with the root command and configures its command-line flags.
@@ -50,6 +51,10 @@ func init() {
 	auditCmd.Flags().
 		BoolVar(&auditFailuresOnly, "failures-only", false, "Show only failing controls in blue mode plugin results tables")
 	setFlagAnnotation(auditCmd.Flags(), "failures-only", []flagCategory{categoryAudit})
+
+	auditCmd.Flags().
+		BoolVar(&auditBlackhat, "audit-blackhat", false, "Sharpen the tone of red mode ExploitNotes (red mode only; impact/context only, no attack instructions)")
+	setFlagAnnotation(auditCmd.Flags(), "audit-blackhat", []flagCategory{categoryAudit})
 
 	// Output and format flags (reuse existing package-level variables)
 	auditCmd.Flags().
@@ -123,19 +128,9 @@ var auditCmd = &cobra.Command{
 				auditMode, strings.Join(validModes, ", "))
 		}
 
-		// Warn when red mode is selected — its analysis methods are placeholder stubs
-		// that return fabricated metadata. Results will be incomplete until the red
-		// team pipeline is fully implemented.
-		if strings.EqualFold(auditMode, auditModeRed) {
-			fmt.Fprintf(cmd.ErrOrStderr(),
-				"WARNING: Red team mode is experimental and not yet fully implemented. Results may be incomplete.\n")
-		}
-
 		// Warn when --plugin-dir is supplied — dynamic .so plugins execute with
 		// full process privileges and no signature verification (GOTCHAS §2.5).
-		// Mirrors the red-mode precedent above so the user sees the risk at the
-		// moment they opt into dynamic plugin loading. Route through
-		// cmd.ErrOrStderr() rather than os.Stderr so tests can capture the
+		// Route through cmd.ErrOrStderr() rather than os.Stderr so tests can capture the
 		// warning (matches cmd/list_plugins.go's stream choice). Write errors
 		// are fatal — silently loading a dynamic .so without surfacing the
 		// trust-model warning is the regression this function exists to
@@ -155,6 +150,15 @@ var auditCmd = &cobra.Command{
 		if auditFailuresOnly && !strings.EqualFold(auditMode, auditModeBlue) {
 			return fmt.Errorf(
 				"--failures-only is only supported with --mode blue; %q mode does not run compliance checks",
+				auditMode,
+			)
+		}
+
+		// Reject --audit-blackhat outside red mode — it only sharpens red-mode
+		// ExploitNote tone, and blue mode emits no ExploitNotes.
+		if auditBlackhat && !strings.EqualFold(auditMode, auditModeRed) {
+			return fmt.Errorf(
+				"--audit-blackhat is only supported with --mode red; %q mode emits no exploit notes",
 				auditMode,
 			)
 		}
@@ -194,8 +198,8 @@ AUDIT MODES:
   Select the audit perspective using the --mode flag:
 
     blue  - Defensive audit with security findings and recommendations (default)
-    red   - Attacker-focused recon report highlighting attack surfaces
-            (experimental — analysis methods are placeholder stubs)
+    red   - Attacker-focused recon report highlighting attack surfaces,
+            weak NAT rules, admin portals, and enumeration data
 
 COMPLIANCE PLUGINS (blue mode only):
   Select compliance checks with --plugins (requires --mode blue):
@@ -233,7 +237,7 @@ RELATED:
   # Blue team defensive audit with specific plugins
   opnDossier audit config.xml --plugins stig,sans
 
-  # Red team attack surface analysis (experimental)
+  # Red team attack surface analysis
   opnDossier audit config.xml --mode red
 
   # Export audit report as JSON
@@ -473,6 +477,7 @@ func generateAuditOutput(
 		AuditMode:       auditMode,
 		SelectedPlugins: auditPlugins,
 		FailuresOnly:    auditFailuresOnly,
+		Blackhat:        auditBlackhat,
 	}
 
 	if auditPluginDir != "" {

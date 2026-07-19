@@ -185,6 +185,7 @@ func (c *converter) convertSystem(doc *pfsense.Document) common.System {
 		Bogons:                        common.Bogons{Interval: sys.Bogons.Interval},
 		WebGUI: common.WebGUI{
 			Protocol:          sys.WebGUI.Protocol,
+			Port:              sys.WebGUI.Port,
 			SSLCertRef:        sys.WebGUI.SSLCertRef,
 			LoginAutocomplete: bool(sys.WebGUI.LoginAutocomplete),
 			MaxProcesses:      sys.WebGUI.MaxProcesses,
