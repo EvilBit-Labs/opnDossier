@@ -82,10 +82,12 @@ func InterfaceReachability(iface common.Interface) Reachability {
 //   - Unscoped floating rules (Floating == true with an empty rule.Interfaces),
 //     which apply to every interface and are therefore WAN-reachable whenever
 //     any live WAN interface exists on the device.
-//   - IPv6-only WAN interfaces (rule.IPProtocol == IPProtocolInet6 bound to a
-//     WAN-named interface) — the WAN-name match alone is sufficient; the
-//     interface's IPv6Address is not required to be non-empty because a
-//     misconfigured/unassigned address must not mask a real exposure.
+//   - IPv6-only WAN interfaces, matched the same way as any other WAN
+//     interface: the classification below is purely name-prefix based via
+//     IsWANInterfaceName and does not branch on rule.IPProtocol or inspect
+//     the interface's IPv6Address, so a wan-prefixed interface serving only
+//     IPv6 is matched by its name alone — a misconfigured/unassigned address
+//     must not mask a real exposure.
 //
 // Enabled-state handling is deliberately asymmetric between the two binding
 // styles. The unscoped-floating path resolves against the actual interface

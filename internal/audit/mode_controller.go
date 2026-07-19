@@ -235,8 +235,10 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 // attack surfaces. It runs the shared detection engine once (KTD1-KTD3) and
 // renders its observations, together with correlated WAN-reachable service and
 // NAT exposures, as reachability-filtered red-mode Findings — WAN-reachable
-// items lead; LAN-only and local items are excluded from the exposure Findings
-// and retained only in the admin-portal inventory metadata (R15, R16).
+// items lead; LAN-only and local management services are excluded from the
+// exposure Findings and retained in the admin-portal inventory metadata;
+// LAN-only/local NAT rules and shared-engine observations are excluded from
+// the report entirely (R15, R16).
 func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
 	mc.logger.Debug("Generating red team report")
 

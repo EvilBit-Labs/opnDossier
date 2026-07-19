@@ -398,6 +398,101 @@ func TestRedMode_RegressionBattery(t *testing.T) {
 			wantNoWANExposure: true,
 		},
 		{
+			name: "parsePort fallback: malformed negative WebGUI port still resolves to the https default (443)",
+			device: &common.CommonDevice{
+				System:     common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS, Port: "-22"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: Web Administration Interface",
+		},
+		{
+			name: "parsePort fallback: out-of-range WebGUI port still resolves to the https default (443)",
+			device: &common.CommonDevice{
+				System:     common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS, Port: "99999"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: Web Administration Interface",
+		},
+		{
+			name: "http WebGUI: exposed when WAN rule permits the default http port 80",
+			device: &common.CommonDevice{
+				System:     common.System{WebGUI: common.WebGUI{Protocol: "http"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "80"},
+					},
+				},
+			},
+			wantFindingPrefix: "WAN-Exposed Service: Web Administration Interface",
+		},
+		{
+			name: "disabled WAN pass rule does not permit the port it would otherwise expose",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "22"},
+						Disabled:    true,
+					},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+		{
+			name: "block-type WAN rule does not permit the port it matches",
+			device: &common.CommonDevice{
+				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypeBlock,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "22"},
+					},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+		{
+			name: "SNMP not exposed when the only WAN rule permits a different port",
+			device: &common.CommonDevice{
+				// The WAN rule below permits port 8080 only — deliberately not
+				// 443, since the WebGUI is always present in serviceExposures
+				// and defaults to port 443, which would otherwise make this a
+				// WebGUI-exposure case instead of the intended SNMP miss.
+				SNMP:       common.SNMPConfig{ROCommunity: "public"},
+				Interfaces: wanLAN,
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Destination: common.RuleEndpoint{Port: "8080"},
+					},
+				},
+			},
+			wantNoWANExposure: true,
+		},
+		{
 			name: "port alias: unresolvable alias over-reports SSH as exposed (safe direction)",
 			device: &common.CommonDevice{
 				System:     common.System{SSH: common.SSH{Enabled: true, Port: "22"}},
@@ -603,13 +698,25 @@ func TestRedMode_AnyToAnyComponentCollision(t *testing.T) {
 	runRedAnalysis(report)
 
 	count := 0
+	var survivor Finding
 	for _, f := range report.Findings {
 		if f.Component == "filter.rule[0]" {
 			count++
+			survivor = f
 		}
 	}
 	if count != 1 {
 		t.Errorf("filter.rule[0] exposure findings = %d, want exactly 1 (one exposure per config element)", count)
+	}
+	// Pin WHICH observation survives the collision: DetectSecurityIssues runs
+	// first inside ScanObservations and contributes "Overly Permissive WAN
+	// Rule" for this rule; detectAnyToAnyRules runs later and contributes
+	// "Any-to-Any Pass Rule" for the same Component. addAttackSurfaces keeps
+	// the first-seen observation per Component, so the permissive-WAN framing
+	// must win.
+	wantTitle := "Exposed Weakness: Overly Permissive WAN Rule"
+	if survivor.Title != wantTitle {
+		t.Errorf("surviving filter.rule[0] finding Title = %q, want %q", survivor.Title, wantTitle)
 	}
 }
 
@@ -686,4 +793,143 @@ func TestRedMode_NoStubMarkersRemain(t *testing.T) {
 			t.Errorf("metadata[%q] still carries a stub marker: %v", key, marker)
 		}
 	}
+}
+
+// TestRulePortPermits is a focused table test on the pure port-matching
+// predicate underlying wanRulePermitsPort: exact numeric match, numeric range
+// (including reversed bounds), comma-separated lists (including empty and
+// whitespace-padded tokens), and the deliberate over-report behavior for
+// unresolvable aliases and empty/"any" rule ports.
+func TestRulePortPermits(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		rulePort    string
+		servicePort int
+		want        bool
+	}{
+		{name: "empty rule port permits everything", rulePort: "", servicePort: 22, want: true},
+		{name: "any rule port permits everything", rulePort: constants.NetworkAny, servicePort: 22, want: true},
+		{name: "exact numeric match", rulePort: "22", servicePort: 22, want: true},
+		{name: "exact numeric miss", rulePort: "23", servicePort: 22, want: false},
+		{name: "range hit", rulePort: "20-25", servicePort: 22, want: true},
+		{name: "range miss", rulePort: "80-90", servicePort: 22, want: false},
+		{name: "reversed range still contains the port", rulePort: "25-20", servicePort: 22, want: true},
+		{name: "comma list hit", rulePort: "80,22,443", servicePort: 22, want: true},
+		{name: "comma list miss", rulePort: "80,21,443", servicePort: 22, want: false},
+		{name: "comma list with empty token still matches", rulePort: "22,,443", servicePort: 22, want: true},
+		{
+			name:        "comma list with empty token: non-matching port still misses",
+			rulePort:    "22,,443",
+			servicePort: 100,
+			want:        false,
+		},
+		{name: "whitespace-padded tokens", rulePort: "22, 443", servicePort: 443, want: true},
+		{name: "unresolvable alias over-reports (safe direction)", rulePort: "MgmtPorts", servicePort: 22, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := rulePortPermits(tt.rulePort, tt.servicePort); got != tt.want {
+				t.Errorf("rulePortPermits(%q, %d) = %v, want %v", tt.rulePort, tt.servicePort, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestParsePortRange is a focused table test on the pure "N-M" range parser:
+// normal ranges, reversed bounds (normalized low/high), and non-range inputs
+// that must report ok=false rather than a nonsensical bound pair.
+func TestParsePortRange(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		token  string
+		wantLo int
+		wantHi int
+		wantOK bool
+	}{
+		{name: "ascending range", token: "20-25", wantLo: 20, wantHi: 25, wantOK: true},
+		{name: "reversed range is normalized", token: "25-20", wantLo: 20, wantHi: 25, wantOK: true},
+		{name: "single port is not a range", token: "22", wantOK: false},
+		{name: "non-numeric low bound", token: "abc-25", wantOK: false},
+		{name: "non-numeric high bound", token: "20-abc", wantOK: false},
+		{name: "empty token is not a range", token: "", wantOK: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			lo, hi, ok := parsePortRange(tt.token)
+			if ok != tt.wantOK {
+				t.Fatalf("parsePortRange(%q) ok = %v, want %v", tt.token, ok, tt.wantOK)
+			}
+			if !ok {
+				return
+			}
+			if lo != tt.wantLo || hi != tt.wantHi {
+				t.Errorf("parsePortRange(%q) = (%d, %d), want (%d, %d)", tt.token, lo, hi, tt.wantLo, tt.wantHi)
+			}
+		})
+	}
+}
+
+// TestExploitNoteTemplates_MatchesAllKinds guards the exploitNoteKind const
+// list against drifting from the exploitNoteTemplates map: every kind
+// returned by allExploitNoteKinds() must have a template entry, and the map
+// must not carry orphaned entries for kinds no longer in the const list.
+func TestExploitNoteTemplates_MatchesAllKinds(t *testing.T) {
+	t.Parallel()
+
+	kinds := allExploitNoteKinds()
+
+	for _, kind := range kinds {
+		if _, ok := exploitNoteTemplates[kind]; !ok {
+			t.Errorf("exploitNoteTemplates is missing an entry for kind %q", kind)
+		}
+	}
+
+	if len(exploitNoteTemplates) != len(kinds) {
+		t.Errorf(
+			"exploitNoteTemplates has %d entries but allExploitNoteKinds() lists %d kinds — the two have drifted apart",
+			len(exploitNoteTemplates), len(kinds),
+		)
+	}
+}
+
+// TestReport_AddComplianceAnalysis_CompletionFlag pins both branches of the
+// compliance_check_completed honesty fix (see the doc comment on
+// addComplianceAnalysis): the flag is false when no compliance plugin
+// actually executed (an empty Compliance map) and true once at least one
+// plugin result is present, regardless of that plugin's own findings.
+func TestReport_AddComplianceAnalysis_CompletionFlag(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty compliance map yields false", func(t *testing.T) {
+		t.Parallel()
+
+		report := newRedReport(&common.CommonDevice{})
+		report.addComplianceAnalysis()
+
+		if got := report.Metadata["compliance_check_completed"]; got != false {
+			t.Errorf("compliance_check_completed = %v, want false (no plugin executed)", got)
+		}
+	})
+
+	t.Run("populated compliance map yields true", func(t *testing.T) {
+		t.Parallel()
+
+		report := newRedReport(&common.CommonDevice{})
+		report.Compliance["firewall"] = ComplianceResult{}
+		report.addComplianceAnalysis()
+
+		if got := report.Metadata["compliance_check_completed"]; got != true {
+			t.Errorf("compliance_check_completed = %v, want true (a plugin executed)", got)
+		}
+	})
 }

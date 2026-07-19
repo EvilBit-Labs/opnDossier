@@ -50,8 +50,16 @@ func adaptSecurityFindings(findings []common.SecurityFinding) []Observation {
 	observations := make([]Observation, 0, len(findings))
 
 	for _, f := range findings {
+		severity := Severity(f.Severity)
+		if !IsValidSeverity(severity) {
+			// common.Severity and analysis.Severity are independently defined
+			// enums; guard against drift between their vocabularies rather
+			// than silently propagating an unrecognized value.
+			severity = SeverityInfo
+		}
+
 		observations = append(observations, Observation{
-			Severity:       Severity(f.Severity),
+			Severity:       severity,
 			Confidence:     ConfidenceHigh,
 			Reachability:   securityFindingReachability(f),
 			Component:      f.Component,

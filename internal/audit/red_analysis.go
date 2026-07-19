@@ -34,13 +34,19 @@ const findingTypeExposure = "exposure"
 // rules (R17) — a service is WAN-reachable only when an actual rule permits its
 // port, never on the service being enabled alone.
 type exposedService struct {
-	kind            exploitNoteKind
-	name            string
-	displayName     string
-	severity        analysis.Severity
-	component       string
-	port            int
-	reachability    analysis.Reachability
+	kind         exploitNoteKind
+	name         string
+	displayName  string
+	severity     analysis.Severity
+	component    string
+	port         int
+	reachability analysis.Reachability
+	// description asserts WAN reachability unconditionally ("...is reachable
+	// from a WAN interface...") regardless of the actual reachability value
+	// above. It is only accurate when reachability == analysis.WANReachable
+	// and must only be surfaced for a WAN-reachable instance — its sole
+	// consumer, addWANExposedServices, filters to WAN-reachable services
+	// before rendering this text.
 	description     string
 	recommendation  string
 	vulnerabilities []string
