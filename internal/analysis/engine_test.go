@@ -147,6 +147,44 @@ func TestDetectWeakCryptoDefaults(t *testing.T) {
 			},
 			wantCount: 2,
 		},
+		{
+			name: "standard hardening suffix with excluded weak classes stays silent",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{
+					CipherString: "HIGH:!aNULL:!MD5:!RC4:!3DES:!DES:!EXPORT",
+					MinProtocol:  "TLSv1.2",
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "mixed list with an actively-enabled weak selector still fires",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:!aNULL:!MD5:RC4-SHA", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "plus-prefixed reorder-only selector stays silent",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:+RC4", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "permanent-deletion selector suppresses a later plain re-mention",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:!RC4:RC4", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "suppressible-removal selector followed by re-enable still fires",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:-RC4:RC4", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 1,
+		},
 	}
 
 	for _, tt := range tests {
@@ -326,4 +364,38 @@ func TestScanObservations_ExportPathUnaffected(t *testing.T) {
 	// WAN rule, so DetectSecurityIssues must still report zero findings.
 	analysisResult := analysis.ComputeAnalysis(cfg)
 	assert.Empty(t, analysisResult.SecurityIssues)
+}
+
+// TestScanObservations_DoesNotMutateExportPath (R4) pins the no-regression
+// contract for the JSON/YAML export consumers: running the shared engine over a
+// config must not alter what DetectSecurityIssues returns for that same config,
+// so internal/converter and internal/processor keep observing identical output.
+func TestScanObservations_DoesNotMutateExportPath(t *testing.T) {
+	t.Parallel()
+
+	cfg := &common.CommonDevice{
+		System: common.System{WebGUI: common.WebGUI{Protocol: "http"}},
+		SNMP:   common.SNMPConfig{ROCommunity: "public"},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+			{Name: "lan", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Source:      common.RuleEndpoint{Address: "any"},
+				Destination: common.RuleEndpoint{Address: "any"},
+			},
+		},
+	}
+
+	before := analysis.DetectSecurityIssues(cfg)
+	require.NotEmpty(t, before, "fixture must exercise the export-path detectors")
+
+	// Running the shared engine must not perturb the export path.
+	_ = analysis.ScanObservations(cfg)
+
+	after := analysis.DetectSecurityIssues(cfg)
+	assert.Equal(t, before, after, "ScanObservations must not mutate DetectSecurityIssues output")
 }

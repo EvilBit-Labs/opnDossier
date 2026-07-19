@@ -67,6 +67,10 @@ type ModeConfig struct {
 	Comprehensive   bool
 	SelectedPlugins []string
 	TemplateDir     string
+	// Blackhat selects the sharper-tone red-mode ExploitNotes variant (R20).
+	// Tone only — it never changes which findings are reported and never
+	// introduces instructional content. Ignored outside red mode.
+	Blackhat bool
 }
 
 // ValidateModeConfig validates the mode configuration.
@@ -227,19 +231,33 @@ func (mc *ModeController) generateBlueReport(_ context.Context, report *Report, 
 	return report, nil
 }
 
-// generateRedReport generates an attacker-focused recon report highlighting attack surfaces.
-func (mc *ModeController) generateRedReport(_ context.Context, report *Report, _ *ModeConfig) (*Report, error) {
+// generateRedReport generates an attacker-focused recon report highlighting
+// attack surfaces. It runs the shared detection engine once (KTD1-KTD3) and
+// renders its observations, together with correlated WAN-reachable service and
+// NAT exposures, as reachability-filtered red-mode Findings — WAN-reachable
+// items lead; LAN-only and local management services are excluded from the
+// exposure Findings and retained in the admin-portal inventory metadata;
+// LAN-only/local NAT rules and shared-engine observations are excluded from
+// the report entirely (R15, R16).
+func (mc *ModeController) generateRedReport(_ context.Context, report *Report, config *ModeConfig) (*Report, error) {
 	mc.logger.Debug("Generating red team report")
 
 	// Add red team specific metadata
 	report.Metadata["report_type"] = "red_team"
 	report.Metadata["generation_time"] = time.Now().Format(time.RFC3339)
 
-	// Add red team specific analysis
-	report.addWANExposedServices()
-	report.addWeakNATRules()
-	report.addAdminPortals()
-	report.addAttackSurfaces()
+	observations := analysis.ScanObservations(report.Configuration)
+	// serviceExposures is computed once and shared by the WAN-exposed-service
+	// findings and the admin-portal inventory, which need the identical list.
+	services := serviceExposures(report.Configuration)
+
+	// Order matters: the Finding-producing methods run before addAttackSurfaces,
+	// which de-dupes shared-engine observations against Findings already emitted
+	// for the same config element. blackhat only sharpens ExploitNote tone.
+	report.addWANExposedServices(services, config.Blackhat)
+	report.addWeakNATRules(config.Blackhat)
+	report.addAdminPortals(services)
+	report.addAttackSurfaces(observations, config.Blackhat)
 	report.addEnumerationData()
 
 	return report, nil
@@ -296,6 +314,11 @@ const (
 	rankMedium
 	rankLow
 	rankInfo
+	// rankUnknownSeverity sorts unrecognized severities last. Finding.Severity
+	// is an untyped string (dynamic compliance plugins populate it), so a
+	// garbled value must not fall through a zero-value map lookup and be ranked
+	// as critical — the most-urgent slot — which is exactly backwards.
+	rankUnknownSeverity
 )
 
 const (
@@ -312,6 +335,17 @@ var severityOrder = map[analysis.Severity]int{
 	analysis.SeverityMedium:   rankMedium,
 	analysis.SeverityLow:      rankLow,
 	analysis.SeverityInfo:     rankInfo,
+}
+
+// severityRank returns the sort rank for a severity, mapping an unrecognized
+// value to rankUnknownSeverity (sorts last) rather than letting a zero-value
+// map lookup silently rank it as critical.
+func severityRank(s analysis.Severity) int {
+	if r, ok := severityOrder[s]; ok {
+		return r
+	}
+
+	return rankUnknownSeverity
 }
 
 // reachabilityOrder ranks analysis.Reachability from most to least exposed
@@ -364,7 +398,7 @@ func (r *Report) addSecurityFindings(observations []analysis.Observation) {
 	hygiene := r.dedupeAgainstPluginFindings(observations)
 
 	slices.SortStableFunc(hygiene, func(a, b analysis.Observation) int {
-		if sevDiff := severityOrder[a.Severity] - severityOrder[b.Severity]; sevDiff != 0 {
+		if sevDiff := severityRank(a.Severity) - severityRank(b.Severity); sevDiff != 0 {
 			return sevDiff
 		}
 
@@ -393,7 +427,9 @@ func (r *Report) addComplianceAnalysis() {
 
 	slices.Sort(frameworks)
 
-	r.Metadata["compliance_check_completed"] = true
+	// Report completion honestly: with an empty Compliance map no compliance
+	// plugin actually executed, so the check is not "completed".
+	r.Metadata["compliance_check_completed"] = len(r.Compliance) > 0
 	r.Metadata["compliance_frameworks"] = frameworks
 }
 
@@ -448,6 +484,10 @@ func (r *Report) addRecommendations() {
 
 	for _, component := range order {
 		recs := grouped[component]
+		// Sort within each component: recs accumulate from r.Compliance, whose
+		// map iteration order is non-deterministic, so unsorted output would
+		// vary run to run (§3.1 map-iteration determinism).
+		slices.Sort(recs)
 		recommendations = append(recommendations, Recommendation{Component: component, Recommendations: recs})
 		count += len(recs)
 	}
@@ -457,79 +497,40 @@ func (r *Report) addRecommendations() {
 	r.Metadata["recommendations"] = recommendations
 }
 
-// ConfigSummaryTable is a single structured configuration-summary row built
-// from real configuration counts (R13).
-type ConfigSummaryTable struct {
-	// Category names the configuration element category being summarized.
-	Category string `json:"category"`
-	// Count is the number of configured elements in this category.
-	Count int `json:"count"`
+// ConfigSummary captures per-category configuration-element counts from the
+// normalized configuration using explicit named fields rather than
+// category/count rows (R13). This keeps the structured-config surface typed
+// (AGENTS.md: prefer structured config data over flat summary tables); any
+// future audit overlays belong in their own metadata keys rather than being
+// encoded as additional summary rows.
+type ConfigSummary struct {
+	// Interfaces is the number of configured interfaces.
+	Interfaces int `json:"interfaces" yaml:"interfaces"`
+	// FirewallRules is the number of configured firewall rules.
+	FirewallRules int `json:"firewallRules" yaml:"firewallRules"`
+	// NATRules is the combined number of inbound and outbound NAT rules.
+	NATRules int `json:"natRules" yaml:"natRules"`
+	// Users is the number of configured user accounts.
+	Users int `json:"users" yaml:"users"`
 }
 
-// addStructuredConfigurationTables builds configuration summary tables from
+// addStructuredConfigurationTables builds the configuration summary from
 // actual configuration counts (interfaces, firewall rules, NAT rules,
 // users), replacing the hardcoded table count (R13).
 func (r *Report) addStructuredConfigurationTables() {
-	var tables []ConfigSummaryTable
+	var summary ConfigSummary
 
 	if cfg := r.Configuration; cfg != nil {
-		tables = []ConfigSummaryTable{
-			{Category: "interfaces", Count: len(cfg.Interfaces)},
-			{Category: "firewallRules", Count: len(cfg.FirewallRules)},
-			{Category: "natRules", Count: len(cfg.NAT.InboundRules) + len(cfg.NAT.OutboundRules)},
-			{Category: "users", Count: len(cfg.Users)},
+		summary = ConfigSummary{
+			Interfaces:    len(cfg.Interfaces),
+			FirewallRules: len(cfg.FirewallRules),
+			NATRules:      len(cfg.NAT.InboundRules) + len(cfg.NAT.OutboundRules),
+			Users:         len(cfg.Users),
 		}
 	}
 
 	r.Metadata["structured_tables_generated"] = true
-	r.Metadata["table_count"] = len(tables)
-	r.Metadata["configuration_tables"] = tables
-}
-
-// stubMarker returns the canonical "not yet implemented" metadata value for
-// red-mode stub analysis methods. Emitting an explicit marker (rather than
-// fabricated non-zero counters) guarantees consumers cannot confuse stub
-// output for real analysis. See GOTCHAS §8.4.
-func stubMarker() map[string]any {
-	return map[string]any{
-		"not_implemented": true,
-		"stub":            true,
-	}
-}
-
-// addWANExposedServices adds WAN-exposed services analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addWANExposedServices() {
-	r.Metadata["wan_exposed_services"] = stubMarker()
-}
-
-// addWeakNATRules adds weak NAT rules analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addWeakNATRules() {
-	r.Metadata["weak_nat_rules"] = stubMarker()
-}
-
-// addAdminPortals adds admin portals analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addAdminPortals() {
-	r.Metadata["admin_portals"] = stubMarker()
-}
-
-// addAttackSurfaces adds attack surfaces analysis to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addAttackSurfaces() {
-	r.Metadata["attack_surfaces"] = stubMarker()
-}
-
-// addEnumerationData adds enumeration data to the red team report.
-//
-// STUB: not yet implemented; emits only the stub marker. See GOTCHAS §8.4.
-func (r *Report) addEnumerationData() {
-	r.Metadata["enumeration_data"] = stubMarker()
+	r.Metadata["configuration_summary"] = summary
 }
 
 // ParseReportMode parses a string into a ReportMode, returning an error if invalid.

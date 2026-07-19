@@ -277,6 +277,46 @@ func TestSANSPlugin_FindingSeverityMatchesControl(t *testing.T) {
 	}
 }
 
+func TestSANSPlugin_DangerousPorts_FloatingRule(t *testing.T) {
+	sansPlugin := sans.NewPlugin()
+
+	// An unscoped floating pass rule (Floating: true, empty Interfaces) applies
+	// device-wide, so it must be treated as WAN-applicable when a live WAN
+	// interface exists. ruleAppliesToWAN delegates to analysis.RuleReachability
+	// specifically to catch this case, which a bare rule.Interfaces scan would
+	// miss. There was previously zero Floating coverage in this package.
+	config := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Floating:    true,
+				Destination: common.RuleEndpoint{Port: "445"}, // SMB/CIFS - dangerous port
+			},
+		},
+	}
+
+	findings, _, err := sansPlugin.RunChecks(config)
+	require.NoError(t, err)
+
+	found := false
+	for _, finding := range findings {
+		if finding.Reference == "SANS-FW-014" {
+			found = true
+			break
+		}
+	}
+
+	assert.True(
+		t,
+		found,
+		"expected SANS-FW-014 finding for unscoped floating rule exposing a dangerous port on WAN, got: %v",
+		getFindings(findings),
+	)
+}
+
 func getFindings(findings []compliance.Finding) []string {
 	ids := make([]string, 0, len(findings))
 	for _, finding := range findings {
