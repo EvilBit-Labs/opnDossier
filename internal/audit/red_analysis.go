@@ -235,15 +235,23 @@ func parsePortRange(token string) (int, int, bool) {
 	return lo, hi, true
 }
 
-// parsePort parses a port string, returning fallback when the string is empty
-// or non-numeric.
+// maxPort is the highest valid TCP/UDP port number.
+const maxPort = 65535
+
+// parsePort parses a port string, returning fallback when the string is empty,
+// non-numeric, or outside the valid 1..65535 range. The range check matters
+// because strconv.Atoi accepts negative and out-of-range values: without it, a
+// malformed config.xml port (e.g. "-22") would parse to a nonsensical number
+// that never matches a real WAN rule port, silently classifying a genuinely
+// WAN-exposed service as LAN-only — the under-report direction this analysis is
+// designed to avoid.
 func parsePort(s string, fallback int) int {
 	if s == "" {
 		return fallback
 	}
 
 	p, err := strconv.Atoi(s)
-	if err != nil {
+	if err != nil || p < 1 || p > maxPort {
 		return fallback
 	}
 
@@ -378,7 +386,7 @@ func (r *Report) addAdminPortals(services []exposedService) {
 		portals = append(portals, adminPortal{
 			Name:         svc.name,
 			Port:         svc.port,
-			Reachability: string(svc.reachability),
+			Reachability: svc.reachability,
 		})
 	}
 
@@ -397,8 +405,8 @@ type adminPortal struct {
 	Name string `json:"name"`
 	// Port is the portal's listening port.
 	Port int `json:"port"`
-	// Reachability is where the portal is reachable from ("wan", "lan", "local").
-	Reachability string `json:"reachability"`
+	// Reachability is where the portal is reachable from (wan, lan, or local).
+	Reachability analysis.Reachability `json:"reachability"`
 }
 
 // addAttackSurfaces renders the shared engine's WAN-reachable hygiene
@@ -435,7 +443,12 @@ func (r *Report) addAttackSurfaces(observations []analysis.Observation, blackhat
 			obs.Recommendation,
 			obs.Component,
 			&AttackSurface{
-				Type:            "config-weakness",
+				Type: "config-weakness",
+				// Ports/Services have no omitempty, so emit empty slices (not
+				// nil) to keep the JSON shape consistent with the service and
+				// port-forward producers, which serialize [] rather than null.
+				Ports:           []int{},
+				Services:        []string{},
 				Vulnerabilities: []string{obs.Title},
 			},
 			exploitKindConfigWeakness,
@@ -456,7 +469,7 @@ func (r *Report) addAttackSurfaces(observations []analysis.Observation, blackhat
 // surfaces).
 func (r *Report) sortRedFindingsBySeverity() {
 	slices.SortStableFunc(r.Findings, func(a, b Finding) int {
-		return severityOrder[analysis.Severity(a.Severity)] - severityOrder[analysis.Severity(b.Severity)]
+		return severityRank(analysis.Severity(a.Severity)) - severityRank(analysis.Severity(b.Severity))
 	})
 }
 
@@ -481,7 +494,10 @@ func (r *Report) addEnumerationData() {
 	}
 
 	r.Metadata["enumeration_data"] = data
-	r.Metadata["enumeration_completed"] = true
+	// Report completion honestly: with no configuration there was nothing to
+	// enumerate, so the step did not "complete" over real data. Mirrors the
+	// compliance_check_completed honesty fix in generateBlueReport.
+	r.Metadata["enumeration_completed"] = r.Configuration != nil
 }
 
 // enumerationData is the red-mode reconnaissance summary metadata.

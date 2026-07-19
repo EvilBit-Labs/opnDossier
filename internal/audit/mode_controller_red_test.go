@@ -73,7 +73,7 @@ func TestReport_RedAnalysisMethods(t *testing.T) {
 		if len(portals) != 1 {
 			t.Fatalf("admin_portals len = %d, want 1 (webgui)", len(portals))
 		}
-		if portals[0].Name != "webgui" || portals[0].Reachability != string(analysis.LANOnly) {
+		if portals[0].Name != "webgui" || portals[0].Reachability != analysis.LANOnly {
 			t.Errorf("admin_portals[0] = %+v, want webgui tagged lan", portals[0])
 		}
 	})
@@ -234,7 +234,7 @@ func TestRedMode_LANOnlyAdminPortalNotInWANLead(t *testing.T) {
 	if !found {
 		t.Fatalf("admin_portals must retain the LAN-only webgui portal, got %+v", portals)
 	}
-	if webgui.Reachability != string(analysis.LANOnly) {
+	if webgui.Reachability != analysis.LANOnly {
 		t.Errorf("webgui portal reachability = %q, want %q", webgui.Reachability, analysis.LANOnly)
 	}
 

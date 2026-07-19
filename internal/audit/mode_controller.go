@@ -312,6 +312,11 @@ const (
 	rankMedium
 	rankLow
 	rankInfo
+	// rankUnknownSeverity sorts unrecognized severities last. Finding.Severity
+	// is an untyped string (dynamic compliance plugins populate it), so a
+	// garbled value must not fall through a zero-value map lookup and be ranked
+	// as critical — the most-urgent slot — which is exactly backwards.
+	rankUnknownSeverity
 )
 
 const (
@@ -328,6 +333,17 @@ var severityOrder = map[analysis.Severity]int{
 	analysis.SeverityMedium:   rankMedium,
 	analysis.SeverityLow:      rankLow,
 	analysis.SeverityInfo:     rankInfo,
+}
+
+// severityRank returns the sort rank for a severity, mapping an unrecognized
+// value to rankUnknownSeverity (sorts last) rather than letting a zero-value
+// map lookup silently rank it as critical.
+func severityRank(s analysis.Severity) int {
+	if r, ok := severityOrder[s]; ok {
+		return r
+	}
+
+	return rankUnknownSeverity
 }
 
 // reachabilityOrder ranks analysis.Reachability from most to least exposed
@@ -380,7 +396,7 @@ func (r *Report) addSecurityFindings(observations []analysis.Observation) {
 	hygiene := r.dedupeAgainstPluginFindings(observations)
 
 	slices.SortStableFunc(hygiene, func(a, b analysis.Observation) int {
-		if sevDiff := severityOrder[a.Severity] - severityOrder[b.Severity]; sevDiff != 0 {
+		if sevDiff := severityRank(a.Severity) - severityRank(b.Severity); sevDiff != 0 {
 			return sevDiff
 		}
 
@@ -514,10 +530,6 @@ func (r *Report) addStructuredConfigurationTables() {
 	r.Metadata["structured_tables_generated"] = true
 	r.Metadata["configuration_summary"] = summary
 }
-
-// The red-mode analysis methods (addWANExposedServices, addWeakNATRules,
-// addAdminPortals, addAttackSurfaces, addEnumerationData) now perform real
-// observation-driven analysis and live in red_analysis.go.
 
 // ParseReportMode parses a string into a ReportMode, returning an error if invalid.
 //
