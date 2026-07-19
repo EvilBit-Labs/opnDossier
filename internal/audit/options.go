@@ -23,4 +23,9 @@ type Options struct {
 	// FailuresOnly filters the control results table to show only non-compliant
 	// controls. Only meaningful in blue mode where compliance checks are executed.
 	FailuresOnly bool
+
+	// Blackhat selects the sharper-tone red-mode ExploitNotes variant. Only
+	// meaningful in red mode; it adjusts tone only and never changes whether a
+	// finding is reported or introduces instructional content (R20).
+	Blackhat bool
 }

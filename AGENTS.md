@@ -17,6 +17,7 @@ This file provides AI coding assistants with project context. All substantive do
 - **[Tasks](project_spec/tasks.md)** — Implementation tasks
 - **[User Stories](project_spec/user_stories.md)** — User stories
 - **[Solutions](docs/solutions/)** — Documented problem solutions for searchable future reference
+- **[Concepts](CONCEPTS.md)** — Shared domain vocabulary (entities, named processes, status concepts); relevant when orienting to the codebase or discussing domain concepts
 
 ## Agent-Specific Rules
 
