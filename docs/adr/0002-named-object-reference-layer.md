@@ -1,6 +1,8 @@
 # ADR-0002: Named-object reference layer in CommonDevice
 
-**Date**: 2026-07-18 **Status**: accepted **Deciders**: unclesp1d3r
+**Date**: 2026-07-18 **Status**: proposed **Deciders**: unclesp1d3r
+
+> **Pending implementation.** This ADR records a forward-looking decision. The `NamedObjects` registry and `ObjectRef` types are not yet in `CommonDevice`; they will be added alongside the FortiGate parser (issue #199). Status moves to `accepted` once the model change lands.
 
 ## Context
 
