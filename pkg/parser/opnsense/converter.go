@@ -135,6 +135,7 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		Notes:                         sys.Notes,
 		WebGUI: common.WebGUI{
 			Protocol:          sys.WebGUI.Protocol,
+			Port:              sys.WebGUI.Port,
 			SSLCertRef:        sys.WebGUI.SSLCertRef,
 			LoginAutocomplete: bool(sys.WebGUI.LoginAutocomplete),
 			MaxProcesses:      sys.WebGUI.MaxProcesses,

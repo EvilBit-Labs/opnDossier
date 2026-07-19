@@ -138,6 +138,12 @@ func TestRuleReachability(t *testing.T) {
 			want:   analysis.LANOnly,
 		},
 		{
+			name:   "floating rule whose only wan interface is disabled is lan-only",
+			rule:   common.FirewallRule{Floating: true},
+			ifaces: []common.Interface{{Name: "wan", Enabled: false}, lanIface},
+			want:   analysis.LANOnly,
+		},
+		{
 			name:   "interface-scoped floating rule to lan is not wan-reachable",
 			rule:   common.FirewallRule{Floating: true, Interfaces: []string{"lan"}},
 			ifaces: ifaces,

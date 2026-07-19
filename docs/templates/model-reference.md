@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-03-27 23:07:43
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-07-18 12:45:11
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
@@ -70,7 +70,7 @@ Core system settings including hostname, users, and SSH configuration.
 | `Optimization`                  | `string`       | `system.optimization`                  | Options: normal |
 | `Hostname`                      | `string`       | `system.hostname`                      | Required        |
 | `Domain`                        | `string`       | `system.domain`                        | Required        |
-| `DNSAllowOverride`              | `int`          | `system.dnsAllowOverride`              | Optional        |
+| `DNSAllowOverride`              | `BoolFlag`     | `system.dnsAllowOverride`              | Optional        |
 | `DNSServer`                     | `string`       | `system.dnsServer`                     | Optional        |
 | `Language`                      | `string`       | `system.language`                      | Optional        |
 | `Firmware`                      | `Firmware`     | `system.firmware`                      | -               |
@@ -80,11 +80,11 @@ Core system settings including hostname, users, and SSH configuration.
 | `SSH`                           | `SSHConfig`    | `system.ssh`                           | -               |
 | `Timezone`                      | `string`       | `system.timezone`                      | Optional        |
 | `TimeServers`                   | `string`       | `system.timeServers`                   | Optional        |
-| `UseVirtualTerminal`            | `int`          | `system.useVirtualTerminal`            | Optional        |
-| `DisableVLANHWFilter`           | `int`          | `system.disableVlanHwFilter`           | Optional        |
-| `DisableChecksumOffloading`     | `int`          | `system.disableChecksumOffloading`     | Optional        |
-| `DisableSegmentationOffloading` | `int`          | `system.disableSegmentationOffloading` | Optional        |
-| `DisableLargeReceiveOffloading` | `int`          | `system.disableLargeReceiveOffloading` | Optional        |
+| `UseVirtualTerminal`            | `BoolFlag`     | `system.useVirtualTerminal`            | Optional        |
+| `DisableVLANHWFilter`           | `BoolFlag`     | `system.disableVlanHwFilter`           | Optional        |
+| `DisableChecksumOffloading`     | `BoolFlag`     | `system.disableChecksumOffloading`     | Optional        |
+| `DisableSegmentationOffloading` | `BoolFlag`     | `system.disableSegmentationOffloading` | Optional        |
+| `DisableLargeReceiveOffloading` | `BoolFlag`     | `system.disableLargeReceiveOffloading` | Optional        |
 | `IPv6Allow`                     | `string`       | `system.ipv6Allow`                     | Optional        |
 | `DisableNATReflection`          | `string`       | `system.disableNatReflection`          | Optional        |
 | `DisableConsoleMenu`            | `BoolFlag`     | `system.disableConsoleMenu`            | -               |
@@ -94,10 +94,10 @@ Core system settings including hostname, users, and SSH configuration.
 | `PowerdBatteryMode`             | `string`       | `system.powerdBatteryMode`             | Options: hadp   |
 | `PowerdNormalMode`              | `string`       | `system.powerdNormalMode`              | Options: hadp   |
 | `Bogons`                        | `struct`       | `system.bogons`                        | -               |
-| `PfShareForward`                | `int`          | `system.pfShareForward`                | Optional        |
-| `LbUseSticky`                   | `int`          | `system.lbUseSticky`                   | Optional        |
-| `RrdBackup`                     | `int`          | `system.rrdBackup`                     | Optional        |
-| `NetflowBackup`                 | `int`          | `system.netflowBackup`                 | Optional        |
+| `PfShareForward`                | `BoolFlag`     | `system.pfShareForward`                | Optional        |
+| `LbUseSticky`                   | `BoolFlag`     | `system.lbUseSticky`                   | Optional        |
+| `RrdBackup`                     | `BoolFlag`     | `system.rrdBackup`                     | Optional        |
+| `NetflowBackup`                 | `BoolFlag`     | `system.netflowBackup`                 | Optional        |
 | `NTPD`                          | `struct`       | `system.ntpd`                          | -               |
 | `SNMPD`                         | `struct`       | `system.snmpd`                         | -               |
 | `RRD`                           | `struct`       | `system.rrd`                           | -               |

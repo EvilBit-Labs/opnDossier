@@ -795,6 +795,7 @@ func TestConverter_WebGUI_Expansion(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.System.WebGUI.LoginAutocomplete = schema.BoolFlag(true)
 	doc.System.WebGUI.MaxProcesses = "4"
+	doc.System.WebGUI.Port = "8443"
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
@@ -802,4 +803,5 @@ func TestConverter_WebGUI_Expansion(t *testing.T) {
 
 	assert.True(t, device.System.WebGUI.LoginAutocomplete)
 	assert.Equal(t, "4", device.System.WebGUI.MaxProcesses)
+	assert.Equal(t, "8443", device.System.WebGUI.Port)
 }

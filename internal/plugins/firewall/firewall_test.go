@@ -786,6 +786,22 @@ func TestFirewallPlugin_NoAnySourceOnWANInbound(t *testing.T) {
 			},
 			expectFinding: false,
 		},
+		{
+			name: "Unscoped floating pass rule with any source and live WAN - finding expected",
+			config: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true},
+				},
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:     common.RuleTypePass,
+						Floating: true,
+						Source:   common.RuleEndpoint{Address: constants.NetworkAny},
+					},
+				},
+			},
+			expectFinding: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -874,6 +890,15 @@ func TestFirewallPlugin_PrivateAddressFilteringOnWAN(t *testing.T) {
 			},
 			expectFinding: false,
 		},
+		{
+			name: "Disabled WAN interface without BlockPrivate - no finding (unknown)",
+			config: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: false, BlockPrivate: false},
+				},
+			},
+			expectFinding: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -905,6 +930,15 @@ func TestFirewallPlugin_BogonFilteringOnWAN(t *testing.T) {
 			config: &common.CommonDevice{
 				Interfaces: []common.Interface{
 					{Name: "wan", Enabled: true, BlockBogons: true},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			name: "Disabled WAN interface without BlockBogons - no finding (unknown)",
+			config: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: false, BlockBogons: false},
 				},
 			},
 			expectFinding: false,
