@@ -171,6 +171,20 @@ func TestDetectWeakCryptoDefaults(t *testing.T) {
 			},
 			wantCount: 0,
 		},
+		{
+			name: "permanent-deletion selector suppresses a later plain re-mention",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:!RC4:RC4", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "suppressible-removal selector followed by re-enable still fires",
+			cfg: &common.CommonDevice{
+				Trust: &common.TrustConfig{CipherString: "HIGH:-RC4:RC4", MinProtocol: "TLSv1.2"},
+			},
+			wantCount: 1,
+		},
 	}
 
 	for _, tt := range tests {

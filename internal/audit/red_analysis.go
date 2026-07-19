@@ -264,6 +264,7 @@ const maxPort = 65535
 // WAN-exposed service as LAN-only — the under-report direction this analysis is
 // designed to avoid.
 func parsePort(s string, fallback int) int {
+	s = strings.TrimSpace(s)
 	if s == "" {
 		return fallback
 	}

@@ -187,8 +187,15 @@ const cipherListSeparators = ": ,\t"
 // that is not already selected by an earlier, unprefixed selector — so it
 // must not raise a finding on its own either (e.g. "HIGH:+RC4" does not
 // enable RC4 unless RC4 is also matched by "HIGH" or another unprefixed
-// selector, and this function only sees each selector in isolation). A weak
-// token is reported only when it appears in a plain (unprefixed) selector.
+// selector). A weak token is reported only when it appears in a plain
+// (unprefixed) selector.
+//
+// The "!" operator differs from "-" in that it *permanently* deletes a cipher
+// class — a later plain selector can never re-enable it. So a plain "RC4"
+// following an earlier "!RC4" enables nothing ("!RC4:RC4" is safe), whereas
+// "-RC4:RC4" re-enables RC4 (the "-" removal is suppressible) and remains
+// reportable. Permanently-deleted tokens are collected in a first pass and a
+// matching plain selector is skipped.
 func containsWeakCipherToken(cipherString string) (string, bool) {
 	if cipherString == "" {
 		return "", false
@@ -198,6 +205,15 @@ func containsWeakCipherToken(cipherString string) (string, bool) {
 		return strings.ContainsRune(cipherListSeparators, r)
 	})
 
+	// First pass: collect the uppercased bodies of "!" selectors, which
+	// permanently delete a cipher class no later plain selector can restore.
+	var permanentlyDeleted []string
+	for _, selector := range selectors {
+		if selector[0] == '!' {
+			permanentlyDeleted = append(permanentlyDeleted, strings.ToUpper(selector[1:]))
+		}
+	}
+
 	for _, selector := range selectors {
 		switch selector[0] {
 		case '!', '-', '+':
@@ -206,13 +222,26 @@ func containsWeakCipherToken(cipherString string) (string, bool) {
 
 		upper := strings.ToUpper(selector)
 		for _, token := range weakCipherTokens {
-			if strings.Contains(upper, token) {
+			if strings.Contains(upper, token) && !tokenPermanentlyDeleted(token, permanentlyDeleted) {
 				return token, true
 			}
 		}
 	}
 
 	return "", false
+}
+
+// tokenPermanentlyDeleted reports whether a weak-cipher token was permanently
+// deleted by an earlier "!" selector, matching by the same substring rule used
+// for plain selectors (e.g. "!RC4" deletes the "RC4" token).
+func tokenPermanentlyDeleted(token string, permanentlyDeleted []string) bool {
+	for _, deleted := range permanentlyDeleted {
+		if strings.Contains(deleted, token) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // slicesContainsFold reports whether value case-insensitively matches any
