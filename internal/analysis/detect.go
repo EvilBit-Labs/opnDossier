@@ -29,18 +29,71 @@ func ComputeAnalysis(cfg *common.CommonDevice) *common.Analysis {
 	}
 }
 
-// DetectDeadRules detects unreachable and duplicate firewall rules by grouping
-// rules per interface and analyzing each group independently. Each finding carries
+// deadRuleOwnerKey identifies one (interface, owner rule index) pair in the
+// legacy per-interface, raw-position bucketing DetectDeadRules re-projects
+// onto (see normalizeForDeadRuleView and DetectDeadRules doc comment). The
+// owner is the winner rule for both kinds: the block-all rule for an
+// unreachable finding, the earlier rule for a duplicate finding.
+type deadRuleOwnerKey struct {
+	iface string
+	owner int
+}
+
+// DetectDeadRules detects unreachable and duplicate firewall rules. It is a
+// compatibility view *derived* from the shared shadow-detection core
+// (ADR-0004, R16): the unreachable-plus-duplicate subset of
+// DetectShadowedRules, re-projected into the legacy DeadRuleFinding shape
+// and legacy per-interface, raw-list-position ordering. Each finding carries
 // a Kind field ("unreachable" or "duplicate") for structured classification.
 // Returns nil when no dead rules are found.
+//
+// The shadow core groups rules by (interface, direction) with floating-first
+// reordering (internal/analysis/precedence.go), but the pre-existing
+// DetectDeadRules output — pinned byte-for-byte by this file's test suite —
+// buckets by interface name only and orders by raw per-interface list
+// position, with no notion of direction, quick, or floating rules.
+// normalizeForDeadRuleView collapses the shadow core's grouping back down to
+// that legacy shape before calling DetectShadowedRules; the flatten loop
+// below then re-projects the filtered result using the *original* rules'
+// interface bindings and positions so output ordering is unchanged.
 func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 	if cfg == nil || len(cfg.FirewallRules) == 0 {
 		return nil
 	}
 
-	var findings []common.DeadRuleFinding
+	shadows := DetectShadowedRules(normalizeForDeadRuleView(cfg))
 
-	// Group rules by interface.
+	// A pair can independently satisfy both conditions (e.g. two identical
+	// block-all rules in a row are both an unreachable pair and a duplicate
+	// pair), so both maps are populated from the same scan rather than
+	// partitioning pairs into one bucket or the other. unreachableOwners is
+	// a set: unlike duplicates, the legacy view emits exactly one
+	// unreachable finding per block-all owner regardless of how many later
+	// rules it shadows.
+	unreachableOwners := make(map[deadRuleOwnerKey]bool)
+	duplicatesByOwner := make(map[deadRuleOwnerKey][]common.ShadowedRuleFinding)
+
+	for _, f := range shadows {
+		if f.Kind != common.ShadowKindFull {
+			continue
+		}
+
+		winner := cfg.FirewallRules[f.ShadowedByIndex]
+		loser := cfg.FirewallRules[f.RuleIndex]
+		key := deadRuleOwnerKey{iface: f.Interface, owner: f.ShadowedByIndex}
+
+		if isBlockAllRule(winner) {
+			unreachableOwners[key] = true
+		}
+
+		if RulesEquivalent(winner, loser) {
+			duplicatesByOwner[key] = append(duplicatesByOwner[key], f)
+		}
+	}
+
+	// Group rules by interface — unchanged from the pre-derivation
+	// implementation, and the source of the legacy ordering the flatten
+	// loop below reproduces.
 	interfaceRules := make(map[string][]IndexedRule)
 	for i, rule := range cfg.FirewallRules {
 		for _, iface := range rule.Interfaces {
@@ -48,27 +101,14 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 		}
 	}
 
+	var findings []common.DeadRuleFinding
+
 	for _, iface := range slices.Sorted(maps.Keys(interfaceRules)) {
-		rules := interfaceRules[iface]
+		for _, ir := range interfaceRules[iface] {
+			key := deadRuleOwnerKey{iface: iface, owner: ir.Index}
 
-		// Bucket prior rules by hash so duplicate detection runs in O(n) on the
-		// common case (distinct rules hit empty buckets). Worst case is O(n²)
-		// when every rule is equivalent — required anyway because each pair
-		// yields a finding. Findings are buffered under the "owner" rule's
-		// per-interface position (block-all owns its unreachable finding; the
-		// earlier rule owns each duplicate finding) and flattened in position
-		// order so output matches the prior nested-loop implementation
-		// byte-for-byte, even for equivalence classes of size ≥ 4 and for
-		// block-all rules interleaved with duplicates.
-		perPos := make([][]common.DeadRuleFinding, len(rules))
-		buckets := make(map[uint64][]int, len(rules))
-
-		for i, ir := range rules {
-			// Block-all makes subsequent rules unreachable.
-			srcAny := ir.Rule.Source.Address == constants.NetworkAny
-			dstAny := ir.Rule.Destination.Address == constants.NetworkAny
-			if ir.Rule.Type == common.RuleTypeBlock && srcAny && dstAny && i < len(rules)-1 {
-				perPos[i] = append(perPos[i], common.DeadRuleFinding{
+			if unreachableOwners[key] {
+				findings = append(findings, common.DeadRuleFinding{
 					Kind:      common.DeadRuleKindUnreachable,
 					RuleIndex: ir.Index,
 					Interface: iface,
@@ -80,33 +120,78 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 				})
 			}
 
-			// Duplicate detection via hash bucket. Each duplicate is recorded
-			// under the earlier rule's position so that flattening in position
-			// order reproduces the nested-loop's "group by outer i" ordering.
-			h := hashRule(ir.Rule)
-			for _, priorIdx := range buckets[h] {
-				if RulesEquivalent(rules[priorIdx].Rule, ir.Rule) {
-					perPos[priorIdx] = append(perPos[priorIdx], common.DeadRuleFinding{
-						Kind:      common.DeadRuleKindDuplicate,
-						RuleIndex: ir.Index,
-						Interface: iface,
-						Description: fmt.Sprintf(
-							"Rule at position %d is duplicate of rule at position %d on interface %s",
-							ir.Index+1, rules[priorIdx].Index+1, iface,
-						),
-						Recommendation: "Remove duplicate rule to simplify configuration",
-					})
-				}
+			// duplicatesByOwner[key] preserves ascending loser-index order:
+			// DetectShadowedRules sorts its output by (interface, direction,
+			// RuleIndex, ShadowedByIndex), and filtering a sorted slice down
+			// to one owner preserves the relative RuleIndex ordering — the
+			// same order the pre-derivation nested loop produced.
+			for _, dup := range duplicatesByOwner[key] {
+				findings = append(findings, common.DeadRuleFinding{
+					Kind:      common.DeadRuleKindDuplicate,
+					RuleIndex: dup.RuleIndex,
+					Interface: iface,
+					Description: fmt.Sprintf(
+						"Rule at position %d is duplicate of rule at position %d on interface %s",
+						dup.RuleIndex+1, ir.Index+1, iface,
+					),
+					Recommendation: "Remove duplicate rule to simplify configuration",
+				})
 			}
-			buckets[h] = append(buckets[h], i)
-		}
-
-		for _, bucketFindings := range perPos {
-			findings = append(findings, bucketFindings...)
 		}
 	}
 
 	return findings
+}
+
+// isBlockAllRule reports whether rule is the terminal-default-deny shape
+// DetectDeadRules classifies as an "unreachable" owner: a block/reject-all
+// matching any source and any destination. This mirrors the shape the
+// pre-derivation implementation checked directly (RuleTypeBlock only; the
+// legacy view never considered RuleTypeReject).
+func isBlockAllRule(rule common.FirewallRule) bool {
+	return rule.Type == common.RuleTypeBlock &&
+		rule.Source.Address == constants.NetworkAny &&
+		rule.Destination.Address == constants.NetworkAny
+}
+
+// normalizeForDeadRuleView builds a shallow clone of cfg whose firewall
+// rules are given a uniform Direction (DirectionIn), Quick=true, and
+// Floating=false. The legacy DetectDeadRules algorithm never modeled
+// direction, quick-vs-non-quick precedence, or floating rules — it grouped
+// purely by interface name and treated the earlier rule in each per-interface
+// list as always taking precedence. Forcing every rule into the "in" bucket
+// with quick (first-match, earlier-wins) semantics and no floating
+// device-wide join collapses the shadow core's (interface, direction)
+// grouping (internal/analysis/precedence.go) back down to exactly that
+// legacy per-interface, raw-list-order shape:
+//   - Direction=in uniformly means every rule joins only the "in" bucket for
+//     its own interfaces, so each interface has exactly one populated group
+//     (no double-counting across "in"/"out" buckets).
+//   - Quick=true uniformly means the earlier-positioned rule in a group
+//     always wins an overlap it covers, matching the legacy assumption that
+//     an earlier block-all or duplicate rule is the "owner".
+//   - Floating=false uniformly means an unscoped floating rule (Floating=
+//     true, no Interfaces) never joins any group — exactly reproducing the
+//     legacy blind spot, where such a rule has no entry in `rule.Interfaces`
+//     and so never appears in any per-interface bucket either.
+//
+// The clone is a new slice — cfg's own FirewallRules backing array is never
+// mutated (immutability invariant; GOTCHAS §21.2).
+func normalizeForDeadRuleView(cfg *common.CommonDevice) *common.CommonDevice {
+	normalized := make([]common.FirewallRule, len(cfg.FirewallRules))
+
+	for i, rule := range cfg.FirewallRules {
+		rule.Direction = common.DirectionIn
+		rule.Quick = true
+		rule.Floating = false
+		normalized[i] = rule
+	}
+
+	return &common.CommonDevice{
+		FirewallRules: normalized,
+		NamedObjects:  cfg.NamedObjects,
+		Interfaces:    cfg.Interfaces,
+	}
 }
 
 // DetectUnusedInterfaces detects enabled interfaces not referenced by firewall rules,
