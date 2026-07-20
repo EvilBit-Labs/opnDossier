@@ -36,6 +36,12 @@
       <address>203.0.113.10 198.51.100.20</address>
       <descr>External allowed hosts</descr>
     </alias>
+    <alias>
+      <name>MIXED_TYPES</name>
+      <type>host</type>
+      <address>10.20.30.60 203.0.113.20 198.51.100.0/24 mail.example.org</address>
+      <descr>Mixed private IP, public IP, CIDR, and hostname in one alias</descr>
+    </alias>
   </aliases>
   <filter>
     <rule>

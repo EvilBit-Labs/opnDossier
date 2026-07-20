@@ -428,6 +428,15 @@
 198.51.100.20</content>
             <descr>External allowed hosts</descr>
           </alias>
+          <alias uuid="66666666-6666-6666-6666-666666666666">
+            <name>MIXED_TYPES</name>
+            <type>host</type>
+            <content>10.20.30.60
+203.0.113.20
+198.51.100.0/24
+mail.example.org</content>
+            <descr>Mixed private IP, public IP, CIDR, and hostname in one alias</descr>
+          </alias>
         </aliases>
       </Alias>
       <Category version="1.0.0">

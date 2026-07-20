@@ -30,8 +30,12 @@ const pfSenseAliasFixturePath = "../../testdata/pfsense/pfsense-aliases.xml"
 // --mode aggressive` (SanitizeXML) redacts every IP address embedded in the
 // pfSense alias fixture's SPACE-separated multi-value <address> elements,
 // reusing the same whitespace-token-based redaction wired for OPNsense's
-// newline-separated <content> in U2 (internal/sanitizer/patterns.go's
-// hasTokenMatch/redactTokenMatches) — no new sanitizer code is required.
+// newline-separated <content> (sanitizer.go's sanitizeCharData/
+// redactValueTokens) — no new sanitizer code is required.
+//
+// TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive (below) is the
+// mixed-type regression: see the OPNsense counterpart in
+// alias_multivalue_test.go for the failure this guards against.
 func TestSanitizeXML_PfSenseAliasMultiValue_Aggressive(t *testing.T) {
 	t.Parallel()
 
@@ -78,5 +82,41 @@ func TestSanitizeXML_PfSenseAliasMultiValue_Aggressive(t *testing.T) {
 	// sanitizer didn't just nuke the whole element/file).
 	if !strings.Contains(result, "WEB_SERVERS") {
 		t.Error("expected alias name WEB_SERVERS to survive sanitization (not a secret)")
+	}
+}
+
+// TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive is the pfSense
+// counterpart to alias_multivalue_test.go's mixed-type regression: MIXED_TYPES
+// combines a private IP, a public IP, a CIDR subnet, and a hostname in one
+// space-separated <address> value.
+func TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile(filepath.Clean(pfSenseAliasFixturePath))
+	if err != nil {
+		t.Fatalf("reading pfSense alias fixture: %v", err)
+	}
+
+	s := NewSanitizer(ModeAggressive)
+	var output bytes.Buffer
+	if err := s.SanitizeXML(bytes.NewReader(data), &output); err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+	result := output.String()
+
+	leaks := map[string]string{
+		"10.20.30.60":      "private IP member",
+		"203.0.113.20":     "public IP member",
+		"198.51.100.0/24":  "CIDR subnet member",
+		"mail.example.org": "hostname member",
+	}
+	for value, label := range leaks {
+		if strings.Contains(result, value) {
+			t.Errorf("MIXED_TYPES alias %s %q leaked in aggressive sanitize output", label, value)
+		}
+	}
+
+	if !strings.Contains(result, "MIXED_TYPES") {
+		t.Error("expected alias name MIXED_TYPES to survive sanitization (not a secret)")
 	}
 }

@@ -3,7 +3,9 @@ package model_test
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
@@ -141,6 +143,36 @@ func TestNamedObjects_Resolve_DynamicTypesStayOpaque(t *testing.T) {
 	}
 }
 
+// TestNamedObjects_Resolve_VendorDynamicSpellingsStayOpaque is the P2
+// regression for isDynamic's allowlist inversion: converters store raw
+// vendor type strings verbatim (e.g. OPNsense/pfSense "urltable",
+// "urltable_ports", "networkgroup", "mac"), not just the three canonical
+// dynamic constants (url, geoip, external). Before isDynamic was inverted to
+// a static-only allowlist ({host, network, port}), any of these
+// vendor-specific spellings fell through to "not dynamic" and was
+// incorrectly treated as statically resolvable, so R8's aliasBlocked
+// advisory path never fired for exactly the types it targets.
+func TestNamedObjects_Resolve_VendorDynamicSpellingsStayOpaque(t *testing.T) {
+	t.Parallel()
+
+	tests := []string{"urltable", "urltable_ports", "networkgroup", "mac", "bogus_unrecognized_type"}
+
+	for _, typ := range tests {
+		t.Run(typ, func(t *testing.T) {
+			t.Parallel()
+
+			objects := common.NamedObjects{
+				"dyn": {Name: "dyn", Type: common.NamedObjectType(typ), Members: []string{"1.2.3.4"}},
+			}
+
+			members, resolved := objects.Resolve("dyn")
+
+			assert.False(t, resolved, "vendor dynamic type %q must not resolve", typ)
+			assert.Empty(t, members, "vendor dynamic type %q must stay opaque, never echoed as resolved literals", typ)
+		})
+	}
+}
+
 func TestNamedObjects_Resolve_EmptyOrUnknown(t *testing.T) {
 	t.Parallel()
 
@@ -256,4 +288,63 @@ func TestRuleEndpoint_ObjectRef_PopulatedWhenAliased(t *testing.T) {
 	assert.Equal(t, "lan_net", endpoint.AddressRef.Name)
 	assert.Equal(t, "10.0.0.0/24", endpoint.Address,
 		"the resolved inline value must stay populated alongside the ref (ADR-0002 optionality invariant)")
+}
+
+// TestNamedObjects_Resolve_DAGDoesNotBlowUp is a DoS regression: a non-cyclic
+// alias graph whose nodes each reference a shared child many times must not be
+// re-expanded per reference. Without per-Resolve memoization this fans out
+// exponentially (bounded only by maxAliasDepth in depth) and hangs the whole
+// analysis run, since coverage() calls Resolve synchronously per rule pair.
+// With memoization it resolves in linear time and returns the correct member.
+func TestNamedObjects_Resolve_DAGDoesNotBlowUp(t *testing.T) {
+	t.Parallel()
+
+	// Build a chain a0 -> a1 -> ... where each level references the next level
+	// fanCount times. A naive resolver makes fanCount^depth calls; memoized,
+	// it is O(levels * fanCount).
+	const (
+		levels   = 14
+		fanCount = 8
+	)
+
+	objs := common.NamedObjects{}
+	for i := range levels {
+		name := "a" + strconv.Itoa(i)
+		members := make([]string, 0, fanCount)
+		for range fanCount {
+			members = append(members, "a"+strconv.Itoa(i+1))
+		}
+
+		objs[name] = common.NamedObject{
+			Name:    name,
+			Type:    common.NamedObjectTypeNetwork,
+			Members: members,
+		}
+	}
+	// Leaf resolves to a single literal.
+	objs["a"+strconv.Itoa(levels)] = common.NamedObject{
+		Name:    "a" + strconv.Itoa(levels),
+		Type:    common.NamedObjectTypeNetwork,
+		Members: []string{"10.0.0.0/8"},
+	}
+
+	done := make(chan struct{})
+
+	var (
+		members  []string
+		resolved bool
+	)
+
+	go func() {
+		members, resolved = objs.Resolve("a0")
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		assert.True(t, resolved, "the DAG resolves cleanly (no cycle, within depth cap)")
+		assert.Equal(t, []string{"10.0.0.0/8"}, members, "all paths collapse to the single leaf literal")
+	case <-time.After(5 * time.Second):
+		t.Fatal("Resolve did not complete in 5s — alias-DAG blowup (missing memoization)")
+	}
 }

@@ -36,7 +36,7 @@ func TestParser_PfSenseAliasesFixture(t *testing.T) {
 	assert.Empty(t, nonGapWarnings(warnings))
 	require.NotNil(t, device)
 
-	require.Len(t, device.NamedObjects, 5)
+	require.Len(t, device.NamedObjects, 6)
 
 	webServers, ok := device.NamedObjects["WEB_SERVERS"]
 	require.True(t, ok)
@@ -60,6 +60,15 @@ func TestParser_PfSenseAliasesFixture(t *testing.T) {
 	externalHosts, ok := device.NamedObjects["EXTERNAL_HOSTS"]
 	require.True(t, ok)
 	assert.Equal(t, []string{"203.0.113.10", "198.51.100.20"}, externalHosts.Members)
+
+	mixedTypes, ok := device.NamedObjects["MIXED_TYPES"]
+	require.True(t, ok)
+	assert.Equal(t, common.NamedObjectTypeHost, mixedTypes.Type)
+	assert.Equal(
+		t,
+		[]string{"10.20.30.60", "203.0.113.20", "198.51.100.0/24", "mail.example.org"},
+		mixedTypes.Members,
+	)
 
 	require.Len(t, device.FirewallRules, 1)
 	rule := device.FirewallRules[0]

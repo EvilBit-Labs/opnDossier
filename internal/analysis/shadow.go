@@ -22,7 +22,7 @@ func DetectShadowedRules(cfg *common.CommonDevice) []common.ShadowedRuleFinding 
 	}
 
 	pairs := ResolvePrecedence(cfg)
-	pairs = append(pairs, detectAliasBlockedSecurityAdvisories(cfg.FirewallRules, cfg.NamedObjects)...)
+	pairs = append(pairs, detectAliasBlockedSecurityAdvisories(cfg.FirewallRules, cfg.Interfaces, cfg.NamedObjects)...)
 
 	var findings []common.ShadowedRuleFinding
 
@@ -211,13 +211,18 @@ func recommendationFor(impactClass string, advisory bool) string {
 }
 
 // isTerminalDefaultDeny implements the R9 non-finding guard: a terminal
-// block-all rule (last rule in its pf evaluation group, matching any source
-// and any destination) sitting below specific allows is the correct
-// default-deny pattern and is never reported as a shadow, regardless of
-// coverage extent. This mirrors the i < len(rules)-1 exemption
-// DetectDeadRules already applies to the same pattern.
+// block-all OR reject-all rule (last rule in its pf evaluation group,
+// matching any source and any destination) sitting below specific allows is
+// the correct default-deny pattern and is never reported as a shadow,
+// regardless of coverage extent. This mirrors the i < len(rules)-1 exemption
+// DetectDeadRules already applies to the same pattern, but — unlike
+// DetectDeadRules, which is pinned to legacy Block-only byte-for-byte output
+// — also recognizes RuleTypeReject: a terminal `reject any->any` below
+// specific passes is exactly as legitimate a default-deny pattern as
+// `block any->any`, and without this a mainstream reject-based default-deny
+// configuration would produce a false-positive Security shadow.
 func isTerminalDefaultDeny(pair PrecedencePair, rules []common.FirewallRule) bool {
-	if !isBlockAllRule(pair.Loser.Rule) {
+	if !isTerminalDenyRule(pair.Loser.Rule) {
 		return false
 	}
 
@@ -244,8 +249,12 @@ func isTerminalDefaultDeny(pair PrecedencePair, rules []common.FirewallRule) boo
 // AliasBlocked=true are NOT re-derived here — ResolvePrecedence already
 // returns those, and buildShadowFinding routes them through the same
 // advisory branch via pair.AliasBlocked.
-func detectAliasBlockedSecurityAdvisories(rules []common.FirewallRule, no common.NamedObjects) []PrecedencePair {
-	groups := buildPrecedenceGroups(rules)
+func detectAliasBlockedSecurityAdvisories(
+	rules []common.FirewallRule,
+	deviceIfaces []common.Interface,
+	no common.NamedObjects,
+) []PrecedencePair {
+	groups := buildPrecedenceGroups(rules, deviceIfaces)
 
 	var pairs []PrecedencePair
 

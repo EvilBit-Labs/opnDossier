@@ -23,12 +23,13 @@ func precedenceRule(iface string, dir common.FirewallDirection) common.FirewallR
 }
 
 // floatingRule returns an unscoped floating rule (Floating && no Interfaces)
-// with sensible wildcard defaults, scoped to dir.
-func floatingRule(dir common.FirewallDirection) common.FirewallRule {
+// with sensible wildcard defaults, scoped to DirectionIn — every existing
+// caller uses DirectionIn (see the unparam finding this comment replaced).
+func floatingRule() common.FirewallRule {
 	return common.FirewallRule{
 		Type:        common.RuleTypePass,
 		Floating:    true,
-		Direction:   dir,
+		Direction:   common.DirectionIn,
 		Protocol:    "any",
 		Source:      common.RuleEndpoint{Address: "any"},
 		Destination: common.RuleEndpoint{Address: "any"},
@@ -119,7 +120,7 @@ func TestResolvePrecedence_FloatingRulesJoinInterfaceGroupsAheadOfInterfaceBound
 		interfaceRule := precedenceRule("wan", common.DirectionIn)
 		interfaceRule.Destination.Address = "10.0.0.0/8" // broad, covers floating fully
 
-		floating := floatingRule(common.DirectionIn)
+		floating := floatingRule()
 		floating.Destination.Address = "10.1.0.0/16" // narrow, fully covered
 
 		cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{interfaceRule, floating}}
@@ -138,7 +139,7 @@ func TestResolvePrecedence_FloatingRulesJoinInterfaceGroupsAheadOfInterfaceBound
 		interfaceRule := precedenceRule("wan", common.DirectionIn)
 		interfaceRule.Destination.Address = "10.1.0.0/16" // narrow
 
-		floating := floatingRule(common.DirectionIn)
+		floating := floatingRule()
 		floating.Quick = true
 		floating.Destination.Address = "10.0.0.0/8" // broad, covers interfaceRule fully
 
@@ -272,6 +273,66 @@ func TestResolvePrecedence_DeterministicGroupOrdering(t *testing.T) {
 
 		previous = pairs
 	}
+}
+
+// TestResolvePrecedence_AllFloating_SeedsFromDeviceInterfaces is the P2
+// regression for buildPrecedenceGroups: a ruleset of ONLY unscoped floating
+// rules (no interface-bound rules at all) previously yielded zero candidate
+// interface names — since an unscoped floating rule never appears in any
+// rule's own r.Interfaces — and so zero groups, meaning a floating-vs-
+// floating shadow was never detected at all. Seeding candidate names from
+// cfg.Interfaces (scoped to only fire when an unscoped floating rule is
+// present) fixes this without touching the interface-bound-only case any
+// other test in this file exercises.
+func TestResolvePrecedence_AllFloating_SeedsFromDeviceInterfaces(t *testing.T) {
+	t.Parallel()
+
+	earlier := floatingRule()
+	earlier.Quick = true
+	earlier.Destination.Address = "10.0.0.0/8"
+
+	later := floatingRule()
+	later.Destination.Address = "10.1.0.0/16"
+
+	cfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{earlier, later},
+		Interfaces:    []common.Interface{{Name: "lan"}},
+	}
+
+	pairs := ResolvePrecedence(cfg)
+
+	require.Len(t, pairs, 1, "an all-floating ruleset must still be evaluated against the device's own interfaces")
+	assert.Equal(t, "lan", pairs[0].Interface)
+	assert.Equal(t, 0, pairs[0].Winner.Index, "quick earlier floating rule wins the overlap")
+	assert.Equal(t, 1, pairs[0].Loser.Index, "later floating rule is shadowed")
+	assert.Equal(t, CoverFull, pairs[0].Extent)
+}
+
+// TestResolvePrecedence_NoFloating_DeviceInterfacesNotConsulted proves the
+// seeding fix above is scoped: when there is no unscoped floating rule,
+// cfg.Interfaces is never consulted for candidate names — a device
+// interface with no bound rules at all (here, "dmz") must not spuriously
+// gain a group or otherwise change output for the ordinary
+// interface-bound-only case.
+func TestResolvePrecedence_NoFloating_DeviceInterfacesNotConsulted(t *testing.T) {
+	t.Parallel()
+
+	earlier := precedenceRule("wan", common.DirectionIn)
+	earlier.Quick = true
+	earlier.Destination.Address = "10.0.0.0/8"
+
+	later := precedenceRule("wan", common.DirectionIn)
+	later.Destination.Address = "10.1.0.0/16"
+
+	cfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{earlier, later},
+		Interfaces:    []common.Interface{{Name: "wan"}, {Name: "dmz"}},
+	}
+
+	pairs := ResolvePrecedence(cfg)
+
+	require.Len(t, pairs, 1)
+	assert.Equal(t, "wan", pairs[0].Interface)
 }
 
 func TestResolvePrecedence_NilOrInsufficientRules(t *testing.T) {

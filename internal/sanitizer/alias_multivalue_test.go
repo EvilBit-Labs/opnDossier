@@ -30,6 +30,14 @@ const aliasFixturePath = "../../testdata/opnsense-aliases.xml"
 // SanitizeStruct, which has no production callers per GOTCHAS §14.4) redacts
 // every IP address embedded in the alias fixture's newline-separated
 // multi-value <content> elements, not just single-value fields.
+//
+// TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive (below) is the
+// mixed-type regression: a single alias mixing a private IP, a public IP, a
+// CIDR subnet, and a hostname in one newline-separated <content> value. Prior
+// to the per-token dispatch fix in sanitizer.go's sanitizeCharData, rule
+// dispatch returned only the FIRST matching rule for the whole value, so a
+// mixed-type value only got the first-matched type's tokens redacted —
+// leaking every other type in cleartext.
 func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
 	t.Parallel()
 
@@ -77,5 +85,44 @@ func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
 	// sanitizer didn't just nuke the whole element/file).
 	if !strings.Contains(result, "WEB_SERVERS") {
 		t.Error("expected alias name WEB_SERVERS to survive sanitization (not a secret)")
+	}
+}
+
+// TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive is the P0 regression
+// for the mixed-type alias leak: MIXED_TYPES combines a private IP, a public
+// IP, a CIDR subnet, and a hostname in one newline-separated <content>
+// value. Before sanitizeCharData's per-token dispatch fix, ShouldRedactValue
+// returned only the FIRST matching rule for the whole multi-value string
+// (e.g. public_ip, whose token-aware Redactor only redacted public-IP-typed
+// tokens), leaving the private IP, CIDR, and hostname members in cleartext.
+func TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile(filepath.Clean(aliasFixturePath))
+	if err != nil {
+		t.Fatalf("reading alias fixture: %v", err)
+	}
+
+	s := NewSanitizer(ModeAggressive)
+	var output bytes.Buffer
+	if err := s.SanitizeXML(bytes.NewReader(data), &output); err != nil {
+		t.Fatalf("SanitizeXML() error = %v", err)
+	}
+	result := output.String()
+
+	leaks := map[string]string{
+		"10.20.30.60":      "private IP member",
+		"203.0.113.20":     "public IP member",
+		"198.51.100.0/24":  "CIDR subnet member",
+		"mail.example.org": "hostname member",
+	}
+	for value, label := range leaks {
+		if strings.Contains(result, value) {
+			t.Errorf("MIXED_TYPES alias %s %q leaked in aggressive sanitize output", label, value)
+		}
+	}
+
+	if !strings.Contains(result, "MIXED_TYPES") {
+		t.Error("expected alias name MIXED_TYPES to survive sanitization (not a secret)")
 	}
 }

@@ -379,47 +379,36 @@ func builtinRules() []Rule {
 
 		// Network rules - aggressive and moderate
 		//
-		// ValueDetector/Redactor first check the whole-value case (identical
-		// to the original net.ParseIP-based behavior, including IPv6) so
-		// existing single-value semantics are byte-for-byte unchanged. The
-		// fallback branch scans whitespace-delimited TOKENS (not a bare regex
-		// substring scan — see hasTokenMatch) so a delimiter-separated
-		// multi-value field (e.g. a newline-separated OPNsense alias
-		// <content> or space-separated pfSense alias <address>) gets each
-		// member redacted independently, without also matching IPv4-looking
-		// digits embedded in an unrelated compound value such as a
-		// "host:port" endpoint string. See the sanitizer alias-redaction gap
-		// in the firewall-shadowing plan's System-Wide Impact section.
+		// ValueDetector/Redactor operate on a single value (identical to the
+		// original net.ParseIP-based behavior, including IPv6). A delimiter-
+		// separated multi-value field (e.g. a newline-separated OPNsense
+		// alias <content> or space-separated pfSense alias <address>) is
+		// split into individual whitespace-delimited tokens BEFORE reaching
+		// the rule engine — see sanitizeCharData/redactValueTokens in
+		// sanitizer.go — so each member is matched against this rule
+		// independently, without also matching IPv4-looking digits embedded
+		// in an unrelated compound value such as a "host:port" endpoint
+		// string (token-boundary matching, not a substring scan). See the
+		// sanitizer alias-redaction gap in the firewall-shadowing plan's
+		// System-Wide Impact section.
 		{
-			Name:        "public_ip",
-			Description: "Redacts public IP addresses",
-			Category:    CategoryNetwork,
-			Modes:       aggressiveModerate,
-			ValueDetector: func(value string) bool {
-				return IsPublicIP(value) || hasTokenMatch(value, IsPublicIP)
-			},
+			Name:          "public_ip",
+			Description:   "Redacts public IP addresses",
+			Category:      CategoryNetwork,
+			Modes:         aggressiveModerate,
+			ValueDetector: IsPublicIP,
 			Redactor: func(m *Mapper, _, value string) string {
-				if IsPublicIP(value) {
-					return m.MapPublicIP(value)
-				}
-				return redactTokenMatches(value, IsPublicIP, m.MapPublicIP)
+				return m.MapPublicIP(value)
 			},
 		},
 		{
-			Name:        "private_ip_aggressive",
-			Description: "Redacts private IP addresses (aggressive mode)",
-			Category:    CategoryNetwork,
-			Modes:       aggressiveOnly,
-			ValueDetector: func(value string) bool {
-				return isPrivateIPv4(value) || hasTokenMatch(value, isPrivateIPv4)
-			},
+			Name:          "private_ip_aggressive",
+			Description:   "Redacts private IP addresses (aggressive mode)",
+			Category:      CategoryNetwork,
+			Modes:         aggressiveOnly,
+			ValueDetector: isPrivateIPv4,
 			Redactor: func(m *Mapper, _, value string) string {
-				if isPrivateIPv4(value) {
-					return m.MapPrivateIP(value, false)
-				}
-				return redactTokenMatches(value, isPrivateIPv4, func(addr string) string {
-					return m.MapPrivateIP(addr, false)
-				})
+				return m.MapPrivateIP(value, false)
 			},
 		},
 		{
@@ -539,28 +528,19 @@ func builtinRules() []Rule {
 			},
 			// ValueDetector enables CIDR detection on unrecognized field names;
 			// the Redactor guard handles the field-pattern match path separately.
-			//
-			// IsSubnet (net.ParseCIDR) covers the whole-value case for both
-			// IPv4 and IPv6 CIDR literals, unchanged from the original
-			// behavior. The token-based fallback catches a newline- or
-			// space-separated alias field holding several CIDR blocks (which
-			// never satisfies IsSubnet, since the whole field is never a
-			// single CIDR literal) by validating each whitespace-delimited
-			// token independently — this also covers IPv6 CIDR members for
-			// free, since IsSubnet itself is protocol-agnostic. See the
-			// firewall-shadowing plan's System-Wide Impact section.
-			ValueDetector: func(value string) bool {
-				return IsSubnet(value) || hasTokenMatch(value, IsSubnet)
-			},
+			// IsSubnet (net.ParseCIDR) covers both IPv4 and IPv6 CIDR literals.
+			// Multi-value alias fields (newline- or space-separated CIDR lists)
+			// are split into individual tokens before reaching the rule engine —
+			// see sanitizeCharData/redactValueTokens in sanitizer.go — so each
+			// member is matched against this rule independently.
+			ValueDetector: IsSubnet,
 			Redactor: func(_ *Mapper, _, value string) string {
 				// Guard: field-pattern matches (e.g., "subnet") bypass the ValueDetector,
 				// so we must validate here too for non-CIDR values like "255.255.255.0".
-				if IsSubnet(value) {
-					return redactedSubnetValue
+				if !IsSubnet(value) {
+					return value
 				}
-				return redactTokenMatches(value, IsSubnet, func(string) string {
-					return redactedSubnetValue
-				})
+				return redactedSubnetValue
 			},
 		},
 		{
@@ -661,10 +641,8 @@ func isSystemUser(username string) bool {
 }
 
 // isPrivateIPv4 reports whether v is a private IPv4 address, restricting
-// IsPrivateIP's broader IPv4-or-IPv6 check to IPv4 only. Used by the
-// private_ip_aggressive rule both for its whole-value check and as the
-// per-token filter passed to hasTokenMatch/redactTokenMatches, so the two
-// call sites can't drift out of sync.
+// IsPrivateIP's broader IPv4-or-IPv6 check to IPv4 only. Used as the
+// private_ip_aggressive rule's ValueDetector.
 func isPrivateIPv4(v string) bool {
 	return IsPrivateIP(v) && IsIPv4(v)
 }

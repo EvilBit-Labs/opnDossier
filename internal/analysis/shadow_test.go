@@ -175,6 +175,93 @@ func TestDetectShadowedRules_AE5_DefaultDeny_NonFinding(t *testing.T) {
 	assert.Empty(t, findings, "a terminal default-deny below specific allows must never be reported as a shadow")
 }
 
+// TestDetectShadowedRules_AllFloating_ProducesShadow is the P2 regression
+// paired with precedence_test.go's
+// TestResolvePrecedence_AllFloating_SeedsFromDeviceInterfaces: a device with
+// a single interface and ONLY unscoped floating rules (no interface-bound
+// rules at all) must still be evaluated for shadows. This mirrors AE1's
+// exact shape (quick pass any->any:22, then quick block 10/8->any:22 — the
+// earlier pass fully covers the later block on every dimension) using
+// floating rules instead of interface-bound ones.
+func TestDetectShadowedRules_AllFloating_ProducesShadow(t *testing.T) {
+	earlier := floatingRule()
+	earlier.Type = common.RuleTypePass
+	earlier.Quick = true
+	earlier.Destination.Port = "22"
+
+	later := floatingRule()
+	later.Type = common.RuleTypeBlock
+	later.Quick = true
+	later.Source.Address = "10.0.0.0/8"
+	later.Destination.Port = "22"
+
+	cfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{earlier, later},
+		Interfaces:    []common.Interface{{Name: "lan"}},
+	}
+
+	findings := DetectShadowedRules(cfg)
+	require.Len(t, findings, 1, "an all-floating ruleset must still be evaluated against the device's own interfaces")
+
+	f := findings[0]
+	assert.Equal(t, "lan", f.Interface)
+	assert.Equal(t, common.ImpactClassSecurity, f.ImpactClass)
+	assert.Equal(t, common.ShadowKindFull, f.Kind)
+	assert.Equal(t, 1, f.RuleIndex, "the later block rule is shadowed by the earlier quick pass")
+	assert.Equal(t, 0, f.ShadowedByIndex)
+}
+
+// R10 false-positive regression: a negated source whose literal exactly
+// matches the other rule's literal must not produce a confirmed shadow, even
+// though the pre-negation coverage computation resolves to CoverFull (see
+// overlap_test.go's "negated source with identical literal is indeterminate,
+// not full"). Before the coverage() negation guard covered CoverFull (and
+// not just CoverPartial), "NOT 10.0.0.0/8" (which actually matches every
+// address OUTSIDE that range) vs a plain "10.0.0.0/8" pass rule would
+// silently produce a critical Security false positive.
+func TestDetectShadowedRules_R10_NegatedIdenticalLiteral_NoFinding(t *testing.T) {
+	earlier := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+	earlier.Source.Address = "10.0.0.0/8"
+	earlier.Source.Negated = true
+
+	later := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+	later.Source.Address = "10.0.0.0/8"
+
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{earlier, later}}
+
+	findings := DetectShadowedRules(cfg)
+	assert.Empty(
+		t,
+		findings,
+		"a negated source must never produce a confirmed shadow from an identical-literal false containment",
+	)
+}
+
+// R9/reject regression: AE5's scenario but with a terminal `reject any->any`
+// instead of `block any->any`. Before isTerminalDefaultDeny recognized
+// RuleTypeReject, the identical ruleset with `reject` (a mainstream
+// default-deny pattern) produced a false-positive Security shadow, even
+// though the byte-identical `block` version correctly produced zero
+// findings.
+func TestDetectShadowedRules_AE5_DefaultDeny_Reject_NonFinding(t *testing.T) {
+	allow443 := baseShadowRule("lan", common.DirectionIn, common.RuleTypePass)
+	allow443.Destination.Port = "443"
+
+	allow80 := baseShadowRule("lan", common.DirectionIn, common.RuleTypePass)
+	allow80.Destination.Port = "80"
+
+	rejectAll := baseShadowRule("lan", common.DirectionIn, common.RuleTypeReject)
+
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{allow443, allow80, rejectAll}}
+
+	findings := DetectShadowedRules(cfg)
+	assert.Empty(
+		t,
+		findings,
+		"a terminal reject-based default-deny below specific allows must never be reported as a shadow",
+	)
+}
+
 // AE6 (adjusted): the plan's literal AE6 (an unqualified pass any->any:WEB
 // followed by a block any->any:443, alias WEB={80,443}) computes to
 // CoverFull under U4's already-committed coverage() logic — the later

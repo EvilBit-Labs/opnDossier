@@ -72,7 +72,7 @@ func ResolvePrecedence(cfg *common.CommonDevice) []PrecedencePair {
 		return nil
 	}
 
-	groups := buildPrecedenceGroups(cfg.FirewallRules)
+	groups := buildPrecedenceGroups(cfg.FirewallRules, cfg.Interfaces)
 
 	var pairs []PrecedencePair
 
@@ -96,12 +96,39 @@ type precedenceGroupKey struct {
 // ahead of interface-bound rules, each subset preserving the rules'
 // original relative list order. Groups with fewer than two rules are
 // dropped — there is nothing to resolve a pair from.
-func buildPrecedenceGroups(rules []common.FirewallRule) map[precedenceGroupKey][]IndexedRule {
+//
+// Candidate interface names normally come only from interface-bound rules'
+// r.Interfaces. An unscoped floating rule never appears in r.Interfaces, so
+// a ruleset of ONLY unscoped floating rules (no interface-bound rules at
+// all) would otherwise yield zero candidate interface names — zero groups —
+// and a floating-vs-floating shadow would never be evaluated. deviceIfaces
+// (cfg.Interfaces) is consulted as a fallback seed for candidate names, but
+// ONLY when an unscoped floating rule is actually present in rules — this
+// scopes the fix so a normal interface-bound-only ruleset (the overwhelming
+// common case) produces byte-for-byte identical groups to before.
+func buildPrecedenceGroups(
+	rules []common.FirewallRule,
+	deviceIfaces []common.Interface,
+) map[precedenceGroupKey][]IndexedRule {
 	ifaceNames := make(map[string]struct{})
+
+	hasUnscopedFloating := false
 
 	for _, r := range rules {
 		for _, iface := range r.Interfaces {
 			ifaceNames[iface] = struct{}{}
+		}
+
+		if isUnscopedFloating(r) {
+			hasUnscopedFloating = true
+		}
+	}
+
+	if hasUnscopedFloating {
+		for _, iface := range deviceIfaces {
+			if iface.Name != "" {
+				ifaceNames[iface.Name] = struct{}{}
+			}
 		}
 	}
 

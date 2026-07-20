@@ -234,11 +234,13 @@ type ShadowedRuleFinding struct {
 	// ConfidenceLow for the unresolved-alias advisory path.
 	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
 	// RuleIndex is the position of the shadowed (loser) rule in the filter
-	// rule list.
-	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`
+	// rule list. No omitempty: index 0 (the first rule) must be
+	// distinguishable from an unset/zero-value finding.
+	RuleIndex int `json:"ruleIndex" yaml:"ruleIndex"`
 	// ShadowedByIndex is the position of the covering (winner) rule in the
-	// filter rule list.
-	ShadowedByIndex int `json:"shadowedByIndex,omitempty" yaml:"shadowedByIndex,omitempty"`
+	// filter rule list. No omitempty: index 0 (the first rule) must be
+	// distinguishable from an unset/zero-value finding.
+	ShadowedByIndex int `json:"shadowedByIndex" yaml:"shadowedByIndex"`
 	// Interface is the interface the shadow was detected on.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Direction is the pf evaluation direction bucket ("in" or "out") the

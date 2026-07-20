@@ -10,6 +10,14 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
+// maxResolvedMembers bounds how many resolved alias members the containment
+// predicate will expand for a single endpoint. Above this, the endpoint is
+// treated as opaque (aliasBlocked) so the O(n*m) address/port containment
+// cross product cannot be driven into a DoS by an attacker-supplied config
+// that defines pathologically large aliases. Set far above any realistic
+// firewall alias.
+const maxResolvedMembers = 4096
+
 // Coverage classifies how completely an earlier firewall rule's match set
 // covers a later rule's match set, on a single dimension or for a whole
 // rule pair. See coverage for the combining rules across dimensions.
@@ -65,7 +73,11 @@ func (c Coverage) String() string {
 // requires every dimension fully covered; Partial requires at least one
 // dimension strictly narrower with no dimension at CoverNone; any dimension
 // at CoverNone makes the whole pair CoverNone. Negation (R10) downgrades an
-// otherwise-Partial result to CoverIndeterminate.
+// otherwise-Full or -Partial result to CoverIndeterminate: any apparent
+// containment computed against a negated endpoint's literal value is
+// untrustworthy (a negated "10.0.0.0/8" matches everything OUTSIDE that
+// range, not inside it), so even an exact-literal match that resolves to
+// CoverFull must not be reported as a confirmed shadow.
 func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Coverage, bool) {
 	if !familiesCompatible(earlier.IPProtocol, later.IPProtocol) {
 		return CoverNone, false
@@ -83,7 +95,7 @@ func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Cover
 
 	negated := earlier.Source.Negated || earlier.Destination.Negated ||
 		later.Source.Negated || later.Destination.Negated
-	if negated && raw == CoverPartial {
+	if negated && (raw == CoverPartial || raw == CoverFull) {
 		return CoverIndeterminate, aliasBlocked
 	}
 
@@ -247,7 +259,13 @@ func resolveEndpointValues(ref *common.ObjectRef, literal string, no common.Name
 	}
 
 	members, resolved := no.Resolve(ref.Name)
-	if resolved && len(members) > 0 {
+	// An alias that resolves to an implausibly large member set is treated as
+	// opaque (aliasBlocked) rather than expanded: the O(n*m) containment cross
+	// product below would otherwise be a DoS vector on an attacker-supplied
+	// config that defines two huge aliases. The cap is far above any real
+	// alias and biases safe — an unresolved Security overlap still surfaces as
+	// the R8 advisory rather than being silently dropped.
+	if resolved && len(members) > 0 && len(members) <= maxResolvedMembers {
 		return members, false
 	}
 

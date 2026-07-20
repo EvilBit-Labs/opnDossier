@@ -43,16 +43,44 @@ func (t NamedObjectType) IsValid() bool {
 	}
 }
 
+// staticNamedObjectTypes lists the ONLY NamedObjectType values whose members
+// are genuinely a static, resolvable list. Converters store raw vendor type
+// strings verbatim (e.g. OPNsense/pfSense "urltable", "urltable_ports",
+// "networkgroup", "mac", plus any future or unrecognized vendor spelling),
+// not just the three canonical dynamic constants. isDynamic used to be an
+// allowlist of known-opaque types and treated everything else — including
+// these vendor spellings — as statically resolvable, so a genuinely opaque,
+// externally-fetched "urltable" alias was silently expanded, and R8's
+// aliasBlocked/advisory path never fired for exactly the types it targets.
+// Inverting to a denylist-of-one (only {host, network, port} resolve;
+// everything else, known or not, is opaque) matches R4's intent: "Static
+// host, network, and port objects resolve; dynamic objects remain opaque."
+//
+//nolint:gochecknoglobals,exhaustive // immutable, intentional allowlist-of-static-types; absence (url/geoip/external and any other value) means dynamic/opaque by design, not an omission.
+var staticNamedObjectTypes = map[NamedObjectType]struct{}{
+	NamedObjectTypeHost:    {},
+	NamedObjectTypeNetwork: {},
+	NamedObjectTypePort:    {},
+}
+
+// isStatic reports whether t is one of the known-static, resolvable
+// NamedObjectType values (host, network, port). Every other type — the
+// canonical dynamic constants (url, geoip, external), a vendor-specific
+// dynamic spelling not modeled by a dedicated constant (e.g. "urltable",
+// "urltable_ports"), or any other unrecognized string — is treated as
+// opaque by isDynamic below.
+func (t NamedObjectType) isStatic() bool {
+	_, ok := staticNamedObjectTypes[t]
+	return ok
+}
+
 // isDynamic reports whether t's members are opaque (fetched or evaluated at
-// runtime by the firewall — a URL table, GeoIP feed, or external table)
-// rather than a static, resolvable member list.
+// runtime by the firewall, or simply not one of the known-static types)
+// rather than a static, resolvable member list. This is the complement of
+// isStatic, not an independent allowlist — see staticNamedObjectTypes for
+// why the check is inverted this way.
 func (t NamedObjectType) isDynamic() bool {
-	switch t {
-	case NamedObjectTypeURL, NamedObjectTypeGeoIP, NamedObjectTypeExternal:
-		return true
-	default:
-		return false
-	}
+	return !t.isStatic()
 }
 
 // NamedObject represents a single named object (alias) as it appears in a
@@ -120,8 +148,18 @@ func (n NamedObjects) Resolve(name string) ([]string, bool) {
 	}
 
 	visited := make(map[string]struct{})
+	// memo caches the fully-expanded members of names that resolved cleanly,
+	// so a subtree shared by multiple references in a DAG is computed once
+	// rather than re-expanded per reference. Without it, a non-cyclic alias
+	// graph whose nodes each reference a shared child many times blows up
+	// exponentially (bounded only by maxAliasDepth in depth, unbounded in
+	// breadth) — a trivial DoS from a sub-1KB config, since coverage() calls
+	// Resolve synchronously per rule pair. Only clean (resolved==true)
+	// expansions are cached; cycle/depth failures are path-dependent and must
+	// not poison a name reached cleanly on another branch.
+	memo := make(map[string][]string)
 
-	members, resolved := n.resolveNode(name, visited, 0)
+	members, resolved := n.resolveNode(name, visited, memo, 0)
 	if len(members) == 0 {
 		return nil, resolved
 	}
@@ -133,9 +171,17 @@ func (n NamedObjects) Resolve(name string) ([]string, bool) {
 // reference path in visited (to detect cycles) and depth (to enforce
 // maxAliasDepth). It returns the literal members reached along every
 // non-failing branch, and whether the whole subtree resolved cleanly.
-func (n NamedObjects) resolveNode(name string, visited map[string]struct{}, depth int) ([]string, bool) {
+func (n NamedObjects) resolveNode(
+	name string,
+	visited map[string]struct{},
+	memo map[string][]string,
+	depth int,
+) ([]string, bool) {
 	if depth > maxAliasDepth {
 		return nil, false
+	}
+	if cached, ok := memo[name]; ok {
+		return cached, true
 	}
 	if _, seen := visited[name]; seen {
 		return nil, false
@@ -158,7 +204,7 @@ func (n NamedObjects) resolveNode(name string, visited map[string]struct{}, dept
 
 	for _, member := range obj.Members {
 		if _, isRef := n[member]; isRef {
-			subMembers, subResolved := n.resolveNode(member, visited, depth+1)
+			subMembers, subResolved := n.resolveNode(member, visited, memo, depth+1)
 			members = append(members, subMembers...)
 
 			if !subResolved {
@@ -169,6 +215,23 @@ func (n NamedObjects) resolveNode(name string, visited map[string]struct{}, dept
 		}
 
 		members = append(members, member)
+	}
+
+	// Dedupe at every node, not just at the top-level Resolve. Members are a
+	// set (a value reached via two paths counts once), so collapsing here is
+	// semantically identical to deduping at the end — but it also bounds the
+	// slice size at each level. Without it, a node that references a shared
+	// child N times concatenates N copies of that child's (already large)
+	// member set, so the slice grows multiplicatively with depth even though
+	// the memo prevents recomputation: an exponential-size allocation, not
+	// just exponential time. Deduping per node keeps each set at its distinct
+	// member count.
+	members = dedupeSorted(members)
+
+	// Cache only clean expansions; a name that failed via a cycle or the
+	// depth cap is path-dependent and may resolve cleanly elsewhere.
+	if resolved {
+		memo[name] = members
 	}
 
 	return members, resolved

@@ -144,12 +144,29 @@ func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 }
 
 // isBlockAllRule reports whether rule is the terminal-default-deny shape
-// DetectDeadRules classifies as an "unreachable" owner: a block/reject-all
-// matching any source and any destination. This mirrors the shape the
-// pre-derivation implementation checked directly (RuleTypeBlock only; the
-// legacy view never considered RuleTypeReject).
+// DetectDeadRules classifies as an "unreachable" owner: a block-all matching
+// any source and any destination. This mirrors the shape the pre-derivation
+// implementation checked directly (RuleTypeBlock only; the legacy view never
+// considered RuleTypeReject) — DetectDeadRules' byte-for-byte legacy output
+// contract depends on this staying Block-only. Use isTerminalDenyRule
+// instead for any new check that should also recognize RuleTypeReject (e.g.
+// the R9 shadow-detection guard in shadow.go).
 func isBlockAllRule(rule common.FirewallRule) bool {
 	return rule.Type == common.RuleTypeBlock &&
+		rule.Source.Address == constants.NetworkAny &&
+		rule.Destination.Address == constants.NetworkAny
+}
+
+// isTerminalDenyRule reports whether rule is a block-all OR reject-all
+// matching any source and any destination — the terminal default-deny shape
+// R9 exempts from shadow reporting regardless of whether the operator wrote
+// "block" or "reject". Unlike isBlockAllRule (kept Block-only to preserve
+// DetectDeadRules' legacy byte-for-byte output), this is used by the R9
+// shadow-detection guard, where a terminal `reject any->any` below specific
+// passes is exactly as legitimate a default-deny pattern as a terminal
+// `block any->any` and must not produce a false-positive Security shadow.
+func isTerminalDenyRule(rule common.FirewallRule) bool {
+	return (rule.Type == common.RuleTypeBlock || rule.Type == common.RuleTypeReject) &&
 		rule.Source.Address == constants.NetworkAny &&
 		rule.Destination.Address == constants.NetworkAny
 }

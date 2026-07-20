@@ -228,6 +228,31 @@ func TestCoverage(t *testing.T) {
 			wantAliasBlocked: false,
 		},
 		{
+			// R10 false-positive regression: the negation downgrade must also
+			// fire when the raw (pre-negation) coverage is CoverFull, not just
+			// CoverPartial. A negated endpoint whose literal EXACTLY matches
+			// the other side's literal makes addressRelation return CoverFull
+			// (identical strings short-circuit before any negation-aware
+			// logic runs), but "NOT 10.0.0.0/8" actually matches every address
+			// OUTSIDE that range under pf semantics — the opposite of what the
+			// literal match implies. Before this guard covered CoverFull too,
+			// this case silently produced a confirmed CoverFull result.
+			name: "negated source with identical literal is indeterminate, not full",
+			earlier: func() common.FirewallRule {
+				r := baseOverlapRule()
+				r.Source.Address = "10.0.0.0/8"
+				r.Source.Negated = true
+				return r
+			}(),
+			later: func() common.FirewallRule {
+				r := baseOverlapRule()
+				r.Source.Address = "10.0.0.0/8"
+				return r
+			}(),
+			wantCoverage:     CoverIndeterminate,
+			wantAliasBlocked: false,
+		},
+		{
 			name: "unresolvable alias endpoints with different names do not match",
 			earlier: func() common.FirewallRule {
 				r := baseOverlapRule()
@@ -284,6 +309,33 @@ func TestCoverage(t *testing.T) {
 
 			assert.Equal(t, tt.wantCoverage, gotCoverage, "coverage mismatch")
 			assert.Equal(t, tt.wantAliasBlocked, gotAliasBlocked, "aliasBlocked mismatch")
+		})
+	}
+}
+
+// TestProtocolCoverage exercises protocolCoverage directly across the four
+// combinations of specific-vs-specific, specific-vs-any, any-vs-specific,
+// and any-vs-any layer-4 protocols.
+func TestProtocolCoverage(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		earlier string
+		later   string
+		want    Coverage
+	}{
+		{name: "tcp vs udp is CoverNone", earlier: "tcp", later: "udp", want: CoverNone},
+		{name: "tcp vs any is CoverPartial", earlier: "tcp", later: "any", want: CoverPartial},
+		{name: "any vs tcp is CoverFull", earlier: "any", later: "tcp", want: CoverFull},
+		{name: "tcp vs tcp is CoverFull", earlier: "tcp", later: "tcp", want: CoverFull},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, protocolCoverage(tt.earlier, tt.later))
 		})
 	}
 }
