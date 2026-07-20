@@ -150,9 +150,23 @@ func isUnscopedFloating(r common.FirewallRule) bool {
 
 // ruleInBucket reports whether a rule with direction dir participates in
 // the given direction bucket: an exact match, or dir == DirectionAny, which
-// participates in both buckets.
+// participates in both buckets. An empty/unspecified direction is treated as
+// inbound — OPNsense/pfSense interface-tab rules omit the <direction> element
+// and pf evaluates them as `in`, so the common real-world case (no explicit
+// direction) must join the "in" bucket rather than no bucket at all.
 func ruleInBucket(dir, bucket common.FirewallDirection) bool {
-	return dir == bucket || dir == common.DirectionAny
+	return effectiveDirection(dir) == bucket || dir == common.DirectionAny
+}
+
+// effectiveDirection maps an unspecified direction to the pf default (inbound)
+// for grouping purposes only. It does not mutate the model — the CommonDevice
+// rule keeps its original (possibly empty) Direction.
+func effectiveDirection(dir common.FirewallDirection) common.FirewallDirection {
+	if dir == "" {
+		return common.DirectionIn
+	}
+
+	return dir
 }
 
 // sortedGroupKeys returns groups' keys in deterministic order: interface

@@ -31,6 +31,28 @@ func TestDetectShadowedRules_NilOrTooFewRules(t *testing.T) {
 	}))
 }
 
+// Regression: real OPNsense/pfSense interface rules commonly omit the
+// <direction> element, so the converter yields Direction=="". Such rules must
+// still be grouped (pf evaluates them as inbound) and produce shadow findings —
+// before the empty-direction fix they joined no precedence bucket and the
+// detector silently found nothing on typical real configs.
+func TestDetectShadowedRules_EmptyDirection_TreatedAsInbound(t *testing.T) {
+	earlier := baseShadowRule("wan", "", common.RuleTypePass)
+	earlier.Destination.Port = "22"
+
+	later := baseShadowRule("wan", "", common.RuleTypeBlock)
+	later.Source.Address = "10.0.0.0/8"
+	later.Destination.Port = "22"
+
+	cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{earlier, later}}
+
+	findings := DetectShadowedRules(cfg)
+	require.Len(t, findings, 1, "empty-direction interface rules must still be analyzed")
+	assert.Equal(t, common.ShadowKindFull, findings[0].Kind)
+	assert.Equal(t, common.ImpactClassSecurity, findings[0].ImpactClass)
+	assert.Equal(t, 1, findings[0].RuleIndex)
+}
+
 // AE1: quick pass any->any:22 then quick block 10/8->any:22 on WAN in ⇒ full
 // shadow of the block, Security, critical (WAN escalation, R6/R12/R14).
 func TestDetectShadowedRules_AE1_FullShadow_Security_Critical_WAN(t *testing.T) {
