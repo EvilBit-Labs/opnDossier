@@ -1,8 +1,6 @@
 # ADR-0004: Unified firewall shadow-detection engine with a deadRules compatibility view
 
-**Date**: 2026-07-19 **Status**: proposed **Deciders**: unclesp1d3r
-
-> **Pending implementation.** This ADR records a forward-looking decision made while planning firewall rule shadowing detection (issue #202). The unified shadow engine and the `analysis.shadowedRules` output are not yet built; the `deadRules` compatibility view describes how the existing export is preserved once they are. Status moves to `accepted` once the engine lands.
+**Date**: 2026-07-19 **Status**: accepted **Deciders**: unclesp1d3r
 
 ## Context
 

@@ -1,8 +1,8 @@
 # ADR-0002: Named-object reference layer in CommonDevice
 
-**Date**: 2026-07-18 **Status**: proposed **Deciders**: unclesp1d3r
+**Date**: 2026-07-18 **Status**: accepted (scoped) **Deciders**: unclesp1d3r
 
-> **Pending implementation.** This ADR records a forward-looking decision. The `NamedObjects` registry and `ObjectRef` types are not yet in `CommonDevice`; they will be added alongside the FortiGate parser (issue #199). Status moves to `accepted` once the model change lands.
+> **Scope of acceptance.** The `NamedObjects` registry and `ObjectRef` types landed in `CommonDevice` as part of firewall rule shadowing detection (issue #202), which populates them with the address/port-alias portion of this decision (OPNsense and pfSense host/network/port/url/geoip/external aliases via `RuleEndpoint.AddressRef`/`PortRef`). This ADR is accepted for that portion only. The zone/service-object extension anticipated for the FortiGate parser (issue #199) — additional reference cardinality and object kinds (zones, security policies) beyond the singular per-endpoint address/port refs built here — remains open; #199 is expected to extend this shape additively rather than reopen it (see the Consequences/Risks note on issue #199's superseded Phase-4 mapping table).
 
 ## Context
 

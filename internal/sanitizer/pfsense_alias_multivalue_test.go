@@ -15,12 +15,16 @@ import (
 	"testing"
 )
 
-// pfSenseAliasFixturePath is the repo-root pfSense alias fixture (see U3 of
+// pfSenseAliasFixturePath is the pfSense-specific alias fixture (see U3 of
 // the firewall-shadowing plan): a minimal valid pfSense config.xml with a
 // populated top-level <aliases> block whose members are SPACE-separated
 // multi-value <address> elements — pfSense's member convention, as opposed
 // to OPNsense's newline-separated <content> (see alias_multivalue_test.go).
-const pfSenseAliasFixturePath = "../../testdata/pfsense-aliases.xml"
+// It lives under testdata/pfsense/ (not the flat testdata/ root) alongside
+// the other pfSense-only fixtures, since TestOpnSenseDocument_XMLCoverage
+// (pkg/schema/opnsense) unmarshals every flat *.xml file under testdata/ as
+// an OpnSenseDocument and would fail on a pfSense-rooted document.
+const pfSenseAliasFixturePath = "../../testdata/pfsense/pfsense-aliases.xml"
 
 // TestSanitizeXML_PfSenseAliasMultiValue_Aggressive proves that `sanitize
 // --mode aggressive` (SanitizeXML) redacts every IP address embedded in the

@@ -1,8 +1,6 @@
 # ADR-0005: Firewall analysis models pf rule-evaluation semantics directly
 
-**Date**: 2026-07-19 **Status**: proposed **Deciders**: unclesp1d3r
-
-> **Pending implementation.** This ADR records a forward-looking decision made while planning firewall rule shadowing detection (issue #202). The precedence logic described here is not yet implemented; it defines the contract the shadow engine and future rule analyzers follow. Status moves to `accepted` once the engine lands.
+**Date**: 2026-07-19 **Status**: accepted **Deciders**: unclesp1d3r
 
 ## Context
 

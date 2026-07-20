@@ -12,14 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestParser_PfSenseAliasesFixture parses testdata/pfsense-aliases.xml
+// TestParser_PfSenseAliasesFixture parses testdata/pfsense/pfsense-aliases.xml
 // end-to-end through the pfSense Parser (not direct struct construction) and
 // proves the top-level <aliases> subtree populates common.NamedObjects with
 // the expected types and (space-separated) members.
+//
+// The fixture lives under testdata/pfsense/ (not the flat testdata/ root)
+// alongside the other pfSense-only fixtures, since
+// TestOpnSenseDocument_XMLCoverage (pkg/schema/opnsense) unmarshals every
+// flat *.xml file directly under testdata/ as an OpnSenseDocument and would
+// fail on a pfSense-rooted document.
 func TestParser_PfSenseAliasesFixture(t *testing.T) {
 	t.Parallel()
 
-	fpath := filepath.Join("..", "..", "..", "testdata", "pfsense-aliases.xml")
+	fpath := filepath.Join("..", "..", "..", "testdata", "pfsense", "pfsense-aliases.xml")
 	f, err := os.Open(fpath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = f.Close() })

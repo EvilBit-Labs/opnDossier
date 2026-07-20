@@ -38,6 +38,7 @@ func ScanObservations(cfg *common.CommonDevice) []Observation {
 	observations = append(observations, detectWeakCryptoDefaults(cfg)...)
 	observations = append(observations, detectAnyToAnyRules(cfg)...)
 	observations = append(observations, detectDisabledLogging(cfg)...)
+	observations = append(observations, detectShadowedRules(cfg)...)
 
 	return observations
 }
@@ -321,5 +322,77 @@ func detectDisabledLogging(cfg *common.CommonDevice) []Observation {
 			Description:    "Remote syslog forwarding is enabled, but firewall filter log messages are not included, so allow/deny decisions are not captured off-box.",
 			Recommendation: "Enable filter logging under the remote syslog configuration so firewall decisions are forwarded.",
 		},
+	}
+}
+
+// detectShadowedRules adapts each finding from the shared shadow-detection
+// core (DetectShadowedRules, U6) into an Observation — Consumer 3 of the
+// one-core/three-consumer design (ADR-0004, KTD-7). Severity and Confidence
+// are taken directly from the core's KTD-6 severity matrix; Reachability is
+// independently derived via RuleReachability on the shadowed (loser) rule, so
+// a WAN-reachable Security-class shadow also surfaces as a red-mode attack
+// surface through generateRedReport's existing WAN filter — intended, not
+// red-specific logic (KTD-7).
+func detectShadowedRules(cfg *common.CommonDevice) []Observation {
+	shadows := DetectShadowedRules(cfg)
+	if len(shadows) == 0 {
+		return nil
+	}
+
+	observations := make([]Observation, 0, len(shadows))
+
+	for _, f := range shadows {
+		observations = append(observations, shadowObservation(cfg, f))
+	}
+
+	return observations
+}
+
+// shadowObservation converts a single common.ShadowedRuleFinding into an
+// Observation. Severity/Confidence fall back to safe defaults if the shadow
+// core ever emits a value outside the shared vocabularies, guarding against
+// drift between the two independently-defined enums (mirrors
+// adaptSecurityFindings' same guard for DetectSecurityIssues).
+func shadowObservation(cfg *common.CommonDevice, f common.ShadowedRuleFinding) Observation {
+	severity := Severity(f.Severity)
+	if !IsValidSeverity(severity) {
+		severity = SeverityInfo
+	}
+
+	confidence := Confidence(f.Confidence)
+	if !IsValidConfidence(confidence) {
+		confidence = ConfidenceHigh
+	}
+
+	reachability := Local
+	if f.RuleIndex >= 0 && f.RuleIndex < len(cfg.FirewallRules) {
+		reachability = RuleReachability(cfg.FirewallRules[f.RuleIndex], cfg.Interfaces)
+	}
+
+	return Observation{
+		Severity:     severity,
+		Confidence:   confidence,
+		Reachability: reachability,
+		Component:    fmt.Sprintf("filter.rule[%d]", f.RuleIndex),
+		Evidence: fmt.Sprintf(
+			"shadowed by rule %d (filter.rule[%d])",
+			f.ShadowedByIndex+1, f.ShadowedByIndex,
+		),
+		Title:          shadowObservationTitle(f.ImpactClass),
+		Description:    f.Description,
+		Recommendation: f.Recommendation,
+	}
+}
+
+// shadowObservationTitle renders a short, human-readable title for a shadow
+// Observation keyed off the finding's impact class (KTD-6/R12).
+func shadowObservationTitle(impactClass string) string {
+	switch impactClass {
+	case common.ImpactClassSecurity:
+		return "Shadowed Firewall Rule: Security Deny Bypassed"
+	case common.ImpactClassTroubleshooting:
+		return "Shadowed Firewall Rule: Intended Rule Never Takes Effect"
+	default: // common.ImpactClassHygiene
+		return "Shadowed Firewall Rule: Redundant Coverage"
 	}
 }
