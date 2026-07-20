@@ -132,6 +132,8 @@ func (c *converter) ToCommonDevice(
 
 	c.emitKnownGapWarnings()
 
+	namedObjects := c.convertNamedObjects(doc)
+
 	device := &common.CommonDevice{
 		DeviceType:    common.DeviceTypePfSense,
 		Version:       doc.Version,
@@ -139,7 +141,8 @@ func (c *converter) ToCommonDevice(
 		Interfaces:    c.convertInterfaces(doc),
 		VLANs:         c.convertVLANs(doc),
 		PPPs:          c.convertPPPs(doc),
-		FirewallRules: c.convertFirewallRules(doc),
+		NamedObjects:  namedObjects,
+		FirewallRules: c.convertFirewallRules(doc, namedObjects),
 		NAT:           c.convertNAT(doc),
 		DHCP:          c.convertDHCP(doc),
 		DNS:           c.convertDNS(doc),

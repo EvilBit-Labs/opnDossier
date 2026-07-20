@@ -1,5 +1,5 @@
 // Package sanitizer test file. This file intentionally mirrors
-// pfsense_alias_multivalue_test.go structurally (GOTCHAS §9.1: dupl fires
+// alias_multivalue_test.go structurally (GOTCHAS §9.1: dupl fires
 // bidirectionally on both sides of a duplicate pair) — each vendor fixture
 // needs its own independent, readable assertions rather than a shared
 // table-driven helper.
@@ -15,27 +15,25 @@ import (
 	"testing"
 )
 
-// aliasFixturePath is the repo-root OPNsense alias fixture (see U2 of the
-// firewall-shadowing plan): a minimal valid config.xml with a populated MVC
-// <Firewall><Alias><aliases> block whose members are newline-separated
-// multi-value <content> elements — the shape net.ParseIP/net.ParseCIDR-based
-// whole-value checks cannot redact (they require the WHOLE field to be one
-// address). See internal/sanitizer/patterns.go's hasTokenMatch/
-// redactTokenMatches and the updated public_ip/private_ip_aggressive/
-// subnet_field rules in rules.go.
-const aliasFixturePath = "../../testdata/opnsense-aliases.xml"
+// pfSenseAliasFixturePath is the repo-root pfSense alias fixture (see U3 of
+// the firewall-shadowing plan): a minimal valid pfSense config.xml with a
+// populated top-level <aliases> block whose members are SPACE-separated
+// multi-value <address> elements — pfSense's member convention, as opposed
+// to OPNsense's newline-separated <content> (see alias_multivalue_test.go).
+const pfSenseAliasFixturePath = "../../testdata/pfsense-aliases.xml"
 
-// TestSanitizeXML_AliasMultiValue_Aggressive proves that `sanitize --mode
-// aggressive` (SanitizeXML — the path cmd/sanitize.go actually uses, not
-// SanitizeStruct, which has no production callers per GOTCHAS §14.4) redacts
-// every IP address embedded in the alias fixture's newline-separated
-// multi-value <content> elements, not just single-value fields.
-func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
+// TestSanitizeXML_PfSenseAliasMultiValue_Aggressive proves that `sanitize
+// --mode aggressive` (SanitizeXML) redacts every IP address embedded in the
+// pfSense alias fixture's SPACE-separated multi-value <address> elements,
+// reusing the same whitespace-token-based redaction wired for OPNsense's
+// newline-separated <content> in U2 (internal/sanitizer/patterns.go's
+// hasTokenMatch/redactTokenMatches) — no new sanitizer code is required.
+func TestSanitizeXML_PfSenseAliasMultiValue_Aggressive(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile(filepath.Clean(aliasFixturePath))
+	data, err := os.ReadFile(filepath.Clean(pfSenseAliasFixturePath))
 	if err != nil {
-		t.Fatalf("reading alias fixture: %v", err)
+		t.Fatalf("reading pfSense alias fixture: %v", err)
 	}
 
 	s := NewSanitizer(ModeAggressive)
@@ -45,7 +43,7 @@ func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
 	}
 	result := output.String()
 
-	// WEB_SERVERS (private, host alias, newline-separated content).
+	// WEB_SERVERS (private, host alias, space-separated address).
 	leakedPrivateHosts := []string{"10.20.30.40", "10.20.30.41"}
 	for _, addr := range leakedPrivateHosts {
 		if strings.Contains(result, addr) {
@@ -53,18 +51,17 @@ func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
 		}
 	}
 
-	// INTERNAL_NET (private network/CIDR alias, single-value content but
-	// still exercises the same private_ip_aggressive path as multi-value).
+	// INTERNAL_NET (private network/CIDR alias, single-value address).
 	if strings.Contains(result, "10.20.0.0/16") || strings.Contains(result, "10.20.0.0") {
 		t.Error("private network alias CIDR leaked in aggressive sanitize output")
 	}
 
-	// ALL_SERVERS (nested alias: alias-name member + literal host, newline-separated).
+	// ALL_SERVERS (nested alias: alias-name member + literal host, space-separated).
 	if strings.Contains(result, "10.20.30.50") {
 		t.Error("nested alias's literal host member leaked in aggressive sanitize output")
 	}
 
-	// EXTERNAL_HOSTS (public, host alias, newline-separated content) —
+	// EXTERNAL_HOSTS (public, host alias, space-separated address) —
 	// exercises the public_ip rule's multi-value fallback specifically.
 	leakedPublicHosts := []string{"203.0.113.10", "198.51.100.20"}
 	for _, addr := range leakedPublicHosts {

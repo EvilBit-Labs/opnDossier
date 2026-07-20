@@ -10,7 +10,14 @@ import (
 )
 
 // convertFirewallRules maps doc.Filter.Rule to []common.FirewallRule.
-func (c *converter) convertFirewallRules(doc *pfsense.Document) []common.FirewallRule {
+// namedObjects is consulted so that an endpoint whose Address or Port equals
+// a known alias name gets AddressRef/PortRef set (ADR-0002); the resolved
+// inline Address/Port value is kept regardless, so existing consumers keep
+// working unmodified.
+func (c *converter) convertFirewallRules(
+	doc *pfsense.Document,
+	namedObjects common.NamedObjects,
+) []common.FirewallRule {
 	if len(doc.Filter.Rule) == 0 {
 		return nil
 	}
@@ -90,14 +97,18 @@ func (c *converter) convertFirewallRules(doc *pfsense.Document) []common.Firewal
 			Quick:       bool(rule.Quick),
 			Protocol:    rule.Protocol,
 			Source: common.RuleEndpoint{
-				Address: rule.Source.EffectiveAddress(),
-				Port:    rule.Source.Port,
-				Negated: bool(rule.Source.Not),
+				Address:    rule.Source.EffectiveAddress(),
+				AddressRef: resolveObjectRef(namedObjects, rule.Source.EffectiveAddress()),
+				Port:       rule.Source.Port,
+				PortRef:    resolveObjectRef(namedObjects, rule.Source.Port),
+				Negated:    bool(rule.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
-				Address: rule.Destination.EffectiveAddress(),
-				Port:    rule.Destination.Port,
-				Negated: bool(rule.Destination.Not),
+				Address:    rule.Destination.EffectiveAddress(),
+				AddressRef: resolveObjectRef(namedObjects, rule.Destination.EffectiveAddress()),
+				Port:       rule.Destination.Port,
+				PortRef:    resolveObjectRef(namedObjects, rule.Destination.Port),
+				Negated:    bool(rule.Destination.Not),
 			},
 			Target:          rule.Target,
 			Gateway:         rule.Gateway,
