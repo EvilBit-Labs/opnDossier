@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
@@ -46,18 +47,6 @@ func (c Coverage) String() string {
 	default:
 		return "CoverUnknown"
 	}
-}
-
-// maxCoverage returns whichever of a, b ranks higher on the
-// None < Partial < Full scale. It is only ever applied to values produced
-// by the per-dimension relation helpers below, none of which ever produce
-// CoverIndeterminate, so the plain iota ordering is a safe ranking here.
-func maxCoverage(a, b Coverage) Coverage {
-	if b > a {
-		return b
-	}
-
-	return a
 }
 
 // coverage reports how completely earlier's match set covers later's match
@@ -170,7 +159,7 @@ func protocolCoverage(earlierProto, laterProto string) Coverage {
 // normalizeProtocol maps the any/empty wildcard spellings to "" so callers
 // only need to check for emptiness.
 func normalizeProtocol(p string) string {
-	if strings.EqualFold(p, "any") {
+	if strings.EqualFold(p, constants.NetworkAny) {
 		return ""
 	}
 
@@ -191,7 +180,7 @@ func aggregateCoverage[T any](covering, target []T, relate func(covering, target
 		best := CoverNone
 
 		for _, c := range covering {
-			best = maxCoverage(best, relate(c, t))
+			best = max(best, relate(c, t))
 			if best == CoverFull {
 				break
 			}
@@ -241,22 +230,34 @@ func addressCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects)
 // the second return is true (R8: unresolvable aliases match only on exact
 // equality, never expanded).
 func resolveAddressValues(ep common.RuleEndpoint, no common.NamedObjects) ([]string, bool) {
-	if ep.AddressRef == nil {
-		return []string{ep.Address}, false
+	return resolveEndpointValues(ep.AddressRef, ep.Address, no)
+}
+
+// resolveEndpointValues expands ref/literal into their full set of concrete
+// member values (the first return), the shared logic behind
+// resolveAddressValues and resolvePortValues. A literal (nil ref) resolves
+// to itself. A named-object reference resolves via NamedObjects.Resolve;
+// when resolution fails (unresolvable name, dynamic/opaque type, or a nil
+// registry), it falls back to the literal value and the second return is
+// true (R8: unresolvable aliases match only on exact equality, never
+// expanded).
+func resolveEndpointValues(ref *common.ObjectRef, literal string, no common.NamedObjects) ([]string, bool) {
+	if ref == nil {
+		return []string{literal}, false
 	}
 
-	members, resolved := no.Resolve(ep.AddressRef.Name)
+	members, resolved := no.Resolve(ref.Name)
 	if resolved && len(members) > 0 {
 		return members, false
 	}
 
-	return []string{ep.Address}, true
+	return []string{literal}, true
 }
 
 // isAnyAddressSet reports whether vals represents the "any" address
 // wildcard: a single empty or "any" (case-insensitive) value.
 func isAnyAddressSet(vals []string) bool {
-	return len(vals) == 1 && (vals[0] == "" || strings.EqualFold(vals[0], "any"))
+	return len(vals) == 1 && (vals[0] == "" || strings.EqualFold(vals[0], constants.NetworkAny))
 }
 
 // addressRelation classifies the relationship between one covering address
@@ -266,7 +267,7 @@ func isAnyAddressSet(vals []string) bool {
 // matches everything. Values that are not literal IP addresses or CIDRs
 // (e.g. hostnames) fall back to exact string equality.
 func addressRelation(covering, target string) Coverage {
-	if covering == "" || strings.EqualFold(covering, "any") {
+	if covering == "" || strings.EqualFold(covering, constants.NetworkAny) {
 		return CoverFull
 	}
 
@@ -355,16 +356,7 @@ func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (C
 // concrete member values, mirroring resolveAddressValues for the Port/PortRef
 // pair.
 func resolvePortValues(ep common.RuleEndpoint, no common.NamedObjects) ([]string, bool) {
-	if ep.PortRef == nil {
-		return []string{ep.Port}, false
-	}
-
-	members, resolved := no.Resolve(ep.PortRef.Name)
-	if resolved && len(members) > 0 {
-		return members, false
-	}
-
-	return []string{ep.Port}, true
+	return resolveEndpointValues(ep.PortRef, ep.Port, no)
 }
 
 // exactSingletonCoverage compares two single-value sets for exact string
@@ -412,7 +404,7 @@ func parsePortMembers(vals []string) ([]portRange, bool, bool) {
 // list of the above.
 func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
-	if trimmed == "" || strings.EqualFold(trimmed, "any") {
+	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
 		return nil, true, true
 	}
 

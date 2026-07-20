@@ -184,6 +184,22 @@ const (
 	ShadowKindPartial = "partial"
 )
 
+// Confidence classifies how certain a firewall-rule shadow finding is,
+// distinct from Severity: every finding is ConfidenceHigh except the R8
+// advisory path (an unresolvable alias sitting inside what would otherwise
+// be a Security-class overlap), which is ConfidenceLow (see
+// ShadowedRuleFinding.Confidence).
+type Confidence string
+
+// Confidence level constants for ShadowedRuleFinding.Confidence.
+const (
+	// ConfidenceHigh indicates a confirmed, non-advisory finding.
+	ConfidenceHigh Confidence = "high"
+	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias
+	// prevented the shadow from being confirmed with certainty.
+	ConfidenceLow Confidence = "low"
+)
+
 // Impact class constants classify the operator-facing consequence of a
 // firewall-rule shadow, derived from the covering rule's action relative to
 // the shadowed rule's action (see ShadowedRuleFinding.ImpactClass).
@@ -213,10 +229,10 @@ type ShadowedRuleFinding struct {
 	// troubleshooting, or hygiene (see the ImpactClass* constants).
 	ImpactClass string `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
-	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
-	// Confidence indicates how certain the finding is: "high", or "low" for
-	// the unresolved-alias advisory path.
-	Confidence string `json:"confidence,omitempty" yaml:"confidence,omitempty"`
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Confidence indicates how certain the finding is: ConfidenceHigh, or
+	// ConfidenceLow for the unresolved-alias advisory path.
+	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
 	// RuleIndex is the position of the shadowed (loser) rule in the filter
 	// rule list.
 	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`

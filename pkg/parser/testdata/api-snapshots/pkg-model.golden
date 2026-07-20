@@ -440,6 +440,22 @@ type ComplianceResults struct {
 func (r ComplianceResults) HasData() bool
     HasData reports whether the compliance results contain meaningful data.
 
+type Confidence string
+    Confidence classifies how certain a firewall-rule shadow finding is,
+    distinct from Severity: every finding is ConfidenceHigh except the
+    R8 advisory path (an unresolvable alias sitting inside what would
+    otherwise be a Security-class overlap), which is ConfidenceLow (see
+    ShadowedRuleFinding.Confidence).
+
+const (
+	// ConfidenceHigh indicates a confirmed, non-advisory finding.
+	ConfidenceHigh Confidence = "high"
+	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias
+	// prevented the shadow from being confirmed with certainty.
+	ConfidenceLow Confidence = "low"
+)
+    Confidence level constants for ShadowedRuleFinding.Confidence.
+
 type ConsistencyFinding struct {
 	// Component is the configuration component affected by the finding.
 	Component string `json:"component,omitempty" yaml:"component,omitempty"`
@@ -1772,6 +1788,11 @@ type NamedObjects map[string]NamedObject
     Iterate NamedObjects in sorted key order for any deterministic output
     (GOTCHAS §3.1) — Go map iteration order is non-deterministic.
 
+func (n NamedObjects) Ref(name string) *ObjectRef
+    Ref returns a *ObjectRef when name matches a key in n, or nil when n is
+    empty/nil, name is empty, or name does not resolve to a known named object
+    (i.e. it is a literal address/port, not an alias reference).
+
 func (n NamedObjects) Resolve(name string) ([]string, bool)
     Resolve flattens name into its complete set of resolved static members.
 
@@ -2185,10 +2206,10 @@ type ShadowedRuleFinding struct {
 	// troubleshooting, or hygiene (see the ImpactClass* constants).
 	ImpactClass string `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
-	Severity string `json:"severity,omitempty" yaml:"severity,omitempty"`
-	// Confidence indicates how certain the finding is: "high", or "low" for
-	// the unresolved-alias advisory path.
-	Confidence string `json:"confidence,omitempty" yaml:"confidence,omitempty"`
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Confidence indicates how certain the finding is: ConfidenceHigh, or
+	// ConfidenceLow for the unresolved-alias advisory path.
+	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
 	// RuleIndex is the position of the shadowed (loser) rule in the filter
 	// rule list.
 	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`

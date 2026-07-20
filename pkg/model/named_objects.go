@@ -1,6 +1,9 @@
 package model
 
-import "sort"
+import (
+	"maps"
+	"slices"
+)
 
 // maxAliasDepth bounds how many nested named-object references Resolve will
 // follow before giving up. It is deliberately generous — deeper than any
@@ -84,6 +87,20 @@ type ObjectRef struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 }
 
+// Ref returns a *ObjectRef when name matches a key in n, or nil when n is
+// empty/nil, name is empty, or name does not resolve to a known named
+// object (i.e. it is a literal address/port, not an alias reference).
+func (n NamedObjects) Ref(name string) *ObjectRef {
+	if name == "" || len(n) == 0 {
+		return nil
+	}
+	if _, ok := n[name]; !ok {
+		return nil
+	}
+
+	return &ObjectRef{Name: name}
+}
+
 // Resolve flattens name into its complete set of resolved static members.
 //
 // Nested references (an object whose members include another object's name)
@@ -161,19 +178,9 @@ func (n NamedObjects) resolveNode(name string, visited map[string]struct{}, dept
 func dedupeSorted(members []string) []string {
 	seen := make(map[string]struct{}, len(members))
 
-	var out []string
-
 	for _, m := range members {
-		if _, ok := seen[m]; ok {
-			continue
-		}
-
 		seen[m] = struct{}{}
-
-		out = append(out, m)
 	}
 
-	sort.Strings(out)
-
-	return out
+	return slices.Sorted(maps.Keys(seen))
 }

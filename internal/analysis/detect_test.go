@@ -194,9 +194,9 @@ func TestDetectDeadRules(t *testing.T) {
 }
 
 // TestDetectDeadRules_DisabledNotEquivalent ensures a disabled rule is not
-// reported as a duplicate of an otherwise-identical enabled rule. Both
-// RulesEquivalent and hashRule must agree on this — if either drops the
-// Disabled check, integration output changes silently.
+// reported as a duplicate of an otherwise-identical enabled rule. If
+// RulesEquivalent drops the Disabled check, integration output changes
+// silently.
 func TestDetectDeadRules_DisabledNotEquivalent(t *testing.T) {
 	t.Parallel()
 

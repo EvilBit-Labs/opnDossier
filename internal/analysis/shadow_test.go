@@ -71,8 +71,8 @@ func TestDetectShadowedRules_AE1_FullShadow_Security_Critical_WAN(t *testing.T) 
 	f := findings[0]
 	assert.Equal(t, common.ShadowKindFull, f.Kind)
 	assert.Equal(t, common.ImpactClassSecurity, f.ImpactClass)
-	assert.Equal(t, string(SeverityCritical), f.Severity)
-	assert.Equal(t, confidenceHigh, f.Confidence)
+	assert.Equal(t, common.SeverityCritical, f.Severity)
+	assert.Equal(t, common.ConfidenceHigh, f.Confidence)
 	assert.Equal(t, 1, f.RuleIndex)
 	assert.Equal(t, 0, f.ShadowedByIndex)
 	assert.Equal(t, "wan", f.Interface)
@@ -105,8 +105,8 @@ func TestDetectShadowedRules_AE2_PartialShadow_Security_High_LANEgress(t *testin
 	f := findings[0]
 	assert.Equal(t, common.ShadowKindPartial, f.Kind)
 	assert.Equal(t, common.ImpactClassSecurity, f.ImpactClass)
-	assert.Equal(t, string(SeverityHigh), f.Severity)
-	assert.Equal(t, confidenceHigh, f.Confidence)
+	assert.Equal(t, common.SeverityHigh, f.Severity)
+	assert.Equal(t, common.ConfidenceHigh, f.Confidence)
 	assert.Equal(t, "500-2000", f.Port, "eclipsed port should be a best-effort read of the loser's destination port")
 }
 
@@ -128,7 +128,7 @@ func TestDetectShadowedRules_AE3_Hygiene_Redundant(t *testing.T) {
 	f := findings[0]
 	assert.Equal(t, common.ShadowKindFull, f.Kind)
 	assert.Equal(t, common.ImpactClassHygiene, f.ImpactClass)
-	assert.Equal(t, string(SeverityLow), f.Severity)
+	assert.Equal(t, common.SeverityLow, f.Severity)
 	assert.Equal(t, 1, f.RuleIndex)
 	assert.Equal(t, 0, f.ShadowedByIndex)
 }
@@ -215,7 +215,12 @@ func TestDetectShadowedRules_AE6_AliasAware_PartialShadow(t *testing.T) {
 	f := findings[0]
 	assert.Equal(t, common.ShadowKindPartial, f.Kind)
 	assert.Equal(t, common.ImpactClassSecurity, f.ImpactClass)
-	assert.NotEqual(t, confidenceLow, f.Confidence, "a cleanly resolved alias is a confirmed finding, not an advisory")
+	assert.NotEqual(
+		t,
+		common.ConfidenceLow,
+		f.Confidence,
+		"a cleanly resolved alias is a confirmed finding, not an advisory",
+	)
 }
 
 // Non-quick counterpart to AE1-AE4: an earlier broad non-quick block fully
@@ -249,7 +254,7 @@ func TestDetectShadowedRules_NonQuick_WinnerLoserFlip_StillSecurity(t *testing.T
 		"winner(pass)->loser(block) is Security regardless of quick/non-quick")
 	assert.Equal(t, 0, f.RuleIndex, "under non-quick, the EARLIER block rule is the loser")
 	assert.Equal(t, 1, f.ShadowedByIndex, "under non-quick, the LATER pass rule is the winner")
-	assert.Equal(t, string(SeverityHigh), f.Severity, "LAN-reachable Security shadow")
+	assert.Equal(t, common.SeverityHigh, f.Severity, "LAN-reachable Security shadow")
 }
 
 // R13: a LAN-reachable shadow is emitted — reachability feeds severity but
@@ -285,11 +290,11 @@ func TestDetectShadowedRules_R14_SeverityEscalatesOnWAN(t *testing.T) {
 
 	lanFindings := DetectShadowedRules(buildPair("lan"))
 	require.Len(t, lanFindings, 1)
-	assert.Equal(t, string(SeverityHigh), lanFindings[0].Severity)
+	assert.Equal(t, common.SeverityHigh, lanFindings[0].Severity)
 
 	wanFindings := DetectShadowedRules(buildPair("wan"))
 	require.Len(t, wanFindings, 1)
-	assert.Equal(t, string(SeverityCritical), wanFindings[0].Severity)
+	assert.Equal(t, common.SeverityCritical, wanFindings[0].Severity)
 
 	assert.Equal(t, lanFindings[0].ImpactClass, wanFindings[0].ImpactClass)
 	assert.Equal(t, lanFindings[0].Kind, wanFindings[0].Kind)
@@ -325,8 +330,8 @@ func TestDetectShadowedRules_R8_AdvisoryOnUnresolvableAlias_Security(t *testing.
 
 	f := findings[0]
 	assert.Equal(t, common.ImpactClassSecurity, f.ImpactClass)
-	assert.Equal(t, confidenceLow, f.Confidence)
-	assert.Equal(t, string(SeverityHigh), f.Severity, "WAN advisory row")
+	assert.Equal(t, common.ConfidenceLow, f.Confidence)
+	assert.Equal(t, common.SeverityHigh, f.Severity, "WAN advisory row")
 	assert.Contains(t, f.Description, "(unconfirmed — unresolved alias)")
 }
 
@@ -377,7 +382,7 @@ func TestDetectShadowedRules_SameActionPartialOverlap_Hygiene(t *testing.T) {
 	f := findings[0]
 	assert.Equal(t, common.ShadowKindPartial, f.Kind)
 	assert.Equal(t, common.ImpactClassHygiene, f.ImpactClass)
-	assert.Equal(t, string(SeverityLow), f.Severity)
+	assert.Equal(t, common.SeverityLow, f.Severity)
 }
 
 // Deterministic ordering: findings across multiple interfaces are sorted by

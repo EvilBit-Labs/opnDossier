@@ -86,17 +86,3 @@ func splitAliasMembers(content, address string) []string {
 	}
 	return strings.Fields(address)
 }
-
-// resolveObjectRef returns a *common.ObjectRef when name matches a key in
-// objs, or nil when objs is empty/nil, name is empty, or name does not
-// resolve to a known named object (i.e. it is a literal address/port, not an
-// alias reference).
-func resolveObjectRef(objs common.NamedObjects, name string) *common.ObjectRef {
-	if name == "" || len(objs) == 0 {
-		return nil
-	}
-	if _, ok := objs[name]; !ok {
-		return nil
-	}
-	return &common.ObjectRef{Name: name}
-}

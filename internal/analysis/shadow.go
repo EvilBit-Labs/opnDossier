@@ -5,16 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
-)
-
-// Confidence values for ShadowedRuleFinding.Confidence. Every finding is
-// confidenceHigh except the R8 advisory path (an unresolvable alias sitting
-// inside what would otherwise be a Security-class overlap).
-const (
-	confidenceHigh = "high"
-	confidenceLow  = "low"
 )
 
 // DetectShadowedRules reports firewall rules — or subsets of their traffic —
@@ -117,8 +108,8 @@ func shadowKindFor(extent Coverage) string {
 // the gocritic unnamedResult / nonamedreturns tension that two same-typed
 // named returns would create.
 type shadowSeverity struct {
-	severity   string
-	confidence string
+	severity   common.Severity
+	confidence common.Confidence
 }
 
 // severityFor implements the KTD-6 severity matrix: severity and confidence
@@ -132,12 +123,12 @@ func severityFor(impactClass string, reachability Reachability, advisory bool) s
 		return securitySeverity(wan, advisory)
 	case common.ImpactClassTroubleshooting:
 		if wan {
-			return shadowSeverity{severity: string(SeverityMedium), confidence: confidenceHigh}
+			return shadowSeverity{severity: common.SeverityMedium, confidence: common.ConfidenceHigh}
 		}
 
-		return shadowSeverity{severity: string(SeverityLow), confidence: confidenceHigh}
+		return shadowSeverity{severity: common.SeverityLow, confidence: common.ConfidenceHigh}
 	default: // common.ImpactClassHygiene
-		return shadowSeverity{severity: string(SeverityLow), confidence: confidenceHigh}
+		return shadowSeverity{severity: common.SeverityLow, confidence: common.ConfidenceHigh}
 	}
 }
 
@@ -147,17 +138,17 @@ func severityFor(impactClass string, reachability Reachability, advisory bool) s
 func securitySeverity(wan, advisory bool) shadowSeverity {
 	if advisory {
 		if wan {
-			return shadowSeverity{severity: string(SeverityHigh), confidence: confidenceLow}
+			return shadowSeverity{severity: common.SeverityHigh, confidence: common.ConfidenceLow}
 		}
 
-		return shadowSeverity{severity: string(SeverityMedium), confidence: confidenceLow}
+		return shadowSeverity{severity: common.SeverityMedium, confidence: common.ConfidenceLow}
 	}
 
 	if wan {
-		return shadowSeverity{severity: string(SeverityCritical), confidence: confidenceHigh}
+		return shadowSeverity{severity: common.SeverityCritical, confidence: common.ConfidenceHigh}
 	}
 
-	return shadowSeverity{severity: string(SeverityHigh), confidence: confidenceHigh}
+	return shadowSeverity{severity: common.SeverityHigh, confidence: common.ConfidenceHigh}
 }
 
 // eclipsedPort returns the best-effort eclipsed port subset for a partial
@@ -226,10 +217,7 @@ func recommendationFor(impactClass string, advisory bool) string {
 // coverage extent. This mirrors the i < len(rules)-1 exemption
 // DetectDeadRules already applies to the same pattern.
 func isTerminalDefaultDeny(pair PrecedencePair, rules []common.FirewallRule) bool {
-	loser := pair.Loser.Rule
-	if loser.Type != common.RuleTypeBlock ||
-		loser.Source.Address != constants.NetworkAny ||
-		loser.Destination.Address != constants.NetworkAny {
+	if !isBlockAllRule(pair.Loser.Rule) {
 		return false
 	}
 
@@ -277,46 +265,34 @@ func detectAliasBlockedSecurityAdvisories(rules []common.FirewallRule, no common
 }
 
 // resolveAliasBlockedAdvisoryPair mirrors resolvePair's winner/loser
-// derivation (precedence.go) for one candidate (earlier, later) pair, but —
-// unlike resolvePair — surfaces the pair even when coverage() returns
-// CoverNone, provided the CoverNone came from an unresolvable alias
-// (aliasBlocked) and the resulting winner/loser action relationship would
-// be Security. The pair's Extent is set to CoverFull: the true extent is
-// unknown (that is precisely what "unresolved" means), and R8's over-report
-// bias for security correlation prefers the conservative (full) framing
-// over silently under-reporting a partial one.
+// derivation (precedence.go, derivePairWinnerLoser) for one candidate
+// (earlier, later) pair, but — unlike resolvePair — surfaces the pair even
+// when coverage() returns CoverNone, provided the CoverNone came from an
+// unresolvable alias (aliasBlocked) and the resulting winner/loser action
+// relationship would be Security. The pair's Extent is set to CoverFull: the
+// true extent is unknown (that is precisely what "unresolved" means), and
+// R8's over-report bias for security correlation prefers the conservative
+// (full) framing over silently under-reporting a partial one.
 func resolveAliasBlockedAdvisoryPair(
 	key precedenceGroupKey,
 	earlier, later IndexedRule,
 	no common.NamedObjects,
 ) (PrecedencePair, bool) {
-	var (
-		cov           Coverage
-		aliasBlocked  bool
-		winner, loser IndexedRule
-	)
-
-	if earlier.Rule.Quick {
-		cov, aliasBlocked = coverage(earlier.Rule, later.Rule, no)
-		winner, loser = earlier, later
-	} else {
-		cov, aliasBlocked = coverage(later.Rule, earlier.Rule, no)
-		winner, loser = later, earlier
-	}
+	wl, cov, aliasBlocked := derivePairWinnerLoser(earlier, later, no)
 
 	if !aliasBlocked || cov != CoverNone {
 		return PrecedencePair{}, false
 	}
 
-	if impactClassFor(winner.Rule.Type, loser.Rule.Type) != common.ImpactClassSecurity {
+	if impactClassFor(wl.winner.Rule.Type, wl.loser.Rule.Type) != common.ImpactClassSecurity {
 		return PrecedencePair{}, false
 	}
 
 	return PrecedencePair{
 		Interface:    key.iface,
 		Direction:    key.dir,
-		Winner:       winner,
-		Loser:        loser,
+		Winner:       wl.winner,
+		Loser:        wl.loser,
 		Extent:       CoverFull,
 		AliasBlocked: true,
 	}, true

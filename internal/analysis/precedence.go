@@ -212,31 +212,10 @@ func resolveGroup(key precedenceGroupKey, ordered []IndexedRule, no common.Named
 
 // resolvePair resolves one candidate pair — earlier and later by group
 // position — into its effective PrecedencePair, or reports ok=false when
-// the pair's coverage is CoverNone or CoverIndeterminate.
-//
-// The decision is keyed solely off earlier's own Quick flag (ADR-0005):
-// quick earlier rule ⇒ first-match, earlier wins outright when it covers
-// later, so later is the loser — the coverage question is "does earlier
-// cover later". Non-quick earlier rule ⇒ last-match, whatever later covers
-// of earlier wins the overlap, so earlier is the loser — the coverage
-// question flips to "does later cover earlier". later's own Quick flag
-// plays no part in this decision: a non-quick earlier rule never stops
-// evaluation, so any later matching rule — quick or not — supersedes it for
-// the overlapping traffic.
+// the pair's coverage is CoverNone or CoverIndeterminate. See
+// derivePairWinnerLoser for the winner/loser derivation rules.
 func resolvePair(key precedenceGroupKey, earlier, later IndexedRule, no common.NamedObjects) (PrecedencePair, bool) {
-	var (
-		cov           Coverage
-		aliasBlocked  bool
-		winner, loser IndexedRule
-	)
-
-	if earlier.Rule.Quick {
-		cov, aliasBlocked = coverage(earlier.Rule, later.Rule, no)
-		winner, loser = earlier, later
-	} else {
-		cov, aliasBlocked = coverage(later.Rule, earlier.Rule, no)
-		winner, loser = later, earlier
-	}
+	wl, cov, aliasBlocked := derivePairWinnerLoser(earlier, later, no)
 
 	if cov != CoverFull && cov != CoverPartial {
 		return PrecedencePair{}, false
@@ -245,9 +224,49 @@ func resolvePair(key precedenceGroupKey, earlier, later IndexedRule, no common.N
 	return PrecedencePair{
 		Interface:    key.iface,
 		Direction:    key.dir,
-		Winner:       winner,
-		Loser:        loser,
+		Winner:       wl.winner,
+		Loser:        wl.loser,
 		Extent:       cov,
 		AliasBlocked: aliasBlocked,
 	}, true
+}
+
+// pairWinnerLoser bundles a candidate pair's winner and loser rules.
+// Returning this as a single value (rather than two same-typed IndexedRule
+// results) avoids the gocritic unnamedResult / nonamedreturns tension that
+// two same-typed named returns would create (mirrors shadowSeverity in
+// shadow.go for the same reason).
+type pairWinnerLoser struct {
+	winner, loser IndexedRule
+}
+
+// derivePairWinnerLoser resolves earlier and later's winner/loser and
+// coverage for one candidate pair. The decision is keyed solely off
+// earlier's own Quick flag (ADR-0005): quick earlier rule ⇒ first-match,
+// earlier wins outright when it covers later, so later is the loser — the
+// coverage question is "does earlier cover later". Non-quick earlier rule ⇒
+// last-match, whatever later covers of earlier wins the overlap, so earlier
+// is the loser — the coverage question flips to "does later cover earlier".
+// later's own Quick flag plays no part in this decision: a non-quick
+// earlier rule never stops evaluation, so any later matching rule — quick
+// or not — supersedes it for the overlapping traffic.
+func derivePairWinnerLoser(
+	earlier, later IndexedRule,
+	no common.NamedObjects,
+) (pairWinnerLoser, Coverage, bool) {
+	var (
+		cov          Coverage
+		aliasBlocked bool
+		wl           pairWinnerLoser
+	)
+
+	if earlier.Rule.Quick {
+		cov, aliasBlocked = coverage(earlier.Rule, later.Rule, no)
+		wl = pairWinnerLoser{winner: earlier, loser: later}
+	} else {
+		cov, aliasBlocked = coverage(later.Rule, earlier.Rule, no)
+		wl = pairWinnerLoser{winner: later, loser: earlier}
+	}
+
+	return wl, cov, aliasBlocked
 }
