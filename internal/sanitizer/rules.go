@@ -378,14 +378,31 @@ func builtinRules() []Rule {
 		},
 
 		// Network rules - aggressive and moderate
+		//
+		// ValueDetector/Redactor first check the whole-value case (identical
+		// to the original net.ParseIP-based behavior, including IPv6) so
+		// existing single-value semantics are byte-for-byte unchanged. The
+		// fallback branch scans whitespace-delimited TOKENS (not a bare regex
+		// substring scan — see hasTokenMatch) so a delimiter-separated
+		// multi-value field (e.g. a newline-separated OPNsense alias
+		// <content> or space-separated pfSense alias <address>) gets each
+		// member redacted independently, without also matching IPv4-looking
+		// digits embedded in an unrelated compound value such as a
+		// "host:port" endpoint string. See the sanitizer alias-redaction gap
+		// in the firewall-shadowing plan's System-Wide Impact section.
 		{
-			Name:          "public_ip",
-			Description:   "Redacts public IP addresses",
-			Category:      CategoryNetwork,
-			Modes:         aggressiveModerate,
-			ValueDetector: IsPublicIP,
+			Name:        "public_ip",
+			Description: "Redacts public IP addresses",
+			Category:    CategoryNetwork,
+			Modes:       aggressiveModerate,
+			ValueDetector: func(value string) bool {
+				return IsPublicIP(value) || hasTokenMatch(value, IsPublicIP)
+			},
 			Redactor: func(m *Mapper, _, value string) string {
-				return m.MapPublicIP(value)
+				if IsPublicIP(value) {
+					return m.MapPublicIP(value)
+				}
+				return redactTokenMatches(value, IsPublicIP, m.MapPublicIP)
 			},
 		},
 		{
@@ -394,10 +411,15 @@ func builtinRules() []Rule {
 			Category:    CategoryNetwork,
 			Modes:       aggressiveOnly,
 			ValueDetector: func(value string) bool {
-				return IsPrivateIP(value) && IsIPv4(value)
+				return isPrivateIPv4(value) || hasTokenMatch(value, isPrivateIPv4)
 			},
 			Redactor: func(m *Mapper, _, value string) string {
-				return m.MapPrivateIP(value, false)
+				if isPrivateIPv4(value) {
+					return m.MapPrivateIP(value, false)
+				}
+				return redactTokenMatches(value, isPrivateIPv4, func(addr string) string {
+					return m.MapPrivateIP(addr, false)
+				})
 			},
 		},
 		{
@@ -517,14 +539,28 @@ func builtinRules() []Rule {
 			},
 			// ValueDetector enables CIDR detection on unrecognized field names;
 			// the Redactor guard handles the field-pattern match path separately.
-			ValueDetector: IsSubnet,
+			//
+			// IsSubnet (net.ParseCIDR) covers the whole-value case for both
+			// IPv4 and IPv6 CIDR literals, unchanged from the original
+			// behavior. The token-based fallback catches a newline- or
+			// space-separated alias field holding several CIDR blocks (which
+			// never satisfies IsSubnet, since the whole field is never a
+			// single CIDR literal) by validating each whitespace-delimited
+			// token independently — this also covers IPv6 CIDR members for
+			// free, since IsSubnet itself is protocol-agnostic. See the
+			// firewall-shadowing plan's System-Wide Impact section.
+			ValueDetector: func(value string) bool {
+				return IsSubnet(value) || hasTokenMatch(value, IsSubnet)
+			},
 			Redactor: func(_ *Mapper, _, value string) string {
 				// Guard: field-pattern matches (e.g., "subnet") bypass the ValueDetector,
 				// so we must validate here too for non-CIDR values like "255.255.255.0".
-				if !IsSubnet(value) {
-					return value
+				if IsSubnet(value) {
+					return redactedSubnetValue
 				}
-				return redactedSubnetValue
+				return redactTokenMatches(value, IsSubnet, func(string) string {
+					return redactedSubnetValue
+				})
 			},
 		},
 		{
@@ -622,6 +658,15 @@ var systemUsers = []string{
 func isSystemUser(username string) bool {
 	lower := strings.ToLower(username)
 	return slices.Contains(systemUsers, lower)
+}
+
+// isPrivateIPv4 reports whether v is a private IPv4 address, restricting
+// IsPrivateIP's broader IPv4-or-IPv6 check to IPv4 only. Used by the
+// private_ip_aggressive rule both for its whole-value check and as the
+// per-token filter passed to hasTokenMatch/redactTokenMatches, so the two
+// call sites can't drift out of sync.
+func isPrivateIPv4(v string) bool {
+	return IsPrivateIP(v) && IsIPv4(v)
 }
 
 // GetActiveRules returns rules that are active for the current mode.

@@ -5,6 +5,7 @@ package sanitizer
 import (
 	"net"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -41,6 +42,22 @@ var (
 
 	// Hostname pattern (simple FQDN detection).
 	hostnamePattern = regexp.MustCompile(`\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b`)
+
+	// whitespaceTokenPattern splits a value into whitespace-delimited tokens
+	// (spaces, tabs, newlines). Used to scan delimiter-separated multi-value
+	// fields — a newline-separated OPNsense alias <content> or a
+	// space-separated pfSense alias <address> — member-by-member, applying
+	// the same whole-token net.ParseIP/net.ParseCIDR-backed checks
+	// (IsPublicIP, IsPrivateIP, IsSubnet) used for whole-value fields. This
+	// is deliberately NOT a bare regex substring scan: a token such as
+	// "203.0.113.1:51820" (a host:port endpoint) must NOT match, because
+	// IsPublicIP("203.0.113.1:51820") is false even though the substring
+	// "203.0.113.1" would match an unanchored IPv4 regex. Splitting into
+	// whitespace tokens first and validating each whole token preserves that
+	// distinction while still catching multi-value alias members. See the
+	// sanitizer alias-redaction gap in the firewall-shadowing plan's
+	// System-Wide Impact section.
+	whitespaceTokenPattern = regexp.MustCompile(`\S+`)
 
 	// Base64-encoded data pattern (for certificates/keys).
 	base64Pattern = regexp.MustCompile(`^[A-Za-z0-9+/]{40,}={0,2}$`)
@@ -334,4 +351,30 @@ func ExtractIPv4Addresses(s string) []string {
 // It preserves duplicates and returns an empty slice if none are found.
 func ExtractEmails(s string) []string {
 	return emailPattern.FindAllString(s, -1)
+}
+
+// hasTokenMatch reports whether any whitespace-delimited token within s
+// satisfies filter (typically a whole-value checker such as IsPublicIP,
+// IsPrivateIP, or IsSubnet). Unlike a plain regex substring scan, this only
+// considers a token a match when the ENTIRE token satisfies filter — so a
+// compound value like "203.0.113.1:51820" (host:port) is correctly rejected
+// even though it contains IPv4-looking digits, while a delimiter-separated
+// multi-value field (newline- or space-separated) is still caught
+// member-by-member.
+func hasTokenMatch(s string, filter func(string) bool) bool {
+	return slices.ContainsFunc(whitespaceTokenPattern.FindAllString(s, -1), filter)
+}
+
+// redactTokenMatches replaces every whitespace-delimited token in s for
+// which filter returns true with the string produced by replace, leaving
+// non-matching tokens and all delimiters (spaces, newlines) untouched. This
+// lets a multi-value alias member field be redacted member-by-member instead
+// of requiring the whole field to be one address/subnet.
+func redactTokenMatches(s string, filter func(string) bool, replace func(string) string) string {
+	return whitespaceTokenPattern.ReplaceAllStringFunc(s, func(token string) string {
+		if !filter(token) {
+			return token
+		}
+		return replace(token)
+	})
 }

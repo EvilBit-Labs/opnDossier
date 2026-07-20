@@ -2563,3 +2563,169 @@ func TestInboundRule_BackwardCompatibility(t *testing.T) {
 		})
 	}
 }
+
+func TestAlias_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		xml          string
+		want         Alias
+		wantElements []string
+	}{
+		{
+			name: "host alias with newline-separated content",
+			xml: `<alias uuid="11111111-1111-1111-1111-111111111111">` +
+				`<name>WEB_SERVERS</name><type>host</type>` +
+				"<content>10.20.30.40\n10.20.30.41</content>" +
+				`<descr>Web server hosts</descr></alias>`,
+			want: Alias{
+				UUID:        "11111111-1111-1111-1111-111111111111",
+				Name:        "WEB_SERVERS",
+				Type:        "host",
+				Content:     "10.20.30.40\n10.20.30.41",
+				Description: "Web server hosts",
+			},
+			wantElements: []string{
+				`uuid="11111111-1111-1111-1111-111111111111"`,
+				"<name>WEB_SERVERS</name>",
+				"<type>host</type>",
+				"<descr>Web server hosts</descr>",
+			},
+		},
+		{
+			name: "network alias with CIDR content",
+			xml: `<alias><name>INTERNAL_NET</name><type>network</type>` +
+				`<content>10.20.0.0/16</content><descr>Internal network</descr></alias>`,
+			want: Alias{
+				Name:        "INTERNAL_NET",
+				Type:        "network",
+				Content:     "10.20.0.0/16",
+				Description: "Internal network",
+			},
+			wantElements: []string{
+				"<name>INTERNAL_NET</name>",
+				"<type>network</type>",
+				"<content>10.20.0.0/16</content>",
+			},
+		},
+		{
+			name: "legacy alias with address field instead of content",
+			xml: `<alias><name>LEGACY_HOSTS</name><type>host</type>` +
+				`<address>10.5.5.1 10.5.5.2</address></alias>`,
+			want: Alias{
+				Name:    "LEGACY_HOSTS",
+				Type:    "host",
+				Address: "10.5.5.1 10.5.5.2",
+			},
+			wantElements: []string{
+				"<name>LEGACY_HOSTS</name>",
+				"<address>10.5.5.1 10.5.5.2</address>",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got Alias
+			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
+				t.Fatalf("xml.Unmarshal() error = %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("xml.Unmarshal() = %+v, want %+v", got, tt.want)
+			}
+
+			marshaled, err := xml.Marshal(tt.want)
+			if err != nil {
+				t.Fatalf("xml.Marshal() error = %v", err)
+			}
+			marshaledStr := string(marshaled)
+
+			for _, elem := range tt.wantElements {
+				if !strings.Contains(marshaledStr, elem) {
+					t.Errorf("marshaled XML %q does not contain expected element %q", marshaledStr, elem)
+				}
+			}
+
+			var roundTripped Alias
+			if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
+				t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
+			}
+			if roundTripped != tt.want {
+				t.Errorf("round-trip result = %+v, want %+v", roundTripped, tt.want)
+			}
+		})
+	}
+}
+
+func TestAliasList_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	input := `<aliases>` +
+		`<alias><name>WEB_SERVERS</name><type>host</type><content>10.20.30.40</content></alias>` +
+		`<alias><name>WEB_PORTS</name><type>port</type><content>80&#10;443</content></alias>` +
+		`</aliases>`
+
+	var got AliasList
+	if err := xml.Unmarshal([]byte(input), &got); err != nil {
+		t.Fatalf("xml.Unmarshal() error = %v", err)
+	}
+
+	if len(got.Alias) != 2 {
+		t.Fatalf("len(Alias) = %d, want 2", len(got.Alias))
+	}
+	if got.Alias[0].Name != "WEB_SERVERS" || got.Alias[0].Content != "10.20.30.40" {
+		t.Errorf("Alias[0] = %+v, want name=WEB_SERVERS content=10.20.30.40", got.Alias[0])
+	}
+	if got.Alias[1].Name != "WEB_PORTS" || got.Alias[1].Content != "80\n443" {
+		t.Errorf("Alias[1] = %+v, want name=WEB_PORTS content=80\\n443", got.Alias[1])
+	}
+
+	marshaled, err := xml.Marshal(got)
+	if err != nil {
+		t.Fatalf("xml.Marshal() error = %v", err)
+	}
+
+	var roundTripped AliasList
+	if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
+		t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
+	}
+	if len(roundTripped.Alias) != 2 ||
+		roundTripped.Alias[0].Name != "WEB_SERVERS" ||
+		roundTripped.Alias[1].Content != "80\n443" {
+		t.Errorf("round-trip result = %+v, want equivalent to input", roundTripped)
+	}
+}
+
+// TestFirewallAlias_EmptyAliases_RoundTrip pins the pre-existing behavior
+// that an empty <aliases/> element (the shape every current fixture uses,
+// see GOTCHAS-worthy note in the U2 plan) still round-trips cleanly after
+// retyping Firewall.Alias.Aliases from a plain string to AliasList.
+func TestFirewallAlias_EmptyAliases_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	input := `<Firewall><Alias version="1.0.1"><geoip><url/></geoip><aliases/></Alias></Firewall>`
+
+	var got Firewall
+	if err := xml.Unmarshal([]byte(input), &got); err != nil {
+		t.Fatalf("xml.Unmarshal() error = %v", err)
+	}
+	if len(got.Alias.Aliases.Alias) != 0 {
+		t.Errorf("Alias.Aliases.Alias = %+v, want empty", got.Alias.Aliases.Alias)
+	}
+
+	marshaled, err := xml.Marshal(got)
+	if err != nil {
+		t.Fatalf("xml.Marshal() error = %v", err)
+	}
+
+	var roundTripped Firewall
+	if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
+		t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
+	}
+	if len(roundTripped.Alias.Aliases.Alias) != 0 {
+		t.Errorf("round-trip Alias.Aliases.Alias = %+v, want empty", roundTripped.Alias.Aliases.Alias)
+	}
+}
