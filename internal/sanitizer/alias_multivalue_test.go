@@ -25,20 +25,21 @@ import (
 // subnet_field rules in rules.go.
 const aliasFixturePath = "../../testdata/opnsense-aliases.xml"
 
-// TestSanitizeXML_AliasMultiValue_Aggressive proves that `sanitize --mode
-// aggressive` (SanitizeXML — the path cmd/sanitize.go actually uses, not
-// SanitizeStruct, which has no production callers per GOTCHAS §14.4) redacts
-// every IP address embedded in the alias fixture's newline-separated
-// multi-value <content> elements, not just single-value fields.
+// TestSanitizeXML_AliasMultiValue_Aggressive_RedactsAliasMembers proves that
+// `sanitize --mode aggressive` (SanitizeXML — the path cmd/sanitize.go
+// actually uses, not SanitizeStruct, which has no production callers per
+// GOTCHAS §14.4) redacts every IP address embedded in the alias fixture's
+// newline-separated multi-value <content> elements, not just single-value
+// fields.
 //
-// TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive (below) is the
-// mixed-type regression: a single alias mixing a private IP, a public IP, a
-// CIDR subnet, and a hostname in one newline-separated <content> value. Prior
-// to the per-token dispatch fix in sanitizer.go's sanitizeCharData, rule
-// dispatch returned only the FIRST matching rule for the whole value, so a
-// mixed-type value only got the first-matched type's tokens redacted —
-// leaking every other type in cleartext.
-func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
+// TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive_RedactsAllMixedMembers
+// (below) is the mixed-type regression: a single alias mixing a private IP, a
+// public IP, a CIDR subnet, and a hostname in one newline-separated <content>
+// value. Prior to the per-token dispatch fix in sanitizer.go's
+// sanitizeCharData, rule dispatch returned only the FIRST matching rule for
+// the whole value, so a mixed-type value only got the first-matched type's
+// tokens redacted — leaking every other type in cleartext.
+func TestSanitizeXML_AliasMultiValue_Aggressive_RedactsAliasMembers(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Clean(aliasFixturePath))
@@ -88,14 +89,15 @@ func TestSanitizeXML_AliasMultiValue_Aggressive(t *testing.T) {
 	}
 }
 
-// TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive is the P0 regression
-// for the mixed-type alias leak: MIXED_TYPES combines a private IP, a public
-// IP, a CIDR subnet, and a hostname in one newline-separated <content>
-// value. Before sanitizeCharData's per-token dispatch fix, ShouldRedactValue
-// returned only the FIRST matching rule for the whole multi-value string
-// (e.g. public_ip, whose token-aware Redactor only redacted public-IP-typed
-// tokens), leaving the private IP, CIDR, and hostname members in cleartext.
-func TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive(t *testing.T) {
+// TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive_RedactsAllMixedMembers
+// is the P0 regression for the mixed-type alias leak: MIXED_TYPES combines a
+// private IP, a public IP, a CIDR subnet, and a hostname in one
+// newline-separated <content> value. Before sanitizeCharData's per-token
+// dispatch fix, ShouldRedactValue returned only the FIRST matching rule for
+// the whole multi-value string (e.g. public_ip, whose token-aware Redactor
+// only redacted public-IP-typed tokens), leaving the private IP, CIDR, and
+// hostname members in cleartext.
+func TestSanitizeXML_AliasMultiValue_MixedTypes_Aggressive_RedactsAllMixedMembers(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Clean(aliasFixturePath))

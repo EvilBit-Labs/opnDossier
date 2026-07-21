@@ -19,8 +19,8 @@ package pfsense
 // no uuid attribute and stores members SPACE-separated in <address> rather
 // than newline-separated in <content>.
 //
-// Type is one of host|network|port per common.NamedObjectType. pfSense also
-// supports dynamic alias types (url, urltable, urltable_ports) that have no
+// Type is one of host|network|port|url per common.NamedObjectType. pfSense
+// also supports dynamic alias types (urltable, urltable_ports) that have no
 // direct common.NamedObjectType equivalent — the converter casts Type as-is
 // and emits an "unrecognized named-object type" warning for these per
 // GOTCHAS §5.2, the same fail-open pattern used for OPNsense's own dynamic

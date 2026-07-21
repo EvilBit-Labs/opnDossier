@@ -63,7 +63,7 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 		RuleIndex:       pair.Loser.Index,
 		ShadowedByIndex: pair.Winner.Index,
 		Interface:       pair.Interface,
-		Direction:       string(pair.Direction),
+		Direction:       pair.Direction,
 		Port:            eclipsedPort(pair, kind),
 		Description:     buildShadowDescription(pair, kind, pair.AliasBlocked),
 		Recommendation:  recommendationFor(impactClass, pair.AliasBlocked),
@@ -316,7 +316,7 @@ func sortShadowFindings(findings []common.ShadowedRuleFinding) {
 			return c
 		}
 
-		if c := strings.Compare(a.Direction, b.Direction); c != 0 {
+		if c := strings.Compare(string(a.Direction), string(b.Direction)); c != 0 {
 			return c
 		}
 

@@ -26,17 +26,17 @@ import (
 // an OpnSenseDocument and would fail on a pfSense-rooted document.
 const pfSenseAliasFixturePath = "../../testdata/pfsense/pfsense-aliases.xml"
 
-// TestSanitizeXML_PfSenseAliasMultiValue_Aggressive proves that `sanitize
-// --mode aggressive` (SanitizeXML) redacts every IP address embedded in the
-// pfSense alias fixture's SPACE-separated multi-value <address> elements,
-// reusing the same whitespace-token-based redaction wired for OPNsense's
-// newline-separated <content> (sanitizer.go's sanitizeCharData/
-// redactValueTokens) — no new sanitizer code is required.
+// TestSanitizeXML_PfSenseAliasMultiValue_Aggressive_RedactsAliasMembers
+// proves that `sanitize --mode aggressive` (SanitizeXML) redacts every IP
+// address embedded in the pfSense alias fixture's SPACE-separated
+// multi-value <address> elements, reusing the same whitespace-token-based
+// redaction wired for OPNsense's newline-separated <content> (sanitizer.go's
+// sanitizeCharData/redactValueTokens) — no new sanitizer code is required.
 //
-// TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive (below) is the
-// mixed-type regression: see the OPNsense counterpart in
+// TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive_RedactsAllMixedMembers
+// (below) is the mixed-type regression: see the OPNsense counterpart in
 // alias_multivalue_test.go for the failure this guards against.
-func TestSanitizeXML_PfSenseAliasMultiValue_Aggressive(t *testing.T) {
+func TestSanitizeXML_PfSenseAliasMultiValue_Aggressive_RedactsAliasMembers(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Clean(pfSenseAliasFixturePath))
@@ -85,11 +85,11 @@ func TestSanitizeXML_PfSenseAliasMultiValue_Aggressive(t *testing.T) {
 	}
 }
 
-// TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive is the pfSense
-// counterpart to alias_multivalue_test.go's mixed-type regression: MIXED_TYPES
-// combines a private IP, a public IP, a CIDR subnet, and a hostname in one
-// space-separated <address> value.
-func TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive(t *testing.T) {
+// TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive_RedactsAllMixedMembers
+// is the pfSense counterpart to alias_multivalue_test.go's mixed-type
+// regression: MIXED_TYPES combines a private IP, a public IP, a CIDR subnet,
+// and a hostname in one space-separated <address> value.
+func TestSanitizeXML_PfSenseAliasMultiValue_MixedTypes_Aggressive_RedactsAllMixedMembers(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Clean(pfSenseAliasFixturePath))

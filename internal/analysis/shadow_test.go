@@ -76,7 +76,7 @@ func TestDetectShadowedRules_AE1_FullShadow_Security_Critical_WAN(t *testing.T) 
 	assert.Equal(t, 1, f.RuleIndex)
 	assert.Equal(t, 0, f.ShadowedByIndex)
 	assert.Equal(t, "wan", f.Interface)
-	assert.Equal(t, string(common.DirectionIn), f.Direction)
+	assert.Equal(t, common.DirectionIn, f.Direction)
 	assert.Empty(t, f.Port, "full shadow should not populate the eclipsed-port field")
 }
 

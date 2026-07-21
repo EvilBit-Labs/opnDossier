@@ -152,7 +152,10 @@ type DeadRuleFinding struct {
 	// Kind classifies the dead rule reason (e.g., "unreachable", "duplicate").
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 	// RuleIndex is the position of the dead rule in the filter rule list.
-	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`
+	// No omitempty: index 0 (the first rule) must be distinguishable from an
+	// unset/zero-value finding, and deadRules correlates with shadowedRules
+	// by ruleIndex.
+	RuleIndex int `json:"ruleIndex" yaml:"ruleIndex"`
 	// Interface is the interface the dead rule is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Description is a summary of why the rule is considered dead.
@@ -245,7 +248,7 @@ type ShadowedRuleFinding struct {
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Direction is the pf evaluation direction bucket ("in" or "out") the
 	// shadow was resolved under.
-	Direction string `json:"direction,omitempty" yaml:"direction,omitempty"`
+	Direction FirewallDirection `json:"direction,omitempty" yaml:"direction,omitempty"`
 	// Port is the eclipsed port subset, populated for partial shadows only
 	// (best effort, taken from the shadowed rule's destination port).
 	Port string `json:"port,omitempty" yaml:"port,omitempty"`

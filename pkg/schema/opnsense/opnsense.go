@@ -52,7 +52,7 @@ type OpnSenseDocument struct {
 	// instead — see Firewall.Alias.Aliases). Both sources share the same
 	// AliasList/Alias element shape and are merged by the converter into a
 	// single common.NamedObjects registry.
-	Aliases  AliasList `xml:"aliases,omitempty"  json:"aliases"  yaml:"aliases"`
+	Aliases  AliasList `xml:"aliases,omitempty"  json:"aliases"  yaml:"aliases,omitempty"`
 	OPNsense OPNsense  `xml:"OPNsense,omitempty" json:"opnsense" yaml:"opnsense,omitempty"`
 }
 
