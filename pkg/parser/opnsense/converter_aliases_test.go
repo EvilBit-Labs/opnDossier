@@ -225,3 +225,60 @@ func TestConverter_FirewallRules_ObjectRef_LiteralValuesStayNil(t *testing.T) {
 	assert.Nil(t, rule.Destination.AddressRef)
 	assert.Nil(t, rule.Destination.PortRef)
 }
+
+// TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef proves that
+// an interface/network macro (<network>lan</network>) or the <any/> wildcard
+// is never mistaken for a named-object (alias) reference, even when an alias
+// happens to share that exact name. Regression for the AddressRef derivation
+// previously using EffectiveAddress() (which also surfaces Network/Any)
+// instead of the address-field-only AliasAddress().
+func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T) {
+	t.Parallel()
+
+	// The registry deliberately contains aliases literally named "lan" and
+	// "any" so a naive name-based lookup against EffectiveAddress() would
+	// wrongly resolve the macro/wildcard endpoints below to these aliases.
+	doc := withMVCAliases(schema.NewOpnSenseDocument(),
+		schema.Alias{Name: "lan", Type: "host", Content: "10.0.0.1"},
+		schema.Alias{Name: "any", Type: "host", Content: "10.0.0.2"},
+		schema.Alias{Name: "WEB_SERVERS", Type: "host", Content: "10.20.30.40"},
+	)
+	doc.Filter.Rule = []schema.Rule{
+		{
+			Type:      "pass",
+			Interface: schema.InterfaceList{"wan"},
+			Source: schema.Source{
+				Network: "lan", // interface macro, must NOT resolve to alias "lan"
+			},
+			Destination: schema.Destination{
+				Any: new(""), // any wildcard, must NOT resolve to alias "any"
+			},
+		},
+		{
+			Type:      "pass",
+			Interface: schema.InterfaceList{"wan"},
+			Source: schema.Source{
+				Address: "WEB_SERVERS", // genuine alias reference must still resolve
+			},
+			Destination: schema.Destination{
+				Address: "203.0.113.5",
+			},
+		},
+	}
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+	require.Len(t, device.FirewallRules, 2)
+
+	macroRule := device.FirewallRules[0]
+	assert.Equal(t, "lan", macroRule.Source.Address, "EffectiveAddress must still surface the macro")
+	assert.Nil(t, macroRule.Source.AddressRef, "interface macro must not be treated as an alias ref")
+	assert.Equal(t, "any", macroRule.Destination.Address, "EffectiveAddress must still surface the wildcard")
+	assert.Nil(t, macroRule.Destination.AddressRef, "any wildcard must not be treated as an alias ref")
+
+	aliasRule := device.FirewallRules[1]
+	require.NotNil(t, aliasRule.Source.AddressRef, "a genuine <address> alias reference must still resolve")
+	assert.Equal(t, "WEB_SERVERS", aliasRule.Source.AddressRef.Name)
+	assert.Nil(t, aliasRule.Destination.AddressRef, "a literal IP address must not resolve as an alias ref")
+}

@@ -229,6 +229,24 @@ func (s Source) EffectiveAddress() string {
 	return ""
 }
 
+// AliasAddress returns the literal <address> value only when it is the field
+// that actually produced EffectiveAddress — i.e. Network is empty and Any is
+// not set. It returns "" when the effective address instead came from an
+// interface/network macro (e.g. "lan") or the "any" wildcard.
+//
+// This exists specifically for named-object (alias) resolution: a macro or
+// wildcard must never be looked up against the alias table, even if an alias
+// happens to share the same name (e.g. an alias literally named "lan").
+// EffectiveAddress is unsuitable for that lookup because it also surfaces
+// Network/Any values; callers deriving RuleEndpoint.AddressRef must use
+// AliasAddress instead.
+func (s Source) AliasAddress() string {
+	if s.Network != "" || s.IsAny() {
+		return ""
+	}
+	return s.Address
+}
+
 // Equal reports whether two Source values are semantically equal.
 // Any is compared by presence only (nil vs non-nil), not by value,
 // because OPNsense treats <any> as a presence-based flag.
@@ -274,6 +292,21 @@ func (d Destination) EffectiveAddress() string {
 		return NetworkAny
 	}
 	return ""
+}
+
+// AliasAddress returns the literal <address> value only when it is the field
+// that actually produced EffectiveAddress — i.e. Network is empty and Any is
+// not set. It returns "" when the effective address instead came from an
+// interface/network macro (e.g. "lan") or the "any" wildcard.
+//
+// See Source.AliasAddress for the full rationale: this exists so named-object
+// (alias) resolution never mistakes a macro or wildcard for an alias
+// reference, even when an alias happens to share the same name.
+func (d Destination) AliasAddress() string {
+	if d.Network != "" || d.IsAny() {
+		return ""
+	}
+	return d.Address
 }
 
 // Equal reports whether two Destination values are semantically equal.

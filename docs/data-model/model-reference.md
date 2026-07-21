@@ -523,14 +523,14 @@ Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pf
 
 > **Deprecated:** `deadRules` remains populated for backward compatibility — it is a derived view containing the unreachable-and-duplicate subset of `shadowedRules`, re-projected into this narrower shape. New integrations should read `shadowedRules` instead: it is a strict superset (every full/partial shadow across all impact classes, not just the unreachable/duplicate cases) with richer classification (`impactClass`, `confidence`, the covering rule's index) that `deadRules` cannot express.
 >
-> **Correlation key:** a `deadRules` entry corresponds to the `shadowedRules` entry with the same `ruleIndex`. Consumers reading both collections should dedup on `ruleIndex` to avoid double-counting the same shadowed rule.
+> **Correlation key:** this only holds for `duplicate` entries — `ruleIndex` there is the shadowed (loser) rule and corresponds to the `shadowedRules` entry with the same `ruleIndex`, so those two can be deduped safely. For `unreachable` entries, `ruleIndex` instead identifies the block-all rule causing the unreachability (the owner, not a shadowed rule) — it has no corresponding `shadowedRules` entry, so consumers must not blanket-dedup both collections on `ruleIndex`.
 >
 > **Removal:** `deadRules` will be removed no earlier than the next major version of opnDossier.
 
-| Field            | Type     | JSON Key                              | Description                                            |
-| ---------------- | -------- | ------------------------------------- | ------------------------------------------------------ |
-| `Kind`           | `string` | `analysis.deadRules[].kind`           | `unreachable` (preceded by a block-all) or `duplicate` |
-| `RuleIndex`      | `int`    | `analysis.deadRules[].ruleIndex`      | Position of the dead rule in `firewallRules`           |
-| `Interface`      | `string` | `analysis.deadRules[].interface`      | Interface the dead rule is bound to                    |
-| `Description`    | `string` | `analysis.deadRules[].description`    | Summary of why the rule is considered dead             |
-| `Recommendation` | `string` | `analysis.deadRules[].recommendation` | Suggested corrective action                            |
+| Field            | Type     | JSON Key                              | Description                                                                                                                                   |
+| ---------------- | -------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Kind`           | `string` | `analysis.deadRules[].kind`           | `unreachable` (preceded by a block-all) or `duplicate`                                                                                        |
+| `RuleIndex`      | `int`    | `analysis.deadRules[].ruleIndex`      | For `duplicate`, position of the shadowed (loser) rule in `firewallRules`; for `unreachable`, position of the block-all owner rule causing it |
+| `Interface`      | `string` | `analysis.deadRules[].interface`      | Interface the dead rule is bound to                                                                                                           |
+| `Description`    | `string` | `analysis.deadRules[].description`    | Summary of why the rule is considered dead                                                                                                    |
+| `Recommendation` | `string` | `analysis.deadRules[].recommendation` | Suggested corrective action                                                                                                                   |
