@@ -246,11 +246,6 @@ bench-compare:
     @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-current.txt
     @{{ mise_exec }} benchstat .benchmark-baseline.txt .benchmark-current.txt
 
-# Run startup time benchmarks
-[group('test')]
-bench-startup:
-    @{{ mise_exec }} go test -bench=BenchmarkStartup -run=^$ -benchmem ./cmd/...
-
 # Run pool benchmarks
 [group('test')]
 bench-pool:
@@ -259,14 +254,13 @@ bench-pool:
 # Benchmarks are on-demand only: never in CI, never in ci-check. Shared runners
 # are too noisy for wall-clock numbers to mean anything.
 
-# Run the focused benchmark suite (converter, pool, logging, cmd)
+# Run the focused benchmark suite (converter, pool, logging)
 [group('test')]
 bench-focused:
     @{{ mise_exec }} go test -bench=. -run='^$' -benchmem -count=1 -benchtime=1s -timeout 4m \
         ./internal/converter/... \
         ./internal/pool/... \
-        ./internal/logging/... \
-        ./cmd/...
+        ./internal/logging/...
 
 # Run model completeness check
 [group('test')]

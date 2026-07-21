@@ -1,53 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"testing"
 )
-
-// BenchmarkStartupVersion measures startup time for the version command.
-// Target: <100ms for lightweight commands.
-func BenchmarkStartupVersion(b *testing.B) {
-	b.ReportAllocs()
-
-	for b.Loop() {
-		cmd := GetRootCmd()
-		cmd.SetArgs([]string{"version"})
-		cmd.SetOut(&bytes.Buffer{})
-		cmd.SetErr(&bytes.Buffer{})
-		//nolint:errcheck,gosec // Benchmark doesn't need error handling
-		cmd.Execute()
-	}
-}
-
-// BenchmarkStartupHelp measures startup time for the help command.
-// Target: <100ms for lightweight commands.
-func BenchmarkStartupHelp(b *testing.B) {
-	b.ReportAllocs()
-
-	for b.Loop() {
-		cmd := GetRootCmd()
-		cmd.SetArgs([]string{"--help"})
-		cmd.SetOut(&bytes.Buffer{})
-		cmd.SetErr(&bytes.Buffer{})
-		//nolint:errcheck,gosec // Benchmark doesn't need error handling
-		cmd.Execute()
-	}
-}
-
-// BenchmarkIsLightweightCommand measures the lightweight check overhead.
-func BenchmarkIsLightweightCommand(b *testing.B) {
-	cmd := GetRootCmd()
-	versionCmd, _, err := cmd.Find([]string{"version"})
-	if err != nil {
-		b.Fatalf("failed to find version command: %v", err)
-	}
-
-	b.ResetTimer()
-	for b.Loop() {
-		_ = isLightweightCommand(versionCmd)
-	}
-}
 
 // TestLightweightCommands verifies that lightweight commands are identified correctly.
 func TestLightweightCommands(t *testing.T) {
