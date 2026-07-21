@@ -256,6 +256,18 @@ bench-startup:
 bench-pool:
     @{{ mise_exec }} go test -bench=. -run=^$ -benchmem ./internal/pool/...
 
+# Benchmarks are on-demand only: never in CI, never in ci-check. Shared runners
+# are too noisy for wall-clock numbers to mean anything.
+
+# Run the focused benchmark suite (converter, pool, logging, cmd)
+[group('test')]
+bench-focused:
+    @{{ mise_exec }} go test -bench=. -run='^$' -benchmem -count=1 -benchtime=1s -timeout 4m \
+        ./internal/converter/... \
+        ./internal/pool/... \
+        ./internal/logging/... \
+        ./cmd/...
+
 # Run model completeness check
 [group('test')]
 completeness-check:
