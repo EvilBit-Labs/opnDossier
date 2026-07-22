@@ -521,7 +521,7 @@ Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pf
 
 ### DeadRuleFinding (deprecated)
 
-> **Deprecated:** `deadRules` remains populated for backward compatibility — it is a derived view containing the unreachable-and-duplicate subset of `shadowedRules`, re-projected into this narrower shape. New integrations should read `shadowedRules` instead: it is a strict superset (every full/partial shadow across all impact classes, not just the unreachable/duplicate cases) with richer classification (`impactClass`, `confidence`, the covering rule's index) that `deadRules` cannot express.
+> **Deprecated:** `deadRules` remains populated for backward compatibility — it is a derived view covering only the unreachable-and-duplicate scenarios that shadow detection surfaces, re-projected into this narrower shape. The re-projection is not entry-for-entry: `duplicate` entries map one-to-one onto a `shadowedRules` entry, but `unreachable` entries are keyed by the block-all owner rule and have no corresponding `shadowedRules` entry (see **Correlation key** below). New integrations should read `shadowedRules` instead: it captures every full/partial shadow across all impact classes — not just the unreachable/duplicate cases — with richer classification (`impactClass`, `confidence`, the covering rule's index) that `deadRules` cannot express.
 >
 > **Correlation key:** this only holds for `duplicate` entries — `ruleIndex` there is the shadowed (loser) rule and corresponds to the `shadowedRules` entry with the same `ruleIndex`, so those two can be deduped safely. For `unreachable` entries, `ruleIndex` instead identifies the block-all rule causing the unreachability (the owner, not a shadowed rule) — it has no corresponding `shadowedRules` entry, so consumers must not blanket-dedup both collections on `ruleIndex`.
 >
@@ -529,7 +529,7 @@ Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pf
 
 | Field            | Type     | JSON Key                              | Description                                                                                                                                   |
 | ---------------- | -------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Kind`           | `string` | `analysis.deadRules[].kind`           | `unreachable` (preceded by a block-all) or `duplicate`                                                                                        |
+| `Kind`           | `string` | `analysis.deadRules[].kind`           | `unreachable` (the block-all owner rule that renders later rules unreachable) or `duplicate`                                                  |
 | `RuleIndex`      | `int`    | `analysis.deadRules[].ruleIndex`      | For `duplicate`, position of the shadowed (loser) rule in `firewallRules`; for `unreachable`, position of the block-all owner rule causing it |
 | `Interface`      | `string` | `analysis.deadRules[].interface`      | Interface the dead rule is bound to                                                                                                           |
 | `Description`    | `string` | `analysis.deadRules[].description`    | Summary of why the rule is considered dead                                                                                                    |

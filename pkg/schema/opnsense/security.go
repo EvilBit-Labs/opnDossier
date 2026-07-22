@@ -229,19 +229,23 @@ func (s Source) EffectiveAddress() string {
 	return ""
 }
 
-// AliasAddress returns the literal <address> value only when it is the field
-// that actually produced EffectiveAddress — i.e. Network is empty and Any is
-// not set. It returns "" when the effective address instead came from an
-// interface/network macro (e.g. "lan") or the "any" wildcard.
+// AliasAddress returns the literal <address> value, following the same
+// Network > Address precedence as EffectiveAddress: it returns "" when the
+// effective address came from an interface/network macro (e.g. "lan"), and
+// otherwise returns Address (which is itself "" for a bare "any" wildcard,
+// since <any/> carries no address). Matching EffectiveAddress's precedence
+// is deliberate — an endpoint that sets both <address> and <any/> resolves
+// to its Address under EffectiveAddress, so its AddressRef must resolve to
+// that same alias rather than being dropped.
 //
-// This exists specifically for named-object (alias) resolution: a macro or
-// wildcard must never be looked up against the alias table, even if an alias
-// happens to share the same name (e.g. an alias literally named "lan").
+// This exists specifically for named-object (alias) resolution: a macro
+// must never be looked up against the alias table, even if an alias happens
+// to share the same name (e.g. an alias literally named "lan").
 // EffectiveAddress is unsuitable for that lookup because it also surfaces
-// Network/Any values; callers deriving RuleEndpoint.AddressRef must use
-// AliasAddress instead.
+// the Network macro and the "any" sentinel; callers deriving
+// RuleEndpoint.AddressRef must use AliasAddress instead.
 func (s Source) AliasAddress() string {
-	if s.Network != "" || s.IsAny() {
+	if s.Network != "" {
 		return ""
 	}
 	return s.Address
@@ -294,16 +298,16 @@ func (d Destination) EffectiveAddress() string {
 	return ""
 }
 
-// AliasAddress returns the literal <address> value only when it is the field
-// that actually produced EffectiveAddress — i.e. Network is empty and Any is
-// not set. It returns "" when the effective address instead came from an
-// interface/network macro (e.g. "lan") or the "any" wildcard.
+// AliasAddress returns the literal <address> value, following the same
+// Network > Address precedence as EffectiveAddress: it returns "" when the
+// effective address came from an interface/network macro (e.g. "lan"), and
+// otherwise returns Address (itself "" for a bare "any" wildcard).
 //
 // See Source.AliasAddress for the full rationale: this exists so named-object
-// (alias) resolution never mistakes a macro or wildcard for an alias
-// reference, even when an alias happens to share the same name.
+// (alias) resolution never mistakes a macro for an alias reference, even when
+// an alias happens to share the same name.
 func (d Destination) AliasAddress() string {
-	if d.Network != "" || d.IsAny() {
+	if d.Network != "" {
 		return ""
 	}
 	return d.Address

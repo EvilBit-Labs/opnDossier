@@ -264,12 +264,26 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 				Address: "203.0.113.5",
 			},
 		},
+		{
+			Type:      "pass",
+			Interface: schema.InterfaceList{"wan"},
+			Source: schema.Source{
+				// Both <address> and <any/> present: EffectiveAddress picks
+				// Address over Any, so AddressRef must resolve to the alias
+				// too — AliasAddress follows the same Network > Address order.
+				Address: "WEB_SERVERS",
+				Any:     new(""),
+			},
+			Destination: schema.Destination{
+				Address: "203.0.113.6",
+			},
+		},
 	}
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
 	assert.Empty(t, warnings)
-	require.Len(t, device.FirewallRules, 2)
+	require.Len(t, device.FirewallRules, 3)
 
 	macroRule := device.FirewallRules[0]
 	assert.Equal(t, "lan", macroRule.Source.Address, "EffectiveAddress must still surface the macro")
@@ -281,4 +295,11 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 	require.NotNil(t, aliasRule.Source.AddressRef, "a genuine <address> alias reference must still resolve")
 	assert.Equal(t, "WEB_SERVERS", aliasRule.Source.AddressRef.Name)
 	assert.Nil(t, aliasRule.Destination.AddressRef, "a literal IP address must not resolve as an alias ref")
+
+	addressAndAnyRule := device.FirewallRules[2]
+	assert.Equal(t, "WEB_SERVERS", addressAndAnyRule.Source.Address,
+		"EffectiveAddress picks Address over Any")
+	require.NotNil(t, addressAndAnyRule.Source.AddressRef,
+		"an <address> alias must resolve even when <any/> is also present")
+	assert.Equal(t, "WEB_SERVERS", addressAndAnyRule.Source.AddressRef.Name)
 }
