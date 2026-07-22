@@ -77,7 +77,7 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 // (block/reject) loser ⇒ Security; any other combination — a block/reject
 // winner over a pass loser, or two differently-typed explicit rules — ⇒
 // Troubleshooting.
-func impactClassFor(winnerType, loserType common.FirewallRuleType) string {
+func impactClassFor(winnerType, loserType common.FirewallRuleType) common.ImpactClass {
 	if winnerType == loserType {
 		return common.ImpactClassHygiene
 	}
@@ -94,7 +94,7 @@ func impactClassFor(winnerType, loserType common.FirewallRuleType) string {
 // pair reaching this point (ResolvePrecedence guarantees Full/Partial; the
 // R8 advisory scan's CoverNone pairs are given an explicit conservative
 // Extent by resolveAliasBlockedAdvisoryPair).
-func shadowKindFor(extent Coverage) string {
+func shadowKindFor(extent Coverage) common.ShadowKind {
 	if extent == CoverFull {
 		return common.ShadowKindFull
 	}
@@ -115,7 +115,7 @@ type shadowSeverity struct {
 // severityFor implements the KTD-6 severity matrix: severity and confidence
 // are a pure function of impact class × reachability, with a distinct
 // (lower-confidence) row for the R8 advisory path.
-func severityFor(impactClass string, reachability Reachability, advisory bool) shadowSeverity {
+func severityFor(impactClass common.ImpactClass, reachability Reachability, advisory bool) shadowSeverity {
 	wan := reachability == WANReachable
 
 	switch impactClass {
@@ -154,7 +154,7 @@ func securitySeverity(wan, advisory bool) shadowSeverity {
 // eclipsedPort returns the best-effort eclipsed port subset for a partial
 // shadow (R7), taken from the shadowed (loser) rule's destination port.
 // Full shadows leave Port empty — the whole rule is shadowed, not a subset.
-func eclipsedPort(pair PrecedencePair, kind string) string {
+func eclipsedPort(pair PrecedencePair, kind common.ShadowKind) string {
 	if kind != common.ShadowKindPartial {
 		return ""
 	}
@@ -166,7 +166,7 @@ func eclipsedPort(pair PrecedencePair, kind string) string {
 // prefixes the description with the explicit "(unconfirmed — unresolved
 // alias)" marker required by R8 so severity-sorted output distinguishes
 // advisory findings from confirmed same-severity findings.
-func buildShadowDescription(pair PrecedencePair, kind string, advisory bool) string {
+func buildShadowDescription(pair PrecedencePair, kind common.ShadowKind, advisory bool) string {
 	extentWord := "fully"
 	if kind == common.ShadowKindPartial {
 		extentWord = "partially"
@@ -195,7 +195,7 @@ func buildShadowDescription(pair PrecedencePair, kind string, advisory bool) str
 }
 
 // recommendationFor suggests a corrective action for impactClass.
-func recommendationFor(impactClass string, advisory bool) string {
+func recommendationFor(impactClass common.ImpactClass, advisory bool) string {
 	switch impactClass {
 	case common.ImpactClassSecurity:
 		if advisory {

@@ -386,7 +386,7 @@ func shadowObservation(cfg *common.CommonDevice, f common.ShadowedRuleFinding) O
 
 // shadowObservationTitle renders a short, human-readable title for a shadow
 // Observation keyed off the finding's impact class (KTD-6/R12).
-func shadowObservationTitle(impactClass string) string {
+func shadowObservationTitle(impactClass common.ImpactClass) string {
 	switch impactClass {
 	case common.ImpactClassSecurity:
 		return "Shadowed Firewall Rule: Security Deny Bypassed"

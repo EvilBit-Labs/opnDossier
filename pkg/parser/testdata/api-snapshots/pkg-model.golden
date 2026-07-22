@@ -16,37 +16,6 @@ const (
     Dead rule kind constants classify the reason a rule is considered dead.
 
 const (
-	// ShadowKindFull indicates the shadowed rule's entire match set is
-	// contained by the covering rule's match set — the shadowed rule never
-	// takes effect at all.
-	ShadowKindFull = "full"
-	// ShadowKindPartial indicates only a subset of the shadowed rule's
-	// match set (e.g. one port within a range, or one address within a
-	// network) is eclipsed by the covering rule.
-	ShadowKindPartial = "partial"
-)
-    Shadow kind constants classify the extent of a firewall-rule shadow finding
-    (see ShadowedRuleFinding.Kind).
-
-const (
-	// ImpactClassSecurity indicates a pass rule defeats a non-terminal
-	// explicit block/reject rule — traffic the operator intended to block
-	// silently flows.
-	ImpactClassSecurity = "security"
-	// ImpactClassTroubleshooting indicates a block/reject rule defeats a
-	// pass rule, or two explicit (non-pass) rules overlap ambiguously — an
-	// intended allow silently fails closed.
-	ImpactClassTroubleshooting = "troubleshooting"
-	// ImpactClassHygiene indicates a rule is fully or partially covered by
-	// an earlier same-action rule — redundant configuration, not a
-	// functional defect.
-	ImpactClassHygiene = "hygiene"
-)
-    Impact class constants classify the operator-facing consequence of a
-    firewall-rule shadow, derived from the covering rule's action relative to
-    the shadowed rule's action (see ShadowedRuleFinding.ImpactClass).
-
-const (
 	// ControlStatusPass indicates a control is compliant.
 	ControlStatusPass = "PASS"
 	// ControlStatusFail indicates a control is non-compliant.
@@ -1349,6 +1318,32 @@ type IPsecPhase2Tunnel struct {
     IPsecPhase2Tunnel represents a platform-agnostic IPsec Phase 2 (child SA)
     configuration.
 
+type ImpactClass string
+    ImpactClass classifies the operator-facing consequence of a firewall-rule
+    shadow, derived from the covering rule's action relative to the shadowed
+    rule's action (see ShadowedRuleFinding.ImpactClass).
+
+const (
+	// ImpactClassSecurity indicates a pass rule defeats a non-terminal
+	// explicit block/reject rule — traffic the operator intended to block
+	// silently flows.
+	ImpactClassSecurity ImpactClass = "security"
+	// ImpactClassTroubleshooting indicates a block/reject rule defeats a
+	// pass rule, or two explicit (non-pass) rules overlap ambiguously — an
+	// intended allow silently fails closed.
+	ImpactClassTroubleshooting ImpactClass = "troubleshooting"
+	// ImpactClassHygiene indicates a rule is fully or partially covered by
+	// an earlier same-action rule — redundant configuration, not a
+	// functional defect.
+	ImpactClassHygiene ImpactClass = "hygiene"
+)
+    Impact class constants classify the operator-facing consequence of a
+    firewall-rule shadow, derived from the covering rule's action relative to
+    the shadowed rule's action (see ShadowedRuleFinding.ImpactClass).
+
+func (c ImpactClass) IsValid() bool
+    IsValid reports whether c is a recognized impact class.
+
 type InboundNATRule struct {
 	// UUID is the unique identifier for the port-forward rule.
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
@@ -2202,12 +2197,32 @@ func ValidSeverities() []Severity
 func (s Severity) String() string
     String returns the string representation of the severity.
 
+type ShadowKind string
+    ShadowKind classifies the extent of a firewall-rule shadow finding (see
+    ShadowedRuleFinding.Kind).
+
+const (
+	// ShadowKindFull indicates the shadowed rule's entire match set is
+	// contained by the covering rule's match set — the shadowed rule never
+	// takes effect at all.
+	ShadowKindFull ShadowKind = "full"
+	// ShadowKindPartial indicates only a subset of the shadowed rule's
+	// match set (e.g. one port within a range, or one address within a
+	// network) is eclipsed by the covering rule.
+	ShadowKindPartial ShadowKind = "partial"
+)
+    Shadow kind constants classify the extent of a firewall-rule shadow finding
+    (see ShadowedRuleFinding.Kind).
+
+func (k ShadowKind) IsValid() bool
+    IsValid reports whether k is a recognized shadow kind.
+
 type ShadowedRuleFinding struct {
 	// Kind classifies the shadow extent: ShadowKindFull or ShadowKindPartial.
-	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
+	Kind ShadowKind `json:"kind,omitempty" yaml:"kind,omitempty"`
 	// ImpactClass classifies the operator-facing consequence: security,
 	// troubleshooting, or hygiene (see the ImpactClass* constants).
-	ImpactClass string `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
+	ImpactClass ImpactClass `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
 	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Confidence indicates how certain the finding is: ConfidenceHigh, or

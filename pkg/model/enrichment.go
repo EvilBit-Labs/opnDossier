@@ -174,18 +174,32 @@ type UnusedInterfaceFinding struct {
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
 }
 
+// ShadowKind classifies the extent of a firewall-rule shadow finding (see
+// ShadowedRuleFinding.Kind).
+type ShadowKind string
+
 // Shadow kind constants classify the extent of a firewall-rule shadow
 // finding (see ShadowedRuleFinding.Kind).
 const (
 	// ShadowKindFull indicates the shadowed rule's entire match set is
 	// contained by the covering rule's match set — the shadowed rule never
 	// takes effect at all.
-	ShadowKindFull = "full"
+	ShadowKindFull ShadowKind = "full"
 	// ShadowKindPartial indicates only a subset of the shadowed rule's
 	// match set (e.g. one port within a range, or one address within a
 	// network) is eclipsed by the covering rule.
-	ShadowKindPartial = "partial"
+	ShadowKindPartial ShadowKind = "partial"
 )
+
+// IsValid reports whether k is a recognized shadow kind.
+func (k ShadowKind) IsValid() bool {
+	switch k {
+	case ShadowKindFull, ShadowKindPartial:
+		return true
+	default:
+		return false
+	}
+}
 
 // Confidence classifies how certain a firewall-rule shadow finding is,
 // distinct from Severity: every finding is ConfidenceHigh except the R8
@@ -203,6 +217,11 @@ const (
 	ConfidenceLow Confidence = "low"
 )
 
+// ImpactClass classifies the operator-facing consequence of a firewall-rule
+// shadow, derived from the covering rule's action relative to the shadowed
+// rule's action (see ShadowedRuleFinding.ImpactClass).
+type ImpactClass string
+
 // Impact class constants classify the operator-facing consequence of a
 // firewall-rule shadow, derived from the covering rule's action relative to
 // the shadowed rule's action (see ShadowedRuleFinding.ImpactClass).
@@ -210,16 +229,26 @@ const (
 	// ImpactClassSecurity indicates a pass rule defeats a non-terminal
 	// explicit block/reject rule — traffic the operator intended to block
 	// silently flows.
-	ImpactClassSecurity = "security"
+	ImpactClassSecurity ImpactClass = "security"
 	// ImpactClassTroubleshooting indicates a block/reject rule defeats a
 	// pass rule, or two explicit (non-pass) rules overlap ambiguously — an
 	// intended allow silently fails closed.
-	ImpactClassTroubleshooting = "troubleshooting"
+	ImpactClassTroubleshooting ImpactClass = "troubleshooting"
 	// ImpactClassHygiene indicates a rule is fully or partially covered by
 	// an earlier same-action rule — redundant configuration, not a
 	// functional defect.
-	ImpactClassHygiene = "hygiene"
+	ImpactClassHygiene ImpactClass = "hygiene"
 )
+
+// IsValid reports whether c is a recognized impact class.
+func (c ImpactClass) IsValid() bool {
+	switch c {
+	case ImpactClassSecurity, ImpactClassTroubleshooting, ImpactClassHygiene:
+		return true
+	default:
+		return false
+	}
+}
 
 // ShadowedRuleFinding represents one firewall rule — or a traffic subset of
 // one — that never takes effect because a higher-precedence rule under pf
@@ -227,10 +256,10 @@ const (
 // device-wide) already covers it. See internal/analysis.DetectShadowedRules.
 type ShadowedRuleFinding struct {
 	// Kind classifies the shadow extent: ShadowKindFull or ShadowKindPartial.
-	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
+	Kind ShadowKind `json:"kind,omitempty" yaml:"kind,omitempty"`
 	// ImpactClass classifies the operator-facing consequence: security,
 	// troubleshooting, or hygiene (see the ImpactClass* constants).
-	ImpactClass string `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
+	ImpactClass ImpactClass `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
 	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Confidence indicates how certain the finding is: ConfidenceHigh, or
