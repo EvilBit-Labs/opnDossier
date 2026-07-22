@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<pfsense>
+  <version>21.02</version>
+  <system>
+    <hostname>fw-aliases</hostname>
+    <domain>test.local</domain>
+  </system>
+  <aliases>
+    <alias>
+      <name>WEB_SERVERS</name>
+      <type>host</type>
+      <address>10.20.30.40 10.20.30.41</address>
+      <descr>Web server hosts</descr>
+    </alias>
+    <alias>
+      <name>INTERNAL_NET</name>
+      <type>network</type>
+      <address>10.20.0.0/16</address>
+      <descr>Internal network</descr>
+    </alias>
+    <alias>
+      <name>WEB_PORTS</name>
+      <type>port</type>
+      <address>80 443</address>
+      <descr>Standard web ports</descr>
+    </alias>
+    <alias>
+      <name>ALL_SERVERS</name>
+      <type>host</type>
+      <address>WEB_SERVERS 10.20.30.50</address>
+      <descr>Nested alias referencing WEB_SERVERS plus a literal host</descr>
+    </alias>
+    <alias>
+      <name>EXTERNAL_HOSTS</name>
+      <type>host</type>
+      <address>203.0.113.10 198.51.100.20</address>
+      <descr>External allowed hosts</descr>
+    </alias>
+    <alias>
+      <name>MIXED_TYPES</name>
+      <type>host</type>
+      <address>10.20.30.60 203.0.113.20 198.51.100.0/24 mail.example.org</address>
+      <descr>Mixed private IP, public IP, CIDR, and hostname in one alias</descr>
+    </alias>
+  </aliases>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <interface>wan</interface>
+      <source>
+        <address>WEB_SERVERS</address>
+      </source>
+      <destination>
+        <network>lan</network>
+        <port>WEB_PORTS</port>
+      </destination>
+    </rule>
+  </filter>
+</pfsense>

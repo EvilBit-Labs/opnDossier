@@ -71,6 +71,11 @@ type Analysis struct {
 	PerformanceIssues []PerformanceFinding `json:"performanceIssues,omitempty" yaml:"performanceIssues,omitempty"`
 	// ConsistencyIssues contains detected configuration consistency issues.
 	ConsistencyIssues []ConsistencyFinding `json:"consistencyIssues,omitempty" yaml:"consistencyIssues,omitempty"`
+	// ShadowedRules contains firewall rules (or traffic subsets of rules)
+	// that never take effect because a higher-precedence rule under pf
+	// evaluation semantics already covers them. See
+	// internal/analysis.DetectShadowedRules.
+	ShadowedRules []ShadowedRuleFinding `json:"shadowedRules,omitempty" yaml:"shadowedRules,omitempty"`
 }
     Analysis contains analysis findings and insights.
 
@@ -214,6 +219,9 @@ type CommonDevice struct {
 	KeaDHCP *KeaDHCPConfig `json:"keaDhcp,omitempty" yaml:"keaDhcp,omitempty"`
 	// Revision contains configuration revision metadata.
 	Revision Revision `json:"revision" yaml:"revision,omitempty"`
+	// NamedObjects is the device's registry of named objects (aliases),
+	// keyed by object name. Absent (nil/omitted) for alias-free devices.
+	NamedObjects NamedObjects `json:"namedObjects,omitempty" yaml:"namedObjects,omitempty"`
 
 	// Statistics contains calculated statistics about the device configuration.
 	Statistics *Statistics `json:"statistics,omitempty" yaml:"statistics,omitempty"`
@@ -400,6 +408,22 @@ type ComplianceResults struct {
 
 func (r ComplianceResults) HasData() bool
     HasData reports whether the compliance results contain meaningful data.
+
+type Confidence string
+    Confidence classifies how certain a firewall-rule shadow finding is,
+    distinct from Severity: every finding is ConfidenceHigh except the
+    R8 advisory path (an unresolvable alias sitting inside what would
+    otherwise be a Security-class overlap), which is ConfidenceLow (see
+    ShadowedRuleFinding.Confidence).
+
+const (
+	// ConfidenceHigh indicates a confirmed, non-advisory finding.
+	ConfidenceHigh Confidence = "high"
+	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias
+	// prevented the shadow from being confirmed with certainty.
+	ConfidenceLow Confidence = "low"
+)
+    Confidence level constants for ShadowedRuleFinding.Confidence.
 
 type ConsistencyFinding struct {
 	// Component is the configuration component affected by the finding.
@@ -711,7 +735,10 @@ type DeadRuleFinding struct {
 	// Kind classifies the dead rule reason (e.g., "unreachable", "duplicate").
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 	// RuleIndex is the position of the dead rule in the filter rule list.
-	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`
+	// No omitempty: index 0 (the first rule) must be distinguishable from an
+	// unset/zero-value finding, and deadRules correlates with shadowedRules
+	// by ruleIndex.
+	RuleIndex int `json:"ruleIndex" yaml:"ruleIndex"`
 	// Interface is the interface the dead rule is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Description is a summary of why the rule is considered dead.
@@ -1291,6 +1318,32 @@ type IPsecPhase2Tunnel struct {
     IPsecPhase2Tunnel represents a platform-agnostic IPsec Phase 2 (child SA)
     configuration.
 
+type ImpactClass string
+    ImpactClass classifies the operator-facing consequence of a firewall-rule
+    shadow, derived from the covering rule's action relative to the shadowed
+    rule's action (see ShadowedRuleFinding.ImpactClass).
+
+const (
+	// ImpactClassSecurity indicates a pass rule defeats a non-terminal
+	// explicit block/reject rule — traffic the operator intended to block
+	// silently flows.
+	ImpactClassSecurity ImpactClass = "security"
+	// ImpactClassTroubleshooting indicates a block/reject rule defeats a
+	// pass rule, or two explicit (non-pass) rules overlap ambiguously — an
+	// intended allow silently fails closed.
+	ImpactClassTroubleshooting ImpactClass = "troubleshooting"
+	// ImpactClassHygiene indicates a rule is fully or partially covered by
+	// an earlier same-action rule — redundant configuration, not a
+	// functional defect.
+	ImpactClassHygiene ImpactClass = "hygiene"
+)
+    Impact class constants classify the operator-facing consequence of a
+    firewall-rule shadow, derived from the covering rule's action relative to
+    the shadowed rule's action (see ShadowedRuleFinding.ImpactClass).
+
+func (c ImpactClass) IsValid() bool
+    IsValid reports whether c is a recognized impact class.
+
 type InboundNATRule struct {
 	// UUID is the unique identifier for the port-forward rule.
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
@@ -1685,6 +1738,74 @@ type NTPConfig struct {
 }
     NTPConfig contains NTP service configuration.
 
+type NamedObject struct {
+	// Name is the alias name, matching the registry key in NamedObjects.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type classifies the member semantics (host, network, port, url, geoip, external).
+	Type NamedObjectType `json:"type,omitempty" yaml:"type,omitempty"`
+	// Members lists the raw member values. For static types these are
+	// literal addresses/ports or the names of other NamedObjects (nested
+	// aliases); for dynamic types they are opaque and are not further resolved.
+	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
+	// Description is the human-readable alias description, when present.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    NamedObject represents a single named object (alias) as it appears in
+    a device's firewall configuration: a host, network, port, or dynamic
+    (url/geoip/external) alias with zero or more members.
+
+type NamedObjectType string
+    NamedObjectType classifies a NamedObject's member semantics.
+
+const (
+	// NamedObjectTypeHost is a single-host alias (one or more literal addresses).
+	NamedObjectTypeHost NamedObjectType = "host"
+	// NamedObjectTypeNetwork is a network/CIDR alias.
+	NamedObjectTypeNetwork NamedObjectType = "network"
+	// NamedObjectTypePort is a port or port-range alias.
+	NamedObjectTypePort NamedObjectType = "port"
+	// NamedObjectTypeURL is a dynamically-fetched URL table alias. Its
+	// members are opaque and are never expanded by Resolve.
+	NamedObjectTypeURL NamedObjectType = "url"
+	// NamedObjectTypeGeoIP is a GeoIP country/region alias. Opaque, like URL.
+	NamedObjectTypeGeoIP NamedObjectType = "geoip"
+	// NamedObjectTypeExternal is an externally-managed table (e.g. a
+	// vendor-maintained blocklist). Opaque, like URL.
+	NamedObjectTypeExternal NamedObjectType = "external"
+)
+    Recognized named-object type constants.
+
+func (t NamedObjectType) IsValid() bool
+    IsValid reports whether t is a recognized named-object type.
+
+type NamedObjects map[string]NamedObject
+    NamedObjects is a device's registry of named objects (aliases), keyed by
+    object name. Alias names are unique per device, so a map gives O(1) lookup
+    for the RuleEndpoint.AddressRef/PortRef resolution path.
+
+    Iterate NamedObjects in sorted key order for any deterministic output
+    (GOTCHAS §3.1) — Go map iteration order is non-deterministic.
+
+func (n NamedObjects) Ref(name string) *ObjectRef
+    Ref returns a *ObjectRef when name matches a key in n, or nil when n is
+    empty/nil, name is empty, or name does not resolve to a known named object
+    (i.e. it is a literal address/port, not an alias reference).
+
+func (n NamedObjects) Resolve(name string) ([]string, bool)
+    Resolve flattens name into its complete set of resolved static members.
+
+    Nested references (an object whose members include another object's name)
+    are followed and flattened into a single deduped, sorted member set.
+    resolved is true only if every branch of the reference tree terminated in
+    static, non-opaque members without hitting a cycle or the maxAliasDepth
+    bound. On a cycle or depth-cap, Resolve returns whatever static members it
+    reached before the failing branch (a partial result) with resolved=false.
+    Dynamic object types (url, geoip, external) are never expanded — their
+    members stay opaque — and Resolve reports resolved=false for them.
+
+    Resolve is nil-safe: calling it on a nil NamedObjects, or looking up an
+    unknown name, returns (nil, false).
+
 type NetflowConfig struct {
 	// CaptureInterfaces lists the interfaces to capture flow data from.
 	CaptureInterfaces string `json:"captureInterfaces,omitempty" yaml:"captureInterfaces,omitempty"`
@@ -1702,6 +1823,14 @@ type NetflowConfig struct {
 	ActiveTimeout string `json:"activeTimeout,omitempty" yaml:"activeTimeout,omitempty"`
 }
     NetflowConfig contains NetFlow/IPFIX traffic accounting configuration.
+
+type ObjectRef struct {
+	// Name is the referenced object's name, keying into NamedObjects.
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+}
+    ObjectRef identifies a RuleEndpoint field (address or port) that was
+    originally expressed as a named-object reference rather than a literal
+    value. It is nil on RuleEndpoint when the field was a literal.
 
 type OpenVPNCSC struct {
 	// CommonName is the certificate common name this override applies to.
@@ -1947,6 +2076,14 @@ type RuleEndpoint struct {
 	Port string `json:"port,omitempty" yaml:"port,omitempty"`
 	// Negated indicates the endpoint match is inverted (NOT logic).
 	Negated bool `json:"negated,omitempty" yaml:"negated,omitempty"`
+	// AddressRef identifies the named object (alias) Address was resolved
+	// from, when the endpoint's address was expressed as an alias rather
+	// than a literal. Nil when Address is a literal value.
+	AddressRef *ObjectRef `json:"addressRef,omitempty" yaml:"addressRef,omitempty"`
+	// PortRef identifies the named object (alias) Port was resolved from,
+	// when the endpoint's port was expressed as an alias rather than a
+	// literal. Nil when Port is a literal value.
+	PortRef *ObjectRef `json:"portRef,omitempty" yaml:"portRef,omitempty"`
 }
     RuleEndpoint represents a normalized source or destination in a firewall or
     NAT rule. The Address field contains the already-resolved effective address
@@ -2059,6 +2196,63 @@ func ValidSeverities() []Severity
 
 func (s Severity) String() string
     String returns the string representation of the severity.
+
+type ShadowKind string
+    ShadowKind classifies the extent of a firewall-rule shadow finding (see
+    ShadowedRuleFinding.Kind).
+
+const (
+	// ShadowKindFull indicates the shadowed rule's entire match set is
+	// contained by the covering rule's match set — the shadowed rule never
+	// takes effect at all.
+	ShadowKindFull ShadowKind = "full"
+	// ShadowKindPartial indicates only a subset of the shadowed rule's
+	// match set (e.g. one port within a range, or one address within a
+	// network) is eclipsed by the covering rule.
+	ShadowKindPartial ShadowKind = "partial"
+)
+    Shadow kind constants classify the extent of a firewall-rule shadow finding
+    (see ShadowedRuleFinding.Kind).
+
+func (k ShadowKind) IsValid() bool
+    IsValid reports whether k is a recognized shadow kind.
+
+type ShadowedRuleFinding struct {
+	// Kind classifies the shadow extent: ShadowKindFull or ShadowKindPartial.
+	Kind ShadowKind `json:"kind,omitempty" yaml:"kind,omitempty"`
+	// ImpactClass classifies the operator-facing consequence: security,
+	// troubleshooting, or hygiene (see the ImpactClass* constants).
+	ImpactClass ImpactClass `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Confidence indicates how certain the finding is: ConfidenceHigh, or
+	// ConfidenceLow for the unresolved-alias advisory path.
+	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
+	// RuleIndex is the position of the shadowed (loser) rule in the filter
+	// rule list. No omitempty: index 0 (the first rule) must be
+	// distinguishable from an unset/zero-value finding.
+	RuleIndex int `json:"ruleIndex" yaml:"ruleIndex"`
+	// ShadowedByIndex is the position of the covering (winner) rule in the
+	// filter rule list. No omitempty: index 0 (the first rule) must be
+	// distinguishable from an unset/zero-value finding.
+	ShadowedByIndex int `json:"shadowedByIndex" yaml:"shadowedByIndex"`
+	// Interface is the interface the shadow was detected on.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Direction is the pf evaluation direction bucket ("in" or "out") the
+	// shadow was resolved under.
+	Direction FirewallDirection `json:"direction,omitempty" yaml:"direction,omitempty"`
+	// Port is the eclipsed port subset, populated for partial shadows only
+	// (best effort, taken from the shadowed rule's destination port).
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// Description is a human-readable summary of the shadow.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    ShadowedRuleFinding represents one firewall rule — or a traffic subset of
+    one — that never takes effect because a higher-precedence rule under pf
+    evaluation semantics (quick first-match, non-quick last-match, floating
+    device-wide) already covers it. See internal/analysis.DetectShadowedRules.
 
 type StaticRoute struct {
 	// Network is the destination network in CIDR notation.

@@ -399,3 +399,141 @@ func TestScanObservations_DoesNotMutateExportPath(t *testing.T) {
 	after := analysis.DetectSecurityIssues(cfg)
 	assert.Equal(t, before, after, "ScanObservations must not mutate DetectSecurityIssues output")
 }
+
+// shadowScanBaseRule mirrors shadow_test.go's baseShadowRule (unexported,
+// package-internal) so this external test package can build the same
+// AE1-shaped fixture: a quick WAN inbound rule with every dimension
+// wildcarded (interface rules default to quick under pf semantics).
+func shadowScanBaseRule(ruleType common.FirewallRuleType) common.FirewallRule {
+	return common.FirewallRule{
+		Type:        ruleType,
+		Interfaces:  []string{"wan"},
+		Direction:   common.DirectionIn,
+		Quick:       true,
+		Source:      common.RuleEndpoint{Address: "any"},
+		Destination: common.RuleEndpoint{Address: "any"},
+	}
+}
+
+// TestScanObservations_IncludesShadowedRules (U8, R15, KTD-7) asserts a
+// config with a firewall-rule shadow (AE1-shaped: an earlier WAN pass rule
+// fully shadowing a later WAN block rule) surfaces a corresponding shadow
+// Observation from ScanObservations — the blue-mode audit surfacing path
+// (Consumer 3 of the one-core/three-consumer design, ADR-0004).
+//
+// Because the shadow is WAN-reachable and Security-class, this same
+// Observation is also asserted present with Reachability == WANReachable,
+// which is exactly the signal generateRedReport's WAN filter consumes to
+// surface it as a red-mode attack surface (KTD-7's intended consequence — no
+// red-specific code is added here, only the shared assertion that the
+// producer emits a WAN-tagged observation for a WAN-reachable shadow).
+func TestScanObservations_IncludesShadowedRules(t *testing.T) {
+	t.Parallel()
+
+	earlier := shadowScanBaseRule(common.RuleTypePass)
+	earlier.Destination.Port = "22"
+
+	later := shadowScanBaseRule(common.RuleTypeBlock)
+	later.Source.Address = "10.0.0.0/8"
+	later.Destination.Port = "22"
+
+	cfg := &common.CommonDevice{
+		Interfaces:    []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{earlier, later},
+	}
+
+	observations := analysis.ScanObservations(cfg)
+
+	var shadow *analysis.Observation
+	for i := range observations {
+		if observations[i].Component == "filter.rule[1]" {
+			shadow = &observations[i]
+			break
+		}
+	}
+
+	require.NotNil(t, shadow, "expected a shadow observation for the shadowed rule at filter.rule[1]")
+	assert.Equal(t, analysis.SeverityCritical, shadow.Severity, "WAN-reachable Security shadow escalates to critical")
+	assert.Equal(t, analysis.ConfidenceHigh, shadow.Confidence)
+	assert.Equal(
+		t,
+		analysis.WANReachable,
+		shadow.Reachability,
+		"WAN-reachable Security shadow must be tagged WAN-reachable so it also surfaces as a red-mode attack surface",
+	)
+	assert.Contains(t, shadow.Evidence, "filter.rule[0]", "evidence must name the shadowing (winner) rule")
+	assert.NotEmpty(t, shadow.Title)
+	assert.NotEmpty(t, shadow.Description)
+	assert.NotEmpty(t, shadow.Recommendation)
+}
+
+// TestScanObservations_ShadowAdvisoryMarkerPassesThrough (R8, U8) pins that
+// the R8 "(unconfirmed — unresolved alias)" advisory marker set by the shadow
+// core survives the Observation adaptation unchanged, so blue-mode rendering
+// can still distinguish an advisory (low-confidence, unresolved-alias)
+// finding from a confirmed one at the same severity.
+func TestScanObservations_ShadowAdvisoryMarkerPassesThrough(t *testing.T) {
+	t.Parallel()
+
+	earlier := shadowScanBaseRule(common.RuleTypePass)
+	earlier.Destination.Port = "UNRESOLVABLE"
+	earlier.Destination.PortRef = &common.ObjectRef{Name: "UNRESOLVABLE"}
+
+	later := shadowScanBaseRule(common.RuleTypeBlock)
+	later.Source.Address = "10.0.0.0/8"
+	later.Destination.Port = "443"
+
+	cfg := &common.CommonDevice{
+		Interfaces:    []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{earlier, later},
+		NamedObjects:  common.NamedObjects{}, // "UNRESOLVABLE" is not registered
+	}
+
+	observations := analysis.ScanObservations(cfg)
+
+	var shadow *analysis.Observation
+	for i := range observations {
+		if observations[i].Component == "filter.rule[1]" {
+			shadow = &observations[i]
+			break
+		}
+	}
+
+	require.NotNil(t, shadow, "expected an advisory shadow observation")
+	assert.Equal(t, analysis.ConfidenceLow, shadow.Confidence, "advisory findings carry low confidence")
+	assert.Contains(t, shadow.Description, "(unconfirmed — unresolved alias)")
+}
+
+// TestScanObservations_NoShadows_NoObservations pins that a config with no
+// overlapping firewall rules produces no shadow observations (silent on
+// clean config, matching every other producer's "fires vs stays silent"
+// contract).
+func TestScanObservations_NoShadows_NoObservations(t *testing.T) {
+	t.Parallel()
+
+	cfg := &common.CommonDevice{
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Quick:       true,
+				Source:      common.RuleEndpoint{Address: "192.168.1.1"},
+				Destination: common.RuleEndpoint{Address: "192.168.1.2", Port: "80"},
+			},
+			{
+				Type:        common.RuleTypeBlock,
+				Interfaces:  []string{"wan"},
+				Quick:       true,
+				Source:      common.RuleEndpoint{Address: "10.0.0.1"},
+				Destination: common.RuleEndpoint{Address: "10.0.0.2", Port: "443"},
+			},
+		},
+	}
+
+	observations := analysis.ScanObservations(cfg)
+
+	for _, o := range observations {
+		assert.NotContains(t, o.Title, "Shadowed Firewall Rule")
+	}
+}

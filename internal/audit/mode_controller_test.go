@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -1525,5 +1526,79 @@ func TestAddComplianceAnalysis_FrameworksDerivedFromExecutedPlugins(t *testing.T
 	want := []string{"STIG"}
 	if !slices.Equal(frameworks, want) {
 		t.Errorf("compliance_frameworks = %v, want %v", frameworks, want)
+	}
+}
+
+// TestGenerateBlueReport_SurfacesShadowedRuleFindings (U8, R15, KTD-7) is the
+// audit-level confirmation that a firewall-rule shadow reaches the rendered
+// blue-mode Findings, not just analysis.ScanObservations in isolation.
+//
+// This matters because addSecurityFindings de-dupes shared-engine
+// observations against fired plugin controls BY COMPONENT
+// (dedupeAgainstPluginFindings, R9) — see
+// TestAddSecurityFindings_DedupeAgainstFiredPluginControls above, which pins
+// exactly this behavior for the any-to-any-rule observation. A shadow
+// observation carries the same "filter.rule[N]" Component shape, so it is
+// subject to the identical dedup rule. This test uses a fresh, empty
+// PluginRegistry (no plugins registered, matching TestModeController_
+// GenerateReport's pattern) so RunComplianceChecks contributes zero plugin
+// findings and cannot collide with the shadow's Component — isolating the
+// question this test answers ("does the shadow reach report.Findings at
+// all") from the separate, already-covered, already-intentional dedup
+// behavior (which applies identically to every ScanObservations producer,
+// not something specific to shadows to fix here).
+func TestGenerateBlueReport_SurfacesShadowedRuleFindings(t *testing.T) {
+	t.Parallel()
+
+	registry := NewPluginRegistry()
+	logger := newTestLogger(t)
+	controller := NewModeController(registry, logger)
+
+	earlier := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		Interfaces:  []string{"wan"},
+		Direction:   common.DirectionIn,
+		Quick:       true,
+		Source:      common.RuleEndpoint{Address: "any"},
+		Destination: common.RuleEndpoint{Address: "any", Port: "22"},
+	}
+	later := common.FirewallRule{
+		Type:        common.RuleTypeBlock,
+		Interfaces:  []string{"wan"},
+		Direction:   common.DirectionIn,
+		Quick:       true,
+		Source:      common.RuleEndpoint{Address: "10.0.0.0/8"},
+		Destination: common.RuleEndpoint{Address: "any", Port: "22"},
+	}
+
+	device := &common.CommonDevice{
+		System:        common.System{Hostname: "fw", Domain: "example.com"},
+		Interfaces:    []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{earlier, later},
+	}
+
+	report, err := controller.GenerateReport(context.Background(), device, &ModeConfig{
+		Mode: ModeBlue,
+	})
+	if err != nil {
+		t.Fatalf("GenerateReport() unexpected error: %v", err)
+	}
+
+	idx := slices.IndexFunc(report.Findings, func(f Finding) bool {
+		return f.Component == "filter.rule[1]"
+	})
+	if idx < 0 {
+		t.Fatalf(
+			"blue-mode report.Findings does not contain the shadowed rule at filter.rule[1]; findings: %+v",
+			report.Findings,
+		)
+	}
+
+	if !strings.Contains(report.Findings[idx].Title, "Shadowed Firewall Rule") {
+		t.Errorf(
+			"report.Findings[%d].Title = %q, want it to identify a shadow finding",
+			idx,
+			report.Findings[idx].Title,
+		)
 	}
 }

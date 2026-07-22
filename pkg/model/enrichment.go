@@ -132,6 +132,11 @@ type Analysis struct {
 	PerformanceIssues []PerformanceFinding `json:"performanceIssues,omitempty" yaml:"performanceIssues,omitempty"`
 	// ConsistencyIssues contains detected configuration consistency issues.
 	ConsistencyIssues []ConsistencyFinding `json:"consistencyIssues,omitempty" yaml:"consistencyIssues,omitempty"`
+	// ShadowedRules contains firewall rules (or traffic subsets of rules)
+	// that never take effect because a higher-precedence rule under pf
+	// evaluation semantics already covers them. See
+	// internal/analysis.DetectShadowedRules.
+	ShadowedRules []ShadowedRuleFinding `json:"shadowedRules,omitempty" yaml:"shadowedRules,omitempty"`
 }
 
 // Dead rule kind constants classify the reason a rule is considered dead.
@@ -147,7 +152,10 @@ type DeadRuleFinding struct {
 	// Kind classifies the dead rule reason (e.g., "unreachable", "duplicate").
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 	// RuleIndex is the position of the dead rule in the filter rule list.
-	RuleIndex int `json:"ruleIndex,omitempty" yaml:"ruleIndex,omitempty"`
+	// No omitempty: index 0 (the first rule) must be distinguishable from an
+	// unset/zero-value finding, and deadRules correlates with shadowedRules
+	// by ruleIndex.
+	RuleIndex int `json:"ruleIndex" yaml:"ruleIndex"`
 	// Interface is the interface the dead rule is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
 	// Description is a summary of why the rule is considered dead.
@@ -161,6 +169,119 @@ type UnusedInterfaceFinding struct {
 	// InterfaceName is the name of the unused interface.
 	InterfaceName string `json:"interfaceName,omitempty" yaml:"interfaceName,omitempty"`
 	// Description is a summary of why the interface is considered unused.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+
+// ShadowKind classifies the extent of a firewall-rule shadow finding (see
+// ShadowedRuleFinding.Kind).
+type ShadowKind string
+
+// Shadow kind constants classify the extent of a firewall-rule shadow
+// finding (see ShadowedRuleFinding.Kind).
+const (
+	// ShadowKindFull indicates the shadowed rule's entire match set is
+	// contained by the covering rule's match set — the shadowed rule never
+	// takes effect at all.
+	ShadowKindFull ShadowKind = "full"
+	// ShadowKindPartial indicates only a subset of the shadowed rule's
+	// match set (e.g. one port within a range, or one address within a
+	// network) is eclipsed by the covering rule.
+	ShadowKindPartial ShadowKind = "partial"
+)
+
+// IsValid reports whether k is a recognized shadow kind.
+func (k ShadowKind) IsValid() bool {
+	switch k {
+	case ShadowKindFull, ShadowKindPartial:
+		return true
+	default:
+		return false
+	}
+}
+
+// Confidence classifies how certain a firewall-rule shadow finding is,
+// distinct from Severity: every finding is ConfidenceHigh except the R8
+// advisory path (an unresolvable alias sitting inside what would otherwise
+// be a Security-class overlap), which is ConfidenceLow (see
+// ShadowedRuleFinding.Confidence).
+type Confidence string
+
+// Confidence level constants for ShadowedRuleFinding.Confidence.
+const (
+	// ConfidenceHigh indicates a confirmed, non-advisory finding.
+	ConfidenceHigh Confidence = "high"
+	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias
+	// prevented the shadow from being confirmed with certainty.
+	ConfidenceLow Confidence = "low"
+)
+
+// ImpactClass classifies the operator-facing consequence of a firewall-rule
+// shadow, derived from the covering rule's action relative to the shadowed
+// rule's action (see ShadowedRuleFinding.ImpactClass).
+type ImpactClass string
+
+// Impact class constants classify the operator-facing consequence of a
+// firewall-rule shadow, derived from the covering rule's action relative to
+// the shadowed rule's action (see ShadowedRuleFinding.ImpactClass).
+const (
+	// ImpactClassSecurity indicates a pass rule defeats a non-terminal
+	// explicit block/reject rule — traffic the operator intended to block
+	// silently flows.
+	ImpactClassSecurity ImpactClass = "security"
+	// ImpactClassTroubleshooting indicates a block/reject rule defeats a
+	// pass rule, or two explicit (non-pass) rules overlap ambiguously — an
+	// intended allow silently fails closed.
+	ImpactClassTroubleshooting ImpactClass = "troubleshooting"
+	// ImpactClassHygiene indicates a rule is fully or partially covered by
+	// an earlier same-action rule — redundant configuration, not a
+	// functional defect.
+	ImpactClassHygiene ImpactClass = "hygiene"
+)
+
+// IsValid reports whether c is a recognized impact class.
+func (c ImpactClass) IsValid() bool {
+	switch c {
+	case ImpactClassSecurity, ImpactClassTroubleshooting, ImpactClassHygiene:
+		return true
+	default:
+		return false
+	}
+}
+
+// ShadowedRuleFinding represents one firewall rule — or a traffic subset of
+// one — that never takes effect because a higher-precedence rule under pf
+// evaluation semantics (quick first-match, non-quick last-match, floating
+// device-wide) already covers it. See internal/analysis.DetectShadowedRules.
+type ShadowedRuleFinding struct {
+	// Kind classifies the shadow extent: ShadowKindFull or ShadowKindPartial.
+	Kind ShadowKind `json:"kind,omitempty" yaml:"kind,omitempty"`
+	// ImpactClass classifies the operator-facing consequence: security,
+	// troubleshooting, or hygiene (see the ImpactClass* constants).
+	ImpactClass ImpactClass `json:"impactClass,omitempty" yaml:"impactClass,omitempty"`
+	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Confidence indicates how certain the finding is: ConfidenceHigh, or
+	// ConfidenceLow for the unresolved-alias advisory path.
+	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
+	// RuleIndex is the position of the shadowed (loser) rule in the filter
+	// rule list. No omitempty: index 0 (the first rule) must be
+	// distinguishable from an unset/zero-value finding.
+	RuleIndex int `json:"ruleIndex" yaml:"ruleIndex"`
+	// ShadowedByIndex is the position of the covering (winner) rule in the
+	// filter rule list. No omitempty: index 0 (the first rule) must be
+	// distinguishable from an unset/zero-value finding.
+	ShadowedByIndex int `json:"shadowedByIndex" yaml:"shadowedByIndex"`
+	// Interface is the interface the shadow was detected on.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// Direction is the pf evaluation direction bucket ("in" or "out") the
+	// shadow was resolved under.
+	Direction FirewallDirection `json:"direction,omitempty" yaml:"direction,omitempty"`
+	// Port is the eclipsed port subset, populated for partial shadows only
+	// (best effort, taken from the shadowed rule's destination port).
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// Description is a human-readable summary of the shadow.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`

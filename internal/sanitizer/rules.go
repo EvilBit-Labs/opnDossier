@@ -378,6 +378,19 @@ func builtinRules() []Rule {
 		},
 
 		// Network rules - aggressive and moderate
+		//
+		// ValueDetector/Redactor operate on a single value (identical to the
+		// original net.ParseIP-based behavior, including IPv6). A delimiter-
+		// separated multi-value field (e.g. a newline-separated OPNsense
+		// alias <content> or space-separated pfSense alias <address>) is
+		// split into individual whitespace-delimited tokens BEFORE reaching
+		// the rule engine — see sanitizeCharData/redactValueTokens in
+		// sanitizer.go — so each member is matched against this rule
+		// independently, without also matching IPv4-looking digits embedded
+		// in an unrelated compound value such as a "host:port" endpoint
+		// string (token-boundary matching, not a substring scan). See the
+		// sanitizer alias-redaction gap in the firewall-shadowing plan's
+		// System-Wide Impact section.
 		{
 			Name:          "public_ip",
 			Description:   "Redacts public IP addresses",
@@ -389,13 +402,11 @@ func builtinRules() []Rule {
 			},
 		},
 		{
-			Name:        "private_ip_aggressive",
-			Description: "Redacts private IP addresses (aggressive mode)",
-			Category:    CategoryNetwork,
-			Modes:       aggressiveOnly,
-			ValueDetector: func(value string) bool {
-				return IsPrivateIP(value) && IsIPv4(value)
-			},
+			Name:          "private_ip_aggressive",
+			Description:   "Redacts private IP addresses (aggressive mode)",
+			Category:      CategoryNetwork,
+			Modes:         aggressiveOnly,
+			ValueDetector: isPrivateIPv4,
 			Redactor: func(m *Mapper, _, value string) string {
 				return m.MapPrivateIP(value, false)
 			},
@@ -517,6 +528,11 @@ func builtinRules() []Rule {
 			},
 			// ValueDetector enables CIDR detection on unrecognized field names;
 			// the Redactor guard handles the field-pattern match path separately.
+			// IsSubnet (net.ParseCIDR) covers both IPv4 and IPv6 CIDR literals.
+			// Multi-value alias fields (newline- or space-separated CIDR lists)
+			// are split into individual tokens before reaching the rule engine —
+			// see sanitizeCharData/redactValueTokens in sanitizer.go — so each
+			// member is matched against this rule independently.
 			ValueDetector: IsSubnet,
 			Redactor: func(_ *Mapper, _, value string) string {
 				// Guard: field-pattern matches (e.g., "subnet") bypass the ValueDetector,
@@ -622,6 +638,13 @@ var systemUsers = []string{
 func isSystemUser(username string) bool {
 	lower := strings.ToLower(username)
 	return slices.Contains(systemUsers, lower)
+}
+
+// isPrivateIPv4 reports whether v is a private IPv4 address, restricting
+// IsPrivateIP's broader IPv4-or-IPv6 check to IPv4 only. Used as the
+// private_ip_aggressive rule's ValueDetector.
+func isPrivateIPv4(v string) bool {
+	return IsPrivateIP(v) && IsIPv4(v)
 }
 
 // GetActiveRules returns rules that are active for the current mode.
