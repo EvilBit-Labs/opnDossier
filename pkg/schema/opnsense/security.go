@@ -229,6 +229,28 @@ func (s Source) EffectiveAddress() string {
 	return ""
 }
 
+// AliasAddress returns the literal <address> value, following the same
+// Network > Address precedence as EffectiveAddress: it returns "" when the
+// effective address came from an interface/network macro (e.g. "lan"), and
+// otherwise returns Address (which is itself "" for a bare "any" wildcard,
+// since <any/> carries no address). Matching EffectiveAddress's precedence
+// is deliberate — an endpoint that sets both <address> and <any/> resolves
+// to its Address under EffectiveAddress, so its AddressRef must resolve to
+// that same alias rather than being dropped.
+//
+// This exists specifically for named-object (alias) resolution: a macro
+// must never be looked up against the alias table, even if an alias happens
+// to share the same name (e.g. an alias literally named "lan").
+// EffectiveAddress is unsuitable for that lookup because it also surfaces
+// the Network macro and the "any" sentinel; callers deriving
+// RuleEndpoint.AddressRef must use AliasAddress instead.
+func (s Source) AliasAddress() string {
+	if s.Network != "" {
+		return ""
+	}
+	return s.Address
+}
+
 // Equal reports whether two Source values are semantically equal.
 // Any is compared by presence only (nil vs non-nil), not by value,
 // because OPNsense treats <any> as a presence-based flag.
@@ -276,6 +298,21 @@ func (d Destination) EffectiveAddress() string {
 	return ""
 }
 
+// AliasAddress returns the literal <address> value, following the same
+// Network > Address precedence as EffectiveAddress: it returns "" when the
+// effective address came from an interface/network macro (e.g. "lan"), and
+// otherwise returns Address (itself "" for a bare "any" wildcard).
+//
+// See Source.AliasAddress for the full rationale: this exists so named-object
+// (alias) resolution never mistakes a macro for an alias reference, even when
+// an alias happens to share the same name.
+func (d Destination) AliasAddress() string {
+	if d.Network != "" {
+		return ""
+	}
+	return d.Address
+}
+
 // Equal reports whether two Destination values are semantically equal.
 // Any is compared by presence only (nil vs non-nil), not by value,
 // because OPNsense treats <any> as a presence-based flag.
@@ -303,6 +340,37 @@ type Created struct {
 	Description string `xml:"description"`
 }
 
+// Alias represents a single OPNsense firewall alias definition (a "named
+// object" in ADR-0002 terms), as it appears both under the MVC-model path
+// (<Firewall><Alias><aliases><alias>) and the legacy top-level path
+// (<aliases><alias>, see OpnSenseDocument.Aliases).
+//
+// Type is one of host|network|port|url|geoip|external per
+// common.NamedObjectType, plus vendor variants (e.g. urltable, networkgroup,
+// mac, dynipv6host, authgroup) that the converter treats as unrecognized and
+// warns on rather than silently dropping (GOTCHAS §5.2).
+//
+// Content holds members newline-separated — the modern OPNsense MVC
+// convention (mirrors KeaSubnet.Pools, see GOTCHAS §18.2). Legacy configs
+// may instead populate Address; the converter checks both and prefers
+// Content when non-empty.
+type Alias struct {
+	UUID        string `xml:"uuid,attr,omitempty" json:"uuid,omitempty"        yaml:"uuid,omitempty"`
+	Name        string `xml:"name"                json:"name,omitempty"        yaml:"name,omitempty"`
+	Type        string `xml:"type"                json:"type,omitempty"        yaml:"type,omitempty"`
+	Content     string `xml:"content,omitempty"   json:"content,omitempty"     yaml:"content,omitempty"`
+	Address     string `xml:"address,omitempty"   json:"address,omitempty"     yaml:"address,omitempty"`
+	Description string `xml:"descr,omitempty"     json:"description,omitempty" yaml:"description,omitempty"`
+}
+
+// AliasList is the container for a set of firewall alias definitions. It is
+// shared by both the MVC-model path (<Firewall><Alias><aliases>) and the
+// legacy top-level path (<opnsense><aliases>, see OpnSenseDocument.Aliases)
+// since both use the same <alias> child-element shape.
+type AliasList struct {
+	Alias []Alias `xml:"alias,omitempty" json:"alias,omitempty" yaml:"alias,omitempty"`
+}
+
 // Firewall represents the OPNsense MVC-based firewall configuration, including
 // live templates, alias definitions, category groupings, and filter/SNAT rules.
 type Firewall struct {
@@ -320,7 +388,7 @@ type Firewall struct {
 			Text string `xml:",chardata" json:"text,omitempty"`
 			URL  string `xml:"url"`
 		} `xml:"geoip" json:"geoip"`
-		Aliases string `xml:"aliases"`
+		Aliases AliasList `xml:"aliases" json:"aliases"`
 	} `xml:"Alias"      json:"alias"`
 	Category struct {
 		Text       string `xml:",chardata" json:"text,omitempty"`

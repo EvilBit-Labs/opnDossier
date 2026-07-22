@@ -222,6 +222,19 @@ func (s *Sanitizer) sanitizeXMLContent(data []byte) ([]byte, error) {
 // sanitizeCharData applies redaction to a non-empty CharData leaf. The
 // extracted helper keeps the main token-stream loop flat; stats and
 // rule-lookup sequencing are documented inline below.
+//
+// Field-name-driven rules (FieldPatterns match) are applied to the ENTIRE
+// value in a single redaction call — a password rule must not fragment a
+// multi-word passphrase into several independently-redacted pieces, and an
+// "endpoint" field must redact its whole host:port value to one marker.
+// Only when no field-name rule matches does this fall back to per-token
+// value-based detection (redactValueTokens), so a whitespace/
+// newline-separated multi-value field (an OPNsense alias <content> or
+// pfSense alias <address>) has every member matched independently against
+// the full rule set — a mix of a private IP, a public IP, and a CIDR in the
+// same field is now fully redacted, rather than only the first rule type
+// that happens to match anywhere in the value. See GOTCHAS re: the
+// mixed-type alias leak this replaced.
 func (s *Sanitizer) sanitizeCharData(content string, pathStack []string) string {
 	s.stats.TotalFields++
 
@@ -234,24 +247,25 @@ func (s *Sanitizer) sanitizeCharData(content string, pathStack []string) string 
 	// filtered by the caller and never reach this join.
 	fullPath := strings.Join(pathStack, ".")
 
-	// Try full path first, then bare element name.
-	should, rule := s.engine.ShouldRedactValue(fullPath, content)
-	if !should {
-		should, rule = s.engine.ShouldRedactValue(currentElement, content)
+	// Try full path first, then bare element name — exact-match patterns
+	// (e.g. "key") only match the bare element name, never the dotted path.
+	if should, rule := s.engine.ShouldRedactField(fullPath); should {
+		return s.redactWholeValue(rule, fullPath, content)
+	}
+	if should, rule := s.engine.ShouldRedactField(currentElement); should {
+		return s.redactWholeValue(rule, currentElement, content)
 	}
 
-	if !should {
-		s.stats.SkippedFields++
-		return content
-	}
+	return s.redactValueTokens(fullPath, content)
+}
 
-	// Apply the same rule that ShouldRedactValue matched to avoid a
-	// redundant lookup that could attribute the redaction to a different
-	// rule in statistics.
-	redacted := s.engine.RedactWithRule(rule, fullPath, content)
-	// Only count as redacted if the value actually changed; guarded
-	// Redactors (e.g., ip_address_field) may return the original value
-	// when the guard rejects it.
+// redactWholeValue applies rule (already known to match via field name) to
+// the entire value in a single redaction call, updating stats accordingly.
+// Only count as redacted if the value actually changed; guarded Redactors
+// (e.g., ip_address_field) may return the original value when the guard
+// rejects it.
+func (s *Sanitizer) redactWholeValue(rule Rule, fieldName, content string) string {
+	redacted := s.engine.RedactWithRule(rule, fieldName, content)
 	if redacted == content {
 		s.stats.SkippedFields++
 		return redacted
@@ -261,6 +275,46 @@ func (s *Sanitizer) sanitizeCharData(content string, pathStack []string) string 
 		s.stats.RedactionsByType[rule.Name]++
 	}
 	return redacted
+}
+
+// redactValueTokens splits content into whitespace-delimited tokens
+// (preserving all original whitespace/newlines exactly — alias content is
+// newline-structured, one member per line) and independently matches and
+// redacts each token against the full rule set's value-detector path. A
+// token matching no rule is left untouched. A single-token value (no
+// internal whitespace) behaves identically to a direct whole-value
+// ShouldRedactValue/RedactWithRule call. Reports one RedactedFields/
+// SkippedFields event for the whole CharData leaf (matching the prior
+// one-event-per-node accounting), but tracks RedactionsByType per rule
+// actually used across all tokens.
+func (s *Sanitizer) redactValueTokens(fieldName, content string) string {
+	anyRedacted := false
+
+	result := whitespaceTokenPattern.ReplaceAllStringFunc(content, func(token string) string {
+		should, rule := s.engine.ShouldRedactValue(fieldName, token)
+		if !should {
+			return token
+		}
+
+		redacted := s.engine.RedactWithRule(rule, fieldName, token)
+		if redacted == token {
+			return token
+		}
+
+		anyRedacted = true
+		if rule.Name != "" {
+			s.stats.RedactionsByType[rule.Name]++
+		}
+		return redacted
+	})
+
+	if anyRedacted {
+		s.stats.RedactedFields++
+	} else {
+		s.stats.SkippedFields++
+	}
+
+	return result
 }
 
 // sanitizeValue applies redaction rules to a value based on field name context.

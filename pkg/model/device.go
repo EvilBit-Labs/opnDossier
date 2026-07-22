@@ -171,6 +171,9 @@ type CommonDevice struct {
 	KeaDHCP *KeaDHCPConfig `json:"keaDhcp,omitempty" yaml:"keaDhcp,omitempty"`
 	// Revision contains configuration revision metadata.
 	Revision Revision `json:"revision" yaml:"revision,omitempty"`
+	// NamedObjects is the device's registry of named objects (aliases),
+	// keyed by object name. Absent (nil/omitted) for alias-free devices.
+	NamedObjects NamedObjects `json:"namedObjects,omitempty" yaml:"namedObjects,omitempty"`
 
 	// --- Enrichment-populated fields below ---
 	// The fields below are populated by prepareForExport in the converter

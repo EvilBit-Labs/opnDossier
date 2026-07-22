@@ -46,7 +46,14 @@ type OpnSenseDocument struct {
 	Certs                []Cert                 `xml:"cert,omitempty"                   json:"cert,omitempty"       yaml:"cert,omitempty"`
 	DNSMasquerade        DNSMasq                `xml:"dnsmasq,omitempty"                json:"dnsmasq"              yaml:"dnsmasq,omitempty"`
 	Syslog               Syslog                 `xml:"syslog,omitempty"                 json:"syslog"               yaml:"syslog,omitempty"`
-	OPNsense             OPNsense               `xml:"OPNsense,omitempty"               json:"opnsense"             yaml:"opnsense,omitempty"`
+	// Aliases is the legacy top-level <aliases> element used by older
+	// OPNsense configs that predate the MVC Firewall/Alias subsystem
+	// (modern configs store aliases at OPNsense.Firewall.Alias.Aliases
+	// instead — see Firewall.Alias.Aliases). Both sources share the same
+	// AliasList/Alias element shape and are merged by the converter into a
+	// single common.NamedObjects registry.
+	Aliases  AliasList `xml:"aliases,omitempty"  json:"aliases"  yaml:"aliases,omitempty"`
+	OPNsense OPNsense  `xml:"OPNsense,omitempty" json:"opnsense" yaml:"opnsense,omitempty"`
 }
 
 // OPNsense represents the <OPNsense> sub-element within the configuration, containing

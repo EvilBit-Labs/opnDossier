@@ -49,6 +49,7 @@ type Document struct {
 	CAs          []opnsense.CertificateAuthority `xml:"ca,omitempty"            json:"ca,omitempty"         yaml:"ca,omitempty"`
 	Certs        []opnsense.Cert                 `xml:"cert,omitempty"          json:"cert,omitempty"       yaml:"cert,omitempty"`
 	VLANs        opnsense.VLANs                  `xml:"vlans,omitempty"         json:"vlans"                yaml:"vlans,omitempty"`
+	Aliases      AliasList                       `xml:"aliases,omitempty"       json:"aliases"              yaml:"aliases,omitempty"`
 }
 
 // NewDocument returns a new Document with all slice and map fields initialized for safe use.

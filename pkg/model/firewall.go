@@ -123,6 +123,14 @@ type RuleEndpoint struct {
 	Port string `json:"port,omitempty" yaml:"port,omitempty"`
 	// Negated indicates the endpoint match is inverted (NOT logic).
 	Negated bool `json:"negated,omitempty" yaml:"negated,omitempty"`
+	// AddressRef identifies the named object (alias) Address was resolved
+	// from, when the endpoint's address was expressed as an alias rather
+	// than a literal. Nil when Address is a literal value.
+	AddressRef *ObjectRef `json:"addressRef,omitempty" yaml:"addressRef,omitempty"`
+	// PortRef identifies the named object (alias) Port was resolved from,
+	// when the endpoint's port was expressed as an alias rather than a
+	// literal. Nil when Port is a literal value.
+	PortRef *ObjectRef `json:"portRef,omitempty" yaml:"portRef,omitempty"`
 }
 
 // FirewallRule represents a normalized firewall filter rule.

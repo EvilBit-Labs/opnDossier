@@ -42,6 +42,23 @@ var (
 	// Hostname pattern (simple FQDN detection).
 	hostnamePattern = regexp.MustCompile(`\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b`)
 
+	// whitespaceTokenPattern splits a value into whitespace-delimited tokens
+	// (spaces, tabs, newlines). Used by sanitizeCharData/redactValueTokens
+	// (sanitizer.go) to split a delimiter-separated multi-value field — a
+	// newline-separated OPNsense alias <content> or a space-separated
+	// pfSense alias <address> — into individual members BEFORE any rule is
+	// consulted, so every member (regardless of type: IP, subnet, hostname,
+	// MAC, email, ...) is matched against the FULL rule set independently.
+	// This is deliberately NOT a bare regex substring scan: a token such as
+	// "203.0.113.1:51820" (a host:port endpoint) must NOT match as an IP,
+	// because IsPublicIP("203.0.113.1:51820") is false even though the
+	// substring "203.0.113.1" would match an unanchored IPv4 regex.
+	// Splitting into whitespace tokens first and validating each whole
+	// token preserves that distinction while still catching multi-value
+	// alias members. See the sanitizer alias-redaction gap in the
+	// firewall-shadowing plan's System-Wide Impact section.
+	whitespaceTokenPattern = regexp.MustCompile(`\S+`)
+
 	// Base64-encoded data pattern (for certificates/keys).
 	base64Pattern = regexp.MustCompile(`^[A-Za-z0-9+/]{40,}={0,2}$`)
 

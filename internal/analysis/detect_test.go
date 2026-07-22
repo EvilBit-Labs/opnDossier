@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -193,9 +194,9 @@ func TestDetectDeadRules(t *testing.T) {
 }
 
 // TestDetectDeadRules_DisabledNotEquivalent ensures a disabled rule is not
-// reported as a duplicate of an otherwise-identical enabled rule. Both
-// RulesEquivalent and hashRule must agree on this — if either drops the
-// Disabled check, integration output changes silently.
+// reported as a duplicate of an otherwise-identical enabled rule. If
+// RulesEquivalent drops the Disabled check, integration output changes
+// silently.
 func TestDetectDeadRules_DisabledNotEquivalent(t *testing.T) {
 	t.Parallel()
 
@@ -381,6 +382,155 @@ func TestDetectDeadRules_DuplicateBeforeBlockAll(t *testing.T) {
 
 	assert.Equal(t, common.DeadRuleKindUnreachable, findings[1].Kind)
 	assert.Equal(t, 1, findings[1].RuleIndex)
+}
+
+// TestDetectDeadRules_EquivalentToShadowSubset pins the ADR-0004 drift
+// mitigation: DetectDeadRules(cfg) must equal the unreachable+duplicate
+// projection of DetectShadowedRules(cfg) — full shadows whose winner is a
+// block-all (unreachable) or whose winner/loser pair is RulesEquivalent
+// (duplicate). The fixture gives every rule Direction=in, Quick=true
+// explicitly so DetectShadowedRules(cfg) is called on literally the same
+// effective shape DetectDeadRules derives internally (see
+// normalizeForDeadRuleView) — this isolates the equivalence check from the
+// internal normalization and lets the two detectors be compared directly
+// over one un-normalized fixture spanning two interfaces.
+func TestDetectDeadRules_EquivalentToShadowSubset(t *testing.T) {
+	t.Parallel()
+
+	blockAllWAN := common.FirewallRule{
+		Type:        common.RuleTypeBlock,
+		Interfaces:  []string{"wan"},
+		Direction:   common.DirectionIn,
+		Quick:       true,
+		Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+	}
+	passWAN := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"wan"},
+		Direction:   common.DirectionIn,
+		Quick:       true,
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+	}
+	dupLAN := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"lan"},
+		Direction:   common.DirectionIn,
+		Quick:       true,
+		Source:      common.RuleEndpoint{Address: "10.0.0.0/24"},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+	}
+
+	cfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{blockAllWAN, passWAN, dupLAN, dupLAN},
+	}
+
+	deadRules := analysis.DetectDeadRules(cfg)
+	shadows := analysis.DetectShadowedRules(cfg)
+
+	require.NotEmpty(t, deadRules)
+	require.NotEmpty(t, shadows)
+
+	type key struct {
+		kind  string
+		iface string
+		idx   int
+	}
+
+	wantUnreachable := make(map[key]bool)
+	wantDuplicateCount := make(map[key]int)
+
+	for _, f := range shadows {
+		if f.Kind != common.ShadowKindFull {
+			continue
+		}
+
+		winner := cfg.FirewallRules[f.ShadowedByIndex]
+		loser := cfg.FirewallRules[f.RuleIndex]
+
+		if winner.Type == common.RuleTypeBlock &&
+			winner.Source.Address == constants.NetworkAny &&
+			winner.Destination.Address == constants.NetworkAny {
+			wantUnreachable[key{common.DeadRuleKindUnreachable, f.Interface, f.ShadowedByIndex}] = true
+		}
+
+		if analysis.RulesEquivalent(winner, loser) {
+			wantDuplicateCount[key{common.DeadRuleKindDuplicate, f.Interface, f.RuleIndex}]++
+		}
+	}
+
+	gotUnreachable := make(map[key]bool)
+	gotDuplicateCount := make(map[key]int)
+
+	for _, d := range deadRules {
+		k := key{d.Kind, d.Interface, d.RuleIndex}
+		switch d.Kind {
+		case common.DeadRuleKindUnreachable:
+			gotUnreachable[k] = true
+		case common.DeadRuleKindDuplicate:
+			gotDuplicateCount[k]++
+		}
+	}
+
+	assert.Equal(t, wantUnreachable, gotUnreachable, "unreachable subset must match shadow projection")
+	assert.Equal(t, wantDuplicateCount, gotDuplicateCount, "duplicate subset must match shadow projection")
+}
+
+// TestDetectDeadRules_FloatingRuleByteIdentity pins the ADR-0004 legacy
+// ordering re-projection for the one case where it matters most: an
+// unscoped floating rule (Floating=true, no Interfaces) sitting between a
+// block-all and a later duplicate pair. The pre-refactor DetectDeadRules
+// grouped rules solely by `rule.Interfaces`, so an unscoped floating rule
+// (which binds to no interface) never appeared in any per-interface bucket
+// and was invisible to unreachable/duplicate detection — regardless of the
+// shadow core's own floating-first, device-wide-join semantics
+// (internal/analysis/precedence.go). The expected findings below were
+// hand-derived from the pre-refactor algorithm (block-all-not-last emits
+// one unreachable finding keyed to its own position; the later identical
+// pass pair emits one duplicate finding keyed to the earlier pass's
+// position) and confirmed to pass against the original nested-loop
+// implementation before the derive-from-shadow rewrite landed.
+func TestDetectDeadRules_FloatingRuleByteIdentity(t *testing.T) {
+	t.Parallel()
+
+	blockAll := common.FirewallRule{
+		Type:        common.RuleTypeBlock,
+		Interfaces:  []string{"wan"},
+		Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+	}
+	floating := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		Floating:    true,
+		Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+	}
+	pass := common.FirewallRule{
+		Type:        common.RuleTypePass,
+		IPProtocol:  common.IPProtocolInet,
+		Interfaces:  []string{"wan"},
+		Source:      common.RuleEndpoint{Address: "192.168.1.0/24"},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+	}
+
+	cfg := &common.CommonDevice{
+		FirewallRules: []common.FirewallRule{blockAll, floating, pass, pass},
+	}
+
+	findings := analysis.DetectDeadRules(cfg)
+	require.Len(t, findings, 2)
+
+	assert.Equal(t, common.DeadRuleKindUnreachable, findings[0].Kind)
+	assert.Equal(t, 0, findings[0].RuleIndex)
+	assert.Equal(t, "wan", findings[0].Interface)
+
+	assert.Equal(t, common.DeadRuleKindDuplicate, findings[1].Kind)
+	assert.Equal(t, 3, findings[1].RuleIndex)
+	assert.Equal(t, "wan", findings[1].Interface)
+	assert.Contains(t, findings[1].Description, "position 4 is duplicate of rule at position 3")
 }
 
 //nolint:funlen // test table or data declaration; length is in data not logic
