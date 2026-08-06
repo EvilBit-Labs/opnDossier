@@ -19,6 +19,10 @@ var ErrNilDocument = errors.New("opnsense converter: received nil document")
 // concurrent use. Create a new instance per conversion via newConverter().
 type converter struct {
 	warnings []common.ConversionWarning
+	// namedObjects is the alias registry for the document being converted, set
+	// at the top of ToCommonDevice before any sub-converter runs. Sub-converters
+	// read it to populate ObjectRef fields for unused-object detection (#203).
+	namedObjects common.NamedObjects
 }
 
 // newConverter returns a new converter.
@@ -55,6 +59,10 @@ func (c *converter) ToCommonDevice(
 	}
 
 	namedObjects := c.convertNamedObjects(doc)
+	// Make the registry available to every sub-converter (routing, NAT, etc.)
+	// so they can populate ObjectRef fields without threading it through each
+	// signature. Must be set before the device literal below is evaluated.
+	c.namedObjects = namedObjects
 
 	device := &common.CommonDevice{
 		DeviceType:       common.DeviceTypeOPNsense,
@@ -329,6 +337,7 @@ func (c *converter) convertFirewallRules(
 				Negated:    bool(rule.Destination.Not),
 			},
 			Target:          rule.Target,
+			TargetRef:       namedObjects.Ref(rule.Target),
 			Gateway:         rule.Gateway,
 			Log:             bool(rule.Log),
 			Disabled:        bool(rule.Disabled),
@@ -409,16 +418,23 @@ func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
-				Address: r.Source.EffectiveAddress(),
-				Port:    r.Source.Port,
+				Address:    r.Source.EffectiveAddress(),
+				Port:       r.Source.Port,
+				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
+				PortRef:    c.namedObjects.Ref(r.Source.Port),
 			},
 			Destination: common.RuleEndpoint{
-				Address: r.Destination.EffectiveAddress(),
-				Port:    r.Destination.Port,
+				Address:    r.Destination.EffectiveAddress(),
+				Port:       r.Destination.Port,
+				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
+				PortRef:    c.namedObjects.Ref(r.Destination.Port),
 			},
 			Target:        r.Target,
+			TargetRef:     c.namedObjects.Ref(r.Target),
 			SourcePort:    r.SourcePort,
+			SourcePortRef: c.namedObjects.Ref(r.SourcePort),
 			NatPort:       r.NatPort,
+			NatPortRef:    c.namedObjects.Ref(r.NatPort),
 			PoolOpts:      r.PoolOpts,
 			StaticNatPort: bool(r.StaticNatPort),
 			NoNat:         bool(r.NoNat),
@@ -475,17 +491,25 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
 			Source: common.RuleEndpoint{
-				Address: r.Source.EffectiveAddress(),
-				Port:    r.Source.Port,
+				Address:    r.Source.EffectiveAddress(),
+				Port:       r.Source.Port,
+				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
+				PortRef:    c.namedObjects.Ref(r.Source.Port),
 			},
 			Destination: common.RuleEndpoint{
-				Address: r.Destination.EffectiveAddress(),
-				Port:    r.Destination.Port,
+				Address:    r.Destination.EffectiveAddress(),
+				Port:       r.Destination.Port,
+				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
+				PortRef:    c.namedObjects.Ref(r.Destination.Port),
 			},
 			ExternalPort:     r.ExternalPort,
+			ExternalPortRef:  c.namedObjects.Ref(r.ExternalPort),
 			InternalIP:       r.InternalIP,
+			InternalIPRef:    c.namedObjects.Ref(r.InternalIP),
 			InternalPort:     r.InternalPort,
+			InternalPortRef:  c.namedObjects.Ref(r.InternalPort),
 			LocalPort:        r.LocalPort,
+			LocalPortRef:     c.namedObjects.Ref(r.LocalPort),
 			Reflection:       r.Reflection,
 			NATReflection:    r.NATReflection,
 			AssociatedRuleID: r.AssociatedRuleID,

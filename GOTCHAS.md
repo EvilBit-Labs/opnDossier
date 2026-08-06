@@ -486,3 +486,23 @@ With `wrap = "no"` in `.mdformat.toml`, mdformat joins consecutive `**Label**:` 
 ### 22.2 mdformat Excludes Live in `.pre-commit-config.yaml`, Not `.mdformat.toml`
 
 File exclusions for the `mdformat` hook are the pre-commit hook's native `exclude:` regex in `.pre-commit-config.yaml` (currently `*.golden.md`, `docs/cli/`, `CHANGELOG.md`, `*.tpl.md`). Do NOT reintroduce an `exclude = [...]` list in `.mdformat.toml`: that feature requires the hook to run under Python 3.13+, but pre-commit builds the hook venv with its own interpreter (3.11 today), so it fails on every markdown file with `'exclude' patterns are only available on Python 3.13+`.
+
+## 23. Unused-Object Detection
+
+### 23.1 Reachability Edge-Building Must NOT Mirror `resolveNode`
+
+`DetectUnusedObjects` (`internal/analysis/unused.go`) frames unused-alias detection as graph reachability from policy roots. The obvious implementation — reuse `NamedObjects.resolveNode`'s member walk — is a **bug**. `resolveNode` (`pkg/model/named_objects.go`) early-returns for any `isDynamic()` type, and `staticNamedObjectTypes` is only `{host, network, port}`. Converters store the raw vendor type string verbatim (`common.NamedObjectType(a.Type)`), so a vendor `networkgroup` group alias is classified **dynamic** even though its members *are* alias names.
+
+- **Symptom:** an alias referenced only via a rule → `networkgroup` group → alias chain is falsely reported unused, breaking the nested-group case the feature centers on.
+- **Rule:** reachability uses its own predicate — for every object, for every member, add an edge if the member keys into `NamedObjects`, with **no** `isDynamic` gate. It only asks "does this member name another object?", never "do the members expand into literal addresses?" It stays correct for opaque types (`url`/`geoip`/`external`) because their members (URLs, country codes) do not key into the registry and so contribute no edges without needing a type check.
+- **Regression test:** `TestDetectUnusedObjects` case "does not flag alias nested under a used networkgroup-typed group" (`internal/analysis/unused_test.go`). If it fails, someone reintroduced the `isDynamic` gate.
+
+### 23.2 Disabled Rules Are Roots; Remediation Hedges
+
+Root collection in `collectRoots` deliberately does **not** skip disabled rules. A disabled rule referencing an alias means the alias is *staged*, not dead — deleting it breaks the rule on re-enable. This is easy to "optimize" away by adding a `!rule.Disabled` guard; don't.
+
+Relatedly, the finding's `Recommendation` intentionally hedges ("confirm before removing") rather than instructing deletion. The detector cannot see a config-invisible staging signal — an alias created before its referencing rule exists leaves no trace, and creation timestamps are not in `config.xml`. A flat "safe to delete" would be an outage recommendation for that case. Both invariants are pinned by `TestDetectUnusedObjects` ("does not flag alias referenced only by disabled rule") and `TestDetectUnusedObjects_FindingShape`.
+
+### 23.3 R6 Completeness Is a Manual Surface Audit, Not Automatic
+
+The "no false positive" guarantee holds exactly as far as the typed-`ObjectRef` root sites in `collectRoots` cover every `CommonDevice` field on which a pf-family alias can appear. When a new device parser or a new `CommonDevice` address/port field lands, it must be audited: an alias-capable field needs both an `*ObjectRef` model field (populated by the converter) and a `collectRoots` entry. Traffic-shaper and captive-portal config are modeled as opaque identifier strings (not addresses) and are correctly excluded; DNS/NTP/monitor/LB fields are literal IPs, not firewall aliases. A silently-untracked alias-capable field reintroduces the false-positive class.

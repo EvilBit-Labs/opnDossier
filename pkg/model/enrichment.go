@@ -137,6 +137,9 @@ type Analysis struct {
 	// evaluation semantics already covers them. See
 	// internal/analysis.DetectShadowedRules.
 	ShadowedRules []ShadowedRuleFinding `json:"shadowedRules,omitempty" yaml:"shadowedRules,omitempty"`
+	// UnusedObjects contains named objects (aliases) defined in the config but
+	// not referenced by any policy. See internal/analysis.DetectUnusedObjects.
+	UnusedObjects []UnusedObjectFinding `json:"unusedObjects,omitempty" yaml:"unusedObjects,omitempty"`
 }
 
 // Dead rule kind constants classify the reason a rule is considered dead.
@@ -284,6 +287,29 @@ type ShadowedRuleFinding struct {
 	// Description is a human-readable summary of the shadow.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Recommendation is the suggested corrective action.
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+
+// UnusedObjectFinding represents a named object (alias) that is defined in the
+// configuration but is not referenced by any policy — a candidate for cleanup.
+// See internal/analysis.DetectUnusedObjects.
+type UnusedObjectFinding struct {
+	// Name is the unused object's name (the NamedObjects registry key).
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the object's type (host, network, port, url, geoip, external, or a
+	// vendor-specific group spelling such as "networkgroup").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// MemberCount is the number of members the object declares. No omitempty:
+	// zero members (an empty alias) must be distinguishable from an unset finding.
+	MemberCount int `json:"memberCount" yaml:"memberCount"`
+	// Description is the object's configured description, when present.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Severity is the triage priority of the finding.
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Recommendation is a human-readable remediation suggestion. It hedges
+	// ("confirm before removing") rather than instructing deletion, because the
+	// detector cannot see a config-invisible staging signal (an alias created
+	// before its referencing rule exists).
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
 }
 

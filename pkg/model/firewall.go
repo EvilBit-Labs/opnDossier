@@ -163,6 +163,10 @@ type FirewallRule struct {
 
 	// Target is the redirect target for NAT-associated rules.
 	Target string `json:"target,omitempty" yaml:"target,omitempty"`
+	// TargetRef identifies the named object (alias) Target was resolved from,
+	// when the redirect target was expressed as an alias rather than a literal.
+	// Nil when Target is a literal value. Tracked as an unused-object root.
+	TargetRef *ObjectRef `json:"targetRef,omitempty" yaml:"targetRef,omitempty"`
 	// Gateway is the policy-based routing gateway for the rule.
 	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
 
@@ -237,10 +241,20 @@ type NATRule struct {
 	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
 	// Target is the NAT translation target address.
 	Target string `json:"target,omitempty" yaml:"target,omitempty"`
+	// TargetRef identifies the named object (alias) Target was resolved from,
+	// when the translation address was expressed as a host alias rather than a
+	// literal. Nil when Target is a literal value. Tracked as an unused-object root.
+	TargetRef *ObjectRef `json:"targetRef,omitempty" yaml:"targetRef,omitempty"`
 	// SourcePort is the translated source port.
 	SourcePort string `json:"sourcePort,omitempty" yaml:"sourcePort,omitempty"`
+	// SourcePortRef identifies the named object (alias) SourcePort was resolved
+	// from, when expressed as a port alias rather than a literal. Nil for literals.
+	SourcePortRef *ObjectRef `json:"sourcePortRef,omitempty" yaml:"sourcePortRef,omitempty"`
 	// NatPort is the translated destination port.
 	NatPort string `json:"natPort,omitempty" yaml:"natPort,omitempty"`
+	// NatPortRef identifies the named object (alias) NatPort was resolved from,
+	// when expressed as a port alias rather than a literal. Nil for literals.
+	NatPortRef *ObjectRef `json:"natPortRef,omitempty" yaml:"natPortRef,omitempty"`
 	// PoolOpts specifies the address pool options for NAT translation.
 	PoolOpts string `json:"poolOpts,omitempty" yaml:"poolOpts,omitempty"`
 	// StaticNatPort preserves the original source port during NAT translation.
@@ -277,12 +291,27 @@ type InboundNATRule struct {
 	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
 	// ExternalPort is the external port or range to forward.
 	ExternalPort string `json:"externalPort,omitempty" yaml:"externalPort,omitempty"`
+	// ExternalPortRef identifies the named object (alias) ExternalPort was
+	// resolved from, when expressed as a port alias rather than a literal. Nil
+	// for literals. Tracked as an unused-object root.
+	ExternalPortRef *ObjectRef `json:"externalPortRef,omitempty" yaml:"externalPortRef,omitempty"`
 	// InternalIP is the internal target IP address for port forwarding.
 	InternalIP string `json:"internalIp,omitempty" yaml:"internalIp,omitempty"`
+	// InternalIPRef identifies the named object (alias) InternalIP was resolved
+	// from, when the redirect target was expressed as a host alias rather than a
+	// literal. Nil for literals. Tracked as an unused-object root.
+	InternalIPRef *ObjectRef `json:"internalIpRef,omitempty" yaml:"internalIpRef,omitempty"`
 	// InternalPort is the internal target port for port forwarding.
 	InternalPort string `json:"internalPort,omitempty" yaml:"internalPort,omitempty"`
+	// InternalPortRef identifies the named object (alias) InternalPort was
+	// resolved from, when expressed as a port alias rather than a literal. Nil
+	// for literals. Tracked as an unused-object root.
+	InternalPortRef *ObjectRef `json:"internalPortRef,omitempty" yaml:"internalPortRef,omitempty"`
 	// LocalPort is the local port used for NAT reflection.
 	LocalPort string `json:"localPort,omitempty" yaml:"localPort,omitempty"`
+	// LocalPortRef identifies the named object (alias) LocalPort was resolved
+	// from, when expressed as a port alias rather than a literal. Nil for literals.
+	LocalPortRef *ObjectRef `json:"localPortRef,omitempty" yaml:"localPortRef,omitempty"`
 	// Reflection is the NAT reflection setting for this rule.
 	Reflection string `json:"reflection,omitempty" yaml:"reflection,omitempty"`
 	// NATReflection is the NAT reflection mode (e.g., "enable", "disable", "purenat").

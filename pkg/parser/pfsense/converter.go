@@ -85,6 +85,10 @@ func KnownGaps() []string {
 // concurrent use. Create a new instance per conversion via newConverter().
 type converter struct {
 	warnings []common.ConversionWarning
+	// namedObjects is the alias registry for the document being converted, set
+	// at the top of ToCommonDevice before any sub-converter runs. Sub-converters
+	// read it to populate ObjectRef fields for unused-object detection (#203).
+	namedObjects common.NamedObjects
 }
 
 // newConverter returns a new converter.
@@ -133,6 +137,10 @@ func (c *converter) ToCommonDevice(
 	c.emitKnownGapWarnings()
 
 	namedObjects := c.convertNamedObjects(doc)
+	// Make the registry available to every sub-converter (routing, NAT, VPN) so
+	// they can populate ObjectRef fields without threading it through each
+	// signature. Must be set before the device literal below is evaluated.
+	c.namedObjects = namedObjects
 
 	device := &common.CommonDevice{
 		DeviceType:    common.DeviceTypePfSense,

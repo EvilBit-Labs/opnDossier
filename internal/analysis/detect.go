@@ -26,6 +26,7 @@ func ComputeAnalysis(cfg *common.CommonDevice) *common.Analysis {
 		PerformanceIssues: DetectPerformanceIssues(cfg),
 		ConsistencyIssues: DetectConsistency(cfg),
 		ShadowedRules:     DetectShadowedRules(cfg),
+		UnusedObjects:     DetectUnusedObjects(cfg),
 	}
 }
 

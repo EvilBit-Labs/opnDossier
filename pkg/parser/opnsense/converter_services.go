@@ -608,6 +608,7 @@ func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.St
 	for _, r := range routes {
 		result = append(result, common.StaticRoute{
 			Network:     r.Network,
+			NetworkRef:  c.namedObjects.Ref(r.Network),
 			Gateway:     r.Gateway,
 			Description: r.Descr,
 			Disabled:    bool(r.Disabled),

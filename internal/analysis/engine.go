@@ -39,6 +39,7 @@ func ScanObservations(cfg *common.CommonDevice) []Observation {
 	observations = append(observations, detectAnyToAnyRules(cfg)...)
 	observations = append(observations, detectDisabledLogging(cfg)...)
 	observations = append(observations, detectShadowedRules(cfg)...)
+	observations = append(observations, detectUnusedObjects(cfg)...)
 
 	return observations
 }
@@ -346,6 +347,59 @@ func detectShadowedRules(cfg *common.CommonDevice) []Observation {
 	}
 
 	return observations
+}
+
+// detectUnusedObjects adapts each unused named-object finding
+// (DetectUnusedObjects, U6) into an Observation — the audit-findings consumer
+// for issue #203. Every unused alias becomes one hygiene Observation carrying
+// the hedged remediation.
+func detectUnusedObjects(cfg *common.CommonDevice) []Observation {
+	unused := DetectUnusedObjects(cfg)
+	if len(unused) == 0 {
+		return nil
+	}
+
+	observations := make([]Observation, 0, len(unused))
+
+	for _, f := range unused {
+		observations = append(observations, unusedObservation(f))
+	}
+
+	return observations
+}
+
+// unusedObservation converts a single common.UnusedObjectFinding into an
+// Observation. Severity falls back to SeverityInfo if the finding ever carries
+// a value outside the shared severity vocabulary (mirrors shadowObservation's
+// drift guard). Unused objects are a hygiene finding: Reachability is Local and
+// Confidence is High, because the typed-ref root walk is exact.
+func unusedObservation(f common.UnusedObjectFinding) Observation {
+	severity := Severity(f.Severity)
+	if !IsValidSeverity(severity) {
+		severity = SeverityInfo
+	}
+
+	description := fmt.Sprintf(
+		"Named object %q (%s) is defined but not referenced by any policy.",
+		f.Name, f.Type,
+	)
+	if f.Description != "" {
+		description += fmt.Sprintf(" Configured description: %q.", f.Description)
+	}
+
+	return Observation{
+		Severity:     severity,
+		Confidence:   ConfidenceHigh,
+		Reachability: Local,
+		Component:    fmt.Sprintf("namedObject[%s]", f.Name),
+		Evidence: fmt.Sprintf(
+			"%s object with %d member(s), no policy reference",
+			f.Type, f.MemberCount,
+		),
+		Title:          "Unused Named Object (Alias)",
+		Description:    description,
+		Recommendation: f.Recommendation,
+	}
 }
 
 // shadowObservation converts a single common.ShadowedRuleFinding into an

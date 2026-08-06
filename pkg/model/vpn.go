@@ -42,12 +42,24 @@ type OpenVPNServer struct {
 	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
 	// RemoteNetwork is the IPv4 remote network CIDR accessible through the tunnel.
 	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkRef identifies the named object (alias) RemoteNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	RemoteNetworkRef *ObjectRef `json:"remoteNetworkRef,omitempty" yaml:"remoteNetworkRef,omitempty"`
 	// RemoteNetworkV6 is the IPv6 remote network CIDR accessible through the tunnel.
 	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// RemoteNetworkV6Ref identifies the named object (alias) RemoteNetworkV6 was
+	// resolved from. Nil for literals.
+	RemoteNetworkV6Ref *ObjectRef `json:"remoteNetworkV6Ref,omitempty" yaml:"remoteNetworkV6Ref,omitempty"`
 	// LocalNetwork is the IPv4 local network CIDR pushed to clients.
 	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkRef identifies the named object (alias) LocalNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	LocalNetworkRef *ObjectRef `json:"localNetworkRef,omitempty" yaml:"localNetworkRef,omitempty"`
 	// LocalNetworkV6 is the IPv6 local network CIDR pushed to clients.
 	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// LocalNetworkV6Ref identifies the named object (alias) LocalNetworkV6 was
+	// resolved from. Nil for literals.
+	LocalNetworkV6Ref *ObjectRef `json:"localNetworkV6Ref,omitempty" yaml:"localNetworkV6Ref,omitempty"`
 	// MaxClients is the maximum number of simultaneous client connections.
 	MaxClients string `json:"maxClients,omitempty" yaml:"maxClients,omitempty"`
 	// Compression is the compression algorithm (e.g., "lzo", "lz4", "no").
@@ -385,12 +397,24 @@ type OpenVPNCSC struct {
 	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
 	// LocalNetwork is the IPv4 local network pushed to this client.
 	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkRef identifies the named object (alias) LocalNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	LocalNetworkRef *ObjectRef `json:"localNetworkRef,omitempty" yaml:"localNetworkRef,omitempty"`
 	// LocalNetworkV6 is the IPv6 local network pushed to this client.
 	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// LocalNetworkV6Ref identifies the named object (alias) LocalNetworkV6 was
+	// resolved from. Nil for literals.
+	LocalNetworkV6Ref *ObjectRef `json:"localNetworkV6Ref,omitempty" yaml:"localNetworkV6Ref,omitempty"`
 	// RemoteNetwork is the IPv4 remote network accessible through this client.
 	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkRef identifies the named object (alias) RemoteNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	RemoteNetworkRef *ObjectRef `json:"remoteNetworkRef,omitempty" yaml:"remoteNetworkRef,omitempty"`
 	// RemoteNetworkV6 is the IPv6 remote network accessible through this client.
 	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// RemoteNetworkV6Ref identifies the named object (alias) RemoteNetworkV6 was
+	// resolved from. Nil for literals.
+	RemoteNetworkV6Ref *ObjectRef `json:"remoteNetworkV6Ref,omitempty" yaml:"remoteNetworkV6Ref,omitempty"`
 	// GWRedir redirects all client traffic through the VPN gateway.
 	GWRedir bool `json:"gwRedir,omitempty" yaml:"gwRedir,omitempty"`
 	// PushReset clears all previously pushed options before applying overrides.

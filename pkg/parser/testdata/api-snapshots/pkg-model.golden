@@ -76,6 +76,9 @@ type Analysis struct {
 	// evaluation semantics already covers them. See
 	// internal/analysis.DetectShadowedRules.
 	ShadowedRules []ShadowedRuleFinding `json:"shadowedRules,omitempty" yaml:"shadowedRules,omitempty"`
+	// UnusedObjects contains named objects (aliases) defined in the config but
+	// not referenced by any policy. See internal/analysis.DetectUnusedObjects.
+	UnusedObjects []UnusedObjectFinding `json:"unusedObjects,omitempty" yaml:"unusedObjects,omitempty"`
 }
     Analysis contains analysis findings and insights.
 
@@ -837,6 +840,10 @@ type FirewallRule struct {
 
 	// Target is the redirect target for NAT-associated rules.
 	Target string `json:"target,omitempty" yaml:"target,omitempty"`
+	// TargetRef identifies the named object (alias) Target was resolved from,
+	// when the redirect target was expressed as an alias rather than a literal.
+	// Nil when Target is a literal value. Tracked as an unused-object root.
+	TargetRef *ObjectRef `json:"targetRef,omitempty" yaml:"targetRef,omitempty"`
 	// Gateway is the policy-based routing gateway for the rule.
 	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
 
@@ -1359,12 +1366,27 @@ type InboundNATRule struct {
 	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
 	// ExternalPort is the external port or range to forward.
 	ExternalPort string `json:"externalPort,omitempty" yaml:"externalPort,omitempty"`
+	// ExternalPortRef identifies the named object (alias) ExternalPort was
+	// resolved from, when expressed as a port alias rather than a literal. Nil
+	// for literals. Tracked as an unused-object root.
+	ExternalPortRef *ObjectRef `json:"externalPortRef,omitempty" yaml:"externalPortRef,omitempty"`
 	// InternalIP is the internal target IP address for port forwarding.
 	InternalIP string `json:"internalIp,omitempty" yaml:"internalIp,omitempty"`
+	// InternalIPRef identifies the named object (alias) InternalIP was resolved
+	// from, when the redirect target was expressed as a host alias rather than a
+	// literal. Nil for literals. Tracked as an unused-object root.
+	InternalIPRef *ObjectRef `json:"internalIpRef,omitempty" yaml:"internalIpRef,omitempty"`
 	// InternalPort is the internal target port for port forwarding.
 	InternalPort string `json:"internalPort,omitempty" yaml:"internalPort,omitempty"`
+	// InternalPortRef identifies the named object (alias) InternalPort was
+	// resolved from, when expressed as a port alias rather than a literal. Nil
+	// for literals. Tracked as an unused-object root.
+	InternalPortRef *ObjectRef `json:"internalPortRef,omitempty" yaml:"internalPortRef,omitempty"`
 	// LocalPort is the local port used for NAT reflection.
 	LocalPort string `json:"localPort,omitempty" yaml:"localPort,omitempty"`
+	// LocalPortRef identifies the named object (alias) LocalPort was resolved
+	// from, when expressed as a port alias rather than a literal. Nil for literals.
+	LocalPortRef *ObjectRef `json:"localPortRef,omitempty" yaml:"localPortRef,omitempty"`
 	// Reflection is the NAT reflection setting for this rule.
 	Reflection string `json:"reflection,omitempty" yaml:"reflection,omitempty"`
 	// NATReflection is the NAT reflection mode (e.g., "enable", "disable", "purenat").
@@ -1691,10 +1713,20 @@ type NATRule struct {
 	Destination RuleEndpoint `json:"destination" yaml:"destination,omitempty"`
 	// Target is the NAT translation target address.
 	Target string `json:"target,omitempty" yaml:"target,omitempty"`
+	// TargetRef identifies the named object (alias) Target was resolved from,
+	// when the translation address was expressed as a host alias rather than a
+	// literal. Nil when Target is a literal value. Tracked as an unused-object root.
+	TargetRef *ObjectRef `json:"targetRef,omitempty" yaml:"targetRef,omitempty"`
 	// SourcePort is the translated source port.
 	SourcePort string `json:"sourcePort,omitempty" yaml:"sourcePort,omitempty"`
+	// SourcePortRef identifies the named object (alias) SourcePort was resolved
+	// from, when expressed as a port alias rather than a literal. Nil for literals.
+	SourcePortRef *ObjectRef `json:"sourcePortRef,omitempty" yaml:"sourcePortRef,omitempty"`
 	// NatPort is the translated destination port.
 	NatPort string `json:"natPort,omitempty" yaml:"natPort,omitempty"`
+	// NatPortRef identifies the named object (alias) NatPort was resolved from,
+	// when expressed as a port alias rather than a literal. Nil for literals.
+	NatPortRef *ObjectRef `json:"natPortRef,omitempty" yaml:"natPortRef,omitempty"`
 	// PoolOpts specifies the address pool options for NAT translation.
 	PoolOpts string `json:"poolOpts,omitempty" yaml:"poolOpts,omitempty"`
 	// StaticNatPort preserves the original source port during NAT translation.
@@ -1843,12 +1875,24 @@ type OpenVPNCSC struct {
 	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
 	// LocalNetwork is the IPv4 local network pushed to this client.
 	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkRef identifies the named object (alias) LocalNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	LocalNetworkRef *ObjectRef `json:"localNetworkRef,omitempty" yaml:"localNetworkRef,omitempty"`
 	// LocalNetworkV6 is the IPv6 local network pushed to this client.
 	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// LocalNetworkV6Ref identifies the named object (alias) LocalNetworkV6 was
+	// resolved from. Nil for literals.
+	LocalNetworkV6Ref *ObjectRef `json:"localNetworkV6Ref,omitempty" yaml:"localNetworkV6Ref,omitempty"`
 	// RemoteNetwork is the IPv4 remote network accessible through this client.
 	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkRef identifies the named object (alias) RemoteNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	RemoteNetworkRef *ObjectRef `json:"remoteNetworkRef,omitempty" yaml:"remoteNetworkRef,omitempty"`
 	// RemoteNetworkV6 is the IPv6 remote network accessible through this client.
 	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// RemoteNetworkV6Ref identifies the named object (alias) RemoteNetworkV6 was
+	// resolved from. Nil for literals.
+	RemoteNetworkV6Ref *ObjectRef `json:"remoteNetworkV6Ref,omitempty" yaml:"remoteNetworkV6Ref,omitempty"`
 	// GWRedir redirects all client traffic through the VPN gateway.
 	GWRedir bool `json:"gwRedir,omitempty" yaml:"gwRedir,omitempty"`
 	// PushReset clears all previously pushed options before applying overrides.
@@ -1924,12 +1968,24 @@ type OpenVPNServer struct {
 	TunnelNetworkV6 string `json:"tunnelNetworkV6,omitempty" yaml:"tunnelNetworkV6,omitempty"`
 	// RemoteNetwork is the IPv4 remote network CIDR accessible through the tunnel.
 	RemoteNetwork string `json:"remoteNetwork,omitempty" yaml:"remoteNetwork,omitempty"`
+	// RemoteNetworkRef identifies the named object (alias) RemoteNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	RemoteNetworkRef *ObjectRef `json:"remoteNetworkRef,omitempty" yaml:"remoteNetworkRef,omitempty"`
 	// RemoteNetworkV6 is the IPv6 remote network CIDR accessible through the tunnel.
 	RemoteNetworkV6 string `json:"remoteNetworkV6,omitempty" yaml:"remoteNetworkV6,omitempty"`
+	// RemoteNetworkV6Ref identifies the named object (alias) RemoteNetworkV6 was
+	// resolved from. Nil for literals.
+	RemoteNetworkV6Ref *ObjectRef `json:"remoteNetworkV6Ref,omitempty" yaml:"remoteNetworkV6Ref,omitempty"`
 	// LocalNetwork is the IPv4 local network CIDR pushed to clients.
 	LocalNetwork string `json:"localNetwork,omitempty" yaml:"localNetwork,omitempty"`
+	// LocalNetworkRef identifies the named object (alias) LocalNetwork was
+	// resolved from (pfSense accepts a host/network alias here). Nil for literals.
+	LocalNetworkRef *ObjectRef `json:"localNetworkRef,omitempty" yaml:"localNetworkRef,omitempty"`
 	// LocalNetworkV6 is the IPv6 local network CIDR pushed to clients.
 	LocalNetworkV6 string `json:"localNetworkV6,omitempty" yaml:"localNetworkV6,omitempty"`
+	// LocalNetworkV6Ref identifies the named object (alias) LocalNetworkV6 was
+	// resolved from. Nil for literals.
+	LocalNetworkV6Ref *ObjectRef `json:"localNetworkV6Ref,omitempty" yaml:"localNetworkV6Ref,omitempty"`
 	// MaxClients is the maximum number of simultaneous client connections.
 	MaxClients string `json:"maxClients,omitempty" yaml:"maxClients,omitempty"`
 	// Compression is the compression algorithm (e.g., "lzo", "lz4", "no").
@@ -2257,6 +2313,11 @@ type ShadowedRuleFinding struct {
 type StaticRoute struct {
 	// Network is the destination network in CIDR notation.
 	Network string `json:"network,omitempty" yaml:"network,omitempty"`
+	// NetworkRef identifies the named object (alias) Network was resolved from,
+	// when the destination network was expressed as an alias rather than a
+	// literal CIDR. Nil when Network is a literal value. Tracked as an
+	// unused-object root.
+	NetworkRef *ObjectRef `json:"networkRef,omitempty" yaml:"networkRef,omitempty"`
 	// Gateway is the next-hop gateway name for the route.
 	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
 	// Description is a human-readable description of the route.
@@ -2563,6 +2624,29 @@ type UnusedInterfaceFinding struct {
 	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
 }
     UnusedInterfaceFinding represents an unused interface finding.
+
+type UnusedObjectFinding struct {
+	// Name is the unused object's name (the NamedObjects registry key).
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// Type is the object's type (host, network, port, url, geoip, external, or a
+	// vendor-specific group spelling such as "networkgroup").
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+	// MemberCount is the number of members the object declares. No omitempty:
+	// zero members (an empty alias) must be distinguishable from an unset finding.
+	MemberCount int `json:"memberCount" yaml:"memberCount"`
+	// Description is the object's configured description, when present.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Severity is the triage priority of the finding.
+	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	// Recommendation is a human-readable remediation suggestion. It hedges
+	// ("confirm before removing") rather than instructing deletion, because the
+	// detector cannot see a config-invisible staging signal (an alias created
+	// before its referencing rule exists).
+	Recommendation string `json:"recommendation,omitempty" yaml:"recommendation,omitempty"`
+}
+    UnusedObjectFinding represents a named object (alias) that is defined in the
+    configuration but is not referenced by any policy — a candidate for cleanup.
+    See internal/analysis.DetectUnusedObjects.
 
 type User struct {
 	// Name is the login username.

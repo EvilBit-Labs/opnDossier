@@ -54,6 +54,11 @@ type GatewayGroup struct {
 type StaticRoute struct {
 	// Network is the destination network in CIDR notation.
 	Network string `json:"network,omitempty" yaml:"network,omitempty"`
+	// NetworkRef identifies the named object (alias) Network was resolved from,
+	// when the destination network was expressed as an alias rather than a
+	// literal CIDR. Nil when Network is a literal value. Tracked as an
+	// unused-object root.
+	NetworkRef *ObjectRef `json:"networkRef,omitempty" yaml:"networkRef,omitempty"`
 	// Gateway is the next-hop gateway name for the route.
 	Gateway string `json:"gateway,omitempty" yaml:"gateway,omitempty"`
 	// Description is a human-readable description of the route.

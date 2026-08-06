@@ -231,6 +231,21 @@ OPNsense and pfSense firewall aliases (host, network, port, and dynamic url/geoi
 
 Dynamic object types (`url`, `geoip`, `external`) are never expanded — their `Members` are recorded as-is and are not resolved into a flattened address/port set.
 
+#### Alias references beyond rule endpoints
+
+`AddressRef`/`PortRef` on rule endpoints are not the only alias references. Every field on which a pf-family alias can legitimately appear carries an `*ObjectRef` so downstream referential-integrity analysis (unused-object detection) sees a complete reference set:
+
+- **NAT translation targets** — `NATRule` carries `targetRef`/`sourcePortRef`/`natPortRef`; `InboundNATRule` carries `internalIpRef`/`internalPortRef`/`externalPortRef`/`localPortRef`.
+- **Firewall redirect target** — `FirewallRule.targetRef`.
+- **Static route** — `StaticRoute.networkRef`.
+- **OpenVPN local/remote networks** — `localNetworkRef`/`remoteNetworkRef` and their V6 variants on `OpenVPNServer`/`OpenVPNCSC`. Populated for pfSense only; OPNsense does not support aliases here (upstream feature request open).
+
+Each ref is `nil` when the field held a literal value, so alias-free configs serialize unchanged.
+
+#### Unused objects (`analysis.unusedObjects`)
+
+The `analysis.unusedObjects` array lists named objects defined in the config but not referenced by any policy — computed as graph reachability from the ref sites above. Each finding carries `name`, `type`, `memberCount`, `description`, `severity`, and a hedged `recommendation` ("confirm before removing"). A disabled rule referencing an alias counts as a reference (the alias is staged, not dead).
+
 ---
 
 ## NAT Configuration
