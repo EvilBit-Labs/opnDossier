@@ -282,6 +282,17 @@ OpenVPN's `<tls>` element (under `<openvpn-server>` / `<openvpn-client>`) holds 
 
 - **History:** SEC-H1 from the 2026-04-19 comprehensive review. Prior to the fix, `opnDossier sanitize` silently leaked raw HMAC keys sufficient to forge OpenVPN handshakes — the headline promise of the subcommand.
 
+### 11.4 NetBird `setupKey` Is a Credential
+
+The OPNsense `os-netbird` plugin persists the NetBird enrollment/setup key as `<setupKey>` under `<OPNsense><netbird><authentication>` (MVC model mounted at `//OPNsense/netbird/authentication`). The value is a UUID-format registration token. Because the sanitizer's bare `"key"` FieldPattern is exact-match only (see `exactMatchPatterns` — same trap as SNMPv3 `<enckey>`), compound names like `setupKey` leaked through `sanitize` in cleartext.
+
+- **Symptom:** `sanitize` leaves NetBird setup keys readable in output. The key remains in `config.xml` when NetBird is disabled and often survives plugin removal as orphaned MVC XML, so disabled/removed plugins still leak.
+- **Fix:** Add `"setupkey"`, `"setup_key"`, `"setup-key"` to the **`secret`** rule's `FieldPatterns` in `internal/sanitizer/rules.go` (enrollment token, not private-key material — unlike SNMPv3 `enckey` which lives on `private_key`) and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Detection:** `TestSanitizeXML_NetBirdSetupKey_RedactsSecret` + `TestSanitizeXML_NetBirdSetupKey_NoFalsePositives` in `internal/sanitizer/sanitizer_test.go`; `TestRedact_NetBirdSetupKey_RedactsSecret` in `rules_fieldpattern_test.go`.
+- **Rule-ordering impact:** None. The `secret` rule already precedes `private_key` and does not participate in the §19.1 ordering invariants.
+- **Upstream:** https://github.com/opnsense/plugins (`security/netbird`); field declared in `Authentication.xml` as `UpdateOnlyTextField` with UUID mask.
+- **History:** Reported as a cleartext leak through `sanitize` when NetBird is disabled or the plugin XML remains after removal; fixed in #728.
+
 ## 12. Git Tagging
 
 ### 12.1 Tag the Squash-Merge Commit on Main

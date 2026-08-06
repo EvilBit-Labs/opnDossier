@@ -289,6 +289,12 @@ var (
 		// <openvpn-server>/<openvpn-client>; `<StaticKeys>` holds MVC
 		// static-key material. See GOTCHAS §11.3.
 		"statickeys", "tls_crypt", "tls_auth",
+		// NetBird: `<setupKey>` under OPNsense/netbird/authentication.
+		// FieldPatterns already require the setupkey aliases (bare "key" is
+		// exact-match only). Listed here too so CONTRIBUTING's dual-list
+		// sync rule holds; LooksLikePassword("setupKey") would already match
+		// via the generic "key" substring today.
+		"setupkey", "setup_key", "setup-key",
 	}
 	apiKeywords = []string{"apikey", "api_key", "api-key", "accesskey", "secretkey"}
 	pskKeywords = []string{"psk", "preshared", "pre-shared", "ipsecpsk"}

@@ -41,6 +41,7 @@ Redacts direct secrets and pseudonymizes sensitive `system/authserver` LDAP valu
 - SSH authorized keys
 - SNMP community strings
 - Sensitive `system/authserver` LDAP values
+- Plugin enrollment credentials when present in raw XML (for example OPNsense NetBird `<setupKey>`)
 
 ### Moderate (default)
 

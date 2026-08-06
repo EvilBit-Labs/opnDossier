@@ -130,14 +130,14 @@ func TestShouldRedactField_AuthServer(t *testing.T) {
 func TestShouldRedactField_Secret(t *testing.T) {
 	engine := NewRuleEngine(ModeMinimal)
 
-	secretFields := []string{"secret", "token", "apikey", "api_key", "authkey"}
+	secretFields := []string{"secret", "token", "apikey", "api_key", "authkey", "setupkey", "setup_key", "setup-key"}
 	for _, field := range secretFields {
 		should, rule := engine.ShouldRedactField(field)
 		if !should {
 			t.Errorf("ShouldRedactField(%q) = false, want true", field)
 		}
-		if rule.Name == "" {
-			t.Errorf("ShouldRedactField(%q) returned zero-value rule (no Name)", field)
+		if rule.Name != "secret" {
+			t.Errorf("ShouldRedactField(%q) matched rule %q, want secret", field, rule.Name)
 		}
 	}
 }

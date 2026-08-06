@@ -282,6 +282,14 @@ func builtinRules() []Rule {
 				"secret", "token", "apikey", "api_key", "api-key",
 				"accesskey", "secretkey", "authkey", "auth_key",
 				"otp_seed", "otpseed",
+				// NetBird enrollment/setup key from the OPNsense os-netbird
+				// plugin (<OPNsense><netbird><authentication><setupKey>).
+				// The bare "key" pattern on private_key is exact-match only
+				// (see exactMatchPatterns), so "setupKey" needs its own
+				// substring alias on this secret rule (enrollment token, not
+				// private-key material). The value persists in config.xml when
+				// the service is disabled and often survives plugin removal.
+				"setupkey", "setup_key", "setup-key",
 			},
 			Redactor: func(_ *Mapper, _, _ string) string {
 				return redactedSecretValue
