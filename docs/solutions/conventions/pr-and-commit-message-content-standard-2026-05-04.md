@@ -66,7 +66,7 @@ These are local working state. They cannot be reproduced or verified by a human 
 
 ### AI disclosure
 
-If AI assistance was used in producing the diff, this project's [`AI_POLICY.md`](../../../AI_POLICY.md) requires a disclosure section in the PR body. Keep it minimal and factual:
+If AI assistance was used in producing the diff, this project's [`AI_POLICY.md`](https://github.com/EvilBit-Labs/opnDossier/blob/main/AI_POLICY.md) requires a disclosure section in the PR body. Keep it minimal and factual:
 
 ```markdown
 ## AI disclosure
@@ -94,7 +94,7 @@ Before opening or updating a PR (or pushing a non-trivial commit), the following
 
 **Durable artifact value.** PRs and commit messages are indexed, archived, and surface in `git log`, `git blame`, and the GitHub timeline for the project's lifetime. Anything in them that is local to one moment of authorship — a `/tmp/` path, a session number, a count of review rounds — is dead text the moment the session ends. The change description and the verification commands remain useful indefinitely.
 
-**Project identity.** This is an open-source project. Every PR that lands on the public timeline contributes to the project's identity in the eyes of contributors who arrive later. PRs that read like product demos for whatever toolchain produced them turn the project's record into a marketing surface for that toolchain. PRs that describe what the project does and how it stays correct turn the project's record into a record of the project. The latter is what the project's PRs are for; the [`AI_POLICY.md`](../../../AI_POLICY.md) disclosure exists to give AI involvement appropriate, bounded acknowledgment without taking over the artifact.
+**Project identity.** This is an open-source project. Every PR that lands on the public timeline contributes to the project's identity in the eyes of contributors who arrive later. PRs that read like product demos for whatever toolchain produced them turn the project's record into a marketing surface for that toolchain. PRs that describe what the project does and how it stays correct turn the project's record into a record of the project. The latter is what the project's PRs are for; the [`AI_POLICY.md`](https://github.com/EvilBit-Labs/opnDossier/blob/main/AI_POLICY.md) disclosure exists to give AI involvement appropriate, bounded acknowledgment without taking over the artifact.
 
 ## When to Apply
 
@@ -166,7 +166,7 @@ PR description. All code reviewed locally and via CI before push. Followed
 process per [`AI_POLICY.md`](../blob/main/AI_POLICY.md).
 ```
 
-The minimal form satisfies the disclosure requirement in [`AI_POLICY.md`](../../../AI_POLICY.md) while staying out of the way of the actual change description.
+The minimal form satisfies the disclosure requirement in [`AI_POLICY.md`](https://github.com/EvilBit-Labs/opnDossier/blob/main/AI_POLICY.md) while staying out of the way of the actual change description.
 
 ### Strong PR body shape
 
@@ -210,6 +210,6 @@ Every section answers a reader question. No section narrates the author's proces
 
 ## See Also
 
-- [`AI_POLICY.md`](../../../AI_POLICY.md) — the project's AI usage policy and disclosure requirement.
-- [`AGENTS.md`](../../../AGENTS.md) "Rules of Engagement" — the AI disclosure example phrasing in the agent contributor guide.
+- [`AI_POLICY.md`](https://github.com/EvilBit-Labs/opnDossier/blob/main/AI_POLICY.md) — the project's AI usage policy and disclosure requirement.
+- [`AGENTS.md`](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md) "Rules of Engagement" — the AI disclosure example phrasing in the agent contributor guide.
 - [`docs/solutions/logic-errors/documentation-code-drift-interface-refactoring.md`](../logic-errors/documentation-code-drift-interface-refactoring.md) — adjacent learning about AI-generated documentation that drifts from the code it describes; same family of "agent-produced text needs verification against the project's reality" concern, applied to in-code documentation rather than PR bodies.

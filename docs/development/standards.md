@@ -416,10 +416,7 @@ opnDossier/
 │   ├── export/                       # File export functionality
 │   ├── logging/                      # Structured logging (charmbracelet/log)
 │   ├── plugins/                      # Compliance plugins (firewall/SANS/STIG)
-│   ├── processor/                    # Data processing and report generation
-│   ├── progress/                     # CLI progress indicators
-│   ├── validator/                    # Configuration validation
-│   └── walker.go                     # XML walker utilities
+│   └── validator/                    # Configuration validation
 ├── pkg/                              # Public API packages
 │   ├── model/                        # Platform-agnostic CommonDevice domain model
 │   ├── parser/                       # Factory + DeviceParser interface + shared xmlutil.go
@@ -429,7 +426,6 @@ opnDossier/
 │       ├── opnsense/                 # Canonical OPNsense XML data model structs
 │       └── pfsense/                  # pfSense XML data model (copy-on-write from opnsense)
 ├── docs/                             # Documentation
-├── project_spec/                     # Project requirements
 ├── testdata/                         # Test data files
 └── justfile                          # Task runner
 ```
@@ -478,7 +474,7 @@ The structured logger is one of six CLI output channels. User-facing warnings, i
 
 ### Thread Safety with `sync.RWMutex`
 
-When a struct uses `sync.RWMutex`, all read methods need `RLock()` — not just write paths. Go's `RWMutex` is not reentrant; internal call chains should use lock-free `*Unsafe()` helpers. Getter methods should return value copies, not pointers into protected state. See `internal/processor/report.go` for the canonical pattern.
+When a struct uses `sync.RWMutex`, all read methods need `RLock()` — not just write paths. Getter methods should return value copies, not pointers into protected state. See `internal/sanitizer/mapper.go` for the canonical pattern: every mutator takes `Lock()`, `GenerateReport()` takes `RLock()`, and it returns copied maps rather than references into protected state. Go's `RWMutex` is also not reentrant, so an internal call chain must not re-acquire a lock it already holds — factor the shared body into a lock-free helper that the locked method calls, rather than nesting lock acquisitions.
 
 ### XML Handling
 
@@ -641,10 +637,6 @@ When acquiring semaphores in goroutines, use `select` with `ctx.Done()` to respe
 
 When a goroutine writes to an `io.Writer` and a stop method also writes after signaling shutdown, the goroutine must fully exit before the caller writes. Use a `stopped` channel: goroutine defers `close(stopped)`, stop method does `close(done)` then `<-stopped`.
 
-### Dual Validator Synchronization
-
-`internal/processor/validate.go` maintains lightweight validation whitelists (powerd modes, optimization values, etc.) that must stay in sync with the authoritative `internal/validator/opnsense.go`. When updating allowed values in either package, grep for the same whitelist in the other and update both.
-
 ### Duplicate Code Detection in Tests
 
 The `dupl` linter flags structurally similar test files (e.g., `json_test.go` and `yaml_test.go`). When JSON and YAML tests share device construction and assertions, extract shared logic into `test_helpers.go` (e.g., `newFieldsTestDevice()`, `assertNewFieldsPresent()`) and use a single `Test*` function with subtests for each format. If the files remain structurally similar despite extraction, add `//nolint:dupl` on the package line.
@@ -656,9 +648,7 @@ When adding fields to `common.Statistics`, update two places:
 1. The struct definition in `pkg/model/enrichment.go`
 2. Population logic in `ComputeStatistics()` in `internal/analysis/statistics.go`
 
-The processor's `translateCommonStats()` in `internal/processor/report_statistics.go` must also be updated if new fields are added to `processor.Statistics`.
-
-When changing a `Statistics` field from `string` to a typed enum (e.g., `NATMode string` → `NATMode NATOutboundMode`), add a `string()` cast in `translateCommonStats()` and update test struct field types. Separate check logic from stats updates — never increment stats inside a function that may be called multiple times for fallback logic.
+When changing a `Statistics` field from `string` to a typed enum (e.g., `NATMode string` → `NATMode NATOutboundMode`), update the population logic and the test struct field types together. Separate check logic from stats updates — never increment stats inside a function that may be called multiple times for fallback logic.
 
 ### Public Package Import Aliases
 
@@ -677,7 +667,7 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 ### Report Serialization Redaction
 
-`Report.ToJSON()` and `Report.ToYAML()` serialize a redacted copy via `redactedCopyUnsafe()` to prevent sensitive fields from leaking. Currently redacted: `SNMP.ROCommunity`, `Certificate.PrivateKey`, and `CertificateAuthority.PrivateKey`. When adding new sensitive fields to `CommonDevice`, extend `redactedCopyUnsafe()` in `internal/processor/report.go`. Certificate/CA slices are deep-copied via `make` + `copy` before mutation. Only entries with non-empty sensitive values are redacted. The copy is constructed field-by-field (not `cp := *r`) to avoid `copylocks` on `sync.RWMutex`.
+Export serialization redacts a copy of the device so sensitive fields never reach a rendered report. `redactSensitiveFields` in `internal/converter/enrichment.go` owns this; it runs from `prepareForExport(device, redact=true)` against an already-cloned copy, so the caller's device is never modified. (`EnrichForExport` only computes the enrichment — it performs no redaction.) Currently redacted: `SNMP.ROCommunity`, `HighAvailability.Password`, `Certificate.PrivateKey`, `CertificateAuthority.PrivateKey`, `Users[].APIKeys[].Secret`, `VPN.WireGuard.Clients[].PSK`, and `AdvDHCP6KeyInfoStatementSecret`. **When adding a new sensitive field to `CommonDevice`, extend `redactSensitiveFields`** — a field added without a redaction rule ships in cleartext in every JSON, YAML, and HTML export. Slices are cloned before mutation, and only entries with a non-empty sensitive value are rewritten, so the caller's device is never modified. SNMP service-detail redaction is separate and shared: see `RedactServiceDetails` in `internal/analysis/statistics_redact.go`.
 
 ### Sanitizer Field Pattern Maintenance
 
@@ -687,7 +677,7 @@ The `sanitize` command operates on raw XML element names via pattern matching in
 
 ### Schema-Level Secret Exclusion
 
-Secret fields in `pkg/schema/` structs must carry `json:"-" yaml:"-"` tags to prevent accidental serialization. This is defense-in-depth alongside `redactedCopyUnsafe()`. Do NOT map these fields to the common model — the sanitizer handles them at the XML level.
+Secret fields in `pkg/schema/` structs must carry `json:"-" yaml:"-"` tags to prevent accidental serialization. This is defense-in-depth alongside the export-path redaction in `redactSensitiveFields`. Do NOT map these fields to the common model — the sanitizer handles them at the XML level.
 
 ### File-Split Refactoring Pattern
 

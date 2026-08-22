@@ -83,7 +83,7 @@ func ParseDeviceType(s string) DeviceType {
 //
 // Parsers produce CommonDevice values by converting platform-specific XML
 // schemas (OPNsense, pfSense) into this normalized form. All downstream
-// consumers (processor, builder, plugins, diff engine, JSON/YAML exporters)
+// consumers (converter, builder, plugins, diff engine, JSON/YAML exporters)
 // operate against this type rather than XML-shaped DTOs.
 //
 // Has* methods report whether specific configuration sections are populated,

@@ -53,8 +53,8 @@ type IPsecPhase1 struct {
 	AuthMethod string `xml:"authentication_method,omitempty" json:"authenticationMethod,omitempty" yaml:"authenticationMethod,omitempty"`
 	// PreSharedKey is the IPsec pre-shared key. Intentionally excluded from the common model
 	// (secrets must not reach the export pipeline). The sanitizer handles this at the XML level.
-	// If this field is ever mapped to common.IPsecPhase1Tunnel, redactedCopyUnsafe() in
-	// internal/processor/report.go MUST be updated to redact it.
+	// If this field is ever mapped to common.IPsecPhase1Tunnel, redactSensitiveFields
+	// in internal/converter/enrichment.go MUST be updated to redact it.
 	PreSharedKey string                `xml:"pre-shared-key,omitempty" json:"-"                      yaml:"-"`
 	CertRef      string                `xml:"certref,omitempty"        json:"certRef,omitempty"      yaml:"certRef,omitempty"`
 	CARef        string                `xml:"caref,omitempty"          json:"caRef,omitempty"        yaml:"caRef,omitempty"`

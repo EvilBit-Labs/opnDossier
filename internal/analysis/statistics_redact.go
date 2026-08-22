@@ -8,10 +8,10 @@ import (
 )
 
 // serviceDetailRedactedValue is the placeholder written over sensitive
-// ServiceDetails values. It MUST remain "[REDACTED]" to preserve byte-identical
-// rendered output across the processor statistics path and the converter export
-// path — both delegate to RedactServiceDetails, so this constant is the single
-// source of truth for the ServiceDetails redaction marker. (The converter's
+// ServiceDetails values. It MUST remain "[REDACTED]" to keep rendered output
+// byte-identical for the converter export path, which delegates here, so this
+// constant is the single source of truth for the ServiceDetails redaction
+// marker. (The converter's
 // separate redactedValue const governs unrelated field redactions — certs, API
 // keys, WireGuard PSKs — and is not shared with this path.)
 const serviceDetailRedactedValue = "[REDACTED]"

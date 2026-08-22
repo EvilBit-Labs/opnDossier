@@ -61,14 +61,14 @@ opnDossier uses a hierarchical model structure that organizes firewall configura
 
 This hierarchical approach provides logical organization, improved maintainability, domain-specific validation, and better extensibility.
 
-### Processor Workflow
+### Conversion Workflow
 
-The processor implements a comprehensive four-phase pipeline:
+Converting a configuration runs four stages:
 
-1. **Normalize**: Fill defaults, canonicalize addresses, sort for determinism
-2. **Validate**: Struct tag validation, custom checks, cross-field validation
-3. **Analyze**: Dead rule detection, security analysis, performance checks
-4. **Transform**: Multi-format output (Markdown, JSON, YAML)
+1. **Parse**: `pkg/parser/*` decodes the vendor XML into its schema DTOs
+2. **Convert**: the vendor converter normalizes those DTOs into `CommonDevice`
+3. **Enrich**: `internal/analysis` computes statistics and findings, and `internal/converter` redacts sensitive fields for export
+4. **Render**: `internal/converter` emits Markdown, JSON, YAML, text, or HTML
 
 <!-- Sample report coming soon -->
 

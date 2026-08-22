@@ -265,7 +265,7 @@ bench-focused:
 # Run model completeness check
 [group('test')]
 completeness-check:
-    @{{ mise_exec }} go test -tags=completeness ./internal/model -run TestModelCompleteness
+    @{{ mise_exec }} go test -tags=completeness ./internal/testing/modeltest -run TestModelCompleteness
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build

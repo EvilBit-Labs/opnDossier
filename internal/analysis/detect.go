@@ -194,7 +194,8 @@ func isTerminalDenyRule(rule common.FirewallRule) bool {
 //     and so never appears in any per-interface bucket either.
 //
 // The clone is a new slice — cfg's own FirewallRules backing array is never
-// mutated (immutability invariant; GOTCHAS §21.2).
+// mutated. Callers rely on this: the detector must never write through to the
+// device it was handed.
 func normalizeForDeadRuleView(cfg *common.CommonDevice) *common.CommonDevice {
 	normalized := make([]common.FirewallRule, len(cfg.FirewallRules))
 

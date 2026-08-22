@@ -1032,13 +1032,11 @@ func snmpDetails(t *testing.T, stats *common.Statistics) map[string]string {
 	return nil
 }
 
-// TestRedactStatisticsServiceDetails_ConvergesWithProcessorPath pins R3: the
-// converter export path and the processor statistics path produce identical
-// ServiceDetails redaction for the same input, because both delegate to
-// analysis.RedactServiceDetails. The processor's generateStatistics applies the
-// primitive to commonStats.ServiceDetails before translating, so the operation
-// computed here is the exact processor-side redaction.
-func TestRedactStatisticsServiceDetails_ConvergesWithProcessorPath(t *testing.T) {
+// TestRedactStatisticsServiceDetails_MatchesSharedPrimitive pins R3: the
+// converter export path applies exactly the redaction analysis.RedactServiceDetails
+// defines, with nothing added or skipped on the way through. Asserting against
+// the primitive directly keeps the wrapper honest if either side changes.
+func TestRedactStatisticsServiceDetails_MatchesSharedPrimitive(t *testing.T) {
 	t.Parallel()
 
 	cfg := &common.CommonDevice{
@@ -1049,12 +1047,12 @@ func TestRedactStatisticsServiceDetails_ConvergesWithProcessorPath(t *testing.T)
 	}
 
 	converterStats := redactStatisticsServiceDetails(analysis.ComputeStatistics(cfg))
-	processorDetails, changed := analysis.RedactServiceDetails(analysis.ComputeStatistics(cfg).ServiceDetails)
+	primitiveDetails, changed := analysis.RedactServiceDetails(analysis.ComputeStatistics(cfg).ServiceDetails)
 
 	require.NotNil(t, converterStats)
 	require.True(t, changed, "expected redaction to occur")
-	assert.Equal(t, processorDetails, converterStats.ServiceDetails,
-		"converter and processor redaction paths must produce identical ServiceDetails")
+	assert.Equal(t, primitiveDetails, converterStats.ServiceDetails,
+		"converter redaction must match the shared primitive exactly")
 	assert.Equal(t, redactedValue, snmpDetails(t, converterStats)["community"])
 }
 

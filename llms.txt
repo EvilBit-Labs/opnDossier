@@ -43,13 +43,10 @@ If you are an AI agent **invoking the `opnDossier` CLI at runtime** (not contrib
     - `internal/converter/formatters/` — Format-specific renderers (JSON, YAML, HTML, text)
   - `internal/diff/` — Configuration diff engine with security-aware change analysis
   - `internal/display/` — Terminal display formatting
-  - `internal/docgen/` — Cobra-doc generation helpers
   - `internal/export/` — File export with overwrite protection
   - `internal/logging/` — `charmbracelet/log` wrapper with `IsVerbose()` gate for sensitive diagnostics
   - `internal/plugins/` — Built-in compliance plugins (`firewall/`, `sans/`, `stig/`)
-  - `internal/pool/` — Worker pool for concurrent multi-file processing
-  - `internal/processor/` — Data processing and report generation pipeline
-  - `internal/progress/` — CLI progress indicators (spinner, bar)
+  - `internal/pool/` — `sync.Pool` buffer and byte-slice reuse to cut allocation churn in hot paths
   - `internal/sanitizer/` — Sanitization engine (field-pattern + value-detector rules, XML streaming + struct reflection paths)
   - `internal/validator/` — Semantic validation rules injected into `pkg/parser/*` via `SetValidator`
 - `docs/` — Documentation site (mkdocs)
@@ -60,7 +57,6 @@ If you are an AI agent **invoking the `opnDossier` CLI at runtime** (not contrib
   - `docs/user-guide/` — Hand-written operator narrative for each command
   - `docs/data-model/` — `CommonDevice` schema reference and JSON/YAML export examples
   - `docs/security/` — NIST IR 7608-style security assurance case
-- `project_spec/` — Project specifications (requirements, user stories, tasks)
 - `testdata/` — Shared test fixtures
 
 ## Technology Stack
@@ -83,7 +79,6 @@ If you are an AI agent **invoking the `opnDossier` CLI at runtime** (not contrib
 - [Development Standards](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/standards.md) — Go patterns, implementation details, data processing
 - [Public API Contract](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/public-api.md) — Semver policy and stable surface
 - [Plugin Development](https://github.com/EvilBit-Labs/opnDossier/blob/main/docs/development/plugin-development.md) — Compliance plugin and device parser authoring
-- [Requirements](https://github.com/EvilBit-Labs/opnDossier/blob/main/project_spec/requirements.md) — Project requirements and specifications
 - [Releasing](https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md) — Release process and signing
 - [Security Policy](https://github.com/EvilBit-Labs/opnDossier/blob/main/SECURITY.md) — Vulnerability disclosure policy
 

@@ -23,7 +23,6 @@ graph TD
 
     subgraph Processing["Processing Layer (internal/)"]
         ENRICH[converter/enrichment<br/>Statistics, Analysis]
-        PROC[processor<br/>Report generation]
         DIFFENG[diff/analyzer<br/>Config comparison]
         BUILDER[converter/builder<br/>Markdown generation]
     end
@@ -55,9 +54,8 @@ graph TD
     ROOT --> DISPLAY
 
     CONVERT --> ENRICH
-    CONVERT --> PROC
     ENRICH --> CD
-    PROC --> BUILDER
+    CONVERT --> BUILDER
     BUILDER --> MD
     BUILDER --> JSON_OUT
     BUILDER --> YAML_OUT

@@ -300,7 +300,7 @@ Please follow the coding standards documented in [AGENTS.md](https://github.com/
 
 ### Thread Safety with `sync.RWMutex`
 
-When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`.
+When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Getter methods should return value copies, not pointers into protected state. See `internal/sanitizer/mapper.go` for the canonical pattern: every mutator takes `Lock()`, `GenerateReport()` takes `RLock()`, and it returns copied maps rather than references into protected state. Go's `RWMutex` is also not reentrant, so an internal call chain must not re-acquire a lock it already holds -- factor the shared body into a lock-free helper that the locked method calls, rather than nesting lock acquisitions.
 
 ### XML Handling
 

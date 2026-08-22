@@ -16,7 +16,7 @@ This document provides a complete reference of all data fields available in the 
 - [Routing](#routing)
 - [Users and Groups](#users-and-groups)
 - [Certificates](#certificates)
-- [Analysis & Findings](#analysis--findings)
+- [Analysis and Findings](#analysis-and-findings)
 
 ---
 
@@ -501,7 +501,7 @@ Users and groups are **top-level arrays**, not nested under `system`.
 
 ---
 
-## Analysis & Findings
+## Analysis and Findings
 
 The `analysis` enrichment field (`Analysis`, `*Analysis`) is populated during export, not present in the raw parse. It carries the output of opnDossier's shared detection engine (`internal/analysis`).
 

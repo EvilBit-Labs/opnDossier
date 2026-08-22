@@ -333,8 +333,8 @@ func TestDetectDisabledLogging(t *testing.T) {
 }
 
 // TestScanObservations_ExportPathUnaffected pins that ComputeAnalysis (the
-// export-enrichment path consumed by internal/converter/enrichment.go and
-// internal/processor/analyze.go) is unaffected by the shared engine's
+// export-enrichment path consumed by internal/converter/enrichment.go) is
+// unaffected by the shared engine's
 // additive hygiene detectors — ScanObservations is a separate code path that
 // wraps, not replaces, DetectSecurityIssues (R4).
 func TestScanObservations_ExportPathUnaffected(t *testing.T) {
@@ -369,7 +369,7 @@ func TestScanObservations_ExportPathUnaffected(t *testing.T) {
 // TestScanObservations_DoesNotMutateExportPath (R4) pins the no-regression
 // contract for the JSON/YAML export consumers: running the shared engine over a
 // config must not alter what DetectSecurityIssues returns for that same config,
-// so internal/converter and internal/processor keep observing identical output.
+// so internal/converter keeps observing identical output.
 func TestScanObservations_DoesNotMutateExportPath(t *testing.T) {
 	t.Parallel()
 

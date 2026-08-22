@@ -160,8 +160,6 @@ linters:
         linters: [goconst]
       - path: 'internal/validator/(pfsense\.go|validate_system\.go|demo\.go)$'
         linters: [goconst]
-      - path: 'internal/processor/example\.go$'
-        linters: [goconst]
       - path: 'internal/diff/security/patterns\.go$'
         linters: [goconst]
       - path: 'internal/display/theme\.go$'
@@ -175,14 +173,6 @@ linters:
       # body is the same identifier the validator is matching against
       # adds indirection without aiding readability.
       - path: 'internal/validator/validate_(network|security)\.go$'
-        linters: [goconst]
-      # internal/processor analyze/validate/processor surfaces analysis
-      # labels ("performance", "configuration", "system", "none") that
-      # describe finding categories. They appear inline in the analysis
-      # output and the category vocabulary is the value, not an alias for
-      # one — extracting these adds a layer of redirection without
-      # reducing duplication risk.
-      - path: 'internal/processor/(analyze|validate|processor)\.go$'
         linters: [goconst]
       # internal/sanitizer/patterns.go contains protocol-keyword detection
       # patterns ("key", "psk") used inline in regex/keyword tables. The

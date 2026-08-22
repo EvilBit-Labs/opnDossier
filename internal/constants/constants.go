@@ -145,7 +145,7 @@ const (
 )
 
 // ValidOptimizationModes defines the allowed system optimization modes.
-// Shared by processor and validator packages — single source of truth.
+// Single source of truth for the validator package.
 var ValidOptimizationModes = map[string]struct{}{
 	"normal":       {},
 	"high-latency": {},
@@ -154,7 +154,7 @@ var ValidOptimizationModes = map[string]struct{}{
 }
 
 // ValidPowerdModes defines the allowed powerd power modes.
-// Shared by processor and validator packages — single source of truth.
+// Single source of truth for the validator package.
 var ValidPowerdModes = map[string]struct{}{
 	"hadp":       {},
 	"hiadp":      {},

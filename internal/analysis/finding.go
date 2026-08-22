@@ -1,6 +1,6 @@
 // Package analysis provides canonical types for security analysis findings and
 // shared analysis functions (detection, statistics, rule comparison) used across
-// the audit, compliance, converter, and processor packages.
+// the audit, compliance, and converter packages.
 package analysis
 
 import "slices"
@@ -39,14 +39,11 @@ func IsValidSeverity(s Severity) bool {
 }
 
 // Finding represents a canonical analysis finding that unifies the common
-// fields across audit, compliance, and processor findings.
+// fields across audit and compliance findings.
 //
 // JSON tag note: Recommendation, Component, and Reference intentionally lack
-// omitempty to match compliance.Finding conventions. The subsequent migration
-// phase that replaces processor.Finding with analysis.Finding should verify
-// that downstream JSON consumers can handle the presence of empty-string
-// fields for these three keys, since processor.Finding currently uses
-// omitempty on them.
+// omitempty to match compliance.Finding conventions, so downstream JSON
+// consumers must tolerate empty-string values for those three keys.
 type Finding struct {
 	// Type categorizes the finding (e.g., "security", "performance", "compliance").
 	Type string `json:"type"`

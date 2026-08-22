@@ -26,8 +26,8 @@ var weakTLSProtocols = []string{"SSLv3", "SSLv2", "TLSv1", "TLSv1.1"}
 // defaults, any-to-any rules, disabled logging).
 //
 // ScanObservations does not modify DetectSecurityIssues or ComputeAnalysis;
-// both remain unchanged for their existing callers in internal/converter and
-// internal/processor (KTD3, R4). Returns nil for a nil cfg.
+// both remain unchanged for their existing caller in internal/converter
+// (KTD3, R4). Returns nil for a nil cfg.
 func ScanObservations(cfg *common.CommonDevice) []Observation {
 	if cfg == nil {
 		return nil

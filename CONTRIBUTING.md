@@ -127,7 +127,6 @@ opndossier/
 │   ├── logging/        # Logging utilities
 │   ├── markdown/       # Markdown generation and validation
 │   ├── plugins/        # Compliance plugins (firewall, sans, stig)
-│   ├── processor/      # Data processing and report generation
 │   └── validator/      # Data validation
 ├── pkg/                 # Public API packages (importable by external Go projects)
 │   ├── model/          # Platform-agnostic CommonDevice domain model
@@ -139,8 +138,7 @@ opndossier/
 │       └── pfsense/    # pfSense XML data model (copy-on-write from opnsense)
 ├── tools/               # Standalone development tools
 ├── testdata/            # Test data and fixtures
-├── docs/                # Documentation
-└── project_spec/        # Project specifications
+└── docs/                # Documentation
 ```
 
 ### Extensibility: Two Plugin Systems
@@ -414,7 +412,7 @@ Validate and sanitize all inputs at system boundaries. CLI arguments, configurat
 
 Use restrictive file permissions for sensitive material. Configuration files and any outputs containing sensitive data should be written with `0600` permissions.
 
-Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. The SNMP community redaction logic in `internal/processor/report.go` is the canonical example of how sensitive values should be handled.
+Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. The SNMP community redaction logic in `internal/analysis/statistics_redact.go` is the canonical example of how sensitive values should be handled.
 
 When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern lists in `internal/sanitizer/rules.go` (`FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -iE 'hash|secret|key|pass|community' | grep -v REDACTED` — the output should be empty. Any lines that appear contain unredacted sensitive values that need new sanitizer rules.
 
@@ -581,7 +579,7 @@ opnDossier's CLI has several distinct output channels (user-facing warnings, dia
 
 ### Thread Safety with `sync.RWMutex`
 
-When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Go's `RWMutex` is also not reentrant, so internal call chains should use lock-free `*Unsafe()` helpers instead of trying to acquire the same lock twice. Getter methods should return value copies rather than pointers into protected internal state. The canonical pattern lives in `internal/processor/report.go`. See the [Development Standards](docs/development/standards.md#thread-safety-with-syncrwmutex) for the full thread safety guide.
+When a struct uses `sync.RWMutex`, all read methods need `RLock()` -- not just write paths. Getter methods should return value copies, not pointers into protected state. See `internal/sanitizer/mapper.go` for the canonical pattern: every mutator takes `Lock()`, `GenerateReport()` takes `RLock()`, and it returns copied maps rather than references into protected state. Go's `RWMutex` is also not reentrant, so an internal call chain must not re-acquire a lock it already holds -- factor the shared body into a lock-free helper that the locked method calls, rather than nesting lock acquisitions. See the [Development Standards](docs/development/standards.md#thread-safety-with-syncrwmutex) for the full thread safety guide.
 
 ### XML Handling
 

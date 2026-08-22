@@ -13,9 +13,6 @@ This file provides AI coding assistants with project context. All substantive do
 - **[Architecture](docs/development/architecture.md)** — System design, component interactions, deployment patterns
 - **[Known Gotchas](GOTCHAS.md)** — Non-obvious behaviors, common pitfalls, hard-won lessons
 - **[Plugin Development](docs/development/plugin-development.md)** — Compliance plugin and device parser development
-- **[Requirements](project_spec/requirements.md)** — Project requirements and specifications
-- **[Tasks](project_spec/tasks.md)** — Implementation tasks
-- **[User Stories](project_spec/user_stories.md)** — User stories
 - **[Solutions](docs/solutions/)** — Documented problem solutions for searchable future reference
 - **[Concepts](CONCEPTS.md)** — Shared domain vocabulary (entities, named processes, status concepts); relevant when orienting to the codebase or discussing domain concepts
 

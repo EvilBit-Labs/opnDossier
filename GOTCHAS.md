@@ -24,7 +24,7 @@ When a data race occurs in a test touching global state, the Go race detector ma
 `require.NoError` / `require.NotNil` and other `require.*` calls invoke `t.FailNow`, which is only valid on the test's main goroutine. The `testifylint` linter (`go-require` rule) flags any `require.*` inside a goroutine body — `golangci-lint run` will fail at commit time even when the test passes at runtime.
 
 - **Pattern:** collect per-goroutine outcomes into shared slices, then assert with `require.*` from the main test goroutine after `wg.Wait()`.
-- **Canonical example:** `TestCoreProcessor_Process_ResultIsolation` in `internal/processor/processor_test.go` — `processErrs` and `reports` slices are populated inside goroutines, asserted in a separate post-`wg.Wait()` loop.
+- **Live example of the safe side:** the concurrent `prepareForExport` test in `internal/converter/enrichment_test.go` runs eight goroutines that report failures with `t.Errorf` rather than `require.*`, so the linter is satisfied and no goroutine calls `FailNow`. When you need a halt-the-test assertion, collect each goroutine's outcome into a shared slice and run the `require.*` loop after `wg.Wait()` on the main goroutine.
 - **`assert.*` is fine inside goroutines** — it doesn't call `FailNow`. Use `assert` for soft checks during the goroutine, `require` for halt-the-test checks after the join.
 
 ### 1.4 `goconst` Trips on Fixture-Derived String Duplication
@@ -264,9 +264,9 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 
 `github.com/nao1215/markdown` emits the host's line ending — its `internal.LineFeed` returns `"\r\n"` on Windows and `"\n"` everywhere else. Any function that returns `md.String()`, or the `bytes.Buffer`/`strings.Builder` a `markdown.Markdown` was built into, therefore produces CRLF on a Windows checkout. That breaks every LF golden fixture and contradicts the LF guarantee in `internal/export`.
 
-- **Rule:** in `internal/converter/builder`, return `renderMarkdown(md)`. Anywhere else, wrap the exit in `formatters.NormalizeToLF`. This bit both the builder and `internal/processor/report_markdown.go`, which construct markdown independently.
+- **Rule:** in `internal/converter/builder`, return `renderMarkdown(md)`. Anywhere else, wrap the exit in `formatters.NormalizeToLF`. Any new code path that constructs markdown independently of the builder needs the same treatment — the builder's helper does not protect an exit it does not own.
 - **`glamour.Render` is not affected** — it re-renders and emits LF, so `MarkdownConverter.ToMarkdown` was already clean. Do not add a redundant normalization there.
-- **Detection:** `TestReportOutputIsLF` (builder) and `TestReportMarkdownIsLF` (processor) assert the invariant across the public output surface, but they can only fail on Windows. The Windows CI job runs the full suite for this reason.
+- **Detection:** `TestReportOutputIsLF` (builder) asserts the invariant across the public output surface, but it can only fail on Windows. The Windows CI job runs the full suite for this reason.
 - **CRLF on disk is still available** via `OPNDOSSIER_PLATFORM_LINE_ENDINGS=1`, handled in `internal/export` at write time.
 
 ## 11. Sanitizer
@@ -332,7 +332,7 @@ When tagging a release after a squash-merge PR, always tag the resulting commit 
 
 - **Symptom:** Test passes even when redaction is broken — the raw multiline string never matches the encoded form.
 - **Fix:** Unmarshal JSON/YAML output back into a typed struct and assert on the parsed `PrivateKey` field values directly.
-- **Precedent:** `certRedactionReport` in `internal/processor/report_ids_test.go`.
+- **Precedent:** `TestPrepareForExport_RedactsSensitiveFields_JSON` in `internal/converter/enrichment_test.go` demonstrates the assertion *shape* — it checks the typed `exported.Certificates[0].PrivateKey` field rather than substring-matching the marshalled JSON, then separately confirms the output still parses. Note its fixture is a single-line placeholder, so it does not itself exercise the newline-escaping trap; when you add coverage for a genuinely multiline secret, use a real PEM block so the encoded form differs from the raw one.
 
 ## 14. Sanitizer Rule Engine
 
@@ -465,38 +465,6 @@ The one-shot lock is the enforcement point against a dynamically loaded complian
 - **Gotcha:** Test code that needs to swap validators across subtests uses the `ResetValidatorForTesting` / `ValidatorForTesting` helpers defined in `pkg/parser/pfsense/export_test.go`. These live in `_test.go` and therefore are NOT part of the public API — never promote them to a plain `.go` file.
 - **Gotcha:** The exported `SetValidator` is safe to call from any goroutine; concurrent writers race to win the `sync.Once`, but only one does. Readers never see a torn value because the holder is `atomic.Pointer[...]` — verified by `TestPfSense_SetValidator_Race` under `-race`.
 - **Regression tests:** `TestPfSense_SetValidator_CannotBeOverwritten` pins the stomp-protection invariant; `TestPfSense_SetValidator_Race` pins the concurrent-writer safety. Both live in `pkg/parser/pfsense/parser_test.go`. If either fails, the §20 defense has regressed.
-
-## 21. CoreProcessor Concurrency
-
-### 21.1 Stateless-Per-Call Invariant
-
-`internal/processor.CoreProcessor` is stateless per call. `logger` is set once in `NewCoreProcessor` and is never reassigned. `validateFn` is set once in `NewCoreProcessor` and is never reassigned by any production code path; in-package tests inject panicking validators or test doubles directly via the unexported field (see `validate_test.go`'s `processor.validateFn = func(...) { panic(...) }` pattern), which is safe because each test constructs its own `*CoreProcessor`. Every per-call value (`config`, `normalizedCfg`, `validationErrors`, `report`) is local-scope. The `sync.Mutex` that previously guarded `Process()` was removed in NATS-35 because it protected no shared mutable state and serialized concurrent calls unnecessarily — a single shared `*CoreProcessor` is now safe to share across goroutines and `Process` calls run in parallel.
-
-- **Symptom of regression:** A future contributor adds a mutable field to `CoreProcessor` (e.g., a cache, counter, hot-reloaded config, or per-instance result accumulator). `go test -race ./internal/processor/...` flags a data race in `TestCoreProcessor_RaceConditions` or `TestCoreProcessor_ConcurrentSafety`.
-- **Fix:** Either remove the new field, scope it per-call (return it instead of storing on the receiver), or reinstate explicit synchronization with a comment naming exactly what shared state is being protected.
-- **Prevention:** Treat `CoreProcessor` like the converter packages — receivers carry construction-time configuration only; per-call state lives in locals. The struct doc comment in `internal/processor/processor.go` names the invariant and the caller contract; do not weaken either without re-evaluating thread safety. If you find yourself wanting a public `SetValidatorForTesting` helper to make the in-package field write more discoverable, mirror the §20.1 `pfsense.SetValidator`/`ResetValidatorForTesting` pattern with `export_test.go` exposure rather than promoting the field to public.
-
-### 21.2 Caller Must Not Mutate `*CommonDevice` Concurrently With `Process()`
-
-`Process()` calls `normalize()` which performs a shallow struct copy of `*cfg` and then `slices.Clone`s a specific set of fields. Two clone categories — both intentional, both at `internal/processor/normalize.go:18-37`:
-
-- **Mutated by normalize phases (cloned for correctness):** `FirewallRules`, `Users`, `Groups`, `Sysctl`, `LoadBalancer.MonitorTypes`. Sorted and/or rewritten by `sortSlices`/`canonicalizeAddresses`.
-- **Defensively cloned to isolate credential-bearing data from the caller:** `Certificates`, `DHCP` (with deep `AdvancedV4`/`AdvancedV6` pointer copies), `VPN.WireGuard.Clients`. Not mutated by normalize, but downstream code must not accidentally leak edits back to the caller's struct.
-
-All other slices on the input (`Interfaces`, `VLANs`, `Bridges`, `CAs`, etc.) share their backing arrays with the caller's `*CommonDevice` for the duration of the call, and `report.NormalizedConfig` continues to share those backing arrays after the call returns.
-
-- **Gotcha:** If a caller mutates one of those still-aliased slices on the input `*CommonDevice` while `Process()` is running, or while another consumer is reading the same field on `report.NormalizedConfig`, there is a data race that `-race` will catch. The removed §21.1 mutex never protected against this — it was a per-`CoreProcessor` lock, not a per-`*CommonDevice` lock. The cloned categories above are safe regardless of caller behavior.
-- **Caller contract:** Pass a fresh or fully-quiesced `*CommonDevice` per call. Do not mutate it concurrently with any in-flight `Process()` and do not mutate it post-call while a downstream consumer is still reading `report.NormalizedConfig`.
-- **Adding new cloned fields:** When a downstream consumer or a new analyzer would observe writes to a still-aliased field, add it to the defensive-clone list in `normalize.go` and update this section. Do not silently start writing to a previously-aliased field.
-
-### 21.3 `Report.mu` and `WorkerPool.closedMu` Are Out of Scope for §21.1
-
-§21.1 explicitly removed only the `CoreProcessor.mu` field. Two other mutexes in `internal/processor/` guard real shared state and must remain:
-
-- **`Report.mu sync.RWMutex`** (`internal/processor/report.go`) — protects `Findings` against concurrent mutation. The `analyze` pipeline itself is sequential today (no goroutines), so the lock currently functions as forward-looking insurance: it keeps `AddFinding` (write) safe against concurrent reads from `ToJSON`/`ToYAML`/`TotalFindings` (`RLock` paths) when a single `*Report` is shared across goroutines, and it preserves correctness if a future analyzer fans out to sub-goroutines that each call `AddFinding`. Removing it would re-open both windows.
-- **`WorkerPool.closedMu sync.RWMutex`** (`internal/processor/concurrent.go`) — channel-close guard in the worker pool used by `ProcessBatch`. Concrete: prevents a `send on closed channel` panic when one goroutine calls `Close()` while another is mid-`Submit`.
-
-Do not remove either of these in a "clean up the package's locks" sweep. They protect distinct invariants from the one §21.1 addressed.
 
 ## 22. Documentation Tooling
 

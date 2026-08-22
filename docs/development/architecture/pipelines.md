@@ -702,12 +702,6 @@ All validation, shell completion, and dispatch logic automatically picks up the 
 - Handler dispatch via `handler.Generate()` and `handler.GenerateToWriter()`
 - Each handler delegates to generator's private format-specific methods
 
-#### Processor Layer (`internal/processor/`)
-
-- `processor.Transform()` resolves aliases via `DefaultRegistry.Canonical()`
-- Supports all five formats (markdown, json, yaml, text, html)
-- Text and HTML formats delegate to exported `converter.StripMarkdownFormatting()` and `converter.RenderMarkdownToHTML()`
-
 ### Design Rationale
 
 - **Single Source of Truth**: Eliminates duplicated format lists across CLI, config, and generator layers
