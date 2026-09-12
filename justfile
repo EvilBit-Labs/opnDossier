@@ -267,6 +267,14 @@ bench-focused:
 completeness-check:
     @{{ mise_exec }} go test -tags=completeness ./internal/testing/modeltest -run TestModelCompleteness
 
+# Check for unreachable functions not covered by internal/deadcode_allowlist.txt.
+# Advisory only for now (see .github/workflows/ci.yml) -- not wired into ci-check
+# until the dead-surface cleanup sweep empties the seeded surface (see the
+# guard's own doc comment in internal/deadcode_test.go).
+[group('test')]
+deadcode-check:
+    @{{ mise_exec }} go test -tags=deadcode ./internal/ -run TestDeadCodeGuard -v
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Build
 # ─────────────────────────────────────────────────────────────────────────────
