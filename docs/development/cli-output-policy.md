@@ -70,7 +70,7 @@ The structured-logger-for-everything default is *not* the policy. A user-facing 
 
 **Purpose.** Indication that a long-running operation is making progress — multi-file audit runs, large XML parses, plugin compilation.
 
-**Canonical API.** `charmbracelet/bubbles/progress` on a TTY; plain text fallback (`"Processing file 3/12..."` periodically or once per major phase) on non-TTY, `TERM=dumb`, or when running in CI.
+**Canonical API.** Not yet implemented — the CLI currently emits no progress indication at all. A prior `charmbracelet/bubbles/progress`-based implementation in `internal/display` had no caller in any shipped command and was removed as unreachable code (refactor/dead-surface-cleanup); `bubbles` and its transitive `bubbletea`, `muesli/ansi`, and `erikgeiser/coninput` were dropped from `go.mod` with it. Until this channel is implemented, use a plain text fallback (`"Processing file 3/12..."` periodically or once per major phase) on non-TTY, `TERM=dumb`, or when running in CI, and the same plain-text form on a TTY too — do not reintroduce a progress-bar dependency without wiring it into a real caller.
 
 **Rules.**
 
@@ -79,7 +79,7 @@ The structured-logger-for-everything default is *not* the policy. A user-facing 
 - Must not appear in machine-readable mode (see Channel 4). Either suppress it entirely, or verify the target is stderr and the operator did not redirect stderr.
 - Long-running operations with no progress output are not acceptable for multi-minute workloads — silence reads as "hung."
 
-**Examples.** Multi-file audit processing indicator; the `just docs` build step's phase indicator.
+**Examples.** Multi-file audit processing indicator; the `just docs` build step's phase indicator. (Aspirational — neither currently emits progress output; see Canonical API above.)
 
 ### 6. Pre-logger fallback
 
@@ -101,7 +101,7 @@ Use `github.com/mattn/go-isatty` — already a transitive dependency via the Cha
 
 ## TERM=dumb handling
 
-All styled output — `lipgloss`-rendered blocks, `bubbles` progress bars, `glamour`-rendered markdown — must fall back to plain ASCII when `TERM=dumb` is set. This is a project-wide rule, documented in AGENTS.md § Rules of Engagement, and applies to every channel that renders styled content. Automation and CI environments set `TERM=dumb` precisely because they cannot render escape sequences; emitting them anyway corrupts logs and breaks assertions.
+All styled output — `lipgloss`-rendered blocks, `glamour`-rendered markdown, and any future progress indication (Channel 5) — must fall back to plain ASCII when `TERM=dumb` is set. This is a project-wide rule, documented in AGENTS.md § Rules of Engagement, and applies to every channel that renders styled content. Automation and CI environments set `TERM=dumb` precisely because they cannot render escape sequences; emitting them anyway corrupts logs and breaks assertions.
 
 ## What NEVER goes where
 

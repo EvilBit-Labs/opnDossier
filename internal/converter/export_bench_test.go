@@ -3,36 +3,102 @@ package converter
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
+	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
 
-func BenchmarkJSONConverter_ToJSON(b *testing.B) {
+// newBenchGenerator creates a minimal HybridGenerator for benchmarking format
+// dispatch, mirroring newTestGenerator in registry_test.go but usable from
+// *testing.B call sites.
+func newBenchGenerator(b *testing.B) *HybridGenerator {
+	b.Helper()
+
+	gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
+	if err != nil {
+		b.Fatalf("failed to create HybridGenerator: %v", err)
+	}
+
+	return gen
+}
+
+// loadTestData loads test configuration data by parsing an XML file and converting
+// to CommonDevice format via the Factory.
+func loadTestData(filename string) *common.CommonDevice {
+	// Map test data size indicators to actual test files
+	var xmlFile string
+	switch filename {
+	case "testdata/minimal.json":
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.1.xml") // ~12KB
+	case "testdata/complete.json":
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.2.xml") // ~17KB
+	case "testdata/large.json":
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.6.xml") // ~119KB
+	default:
+		// Default to medium size
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.2.xml")
+	}
+
+	xmlData, err := os.ReadFile(xmlFile)
+	if err != nil {
+		panic("Failed to read test XML file: " + err.Error())
+	}
+
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
+	device, _, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(string(xmlData)),
+		common.DeviceTypeOPNsense,
+		false,
+	)
+	if err != nil {
+		panic("XML parsing/conversion failed: " + err.Error())
+	}
+
+	return device
+}
+
+// loadLargeTestData loads a large test dataset for memory usage testing.
+func loadLargeTestData() *common.CommonDevice {
+	return loadTestData("testdata/large.json")
+}
+
+func BenchmarkHybridGenerator_JSON(b *testing.B) {
 	ctx := context.Background()
-	converter := NewJSONConverter()
+	gen := newBenchGenerator(b)
 	device := loadLargeTestData()
+	opts := DefaultOptions()
+	opts.Format = FormatJSON
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := converter.ToJSON(ctx, device, false); err != nil {
-			b.Fatalf("ToJSON failed: %v", err)
+		if _, err := gen.Generate(ctx, device, opts); err != nil {
+			b.Fatalf("Generate(json) failed: %v", err)
 		}
 	}
 }
 
-func BenchmarkYAMLConverter_ToYAML(b *testing.B) {
+func BenchmarkHybridGenerator_YAML(b *testing.B) {
 	ctx := context.Background()
-	converter := NewYAMLConverter()
+	gen := newBenchGenerator(b)
 	device := loadLargeTestData()
+	opts := DefaultOptions()
+	opts.Format = FormatYAML
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := converter.ToYAML(ctx, device, false); err != nil {
-			b.Fatalf("ToYAML failed: %v", err)
+		if _, err := gen.Generate(ctx, device, opts); err != nil {
+			b.Fatalf("Generate(yaml) failed: %v", err)
 		}
 	}
 }
@@ -53,20 +119,23 @@ func BenchmarkEnterpriseScaleExport_10kRules_500KiB(b *testing.B) {
 		b.Fatalf("FirewallRules: got %d, want %d", got, ruleCount)
 	}
 
-	jsonConverter := NewJSONConverter()
-	yamlConverter := NewYAMLConverter()
+	gen := newBenchGenerator(b)
+	jsonOpts := DefaultOptions()
+	jsonOpts.Format = FormatJSON
+	yamlOpts := DefaultOptions()
+	yamlOpts.Format = FormatYAML
 
-	jsonOut, err := jsonConverter.ToJSON(ctx, device, false)
+	jsonOut, err := gen.Generate(ctx, device, jsonOpts)
 	if err != nil {
-		b.Fatalf("ToJSON sanity check failed: %v", err)
+		b.Fatalf("JSON sanity check failed: %v", err)
 	}
 	if len(jsonOut) < minSize {
 		b.Fatalf("JSON enterprise fixture is %d bytes, want at least %d", len(jsonOut), minSize)
 	}
 
-	yamlOut, err := yamlConverter.ToYAML(ctx, device, false)
+	yamlOut, err := gen.Generate(ctx, device, yamlOpts)
 	if err != nil {
-		b.Fatalf("ToYAML sanity check failed: %v", err)
+		b.Fatalf("YAML sanity check failed: %v", err)
 	}
 	if len(yamlOut) < minSize {
 		b.Fatalf("YAML enterprise fixture is %d bytes, want at least %d", len(yamlOut), minSize)
@@ -75,8 +144,8 @@ func BenchmarkEnterpriseScaleExport_10kRules_500KiB(b *testing.B) {
 	b.Run("json", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			if _, err := jsonConverter.ToJSON(ctx, device, false); err != nil {
-				b.Fatalf("ToJSON failed: %v", err)
+			if _, err := gen.Generate(ctx, device, jsonOpts); err != nil {
+				b.Fatalf("Generate(json) failed: %v", err)
 			}
 		}
 	})
@@ -84,8 +153,8 @@ func BenchmarkEnterpriseScaleExport_10kRules_500KiB(b *testing.B) {
 	b.Run("yaml", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			if _, err := yamlConverter.ToYAML(ctx, device, false); err != nil {
-				b.Fatalf("ToYAML failed: %v", err)
+			if _, err := gen.Generate(ctx, device, yamlOpts); err != nil {
+				b.Fatalf("Generate(yaml) failed: %v", err)
 			}
 		}
 	})

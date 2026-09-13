@@ -67,10 +67,10 @@ GitHub's shared runners cannot host it reliably. The instrumented suite is slow 
 
 ### 2.1 Registry Independence
 
-`audit.PluginManager` maintains its own internal `PluginRegistry` instance. This is **independent** of the global singleton returned by `audit.GetGlobalRegistry()`.
+`audit.PluginManager` owns its own `PluginRegistry` instance — there is no package-level global registry to opt into (the deprecated `GetGlobalRegistry`/`RegisterGlobalPlugin`/`GetGlobalPlugin`/`ListGlobalPlugins` singleton was removed; it had no production caller).
 
-- **Gotcha:** Calling `pm.InitializePlugins()` does **not** populate the global registry.
-- **Requirement:** If a plugin must be available globally (e.g., for simple CLI helpers), it must be explicitly registered via `audit.RegisterGlobalPlugin()`.
+- **Gotcha:** Two `PluginManager` instances constructed with `NewPluginManager(logger, nil)` each allocate a private registry and do **not** see each other's registrations. Pass the same `*PluginRegistry` to `NewPluginManager` when multiple managers or subsystems must observe the same plugin set.
+- **Requirement:** A dynamically loaded `.so` plugin is registered by the loader through its exported `Plugin` symbol into whichever `*PluginRegistry` the caller supplied to `NewPluginManager` — there is no separate "global" registration step.
 
 ### 2.2 Panic Recovery Retains Plugins
 
@@ -181,6 +181,9 @@ The schema and `CommonDevice` are separate models, and a value can be decoded co
 - **Detection:** extract every non-empty XML leaf value from a fixture, run `convert --format json`, and report values that appear in the file but in no output. Separate the two layers by also comparing against a raw `xml.Unmarshal` into the schema type — a value missing from the schema dump is a parse bug (§3.3), one present there but missing from the export is this. Expect false positives wherever the converter deliberately reshapes: aliases are split from `10.0.0.1 10.0.0.2` into a `members` list, `system.timeservers` likewise, and secrets are excluded on purpose.
 - **Fix:** add the field to `pkg/model` if it is missing, then map it in *both* converters. The two are edited independently and drift, so fix the pair together.
 - **Declared gaps are not this.** `pfsense.KnownGaps()` lists the `CommonDevice` subsystems the pfSense converter knowingly leaves empty, and each emits a conversion warning. Check that list before treating an empty subsystem as a bug.
+- **A value can also be dropped before it ever reaches the schema struct, one layer earlier than the usual case above.** `internal/cfgparser/xml.go`'s `handleStartElement` dispatches each top-level `<opnsense>` child through a hand-maintained `switch` that mirrors the `xml:` tags on `schema.OpnSenseDocument`. It had no case for `aliases`, so a config using the legacy top-level `<aliases>` block (predating the MVC Firewall/Alias subsystem — see `schema.OpnSenseDocument.Aliases`) decoded to `namedObjects: null` even though the field existed on the schema struct and the converter (`convertNamedObjects` in `pkg/parser/opnsense/converter_aliases.go`) already read it correctly. No shipped fixture used that shape, so nothing failed until `testdata/opnsense-legacy-aliases.xml` was added.
+  - **Guard:** `TestHandleStartElement_DispatchCoversEverySchemaField` in `internal/cfgparser/dispatch_coverage_test.go` parses `xml.go` via `go/ast`, extracts every case label in `handleStartElement`'s switch *together with the `doc.<Field>` it decodes into*, and reflects over `schema.OpnSenseDocument`'s `xml:` tags to assert a 1:1 pairing. It fails on a missing case (a new top-level element added to the schema with nothing dispatching it) and — checking the target, not just the label — on a case that decodes into the wrong field (a copy-paste swap between adjacent, structurally identical elements like `gifs`/`gres`/`laggs`, which a label-only check would miss).
+  - **When adding a new top-level `<opnsense>` child element to the schema, add its dispatch case in the same change.** The coverage test will fail the build if you forget; it will not tell you if you *misroute* one unless the swap changes which field is referenced in the case body.
 
 ## 4. Diff Engine
 
@@ -325,13 +328,14 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 
 ## 10. Converter Testing
 
-### 10.1 ToMarkdown Outputs ANSI-Rendered Text
+### 10.1 TerminalDisplay Output Is ANSI-Rendered
 
-`MarkdownConverter.ToMarkdown()` passes output through `glamour.Render()`, which inserts ANSI escape codes. Tests asserting on the output must set `t.Setenv("TERM", "dumb")` for clean text. Since `t.Setenv` is incompatible with `t.Parallel()`, remove `t.Parallel()` and add `//nolint:tparallel` to the function.
+`TerminalDisplay.Display()` (`internal/display/display.go`), reached from `cmd/display.go` and `cmd/audit_output.go`, passes markdown through `glamour.Render()`, which inserts ANSI escape codes. Tests asserting on the output must set `t.Setenv("TERM", "dumb")` for clean text. Since `t.Setenv` is incompatible with `t.Parallel()`, remove `t.Parallel()` and add `//nolint:tparallel` to the function.
 
-- **Symptom:** `assert.Contains(t, md, "System Configuration")` fails despite the text being present.
+- **Symptom:** `assert.Contains(t, out, "System Configuration")` fails despite the text being present.
 - **Fix:** Add `t.Setenv("TERM", "dumb")` at the start of the test (no `t.Parallel()`).
-- **Precedent:** `internal/converter/markdown_test.go` uses this pattern throughout.
+- **Precedent:** `internal/display/display_test.go` uses this pattern throughout.
+- **History:** this entry previously named `MarkdownConverter.ToMarkdown`, a second `glamour.Render` caller in `internal/converter` deleted as superseded dead code (refactor/dead-surface-cleanup). `internal/display` was always the other caller and inherits the same requirement.
 
 ### 10.2 builder_test.go Uses Raw testing Package
 
@@ -351,7 +355,7 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 `github.com/nao1215/markdown` emits the host's line ending — its `internal.LineFeed` returns `"\r\n"` on Windows and `"\n"` everywhere else. Any function that returns `md.String()`, or the `bytes.Buffer`/`strings.Builder` a `markdown.Markdown` was built into, therefore produces CRLF on a Windows checkout. That breaks every LF golden fixture and contradicts the LF guarantee in `internal/export`.
 
 - **Rule:** in `internal/converter/builder`, return `renderMarkdown(md)`. Anywhere else, wrap the exit in `formatters.NormalizeToLF`. Any new code path that constructs markdown independently of the builder needs the same treatment — the builder's helper does not protect an exit it does not own.
-- **`glamour.Render` is not affected** — it re-renders and emits LF, so `MarkdownConverter.ToMarkdown` was already clean. Do not add a redundant normalization there.
+- **`glamour.Render` is not affected** — it re-renders and emits LF, so `internal/display`'s `TerminalDisplay.Display()` (§10.1) was already clean. Do not add a redundant normalization there.
 - **Detection:** `TestReportOutputIsLF` (builder) asserts the invariant across the public output surface, but it can only fail on Windows. The Windows CI job runs the full suite for this reason.
 - **CRLF on disk is still available** via `OPNDOSSIER_PLATFORM_LINE_ENDINGS=1`, handled in `internal/export` at write time.
 
@@ -362,7 +366,7 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 pfSense stores user passwords in `<bcrypt-hash>` elements, not `<password>` or `<passwd>` like OPNsense. The sanitizer's field-pattern matching must explicitly include `bcrypt-hash` and `sha512-hash` — the generic `"pass"` substring match does not cover these.
 
 - **Symptom:** `sanitize` command outputs bcrypt hashes in cleartext.
-- **Fix:** Add `"bcrypt-hash"`, `"sha512-hash"` to the `password` rule's `FieldPatterns` in `internal/sanitizer/rules.go` and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Fix:** Add `"bcrypt-hash"`, `"sha512-hash"` to the `password` rule's `FieldPatterns` in `internal/sanitizer/rules.go`.
 - **Precedent:** The SNMP community string (`rocommunity`) required a dedicated field pattern for the same reason.
 
 ### 11.2 New Device Type Field Names
@@ -394,7 +398,7 @@ OpenVPN's `<tls>` element (under `<openvpn-server>` / `<openvpn-client>`) holds 
 The OPNsense `os-netbird` plugin persists the NetBird enrollment/setup key as `<setupKey>` under `<OPNsense><netbird><authentication>` (MVC model mounted at `//OPNsense/netbird/authentication`). The value is a UUID-format registration token. Because the sanitizer's bare `"key"` FieldPattern is exact-match only (see `exactMatchPatterns` — same trap as SNMPv3 `<enckey>`), compound names like `setupKey` leaked through `sanitize` in cleartext.
 
 - **Symptom:** `sanitize` leaves NetBird setup keys readable in output. The key remains in `config.xml` when NetBird is disabled and often survives plugin removal as orphaned MVC XML, so disabled/removed plugins still leak.
-- **Fix:** Add `"setupkey"`, `"setup_key"`, `"setup-key"` to the **`secret`** rule's `FieldPatterns` in `internal/sanitizer/rules.go` (enrollment token, not private-key material — unlike SNMPv3 `enckey` which lives on `private_key`) and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Fix:** Add `"setupkey"`, `"setup_key"`, `"setup-key"` to the **`secret`** rule's `FieldPatterns` in `internal/sanitizer/rules.go` (enrollment token, not private-key material — unlike SNMPv3 `enckey` which lives on `private_key`).
 - **Detection:** `TestSanitizeXML_NetBirdSetupKey_RedactsSecret` + `TestSanitizeXML_NetBirdSetupKey_NoFalsePositives` in `internal/sanitizer/sanitizer_test.go`; `TestRedact_NetBirdSetupKey_RedactsSecret` in `rules_fieldpattern_test.go`.
 - **Rule-ordering impact:** None. The `secret` rule already precedes `private_key` and does not participate in the §19.1 ordering invariants.
 - **Upstream:** <https://github.com/opnsense/plugins> (`security/netbird`); field declared in `Authentication.xml` as `UpdateOnlyTextField` with UUID mask.

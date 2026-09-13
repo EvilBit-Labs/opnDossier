@@ -2,21 +2,13 @@
 package formatters
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
-	"time"
 )
 
-// Display symbols and boolean string representations used for formatting report output.
+// Display symbols used for formatting report output.
 const (
-	checkboxChecked   = "[x]"
-	checkboxUnchecked = "[ ]"
-	checkmark         = "✓"
-	xMark             = "✗"
-	boolStringOne     = "1"
-	boolStringTrue    = "true"
-	boolStringOn      = "on"
+	checkmark = "✓"
+	xMark     = "✗"
 )
 
 // FormatInterfacesAsLinks formats a list of interfaces as markdown links pointing to their respective sections.
@@ -71,14 +63,6 @@ func FormatInterfacesAsLinks(interfaces []string) string {
 	return b.String()
 }
 
-// FormatBoolean formats a boolean value for display in markdown tables.
-func FormatBoolean(value string) string {
-	if value == boolStringOne || value == boolStringTrue || value == boolStringOn {
-		return checkmark
-	}
-	return xMark
-}
-
 // FormatBoolInverted formats a boolean with inverted logic for display in markdown tables.
 // This is used for fields like "Disabled" where true means disabled (✗) and false means enabled (✓).
 func FormatBoolInverted(value bool) string {
@@ -86,22 +70,6 @@ func FormatBoolInverted(value bool) string {
 		return xMark
 	}
 	return checkmark
-}
-
-// FormatIntBoolean formats an integer boolean value for display in markdown tables.
-func FormatIntBoolean(value int) string {
-	if value == 1 {
-		return checkmark
-	}
-	return xMark
-}
-
-// FormatIntBooleanWithUnset formats an integer boolean value with support for unset states.
-func FormatIntBooleanWithUnset(value int) string {
-	if value == 0 {
-		return "unset"
-	}
-	return FormatIntBoolean(value)
 }
 
 // FormatBool formats a boolean value for display in markdown tables.
@@ -120,24 +88,6 @@ func FormatBoolStatus(value bool) string {
 	return "Disabled"
 }
 
-// GetPowerModeDescription converts power management mode acronyms to their full descriptions for templates.
-func GetPowerModeDescription(mode string) string {
-	switch mode {
-	case "hadp":
-		return "High Performance with Dynamic Power Management"
-	case "hiadp":
-		return "High Performance with Adaptive Dynamic Power Management"
-	case "adaptive":
-		return "Adaptive Power Management"
-	case "minimum":
-		return "Minimum Power Consumption"
-	case "maximum":
-		return "Maximum Performance"
-	default:
-		return mode
-	}
-}
-
 // GetPowerModeDescriptionCompact returns a compact description of power management modes.
 func GetPowerModeDescriptionCompact(mode string) string {
 	switch mode {
@@ -154,76 +104,4 @@ func GetPowerModeDescriptionCompact(mode string) string {
 	default:
 		return mode
 	}
-}
-
-// IsTruthy determines if a value represents a "true" or "enabled" state.
-// Handles various formats: "1", "yes", "true", "on", "enabled", etc.
-// Treats -1 as "unset" and returns false for it.
-func IsTruthy(value any) bool {
-	if value == nil {
-		return false
-	}
-
-	str := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", value)))
-
-	switch str {
-	case "1", "yes", "true", "on", "enabled", "active":
-		return true
-	case "0", "no", "false", "off", "disabled", "inactive", "", "-1":
-		return false
-	default:
-		if num, err := strconv.ParseFloat(str, 64); err == nil {
-			return num > 0
-		}
-		return false
-	}
-}
-
-// FormatBooleanCheckbox formats a boolean value consistently using markdown checkboxes.
-func FormatBooleanCheckbox(value any) string {
-	if IsTruthy(value) {
-		return checkboxChecked
-	}
-	return checkboxUnchecked
-}
-
-// FormatBooleanWithUnset formats a boolean value, showing "unset" for -1 values.
-func FormatBooleanWithUnset(value any) string {
-	if value == nil {
-		return checkboxUnchecked
-	}
-
-	str := strings.TrimSpace(fmt.Sprintf("%v", value))
-	if str == "-1" {
-		return "unset"
-	}
-
-	if IsTruthy(value) {
-		return checkboxChecked
-	}
-	return checkboxUnchecked
-}
-
-// FormatUnixTimestamp converts a Unix timestamp string to an ISO 8601 formatted date.
-func FormatUnixTimestamp(timestamp string) string {
-	if timestamp == "" {
-		return "-"
-	}
-
-	ts, err := strconv.ParseFloat(timestamp, 64)
-	if err != nil {
-		return timestamp
-	}
-
-	timeValue := time.Unix(int64(ts), int64((ts-float64(int64(ts)))*float64(time.Second)))
-
-	return timeValue.Format("2006-01-02T15:04:05Z07:00")
-}
-
-// FormatWithSuffix appends a suffix to a value, returning "N/A" if the value is empty.
-func FormatWithSuffix(value, suffix string) string {
-	if value == "" {
-		return "N/A"
-	}
-	return value + suffix
 }

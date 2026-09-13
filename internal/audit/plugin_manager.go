@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
-	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // PluginManager manages the lifecycle of compliance plugins.
@@ -30,12 +28,10 @@ type PluginManager struct {
 // default for short-lived programmatic callers that do not share state with
 // anything else.
 //
-// This replaces the earlier split between the PluginManager's private registry
-// and the package-level global registry (see the Deprecated notes on
-// GetGlobalRegistry / RegisterGlobalPlugin in plugin.go). There is now a
-// single registry path: whichever *PluginRegistry is supplied here is the one
-// InitializePlugins populates and ListAvailablePlugins / RunComplianceAudit
-// read from.
+// PluginManager owns its own registry; there is no global registry to opt
+// into. A loaded plugin is registered by the loader through its exported
+// Plugin symbol into whichever *PluginRegistry is supplied here — the same
+// registry InitializePlugins populates and callers read from via GetRegistry.
 func NewPluginManager(logger *logging.Logger, reg *PluginRegistry) *PluginManager {
 	if reg == nil {
 		reg = NewPluginRegistry()
@@ -145,104 +141,4 @@ func (pm *PluginManager) GetLoadResult() LoadResult {
 // GetRegistry returns the plugin registry.
 func (pm *PluginManager) GetRegistry() *PluginRegistry {
 	return pm.registry
-}
-
-// ListAvailablePlugins returns information about all available plugins.
-func (pm *PluginManager) ListAvailablePlugins(_ context.Context) []PluginInfo {
-	logger := pm.logger
-	pluginNames := pm.registry.ListPlugins()
-	pluginInfos := make([]PluginInfo, 0, len(pluginNames))
-
-	for _, pluginName := range pluginNames {
-		p, err := pm.registry.GetPlugin(pluginName)
-		if err != nil {
-			// This should not happen since ListPlugins and GetPlugin read the
-			// same registry. A failure here indicates registry corruption or a
-			// concurrent unregister — log and skip the entry.
-			logger.Error("Failed to get plugin info", "plugin", pluginName, "error", err)
-
-			continue
-		}
-
-		pluginInfos = append(pluginInfos, PluginInfo{
-			Name:        p.Name(),
-			Version:     p.Version(),
-			Description: p.Description(),
-			Controls:    p.GetControls(),
-		})
-	}
-
-	return pluginInfos
-}
-
-// RunComplianceAudit runs compliance checks using specified plugins.
-func (pm *PluginManager) RunComplianceAudit(
-	_ context.Context,
-	device *common.CommonDevice,
-	pluginNames []string,
-) (*ComplianceResult, error) {
-	logger := pm.logger
-	logger.Info("Starting compliance audit", "plugins", pluginNames)
-
-	result, err := pm.registry.RunComplianceChecks(device, pluginNames, pm.logger)
-	if err != nil {
-		return nil, fmt.Errorf("compliance audit failed: %w", err)
-	}
-
-	logger.Info("Compliance audit completed",
-		"total_findings", result.Summary.TotalFindings,
-		"plugins_used", len(pluginNames))
-
-	return result, nil
-}
-
-// GetPluginControlInfo returns detailed information about a specific control.
-func (pm *PluginManager) GetPluginControlInfo(pluginName, controlID string) (*compliance.Control, error) {
-	p, err := pm.registry.GetPlugin(pluginName)
-	if err != nil {
-		return nil, fmt.Errorf("plugin '%s' not found: %w", pluginName, err)
-	}
-
-	control, err := p.GetControlByID(controlID)
-	if err != nil {
-		return nil, fmt.Errorf("control '%s' not found in plugin '%s': %w", controlID, pluginName, err)
-	}
-
-	return control, nil
-}
-
-// ValidatePluginConfiguration validates the configuration of a specific plugin.
-func (pm *PluginManager) ValidatePluginConfiguration(pluginName string) error {
-	p, err := pm.registry.GetPlugin(pluginName)
-	if err != nil {
-		return fmt.Errorf("plugin '%s' not found: %w", pluginName, err)
-	}
-
-	return p.ValidateConfiguration()
-}
-
-// GetPluginStatistics returns statistics about plugin usage and plugin.
-func (pm *PluginManager) GetPluginStatistics() map[string]any {
-	stats := make(map[string]any)
-
-	pluginNames := pm.registry.ListPlugins()
-	stats["total_plugins"] = len(pluginNames)
-	stats["available_plugins"] = pluginNames
-
-	// Get control counts per plugin
-	controlCounts := make(map[string]int)
-
-	for _, pluginName := range pluginNames {
-		p, err := pm.registry.GetPlugin(pluginName)
-		if err != nil {
-			pm.logger.Error("Failed to get plugin for statistics", "plugin", pluginName, "error", err)
-			continue
-		}
-
-		controlCounts[pluginName] = len(p.GetControls())
-	}
-
-	stats["control_counts"] = controlCounts
-
-	return stats
 }

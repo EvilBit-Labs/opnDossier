@@ -113,23 +113,6 @@ func (n *Normalizer) NormalizePort(s string) string {
 	return n.normalizePortNumber(s)
 }
 
-// NormalizeProtocol normalizes a protocol name to lowercase.
-func (n *Normalizer) NormalizeProtocol(s string) string {
-	return strings.ToLower(strings.TrimSpace(s))
-}
-
-// NormalizePath normalizes a file or configuration path by removing trailing slashes
-// and collapsing consecutive slashes.
-func (n *Normalizer) NormalizePath(s string) string {
-	// Remove trailing slashes
-	s = strings.TrimRight(s, "/")
-	// Collapse consecutive slashes
-	for strings.Contains(s, "//") {
-		s = strings.ReplaceAll(s, "//", "/")
-	}
-	return s
-}
-
 // isDigitsOnly returns true if the trimmed string consists only of digits.
 func isDigitsOnly(s string) bool {
 	s = strings.TrimSpace(s)

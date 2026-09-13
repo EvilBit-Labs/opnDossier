@@ -67,20 +67,6 @@ func TestRootCmdHelp(t *testing.T) {
 	assert.Contains(t, output, "--config")
 }
 
-func TestGetFlagsByCategory(t *testing.T) {
-	rootCmd := GetRootCmd()
-	categories := GetFlagsByCategory(rootCmd)
-
-	// Test that categories exist
-	assert.Contains(t, categories, "configuration")
-	assert.Contains(t, categories, "output")
-
-	// Test specific flags in categories
-	assert.Contains(t, categories["configuration"], "config")
-	assert.Contains(t, categories["output"], "verbose")
-	assert.Contains(t, categories["output"], "quiet")
-}
-
 func TestRootCmdSubcommands(t *testing.T) {
 	rootCmd := GetRootCmd()
 

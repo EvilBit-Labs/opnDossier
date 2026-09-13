@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<opnsense>
+  <system>
+    <hostname>legacy-aliases-test</hostname>
+    <domain>localdomain</domain>
+  </system>
+  <interfaces>
+    <lan>
+      <if>em0</if>
+      <ipaddr>192.168.1.1</ipaddr>
+      <subnet>24</subnet>
+    </lan>
+  </interfaces>
+  <!--
+    Legacy top-level aliases block, as written by OPNsense configs that
+    predate the MVC Firewall/Alias subsystem (see
+    schema.OpnSenseDocument.Aliases and GOTCHAS.md, section 3.6). No
+    OPNsense element is present here on purpose; this fixture exercises the
+    legacy path only.
+  -->
+  <aliases>
+    <alias uuid="99999999-9999-9999-9999-999999999999">
+      <name>LEGACY_HOSTS</name>
+      <type>host</type>
+      <address>10.5.5.1 10.5.5.2</address>
+      <descr>Legacy top-level alias predating the MVC Firewall/Alias subsystem</descr>
+    </alias>
+    <alias uuid="88888888-8888-8888-8888-888888888888">
+      <name>LEGACY_SECRET</name>
+      <type>host</type>
+      <address>10.5.5.3</address>
+      <descr>c3VwZXItc2VjcmV0LWxlZ2FjeS1hbGlhcy1hcGkta2V5LTAxMjM0NTY3ODk=</descr>
+    </alias>
+  </aliases>
+</opnsense>

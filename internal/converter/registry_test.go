@@ -144,18 +144,6 @@ func TestFormatRegistry_ValidFormatsWithAliases(t *testing.T) {
 	assert.Equal(t, []string{"yaml", "yml"}, all)
 }
 
-func TestFormatRegistry_Extensions(t *testing.T) {
-	t.Parallel()
-
-	r := NewFormatRegistry()
-	r.Register("json", &jsonHandler{})
-	r.Register("html", &htmlHandler{})
-
-	exts := r.Extensions()
-	assert.Equal(t, ".json", exts["json"])
-	assert.Equal(t, ".html", exts["html"])
-}
-
 // stubHandler is a minimal FormatHandler for testing registry mechanics without
 // depending on real handler types.
 type stubHandler struct {
@@ -328,7 +316,7 @@ func TestFormatRegistry_ValidFormatsWithAliases_AllFormats(t *testing.T) {
 	assert.Equal(t, []string{"json", "markdown", "md", "yaml", "yml"}, all)
 }
 
-func TestFormatRegistry_Extensions_AllFormats(t *testing.T) {
+func TestFormatRegistry_FileExtension_AllFormats(t *testing.T) {
 	t.Parallel()
 
 	r := NewFormatRegistry()
@@ -338,25 +326,19 @@ func TestFormatRegistry_Extensions_AllFormats(t *testing.T) {
 	r.Register("text", &textHandler{})
 	r.Register("html", &htmlHandler{})
 
-	exts := r.Extensions()
-	assert.Len(t, exts, 5)
-	assert.Equal(t, ".md", exts["markdown"])
-	assert.Equal(t, ".json", exts["json"])
-	assert.Equal(t, ".yaml", exts["yaml"])
-	assert.Equal(t, ".txt", exts["text"])
-	assert.Equal(t, ".html", exts["html"])
-}
+	expected := map[string]string{
+		"markdown": ".md",
+		"json":     ".json",
+		"yaml":     ".yaml",
+		"text":     ".txt",
+		"html":     ".html",
+	}
 
-func TestFormatRegistry_Extensions_DoesNotIncludeAliases(t *testing.T) {
-	t.Parallel()
-
-	r := NewFormatRegistry()
-	r.Register("yaml", &yamlHandler{})
-
-	exts := r.Extensions()
-	assert.Len(t, exts, 1)
-	_, hasAlias := exts["yml"]
-	assert.False(t, hasAlias, "aliases should not appear as keys in Extensions")
+	for name, wantExt := range expected {
+		h, err := r.Get(name)
+		require.NoError(t, err)
+		assert.Equal(t, wantExt, h.FileExtension())
+	}
 }
 
 func TestFormatRegistry_EmptyRegistry(t *testing.T) {
@@ -392,13 +374,6 @@ func TestFormatRegistry_EmptyRegistry(t *testing.T) {
 		all := r.ValidFormatsWithAliases()
 		assert.Empty(t, all)
 	})
-
-	t.Run("Extensions returns empty map", func(t *testing.T) {
-		t.Parallel()
-
-		exts := r.Extensions()
-		assert.Empty(t, exts)
-	})
 }
 
 // --- DefaultRegistry content verification ---
@@ -421,8 +396,11 @@ func TestDefaultRegistry_CorrectExtensions(t *testing.T) {
 		"html":     ".html",
 	}
 
-	exts := DefaultRegistry.Extensions()
-	assert.Equal(t, expected, exts)
+	for name, wantExt := range expected {
+		h, err := DefaultRegistry.Get(name)
+		require.NoError(t, err)
+		assert.Equal(t, wantExt, h.FileExtension())
+	}
 }
 
 func TestDefaultRegistry_CorrectAliases(t *testing.T) {
@@ -639,11 +617,13 @@ func TestHandler_Generate_DispatchesViaRegistry(t *testing.T) {
 			handler, err := DefaultRegistry.Get(tc.format)
 			require.NoError(t, err)
 
+			opts := DefaultOptions()
+			opts.Format = Format(tc.format)
 			result, err := handler.Generate(
 				context.Background(),
 				gen,
 				device,
-				DefaultOptions().WithFormat(Format(tc.format)),
+				opts,
 			)
 			if tc.wantErr {
 				assert.Error(t, err)
@@ -680,12 +660,14 @@ func TestHandler_GenerateToWriter_DispatchesViaRegistry(t *testing.T) {
 			require.NoError(t, err)
 
 			var buf bytes.Buffer
+			opts := DefaultOptions()
+			opts.Format = Format(tc.format)
 			err = handler.GenerateToWriter(
 				context.Background(),
 				gen,
 				&buf,
 				device,
-				DefaultOptions().WithFormat(Format(tc.format)),
+				opts,
 			)
 			if tc.wantErr {
 				assert.Error(t, err)

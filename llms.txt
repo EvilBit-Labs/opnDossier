@@ -46,7 +46,6 @@ If you are an AI agent **invoking the `opnDossier` CLI at runtime** (not contrib
   - `internal/export/` — File export with overwrite protection
   - `internal/logging/` — `charmbracelet/log` wrapper with `IsVerbose()` gate for sensitive diagnostics
   - `internal/plugins/` — Built-in compliance plugins (`firewall/`, `sans/`, `stig/`)
-  - `internal/pool/` — `sync.Pool` buffer and byte-slice reuse to cut allocation churn in hot paths
   - `internal/sanitizer/` — Sanitization engine (field-pattern + value-detector rules, XML streaming + struct reflection paths)
   - `internal/validator/` — Semantic validation rules injected into `pkg/parser/*` via `SetValidator`
 - `docs/` — Documentation site (mkdocs)

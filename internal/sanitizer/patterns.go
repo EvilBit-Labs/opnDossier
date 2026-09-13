@@ -27,12 +27,6 @@ var (
 		`\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b`,
 	)
 
-	// IPv6 address pattern (simplified, matches common formats).
-	ipv6Pattern = regexp.MustCompile(`(?i)\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|` +
-		`\b(?:[0-9a-f]{1,4}:){1,7}:\b|` +
-		`\b(?:[0-9a-f]{1,4}:){1,6}:[0-9a-f]{1,4}\b|` +
-		`\b::(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4}\b`)
-
 	// MAC address pattern (XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX).
 	macPattern = regexp.MustCompile(`(?i)\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b`)
 
@@ -70,15 +64,6 @@ var (
 // IsIPv4 checks if the string is a valid IPv4 address.
 func IsIPv4(s string) bool {
 	return ipv4Pattern.MatchString(s)
-}
-
-// IsIPv6 reports whether s is a textual IPv6 address in common formats.
-//
-// The check accepts typical IPv6 representations such as full and compressed
-// forms and mixed IPv4/IPv6 notations; it does not attempt network-level
-// reachability checks. Returns true if s matches an IPv6 textual form, false otherwise.
-func IsIPv6(s string) bool {
-	return ipv6Pattern.MatchString(s)
 }
 
 // IsIP reports whether s is a valid IPv4 or IPv6 address.
@@ -185,12 +170,6 @@ func IsHostname(s string) bool {
 	return hostnamePattern.MatchString(s)
 }
 
-// IsDomain reports whether s is a domain name suitable as a hostname.
-// It requires at least one dot, must not be an IP address, and must match the package's hostname pattern.
-func IsDomain(s string) bool {
-	return IsHostname(s)
-}
-
 // IsBase64 reports whether s appears to be base64-encoded data.
 // It trims surrounding whitespace, requires s to be at least the package's
 // minimum base64 length, and then checks against the compiled base64 pattern.
@@ -258,94 +237,4 @@ func IsOpenVPNStaticKey(s string) bool {
 		return false
 	}
 	return strings.Contains(s, openVPNStaticKeyMarker)
-}
-
-// Immutable keyword lookup tables, hoisted to package level to avoid per-call allocation.
-//
-//nolint:gochecknoglobals // Immutable lookup tables, avoids per-call allocation
-var (
-	passwordKeywords = []string{
-		"password", "passwd", "pass", "secret", "key", "token",
-		"credential", "auth", "prv", "private", "bindpw",
-		// pfSense DHCP dynamic-DNS TSIG key. Mirrors the exact-match
-		// "ddnsdomainkey" field pattern on the private_key rule, per the
-		// FieldPatterns/passwordKeywords synchronization CONTRIBUTING.md
-		// requires. Value-based detection does not inherit field-pattern
-		// exactness, but the sibling ddnsdomainkeyname/ddnsdomainkeyalgorithm
-		// carry metadata rather than secrets, so a keyword match on them is
-		// harmless where a field-pattern match would not be.
-		"ddnsdomainkey",
-		"bcrypt-hash", "sha512-hash",
-		// OpenVPN: `<tls>` holds the --tls-auth/--tls-crypt HMAC key on
-		// <openvpn-server>/<openvpn-client>; `<StaticKeys>` holds MVC
-		// static-key material. See GOTCHAS §11.3.
-		"statickeys", "tls_crypt", "tls_auth",
-		// NetBird: `<setupKey>` under OPNsense/netbird/authentication.
-		// FieldPatterns already require the setupkey aliases (bare "key" is
-		// exact-match only). Listed here too so CONTRIBUTING's dual-list
-		// sync rule holds; LooksLikePassword("setupKey") would already match
-		// via the generic "key" substring today.
-		"setupkey", "setup_key", "setup-key",
-	}
-	apiKeywords = []string{"apikey", "api_key", "api-key", "accesskey", "secretkey"}
-	pskKeywords = []string{"psk", "preshared", "pre-shared", "ipsecpsk"}
-)
-
-// LooksLikePassword reports whether fieldName likely contains a password or secret.
-// It performs a case-insensitive substring check for common password/key-related keywords
-// such as "password", "passwd", "pass", "secret", "key", "token", "credential", "auth",
-// "prv", and "private". It returns true if any keyword is present in fieldName, false otherwise.
-func LooksLikePassword(fieldName string) bool {
-	lower := strings.ToLower(fieldName)
-	for _, kw := range passwordKeywords {
-		if strings.Contains(lower, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-// LooksLikeAPIKey reports whether fieldName likely refers to an API key.
-// It performs a case-insensitive substring check and returns true if fieldName
-// contains any of the common API key indicators such as "apikey", "api_key",
-// "api-key", "accesskey", or "secretkey".
-func LooksLikeAPIKey(fieldName string) bool {
-	lower := strings.ToLower(fieldName)
-	for _, kw := range apiKeywords {
-		if strings.Contains(lower, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-// LooksLikePSK reports whether a field name suggests it contains a pre-shared key.
-// It performs a case-insensitive substring check for common PSK-related tokens: "psk", "preshared", "pre-shared", and "ipsecpsk".
-func LooksLikePSK(fieldName string) bool {
-	lower := strings.ToLower(fieldName)
-	for _, kw := range pskKeywords {
-		if strings.Contains(lower, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-// LooksLikeSNMPCommunity reports whether fieldName likely refers to an SNMP community string.
-// It returns true if the lower-cased field name contains "community" or "rocommunity".
-func LooksLikeSNMPCommunity(fieldName string) bool {
-	lower := strings.ToLower(fieldName)
-	return strings.Contains(lower, "community") || strings.Contains(lower, "rocommunity")
-}
-
-// ExtractIPv4Addresses extracts all IPv4 addresses from s.
-// It returns a slice of IPv4 address strings in dotted-decimal form, in the order they appear; duplicates are preserved and an empty slice is returned if none are found.
-func ExtractIPv4Addresses(s string) []string {
-	return ipv4Pattern.FindAllString(s, -1)
-}
-
-// ExtractEmails extracts all substrings that match email addresses in s, in the order they appear.
-// It preserves duplicates and returns an empty slice if none are found.
-func ExtractEmails(s string) []string {
-	return emailPattern.FindAllString(s, -1)
 }

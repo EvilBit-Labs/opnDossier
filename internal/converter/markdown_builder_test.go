@@ -2,7 +2,6 @@ package converter
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
@@ -561,48 +560,6 @@ func TestMarkdownBuilder_BuildComprehensiveReport_NilData(t *testing.T) {
 	assert.Equal(t, builderPkg.ErrNilDevice, err)
 }
 
-func TestFormatBoolean(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"true value", "1", "✓"},
-		{"true string", "true", "✓"},
-		{"on value", "on", "✓"},
-		{"false value", "0", "✗"},
-		{"false string", "false", "✗"},
-		{"empty string", "", "✗"},
-		{"random string", "random", "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatBoolean(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestFormatIntBoolean(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    int
-		expected string
-	}{
-		{"true value", 1, "✓"},
-		{"false value", 0, "✗"},
-		{"negative value", -1, "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatIntBoolean(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestFormatBool(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -954,7 +911,9 @@ func TestBuildServicesSection_EdgeCases(t *testing.T) {
 }
 
 func TestToMarkdown_EdgeCases(t *testing.T) {
-	converter := NewMarkdownConverter()
+	gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+	require.NoError(t, err)
+	opts := DefaultOptions()
 
 	tests := []struct {
 		name string
@@ -977,63 +936,10 @@ func TestToMarkdown_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := converter.ToMarkdown(context.Background(), tt.data)
+			result, err := gen.Generate(context.Background(), tt.data, opts)
 			require.NoError(t, err)
 			assert.NotEmpty(t, result)
-			// Remove ANSI color codes for comparison
-			cleanResult := strings.ReplaceAll(result, "\x1b[38;5;228;48;5;63;1m", "")
-			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[0m", "")
-			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[38;5;252m", "")
-			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[38;5;39;1m", "")
-			cleanResult = strings.ReplaceAll(cleanResult, "\x1b[38;5;252;1m", "")
-			assert.Contains(t, cleanResult, "Configuration")
-		})
-	}
-}
-
-func TestGetTheme_EdgeCases(t *testing.T) {
-	converter := NewMarkdownConverter()
-
-	// Test with different environment variables
-	tests := []struct {
-		name          string
-		envVars       map[string]string
-		expectedTheme string
-	}{
-		{
-			name: "default_theme",
-			envVars: map[string]string{
-				"TERM":      "dumb",
-				"COLORTERM": "",
-			},
-			expectedTheme: "auto",
-		},
-		{
-			name: "explicit_theme",
-			envVars: map[string]string{
-				"OPNDOSSIER_THEME": "dark",
-			},
-			expectedTheme: "dark",
-		},
-		{
-			name: "colorterm_truecolor",
-			envVars: map[string]string{
-				"COLORTERM": "truecolor",
-				"TERM":      "xterm-256color",
-			},
-			expectedTheme: "dark",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variables for test
-			for key, value := range tt.envVars {
-				t.Setenv(key, value)
-			}
-
-			theme := converter.getTheme()
-			assert.Equal(t, tt.expectedTheme, theme)
+			assert.Contains(t, result, "Configuration")
 		})
 	}
 }
@@ -1043,8 +949,8 @@ func TestMarkdownBuilder_ImplementsReportBuilder(_ *testing.T) {
 	var _ builderPkg.ReportBuilder = (*builderPkg.MarkdownBuilder)(nil)
 }
 
-// Integration test comparing with the old MarkdownConverter.
-func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
+// Integration test comparing direct builder output with the HybridGenerator's Generate().
+func TestMarkdownBuilder_IntegrationWithHybridGenerator(t *testing.T) {
 	// Create test data
 	data := &common.CommonDevice{
 		System: common.System{
@@ -1070,9 +976,10 @@ func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
 	newResult, err := builder.BuildStandardReport(data)
 	require.NoError(t, err)
 
-	// Test old converter
-	converter := NewMarkdownConverter()
-	oldResult, err := converter.ToMarkdown(context.Background(), data)
+	// Test via the shipped HybridGenerator entry point
+	gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+	require.NoError(t, err)
+	oldResult, err := gen.Generate(context.Background(), data, DefaultOptions())
 	require.NoError(t, err)
 
 	// Both should produce valid markdown
@@ -1083,6 +990,9 @@ func TestMarkdownBuilder_IntegrationWithOldConverter(t *testing.T) {
 	assert.Contains(t, newResult, "test-host")
 	assert.Contains(t, newResult, "test.local")
 	assert.Contains(t, newResult, "23.1.1")
+	assert.Contains(t, oldResult, "test-host")
+	assert.Contains(t, oldResult, "test.local")
+	assert.Contains(t, oldResult, "23.1.1")
 
 	// The new builder should have more comprehensive output
 	assert.Contains(t, newResult, "System Configuration")
@@ -1480,26 +1390,6 @@ func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T)
 	assert.Equal(t, "`172.16.0.1`", opt1Row[2])
 	assert.Equal(t, "/16", opt1Row[3])
 	assert.Equal(t, "✓", opt1Row[4])
-}
-
-func TestFormatIntBooleanWithUnset(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    int
-		expected string
-	}{
-		{"true value", 1, "✓"},
-		{"false value", 0, "unset"},
-		{"unset value", -1, "✗"},
-		{"negative value", -5, "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatIntBooleanWithUnset(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }
 
 func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {

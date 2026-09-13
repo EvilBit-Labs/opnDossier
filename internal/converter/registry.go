@@ -1,3 +1,4 @@
+// Package converter provides functionality to convert device configurations to various formats.
 package converter
 
 import (
@@ -139,19 +140,6 @@ func (r *FormatRegistry) Canonical(format string) (string, bool) {
 	}
 
 	return key, false
-}
-
-// Extensions returns a map of canonical format name to file extension.
-func (r *FormatRegistry) Extensions() map[string]string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	exts := make(map[string]string, len(r.handlers))
-	for name, h := range r.handlers {
-		exts[name] = h.FileExtension()
-	}
-
-	return exts
 }
 
 // ValidFormats returns a sorted slice of canonical format names.

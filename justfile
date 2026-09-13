@@ -220,14 +220,14 @@ bench-perf:
 # Capture CPU and memory profiles for converter export/rendering benchmarks
 [group('test')]
 bench-profile:
-    @{{ mise_exec }} go test -bench='Benchmark(MarkdownConverter_ToMarkdown|JSONConverter_ToJSON|YAMLConverter_ToYAML)' -run=^$ -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./internal/converter
+    @{{ mise_exec }} go test -bench='Benchmark(MarkdownGenerator_Generate|HybridGenerator_JSON|HybridGenerator_YAML)' -run=^$ -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./internal/converter
     @echo "Profiles written: cpu.prof, mem.prof"
     @echo "Inspect with: mise exec -- go tool pprof cpu.prof"
 
 # Capture an execution trace for converter export/rendering benchmarks
 [group('test')]
 bench-trace:
-    @{{ mise_exec }} go test -bench='Benchmark(MarkdownConverter_ToMarkdown|JSONConverter_ToJSON|YAMLConverter_ToYAML)' -run=^$ -benchmem -trace=trace.out ./internal/converter
+    @{{ mise_exec }} go test -bench='Benchmark(MarkdownGenerator_Generate|HybridGenerator_JSON|HybridGenerator_YAML)' -run=^$ -benchmem -trace=trace.out ./internal/converter
     @echo "Trace written: trace.out"
     @echo "Inspect with: mise exec -- go tool trace trace.out"
 
@@ -246,26 +246,34 @@ bench-compare:
     @{{ mise_exec }} go test -bench=. -run=^$ -benchmem -count=5 ./... 2>/dev/null | tee .benchmark-current.txt
     @{{ mise_exec }} benchstat .benchmark-baseline.txt .benchmark-current.txt
 
-# Run pool benchmarks
+# Run sanitizer benchmarks (buffer pooling lives in internal/sanitizer)
 [group('test')]
 bench-pool:
-    @{{ mise_exec }} go test -bench=. -run=^$ -benchmem ./internal/pool/...
+    @{{ mise_exec }} go test -bench=. -run=^$ -benchmem ./internal/sanitizer/...
 
 # Benchmarks are on-demand only: never in CI, never in ci-check. Shared runners
 # are too noisy for wall-clock numbers to mean anything.
 
-# Run the focused benchmark suite (converter, pool, logging)
+# Run the focused benchmark suite (converter, sanitizer, logging)
 [group('test')]
 bench-focused:
     @{{ mise_exec }} go test -bench=. -run='^$' -benchmem -count=1 -benchtime=1s -timeout 4m \
         ./internal/converter/... \
-        ./internal/pool/... \
+        ./internal/sanitizer/... \
         ./internal/logging/...
 
 # Run model completeness check
 [group('test')]
 completeness-check:
     @{{ mise_exec }} go test -tags=completeness ./internal/testing/modeltest -run TestModelCompleteness
+
+# Check for unreachable functions not covered by internal/deadcode_allowlist.txt.
+# Blocking: wired into ci-check and the CI Lint job (see .github/workflows/ci.yml)
+# now that the dead-surface cleanup sweep has emptied the seeded surface (see
+# the guard's own doc comment in internal/deadcode_test.go).
+[group('test')]
+deadcode-check:
+    @{{ mise_exec }} go test -tags=deadcode ./internal/ -run TestDeadCodeGuard -v
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build
@@ -425,7 +433,7 @@ notices:
 
 # Run full CI checks (pre-commit, format, lint, test)
 [group('ci')]
-ci-check: check format-check lint test test-integration test-race completeness-check
+ci-check: check format-check lint test test-integration test-race completeness-check deadcode-check
 
 # Run smoke tests (fast, minimal validation)
 [group('ci')]

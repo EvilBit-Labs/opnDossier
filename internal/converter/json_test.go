@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestJSONConverter_ToJSON(t *testing.T) {
+func TestJSONHandler_Generate(t *testing.T) {
 	tests := GetCommonTestCases()
 	for i := range tests {
 		if tests[i].Name == "valid device" {
@@ -22,9 +22,12 @@ func TestJSONConverter_ToJSON(t *testing.T) {
 		}
 	}
 
-	c := NewJSONConverter()
+	gen := newTestGenerator(t)
+	opts := DefaultOptions()
+	opts.Format = FormatJSON
+
 	convertFunc := func(ctx context.Context, data *common.CommonDevice) (string, error) {
-		return c.ToJSON(ctx, data, false)
+		return gen.Generate(ctx, data, opts)
 	}
 	RunConverterTests(t, tests, convertFunc)
 }

@@ -113,8 +113,10 @@ func TestToJSON_ContainsStatistics(t *testing.T) {
 		},
 	}
 
-	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device, false)
+	gen := newTestGenerator(t)
+	opts := DefaultOptions()
+	opts.Format = FormatJSON
+	result, err := gen.Generate(context.Background(), device, opts)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -137,8 +139,10 @@ func TestToYAML_ContainsStatistics(t *testing.T) {
 		},
 	}
 
-	c := NewYAMLConverter()
-	result, err := c.ToYAML(context.Background(), device, false)
+	gen := newTestGenerator(t)
+	opts := DefaultOptions()
+	opts.Format = FormatYAML
+	result, err := gen.Generate(context.Background(), device, opts)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -369,8 +373,10 @@ func TestToJSON_ContainsAnalysis(t *testing.T) {
 		},
 	}
 
-	c := NewJSONConverter()
-	result, err := c.ToJSON(context.Background(), device, false)
+	gen := newTestGenerator(t)
+	opts := DefaultOptions()
+	opts.Format = FormatJSON
+	result, err := gen.Generate(context.Background(), device, opts)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -389,8 +395,10 @@ func TestToYAML_ContainsAnalysis(t *testing.T) {
 		},
 	}
 
-	c := NewYAMLConverter()
-	result, err := c.ToYAML(context.Background(), device, false)
+	gen := newTestGenerator(t)
+	opts := DefaultOptions()
+	opts.Format = FormatYAML
+	result, err := gen.Generate(context.Background(), device, opts)
 	require.NoError(t, err)
 
 	var parsed map[string]any
@@ -754,14 +762,14 @@ func TestNewFieldsSerialization(t *testing.T) {
 	RunNewFieldsSerializationTests(t)
 }
 
-func TestEnrichForExport_PopulatesNilFields(t *testing.T) {
+func TestEnrich_PopulatesNilFields(t *testing.T) {
 	t.Parallel()
 
 	device := &common.CommonDevice{
 		System: common.System{Hostname: "h", Domain: "d"},
 	}
 
-	EnrichForExport(device)
+	enrich(device)
 
 	assert.Equal(t, common.DeviceTypeOPNsense, device.DeviceType)
 	require.NotNil(t, device.Statistics)
@@ -770,7 +778,7 @@ func TestEnrichForExport_PopulatesNilFields(t *testing.T) {
 	require.NotNil(t, device.PerformanceMetrics)
 }
 
-func TestEnrichForExport_PreservesExistingFields(t *testing.T) {
+func TestEnrich_PreservesExistingFields(t *testing.T) {
 	t.Parallel()
 
 	stats := &common.Statistics{TotalInterfaces: 7}
@@ -785,7 +793,7 @@ func TestEnrichForExport_PreservesExistingFields(t *testing.T) {
 		PerformanceMetrics: perfMetrics,
 	}
 
-	EnrichForExport(device)
+	enrich(device)
 
 	assert.Equal(t, common.DeviceTypePfSense, device.DeviceType, "existing DeviceType preserved")
 	assert.Same(t, stats, device.Statistics, "existing Statistics pointer preserved")
@@ -794,15 +802,7 @@ func TestEnrichForExport_PreservesExistingFields(t *testing.T) {
 	assert.Same(t, perfMetrics, device.PerformanceMetrics, "existing PerformanceMetrics pointer preserved")
 }
 
-func TestEnrichForExport_NilDeviceIsSafe(t *testing.T) {
-	t.Parallel()
-
-	assert.NotPanics(t, func() {
-		EnrichForExport(nil)
-	})
-}
-
-func TestEnrichForExport_ClearingStatisticsRefreshesDerivedFields(t *testing.T) {
+func TestEnrich_ClearingStatisticsRefreshesDerivedFields(t *testing.T) {
 	// Cache-invalidation contract: when the caller clears Statistics to refresh
 	// after a config change, SecurityAssessment and PerformanceMetrics — both
 	// derived from Statistics — must also refresh. Otherwise the next export
@@ -813,7 +813,7 @@ func TestEnrichForExport_ClearingStatisticsRefreshesDerivedFields(t *testing.T) 
 	device := &common.CommonDevice{
 		System: common.System{Hostname: "h"},
 	}
-	EnrichForExport(device)
+	enrich(device)
 
 	priorStats := device.Statistics
 	priorSA := device.SecurityAssessment
@@ -825,7 +825,7 @@ func TestEnrichForExport_ClearingStatisticsRefreshesDerivedFields(t *testing.T) 
 	// Simulate a config-change cache invalidation: clear only Statistics.
 	device.Statistics = nil
 
-	EnrichForExport(device)
+	enrich(device)
 
 	require.NotNil(t, device.Statistics)
 	assert.NotSame(t, priorStats, device.Statistics, "Statistics refreshed after clear")
@@ -835,9 +835,9 @@ func TestEnrichForExport_ClearingStatisticsRefreshesDerivedFields(t *testing.T) 
 		"PerformanceMetrics must refresh together with Statistics, not retain pointer to discarded view")
 }
 
-func TestEnrichForExport_FanOutFromSingleEnrichedDeviceIsRaceClean(t *testing.T) {
-	// EnrichForExport's documented supported pattern is "one device, enrich
-	// once, fan out exports": a caller invokes EnrichForExport on a *CommonDevice,
+func TestEnrich_FanOutFromSingleEnrichedDeviceIsRaceClean(t *testing.T) {
+	// enrich's documented supported pattern is "one device, enrich
+	// once, fan out exports": a caller invokes enrich on a *CommonDevice,
 	// then dispatches concurrent prepareForExport calls that each consume the
 	// cached Statistics/Analysis pointers. This test pins that pattern under
 	// `go test -race`. If a future refactor starts mutating the cached
@@ -852,7 +852,7 @@ func TestEnrichForExport_FanOutFromSingleEnrichedDeviceIsRaceClean(t *testing.T)
 			SysLocation: testSNMPLocation,
 		},
 	}
-	EnrichForExport(device)
+	enrich(device)
 
 	const goroutines = 8
 	var wg sync.WaitGroup
@@ -886,8 +886,8 @@ func TestEnrichForExport_FanOutFromSingleEnrichedDeviceIsRaceClean(t *testing.T)
 	wg.Wait()
 }
 
-func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
-	// Memoization invariant: after EnrichForExport, every prepareForExport call
+func TestEnrich_PrepareForExportSkipsRecomputation(t *testing.T) {
+	// Memoization invariant: after enrich, every prepareForExport call
 	// must reuse the cached Statistics/Analysis pointers (the heavy work runs
 	// once). This is the core memoization contract — multi-format exports do
 	// not recompute analysis per format.
@@ -897,7 +897,7 @@ func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
 		System: common.System{Hostname: "h"},
 	}
 
-	EnrichForExport(device)
+	enrich(device)
 
 	cachedStats := device.Statistics
 	cachedAnalysis := device.Analysis
@@ -907,9 +907,9 @@ func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
 		// Source-of-truth invariant: the cache on the input device is never
 		// mutated by prepareForExport, regardless of redact direction.
 		assert.Same(t, cachedStats, device.Statistics,
-			"EnrichForExport result must outlive prepareForExport (redact=%v)", redact)
+			"enrich result must outlive prepareForExport (redact=%v)", redact)
 		assert.Same(t, cachedAnalysis, device.Analysis,
-			"EnrichForExport result must outlive prepareForExport (redact=%v)", redact)
+			"enrich result must outlive prepareForExport (redact=%v)", redact)
 		// Returned device reuses the cached Analysis pointer (Analysis is
 		// never cloned by the redact path).
 		assert.Same(t, cachedAnalysis, out.Analysis,
@@ -925,9 +925,9 @@ func TestEnrichForExport_PrepareForExportSkipsRecomputation(t *testing.T) {
 		"non-redact path returns cached Statistics directly")
 }
 
-func TestEnrichForExport_RedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
+func TestEnrich_RedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
 	// Safety invariant: prepareForExport(redact=true) must not mutate the
-	// Statistics that EnrichForExport produced. Otherwise a subsequent
+	// Statistics that enrich produced. Otherwise a subsequent
 	// non-redacted export would observe redacted values, and a caller that
 	// inspects device.Statistics after a redacted export would see leaked
 	// redaction markers.
@@ -940,7 +940,7 @@ func TestEnrichForExport_RedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
 		},
 	}
 
-	EnrichForExport(device)
+	enrich(device)
 
 	snmpDetailsBefore := snmpDetails(t, device.Statistics)
 	require.Equal(t, testSecretValue, snmpDetailsBefore["community"],
@@ -961,7 +961,7 @@ func TestEnrichForExport_RedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
 		"non-redacted export after a redacted export still observes real values")
 }
 
-func TestEnrichForExport_NonRedactThenRedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
+func TestEnrich_NonRedactThenRedactDoesNotLeakIntoCachedStatistics(t *testing.T) {
 	// Reverse-direction safety invariant for the redaction-leak contract: a
 	// caller that does a non-redacted export first, then a redacted export on
 	// the same enriched device, must see the redacted output carry [REDACTED]
@@ -976,7 +976,7 @@ func TestEnrichForExport_NonRedactThenRedactDoesNotLeakIntoCachedStatistics(t *t
 		},
 	}
 
-	EnrichForExport(device)
+	enrich(device)
 
 	plain := prepareForExport(device, false)
 	require.Equal(t, testSecretValue, snmpDetails(t, plain.Statistics)["community"],

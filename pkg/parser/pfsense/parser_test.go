@@ -1388,8 +1388,9 @@ func TestParser_ConfigPfSense_MarkdownOutput(t *testing.T) {
 
 	device, _ := parseConfigPfSenseFixture(t)
 
-	mc := converter.NewMarkdownConverter()
-	md, err := mc.ToMarkdown(context.Background(), device)
+	gen, err := converter.NewMarkdownGenerator(nil, converter.DefaultOptions())
+	require.NoError(t, err)
+	md, err := gen.Generate(context.Background(), device, converter.DefaultOptions())
 	require.NoError(t, err)
 	assert.NotEmpty(t, md)
 

@@ -298,7 +298,8 @@ func runConvert(cmd *cobra.Command, args []string) error {
 	// exceeds the pipe buffer.
 	var allErrors []error
 
-	for i, r := range results {
+	for i := range args {
+		r := results[i]
 		if r.err != nil {
 			allErrors = append(allErrors, r.err)
 
@@ -640,39 +641,6 @@ func determineOutputPath(outputFile string, cfg *config.Config) string {
 	default:
 		return ""
 	}
-}
-
-// generateOutputByFormat generates the document output in the requested format using the programmatic generator.
-// Supported formats are "markdown" (or "md"), "json", "yaml" (or "yml"), "text" (or "txt"), and "html" (or "htm").
-// It returns the rendered output, the resolved FormatHandler (for file-extension lookups), or an error
-// if the format is unsupported or generation fails.
-//
-// The handler is resolved via a single DefaultRegistry.Get call — callers should NOT perform their own
-// lookup, as that would duplicate work and invent an impossible-by-construction error branch.
-func generateOutputByFormat(
-	ctx context.Context,
-	device *common.CommonDevice,
-	opt converter.Options,
-	logger *logging.Logger,
-) (string, converter.FormatHandler, error) {
-	// Validate format via registry once and reuse the resolved handler.
-	handler, err := converter.DefaultRegistry.Get(string(opt.Format))
-	if err != nil {
-		return "", nil, fmt.Errorf(
-			"%w: %q (supported: %s)",
-			ErrUnsupportedOutputFormat,
-			opt.Format,
-			strings.Join(converter.DefaultRegistry.ValidFormatsWithAliases(), ", "),
-		)
-	}
-
-	// Use programmatic generator for all formats.
-	// The HybridGenerator handles markdown (via builder), JSON, YAML, text, and HTML natively.
-	output, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
-	if err != nil {
-		return "", nil, err
-	}
-	return output, handler, nil
 }
 
 // generateWithProgrammaticGenerator creates and uses a generator that produces output using the programmatic Markdown builder.

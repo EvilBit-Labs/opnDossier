@@ -99,11 +99,6 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
-// Exporter is the interface for exporting OPNsense configurations.
-type Exporter interface {
-	Export(ctx context.Context, content, path string) error
-}
-
 // FileExporter is a file exporter for OPNsense configurations.
 type FileExporter struct {
 	logger *logging.Logger

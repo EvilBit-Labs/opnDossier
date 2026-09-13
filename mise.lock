@@ -367,6 +367,10 @@ backend = "go:github.com/securego/gosec/v2/cmd/gosec"
 version = "0.0.0-20260825160852-19be9d8e6c70"
 backend = "go:golang.org/x/perf/cmd/benchstat"
 
+[[tools."go:golang.org/x/tools/cmd/deadcode"]]
+version = "0.50.0"
+backend = "go:golang.org/x/tools/cmd/deadcode"
+
 [[tools."go:golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize"]]
 version = "0.23.0"
 backend = "go:golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize"

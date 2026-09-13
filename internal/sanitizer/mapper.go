@@ -258,28 +258,6 @@ func (m *Mapper) ToJSON(mode string) ([]byte, error) {
 	return json.MarshalIndent(report, "", "  ")
 }
 
-// Reset clears all mappings and counters.
-func (m *Mapper) Reset() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.publicIPCounter = 0
-	m.privateIPCounter = 0
-	m.hostnameCounter = 0
-	m.usernameCounter = 0
-	m.macCounter = 0
-	m.emailCounter = 0
-	m.authServerCounters = make(map[string]int)
-
-	m.ipMappings = make(map[string]string)
-	m.hostnameMappings = make(map[string]string)
-	m.usernameMappings = make(map[string]string)
-	m.macMappings = make(map[string]string)
-	m.emailMappings = make(map[string]string)
-	m.authServerMappings = make(map[string]map[string]string)
-	m.genericMappings = make(map[string]string)
-}
-
 // authserver field keys.
 const (
 	authServerFieldName              = "name"

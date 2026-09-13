@@ -49,12 +49,12 @@ func TestDetermineExitCode(t *testing.T) {
 		{"nil error returns success", nil, ExitSuccess},
 		{
 			"parse error returns ExitParseError",
-			cfgparser.NewParseError(1, 1, "bad xml"),
+			&cfgparser.ParseError{Line: 1, Column: 1, Message: "bad xml"},
 			ExitParseError,
 		},
 		{
 			"validation error returns ExitValidationError",
-			cfgparser.NewValidationError("system.hostname", "missing"),
+			&cfgparser.ValidationError{Path: "system.hostname", Message: "missing"},
 			ExitValidationError,
 		},
 		{
@@ -74,12 +74,12 @@ func TestDetermineExitCode(t *testing.T) {
 		},
 		{
 			"wrapped parse error returns ExitParseError",
-			fmt.Errorf("parse failed: %w", cfgparser.NewParseError(5, 3, "unexpected token")),
+			fmt.Errorf("parse failed: %w", &cfgparser.ParseError{Line: 5, Column: 3, Message: "unexpected token"}),
 			ExitParseError,
 		},
 		{
 			"wrapped validation error returns ExitValidationError",
-			fmt.Errorf("validation failed: %w", cfgparser.NewValidationError("dns", "invalid")),
+			fmt.Errorf("validation failed: %w", &cfgparser.ValidationError{Path: "dns", Message: "invalid"}),
 			ExitValidationError,
 		},
 	}
@@ -113,7 +113,7 @@ func TestOutputJSONError(t *testing.T) {
 		},
 		{
 			name:     "parse error with details",
-			err:      cfgparser.NewParseError(10, 5, "unexpected EOF"),
+			err:      &cfgparser.ParseError{Line: 10, Column: 5, Message: "unexpected EOF"},
 			file:     "bad.xml",
 			exitCode: ExitParseError,
 			wantType: "parse_error",

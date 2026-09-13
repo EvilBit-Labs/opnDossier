@@ -85,7 +85,6 @@ func FuzzPatternDetection(f *testing.F) {
 	f.Fuzz(func(_ *testing.T, s string) {
 		// All pattern detection functions must not panic on arbitrary input
 		IsIPv4(s)
-		IsIPv6(s)
 		IsIP(s)
 		IsSubnet(s)
 		IsPrivateIP(s)
@@ -93,14 +92,9 @@ func FuzzPatternDetection(f *testing.F) {
 		IsMAC(s)
 		IsEmail(s)
 		IsHostname(s)
-		IsDomain(s)
 		IsBase64(s)
 		IsPEM(s)
 		IsCertificate(s)
 		IsPrivateKey(s)
-		LooksLikePassword(s)
-		LooksLikeAPIKey(s)
-		LooksLikePSK(s)
-		LooksLikeSNMPCommunity(s)
 	})
 }
