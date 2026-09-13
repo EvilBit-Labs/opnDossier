@@ -990,6 +990,9 @@ func TestMarkdownBuilder_IntegrationWithHybridGenerator(t *testing.T) {
 	assert.Contains(t, newResult, "test-host")
 	assert.Contains(t, newResult, "test.local")
 	assert.Contains(t, newResult, "23.1.1")
+	assert.Contains(t, oldResult, "test-host")
+	assert.Contains(t, oldResult, "test.local")
+	assert.Contains(t, oldResult, "23.1.1")
 
 	// The new builder should have more comprehensive output
 	assert.Contains(t, newResult, "System Configuration")

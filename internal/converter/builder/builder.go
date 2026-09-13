@@ -219,8 +219,8 @@ func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string
 			markdown.Bold("Domain")+": "+formatters.EscapeMarkdownValue(data.System.Domain),
 			markdown.Bold("Platform")+
 				": "+formatters.EscapeMarkdownValue(strings.TrimSpace(platformName+" "+data.System.Firmware.Version)),
-			markdown.Bold("Generated On")+": "+b.Generated.Format(time.RFC3339),
-			markdown.Bold("Parsed By")+": opnDossier v"+b.ToolVersion,
+			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
 		).
 		H2("Table of Contents").
 		BulletList(tocItems...)
@@ -257,8 +257,8 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 			markdown.Bold("Domain")+": "+formatters.EscapeMarkdownValue(data.System.Domain),
 			markdown.Bold("Platform")+
 				": "+formatters.EscapeMarkdownValue(strings.TrimSpace(platformName+" "+data.System.Firmware.Version)),
-			markdown.Bold("Generated On")+": "+b.Generated.Format(time.RFC3339),
-			markdown.Bold("Parsed By")+": opnDossier v"+b.ToolVersion,
+			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
 		).
 		H2("Table of Contents").
 		BulletList(tocItems...)

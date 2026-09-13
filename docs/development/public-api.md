@@ -211,5 +211,6 @@ Packages outside `pkg/` (everything under `cmd/` and `internal/`) are not snapsh
 | 2026-04-19 | Rename `CommonDevice.ComplianceChecks` -> `ComplianceResults` (field + JSON tag); see CHANGELOG.                                                                                      |
 | 2026-04-19 | Declare `ConvertDocument` the idiomatic consumer entry point and `Factory.CreateDevice` the auto-detection escape hatch; document error-semantics difference between the two paths.   |
 | 2026-04-19 | Add API shape enforcement section — `var _ Interface = (*Impl)(nil)` compile-time assertions plus `go doc -all` goldie snapshot tests capturing the v1.5 public-API baseline.         |
+| 2026-09-12 | Remove `bubbletea` and `bubbles` from the CLI-only dependency isolation list (no longer a transitive dependency).                                                                     |
 
 Every change to this document must add a row to the Revision History table with date (YYYY-MM-DD) and a one-line description.

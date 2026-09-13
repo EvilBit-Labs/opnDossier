@@ -220,14 +220,14 @@ bench-perf:
 # Capture CPU and memory profiles for converter export/rendering benchmarks
 [group('test')]
 bench-profile:
-    @{{ mise_exec }} go test -bench='Benchmark(MarkdownConverter_ToMarkdown|HybridGenerator_JSON|HybridGenerator_YAML)' -run=^$ -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./internal/converter
+    @{{ mise_exec }} go test -bench='Benchmark(MarkdownGenerator_Generate|HybridGenerator_JSON|HybridGenerator_YAML)' -run=^$ -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./internal/converter
     @echo "Profiles written: cpu.prof, mem.prof"
     @echo "Inspect with: mise exec -- go tool pprof cpu.prof"
 
 # Capture an execution trace for converter export/rendering benchmarks
 [group('test')]
 bench-trace:
-    @{{ mise_exec }} go test -bench='Benchmark(MarkdownConverter_ToMarkdown|HybridGenerator_JSON|HybridGenerator_YAML)' -run=^$ -benchmem -trace=trace.out ./internal/converter
+    @{{ mise_exec }} go test -bench='Benchmark(MarkdownGenerator_Generate|HybridGenerator_JSON|HybridGenerator_YAML)' -run=^$ -benchmem -trace=trace.out ./internal/converter
     @echo "Trace written: trace.out"
     @echo "Inspect with: mise exec -- go tool trace trace.out"
 

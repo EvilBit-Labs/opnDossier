@@ -18,14 +18,6 @@ func TestNewJSONFormatter(t *testing.T) {
 	assert.True(t, formatter.pretty)
 }
 
-func TestJSONFormatter_CompactConfiguration(t *testing.T) {
-	var buf bytes.Buffer
-	formatter := &JSONFormatter{writer: &buf, pretty: false}
-
-	assert.NotNil(t, formatter)
-	assert.False(t, formatter.pretty)
-}
-
 func TestJSONFormatter_Format_NoChanges(t *testing.T) {
 	var buf bytes.Buffer
 	formatter := NewJSONFormatter(&buf)

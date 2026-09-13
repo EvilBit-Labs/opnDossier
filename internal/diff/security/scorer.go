@@ -91,10 +91,16 @@ func SummarizeScored(risks []ScoredRisk) RiskSummary {
 // accumulateRisk updates summary in place with a single scored change. The
 // TopRisks list is tier-prioritized: high-impact items are always added (up to
 // maxTopRisks), and medium-impact items are only added when no high-impact
-// items have been recorded yet.
+// items have been recorded yet. This holds regardless of input order: the
+// first high-impact risk evicts any medium-impact entries that were added
+// before it, so a run of mediums followed by a high cannot fill TopRisks and
+// crowd the high out.
 func accumulateRisk(summary *RiskSummary, impact, path, description string) {
 	switch strings.ToLower(impact) {
 	case impactHigh:
+		if summary.High == 0 {
+			summary.TopRisks = evictMediumRisks(summary.TopRisks)
+		}
 		summary.High++
 		summary.Score += weightHigh
 		if len(summary.TopRisks) < maxTopRisks {
@@ -120,6 +126,20 @@ func accumulateRisk(summary *RiskSummary, impact, path, description string) {
 		summary.Low++
 		summary.Score += weightLow
 	}
+}
+
+// evictMediumRisks returns topRisks with every medium-impact entry removed,
+// preserving the order and identity of everything else. Used when the first
+// high-impact risk arrives, so a high never gets crowded out of TopRisks by
+// mediums that were accumulated first.
+func evictMediumRisks(topRisks []RiskItem) []RiskItem {
+	var filtered []RiskItem
+	for _, item := range topRisks {
+		if !strings.EqualFold(item.Impact, impactMedium) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
 }
 
 // matches checks if a pattern applies to a change.

@@ -2,7 +2,6 @@ package display
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -60,45 +59,26 @@ func TestDisplayContextCancellation(t *testing.T) {
 
 			err := td.Display(ctx, testMarkdownContent)
 
-			if tt.expectError && tt.cancelWhen != neverCancel {
-				// We expect either context.Canceled or no error (if we finished before cancel)
-				// This is acceptable because the timing is non-deterministic
+			switch {
+			case tt.cancelWhen == "before-render":
+				// Deterministic: the context is already cancelled when Display is
+				// called, so the first checkpoint must trip. A soft "err != nil"
+				// guard here would let a silently-passing nil error through, which
+				// is what made the deleted multi-checkpoint test worthless.
+				require.ErrorIs(t, err, context.Canceled)
+			case tt.expectError && tt.cancelWhen != neverCancel:
+				// Genuinely racy: cancellation fires from a goroutine mid-render, so
+				// finishing first is a legitimate outcome. Only the error's identity
+				// is asserted, not its presence.
 				if err != nil {
 					require.ErrorIs(t, err, context.Canceled)
 				}
-			} else if tt.cancelWhen == neverCancel {
+			case tt.cancelWhen == neverCancel:
 				// Should complete without context cancellation error
 				// May have other errors (like renderer errors), but not context.Canceled
 				if err != nil {
 					assert.NotErrorIs(t, err, context.Canceled)
 				}
-			}
-		})
-	}
-}
-
-// TestDisplayMultipleCancellationPoints tests all three cancellation checkpoints.
-func TestDisplayMultipleCancellationPoints(t *testing.T) {
-	// This test verifies that context cancellation is checked at multiple points
-	// in the Display method execution path
-
-	td := NewTerminalDisplayWithOptions(Options{Theme: LightTheme(), EnableColors: true})
-
-	// Test cancellation at each checkpoint
-	for range 3 {
-		t.Run("Cancellation checkpoint", func(_ *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-			defer cancel()
-
-			err := td.Display(ctx, testMarkdownContent)
-			// Either completes successfully or returns context error
-			if err != nil {
-				// Check if it's a context-related error
-				if strings.Contains(err.Error(), "context") {
-					// This is expected
-					return
-				}
-				// Other errors are also acceptable (like renderer errors)
 			}
 		})
 	}

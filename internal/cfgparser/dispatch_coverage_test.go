@@ -152,28 +152,57 @@ func findSwitchStmt(fn *ast.FuncDecl) *ast.SwitchStmt {
 	return sw
 }
 
-// collectDocFieldRefs walks stmts and returns the set of field names
-// referenced as doc.<Field> -- the case body's decode target(s). This is
-// intentionally a reference scan rather than a pattern match on
-// `decodeChild(dec, &doc.Field, se)`, so it also covers cases like "ca" and
-// "cert" that decode into a local variable and assign it via
-// `doc.CAs = append(doc.CAs, ca)`.
+// collectDocFieldRefs walks stmts and returns the set of field names that
+// are actual decode destinations for the case -- not merely mentioned in
+// passing. A target is either:
+//   - the address argument passed to decodeChild (i.e. &doc.Field), or
+//   - the left-hand side of an explicit assignment or append targeting
+//     doc.Field (e.g. `doc.CAs = append(doc.CAs, ca)`).
+//
+// This is deliberately narrower than a bare doc.<Field> reference scan: an
+// incidental mention of a field (e.g. in an error message or unrelated
+// expression) must not count as evidence the case decodes into it. The
+// two patterns above still cover "ca" and "cert", which decode into a local
+// variable and then assign it to doc.CAs / doc.Certs.
 func collectDocFieldRefs(stmts []ast.Stmt) map[string]bool {
 	targets := make(map[string]bool)
 
+	addIfDocField := func(expr ast.Expr) {
+		sel, ok := expr.(*ast.SelectorExpr)
+		if !ok {
+			return
+		}
+
+		ident, ok := sel.X.(*ast.Ident)
+		if !ok || ident.Name != "doc" {
+			return
+		}
+
+		targets[sel.Sel.Name] = true
+	}
+
 	for _, stmt := range stmts {
 		ast.Inspect(stmt, func(n ast.Node) bool {
-			sel, ok := n.(*ast.SelectorExpr)
-			if !ok {
-				return true
-			}
+			switch node := n.(type) {
+			case *ast.CallExpr:
+				fun, ok := node.Fun.(*ast.Ident)
+				if !ok || fun.Name != "decodeChild" {
+					return true
+				}
 
-			ident, ok := sel.X.(*ast.Ident)
-			if !ok || ident.Name != "doc" {
-				return true
-			}
+				for _, arg := range node.Args {
+					unary, ok := arg.(*ast.UnaryExpr)
+					if !ok || unary.Op != token.AND {
+						continue
+					}
 
-			targets[sel.Sel.Name] = true
+					addIfDocField(unary.X)
+				}
+			case *ast.AssignStmt:
+				for _, lhs := range node.Lhs {
+					addIfDocField(lhs)
+				}
+			}
 
 			return true
 		})

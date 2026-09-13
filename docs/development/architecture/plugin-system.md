@@ -87,7 +87,7 @@ When auditing multiple files, each report is auto-named to prevent filename coll
 - Registry methods (`ListPlugins`, `GetPlugin`) are protected by `sync.RWMutex` and are safe for concurrent access. After `InitializePlugins` returns, the registry is effectively read-only.
 - There is no package-level global registry. A dynamically loaded plugin is registered by the loader through its exported `Plugin` symbol into whichever `*PluginRegistry` the caller supplied to `NewPluginManager`.
 
-See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#21-registry-consolidation-historical--resolved-2026-04-19) for the historical context on the two-registry bug this consolidation eliminated.
+See [GOTCHAS.md §2.1](https://github.com/EvilBit-Labs/opnDossier/blob/main/GOTCHAS.md#21-registry-independence) for the historical context on the two-registry bug this consolidation eliminated.
 
 ### Plugin Selection and the `--plugins` Flag
 

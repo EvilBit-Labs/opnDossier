@@ -249,7 +249,7 @@ go test -race ./...
 
 ### Test Helpers
 
-Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place shared helpers in a `_test.go` file (e.g. `helpers_test.go`) when the helper's only callers are tests in its own package — a helper with no non-test caller must not live in a production (non-`_test.go`) file, or it appears reachable to `go build` and dead-code analysis flags it as an exported symbol whose only callers are its own tests.
+Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place shared helpers in a `_test.go` file (e.g. `helpers_test.go`) when the helper's only callers are tests in its own package — a helper with no non-test caller must not live in a production (non-`_test.go`) file, or it appears reachable to `go build` and `deadcode -test=false` (run by `just deadcode-check`) flags it as an exported symbol whose only callers are its own tests.
 
 ### Map Iteration in Tests
 

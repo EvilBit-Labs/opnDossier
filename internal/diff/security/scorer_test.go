@@ -1,6 +1,7 @@
 package security
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -152,6 +153,52 @@ func TestSummarizeScored_MediumOnly(t *testing.T) {
 	assert.Equal(t, 0, summary.High)
 	assert.Equal(t, 2, summary.Medium)
 	require.Len(t, summary.TopRisks, 2)
+}
+
+func TestSummarizeScored_MediumsFirstThenHigh(t *testing.T) {
+	t.Parallel()
+
+	// Tier-prioritization must hold regardless of input order: mediums that
+	// arrive before the first high must be evicted from TopRisks once that
+	// high is recorded, not left in place crowding it out.
+	risks := []ScoredRisk{
+		{Path: "a", Description: "d-a", Impact: "medium"},
+		{Path: "b", Description: "d-b", Impact: "medium"},
+		{Path: "c", Description: "d-c", Impact: "high"},
+	}
+
+	summary := SummarizeScored(risks)
+
+	assert.Equal(t, 1, summary.High)
+	assert.Equal(t, 2, summary.Medium)
+	require.Len(t, summary.TopRisks, 1)
+	assert.Equal(t, "high", summary.TopRisks[0].Impact)
+	assert.Equal(t, "c", summary.TopRisks[0].Path)
+}
+
+func TestSummarizeScored_MediumsFillCapThenHigh(t *testing.T) {
+	t.Parallel()
+
+	// Enough mediums to fill maxTopRisks arrive first; the high that follows
+	// must still appear in TopRisks rather than being dropped because the cap
+	// was already reached by mediums.
+	risks := make([]ScoredRisk, 0, maxTopRisks+1)
+	for i := range maxTopRisks {
+		risks = append(risks, ScoredRisk{
+			Path:        "medium-" + strconv.Itoa(i),
+			Description: "medium change",
+			Impact:      "medium",
+		})
+	}
+	risks = append(risks, ScoredRisk{Path: "the-high", Description: "high change", Impact: "high"})
+
+	summary := SummarizeScored(risks)
+
+	assert.Equal(t, 1, summary.High)
+	assert.Equal(t, maxTopRisks, summary.Medium)
+	require.Len(t, summary.TopRisks, 1)
+	assert.Equal(t, "high", summary.TopRisks[0].Impact)
+	assert.Equal(t, "the-high", summary.TopRisks[0].Path)
 }
 
 func TestSummarizeScored_Empty(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
 
-func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
+func BenchmarkMarkdownGenerator_Generate(b *testing.B) {
 	// Load a medium-sized config.xml for realistic testing
 	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.1.xml")
 
@@ -165,7 +165,7 @@ func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnr
 	}
 }
 
-func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
+func BenchmarkMarkdownGenerator_Generate_Large(b *testing.B) {
 	// Use the larger sample config for stress testing
 	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.2.xml")
 

@@ -2,6 +2,8 @@ package sanitizer
 
 import (
 	"fmt"
+	"slices"
+	"sort"
 	"testing"
 )
 
@@ -406,40 +408,68 @@ func TestRedact_AuthServerConfig(t *testing.T) {
 	}
 }
 
-// TestRuleEngine_ActiveRuleCountPerMode pins the minimum number of rules
-// active per mode, using direct access to engine.rules and
-// ruleActiveForMode (white-box, since this file is package sanitizer).
-// Replaces the former TestGetActiveRules, which called the now-removed
-// GetActiveRules() accessor (no production caller — every real caller
-// iterates the rules internally via ShouldRedactField/ShouldRedactValue).
-// The count invariant itself is real production-logic coverage: it is the
-// guard that catches a rule's Modes field being edited such that the rule
-// silently drops out of a mode (or every mode) without any single test
-// noticing, since mode_monotonicity_test.go only pins the relative
-// aggressive-is-a-superset-of-moderate invariant, not absolute counts.
+// TestRuleEngine_ActiveRuleCountPerMode pins the exact set of rules active
+// per mode, using direct access to engine.rules and ruleActiveForMode
+// (white-box, since this file is package sanitizer). Replaces the former
+// TestGetActiveRules, which called the now-removed GetActiveRules()
+// accessor (no production caller — every real caller iterates the rules
+// internally via ShouldRedactField/ShouldRedactValue).
+//
+// The set invariant is real production-logic coverage: it is the guard
+// that catches a rule's Modes field being edited such that the rule
+// silently drops out of a mode (under-count) or is wrongly added to a mode
+// (over-count) without any single test noticing, since
+// mode_monotonicity_test.go only pins the relative
+// aggressive-is-a-superset-of-moderate invariant, not the membership of any
+// mode. A floor assertion (active >= N) only catches the under-count
+// direction; comparing the exact name set catches both.
 func TestRuleEngine_ActiveRuleCountPerMode(t *testing.T) {
 	tests := []struct {
-		mode         Mode
-		minRuleCount int
+		mode          Mode
+		expectedNames []string
 	}{
-		{ModeAggressive, 18}, // All rules including aggressive-only
-		{ModeModerate, 9},    // Credentials + crypto + identity + network (public IP, MAC)
-		{ModeMinimal, 7},     // Credentials + crypto + system (SSH keys + authserver)
+		{
+			ModeAggressive,
+			[]string{
+				"authserver_config", "certificate", "cloud_identifier", "email", "endpoint",
+				"hostname", "ip_address_field", "mac_address", "password", "private_ip_aggressive",
+				"private_key", "psk", "public_ip", "public_key", "secret", "snmp_community",
+				"ssh_authorized_keys", "subnet_field", "username",
+			},
+		},
+		{
+			ModeModerate,
+			[]string{
+				"authserver_config", "email", "mac_address", "password", "private_key",
+				"psk", "public_ip", "secret", "snmp_community", "ssh_authorized_keys",
+			},
+		},
+		{
+			ModeMinimal,
+			[]string{
+				"authserver_config", "password", "private_key", "psk",
+				"secret", "snmp_community", "ssh_authorized_keys",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(string(tt.mode), func(t *testing.T) {
 			engine := NewRuleEngine(tt.mode)
 
-			active := 0
+			var activeNames []string
 			for i := range engine.rules {
 				if engine.ruleActiveForMode(&engine.rules[i]) {
-					active++
+					activeNames = append(activeNames, engine.rules[i].Name)
 				}
 			}
+			sort.Strings(activeNames)
 
-			if active < tt.minRuleCount {
-				t.Errorf("active rule count = %d, want at least %d", active, tt.minRuleCount)
+			expected := slices.Clone(tt.expectedNames)
+			sort.Strings(expected)
+
+			if !slices.Equal(activeNames, expected) {
+				t.Errorf("active rule names = %v, want %v", activeNames, expected)
 			}
 		})
 	}
