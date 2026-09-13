@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // Theme represents a color theme with customizable palettes.
@@ -139,15 +138,6 @@ func autoDetectTheme() Theme {
 	return LightTheme()
 }
 
-// ApplyTheme applies the theme colors to a lipgloss style.
-func (t *Theme) ApplyTheme(style lipgloss.Style, colorKey string) lipgloss.Style {
-	if color, exists := t.Palette[colorKey]; exists {
-		return style.Foreground(lipgloss.Color(color))
-	}
-
-	return style
-}
-
 // GetColor returns a color from the theme palette.
 func (t *Theme) GetColor(colorKey string) string {
 	if color, exists := t.Palette[colorKey]; exists {
@@ -159,16 +149,6 @@ func (t *Theme) GetColor(colorKey string) string {
 	}
 
 	return "#000000" // Black for light theme
-}
-
-// IsLight returns true if the theme is a light theme.
-func (t *Theme) IsLight() bool {
-	return t.Name == "light"
-}
-
-// IsDark returns true if the theme is a dark theme.
-func (t *Theme) IsDark() bool {
-	return t.Name == "dark"
 }
 
 // GetGlamourStyleName returns the Glamour style name for this theme.

@@ -5,7 +5,6 @@ go 1.26.0
 toolchain go1.26.6
 
 require (
-	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/fang v1.0.0
 	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
@@ -39,8 +38,6 @@ require github.com/dlclark/regexp2/v2 v2.7.1 // indirect
 //   - github.com/charmbracelet/ultraviolet         — no tagged releases; transitive of charmbracelet/fang
 //   - github.com/charmbracelet/x/exp/charmtone     — charmbracelet experimental pkg; no tagged release
 //   - github.com/charmbracelet/x/exp/slice         — charmbracelet experimental pkg; no tagged release
-//   - github.com/erikgeiser/coninput               — no tagged releases; transitive of bubbletea
-//   - github.com/muesli/ansi                       — no tagged releases; transitive of bubbletea/bubbles
 //   - github.com/olekukonko/cat                    — no tagged releases; transitive of olekukonko/tablewriter
 //   - github.com/xo/terminfo                       — no tagged releases; transitive of charmbracelet/colorprofile
 //   - golang.org/x/exp                             — upstream policy: x/exp ships only as pseudo-versions
@@ -51,9 +48,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/charmbracelet/bubbletea v1.3.10 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
-	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260903151058-ae99b731b8c5 // indirect; no tagged release (transitive of charm.land/lipgloss/v2 via charmbracelet/fang)
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
@@ -65,7 +60,6 @@ require (
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect; no tagged release (transitive of charmbracelet/bubbletea)
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
@@ -81,10 +75,8 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.29 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
-	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect; no tagged release (transitive of charmbracelet/bubbletea)
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/mango v0.2.0 // indirect
 	github.com/muesli/mango-cobra v1.3.0 // indirect
