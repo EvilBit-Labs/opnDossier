@@ -328,13 +328,14 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 
 ## 10. Converter Testing
 
-### 10.1 ToMarkdown Outputs ANSI-Rendered Text
+### 10.1 TerminalDisplay Output Is ANSI-Rendered
 
-`MarkdownConverter.ToMarkdown()` passes output through `glamour.Render()`, which inserts ANSI escape codes. Tests asserting on the output must set `t.Setenv("TERM", "dumb")` for clean text. Since `t.Setenv` is incompatible with `t.Parallel()`, remove `t.Parallel()` and add `//nolint:tparallel` to the function.
+`TerminalDisplay.Display()` (`internal/display/display.go`), reached from `cmd/display.go` and `cmd/audit_output.go`, passes markdown through `glamour.Render()`, which inserts ANSI escape codes. Tests asserting on the output must set `t.Setenv("TERM", "dumb")` for clean text. Since `t.Setenv` is incompatible with `t.Parallel()`, remove `t.Parallel()` and add `//nolint:tparallel` to the function.
 
-- **Symptom:** `assert.Contains(t, md, "System Configuration")` fails despite the text being present.
+- **Symptom:** `assert.Contains(t, out, "System Configuration")` fails despite the text being present.
 - **Fix:** Add `t.Setenv("TERM", "dumb")` at the start of the test (no `t.Parallel()`).
-- **Precedent:** `internal/converter/markdown_test.go` uses this pattern throughout.
+- **Precedent:** `internal/display/display_test.go` uses this pattern throughout.
+- **History:** this entry previously named `MarkdownConverter.ToMarkdown`, a second `glamour.Render` caller in `internal/converter` deleted as superseded dead code (refactor/dead-surface-cleanup). `internal/display` was always the other caller and inherits the same requirement.
 
 ### 10.2 builder_test.go Uses Raw testing Package
 
@@ -354,7 +355,7 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 `github.com/nao1215/markdown` emits the host's line ending — its `internal.LineFeed` returns `"\r\n"` on Windows and `"\n"` everywhere else. Any function that returns `md.String()`, or the `bytes.Buffer`/`strings.Builder` a `markdown.Markdown` was built into, therefore produces CRLF on a Windows checkout. That breaks every LF golden fixture and contradicts the LF guarantee in `internal/export`.
 
 - **Rule:** in `internal/converter/builder`, return `renderMarkdown(md)`. Anywhere else, wrap the exit in `formatters.NormalizeToLF`. Any new code path that constructs markdown independently of the builder needs the same treatment — the builder's helper does not protect an exit it does not own.
-- **`glamour.Render` is not affected** — it re-renders and emits LF, so `MarkdownConverter.ToMarkdown` was already clean. Do not add a redundant normalization there.
+- **`glamour.Render` is not affected** — it re-renders and emits LF, so `internal/display`'s `TerminalDisplay.Display()` (§10.1) was already clean. Do not add a redundant normalization there.
 - **Detection:** `TestReportOutputIsLF` (builder) asserts the invariant across the public output surface, but it can only fail on Windows. The Windows CI job runs the full suite for this reason.
 - **CRLF on disk is still available** via `OPNDOSSIER_PLATFORM_LINE_ENDINGS=1`, handled in `internal/export` at write time.
 

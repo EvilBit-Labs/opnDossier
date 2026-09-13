@@ -158,7 +158,7 @@ linters:
         linters: [goconst]
       - path: 'internal/converter/(formatters/.*\.go|builder/builder_nat\.go|registry\.go)$'
         linters: [goconst]
-      - path: 'internal/validator/(pfsense\.go|validate_system\.go|demo\.go)$'
+      - path: 'internal/validator/(pfsense\.go|validate_system\.go)$'
         linters: [goconst]
       - path: 'internal/diff/security/patterns\.go$'
         linters: [goconst]

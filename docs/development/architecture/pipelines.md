@@ -682,7 +682,6 @@ All validation, shell completion, and dispatch logic automatically picks up the 
 - **`DefaultRegistry.Canonical(format)`** - Resolves aliases to canonical names (e.g., "md" → "markdown", "yml" → "yaml")
 - **`DefaultRegistry.Get(format)`** - Returns the `FormatHandler` for a format or alias, returning `ErrUnsupportedFormat` for unknown formats
 - **`DefaultRegistry.ValidFormats()`** - Returns sorted slice of canonical format names for validation
-- **`DefaultRegistry.Extensions()`** - Returns map of format name to file extension for file output
 
 ### Integration Points
 

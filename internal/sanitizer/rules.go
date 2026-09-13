@@ -19,11 +19,6 @@ const (
 	ModeMinimal Mode = "minimal"
 )
 
-// ValidModes returns the supported sanitization modes (aggressive, moderate, minimal) in order from most to least aggressive.
-func ValidModes() []Mode {
-	return []Mode{ModeAggressive, ModeModerate, ModeMinimal}
-}
-
 // IsValidMode checks if the provided mode string is one of the valid sanitization modes (aggressive, moderate, minimal).
 func IsValidMode(mode string) bool {
 	switch Mode(mode) {

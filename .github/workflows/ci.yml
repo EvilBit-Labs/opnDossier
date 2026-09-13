@@ -50,15 +50,13 @@ jobs:
       - name: Model completeness
         run: just completeness-check
 
-      # Advisory only (KTD7): the dead-surface cleanup sweep seeded this
-      # guard red on purpose so it names its own deletion targets. It is not
-      # wired into `just ci-check` and must not fail this job yet -- a later
-      # unit in the same PR series removes `continue-on-error` once the
-      # cleanup empties the unexempted surface. See
-      # internal/deadcode_test.go and internal/deadcode_allowlist.txt.
-      - name: Unreachable-symbol guard (advisory)
+      # Blocking (KTD7 closed): the dead-surface cleanup swept the
+      # unexempted surface this guard was seeded red against and it is also
+      # wired into `just ci-check`, so this job and a local ci-check run now
+      # agree. See internal/deadcode_test.go and
+      # internal/deadcode_allowlist.txt.
+      - name: Unreachable-symbol guard
         run: just deadcode-check
-        continue-on-error: true
 
   # ─────────────────────────────────────────────────────────────────────────
   # Test - Run tests across platforms and Go versions

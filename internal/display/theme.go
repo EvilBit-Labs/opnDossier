@@ -138,19 +138,6 @@ func autoDetectTheme() Theme {
 	return LightTheme()
 }
 
-// GetColor returns a color from the theme palette.
-func (t *Theme) GetColor(colorKey string) string {
-	if color, exists := t.Palette[colorKey]; exists {
-		return color
-	}
-	// Return a default color if key not found
-	if t.Name == "dark" {
-		return "#FFFFFF" // White for dark theme
-	}
-
-	return "#000000" // Black for light theme
-}
-
 // GetGlamourStyleName returns the Glamour style name for this theme.
 func (t *Theme) GetGlamourStyleName() string {
 	return t.GlamourStyle

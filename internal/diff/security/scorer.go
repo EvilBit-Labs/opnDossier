@@ -40,13 +40,6 @@ func NewScorer() *Scorer {
 	}
 }
 
-// NewScorerWithPatterns creates a Scorer with custom patterns.
-func NewScorerWithPatterns(patterns []Pattern) *Scorer {
-	return &Scorer{
-		patterns: patterns,
-	}
-}
-
 // Score evaluates a single change and returns the highest applicable security impact.
 // If the change already has a SecurityImpact set (from analyzer domain logic), it is preserved.
 // Otherwise, the scorer applies pattern-based matching.
@@ -69,22 +62,6 @@ func (s *Scorer) Score(change ChangeInput) string {
 	return highestImpact
 }
 
-// ScoreAll computes an aggregate risk summary for a set of changes.
-//
-// Each change is (re-)scored via Score before aggregation. When the caller has
-// already populated SecurityImpact on each change (the typical path inside the
-// diff engine), prefer SummarizeScored to skip the redundant pattern match.
-func (s *Scorer) ScoreAll(changes []ChangeInput) RiskSummary {
-	summary := RiskSummary{}
-
-	for i := range changes {
-		impact := s.Score(changes[i])
-		accumulateRisk(&summary, impact, changes[i].Path, changes[i].Description)
-	}
-
-	return summary
-}
-
 // ScoredRisk is the minimal, already-scored view of a change used to build a
 // RiskSummary without re-running pattern matching. Callers that have already
 // populated SecurityImpact (for example the diff engine's per-change loop)
@@ -96,10 +73,11 @@ type ScoredRisk struct {
 	Impact      string // Pre-computed impact (see Scorer.Score)
 }
 
-// SummarizeScored aggregates already-scored risks into a RiskSummary. Unlike
-// ScoreAll it performs no pattern matching and does not rescore inputs — it
-// simply tallies High/Medium/Low counts, running score, and top risks from the
-// Impact field on each ScoredRisk.
+// SummarizeScored aggregates already-scored risks into a RiskSummary. It
+// performs no pattern matching and does not rescore inputs — it simply
+// tallies High/Medium/Low counts, running score, and top risks from the
+// Impact field on each ScoredRisk. Compare Scorer.Score, which computes a
+// single change's impact via pattern matching.
 func SummarizeScored(risks []ScoredRisk) RiskSummary {
 	summary := RiskSummary{}
 

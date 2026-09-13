@@ -386,7 +386,7 @@ func TestValidator_MultipleErrors(t *testing.T) {
 
 	require.NotNil(t, errs)
 	require.True(t, errs.HasErrors())
-	assert.GreaterOrEqual(t, errs.Count(), 4, "should have at least 4 errors")
+	assert.GreaterOrEqual(t, len(errs.Errors), 4, "should have at least 4 errors")
 
 	// Check that all expected fields have errors
 	fields := make(map[string]bool)

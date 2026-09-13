@@ -53,15 +53,15 @@ func TestFieldValidationError_Error(t *testing.T) {
 func TestMultiValidationError_Add(t *testing.T) {
 	errs := &MultiValidationError{}
 
-	assert.Equal(t, 0, errs.Count())
+	assert.Empty(t, errs.Errors)
 	assert.False(t, errs.HasErrors())
 
 	errs.Add(FieldValidationError{Field: "field1", Message: "error1"})
-	assert.Equal(t, 1, errs.Count())
+	assert.Len(t, errs.Errors, 1)
 	assert.True(t, errs.HasErrors())
 
 	errs.Add(FieldValidationError{Field: "field2", Message: "error2"})
-	assert.Equal(t, 2, errs.Count())
+	assert.Len(t, errs.Errors, 2)
 }
 
 func TestMultiValidationError_Error(t *testing.T) {

@@ -57,8 +57,3 @@ func (e *MultiValidationError) Add(err FieldValidationError) {
 func (e *MultiValidationError) HasErrors() bool {
 	return len(e.Errors) > 0
 }
-
-// Count returns the number of validation errors.
-func (e *MultiValidationError) Count() int {
-	return len(e.Errors)
-}

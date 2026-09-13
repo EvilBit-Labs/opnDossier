@@ -103,3 +103,43 @@ github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.parse|public-surfac
 github.com/EvilBit-Labs/opnDossier/internal/audit|FindInstructionalContent|test-time-safety-gate|scans generated ExploitNote text for weaponized/step-by-step instructional content; exercised only by exploit_notes_test.go and mode_controller_red_test.go running it over actual generated red-mode notes, which is the enforcement mechanism for the red-mode safety invariant, not test-only dead code
 github.com/EvilBit-Labs/opnDossier/internal/converter|ValidateMarkdown|test-time-safety-gate|asserts generated markdown parses; exercised only by internal/converter/builder/writer_test.go and internal/export/file_test.go running it over actual generated report output, which is the enforcement mechanism for the markdown-validity invariant, not test-only dead code
 
+# Reflection-dispatched: error interface implementations reached only through
+# fmt's %v/%s verbs or structured-logger argument formatting, never a static
+# .Error() call deadcode's RTA can see. All three sit on the reachable
+# Config.Validate / ValidateOpnSenseDocument paths -- MultiValidationError and
+# FieldValidationError are constructed and returned as `error` by
+# internal/config's convertToLegacyError, and validator.ValidationError by
+# ValidateOpnSenseDocument -- so the type is live; only the interface-method
+# call is invisible to static analysis.
+github.com/EvilBit-Labs/opnDossier/internal/config|FieldValidationError.Error|reflection-dispatched|implements error; reached only via fmt %v/%s or a structured logger formatting the value returned by internal/config's reachable Config.Validate path, never a static .Error() call
+github.com/EvilBit-Labs/opnDossier/internal/config|MultiValidationError.Error|reflection-dispatched|implements error; reached only via fmt %v/%s or a structured logger formatting the value returned by internal/config's reachable Config.Validate path, never a static .Error() call
+github.com/EvilBit-Labs/opnDossier/internal/validator|ValidationError.Error|reflection-dispatched|implements error; reached only via fmt %v/%s or a structured logger formatting the value returned by the reachable ValidateOpnSenseDocument path, never a static .Error() call
+
+# Deliberately-retained public surface: internal/sanitizer's SanitizeStruct
+# reflection path (GOTCHAS §14.4). SanitizeStruct is a documented opt-in
+# alternative to the CLI's default SanitizeXML raw-element walk -- the CLI
+# never calls it, but it is kept as a struct-based entry point for in-module
+# consumers, with a known, tracked gap (struct/pointer-valued maps) rather
+# than a bug. Its whole recursive helper chain (sanitizeReflect ->
+# sanitizeReflectStruct / sanitizeReflectMap, plus the two path-building
+# helpers) is unreachable as a unit for the same reason.
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.SanitizeStruct|public-surface|opt-in reflection-based alternative to the CLI's SanitizeXML path (GOTCHAS §14.4); no production caller but deliberately retained with a documented, tracked gap
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.SetLogger|public-surface|only consumer is SanitizeStruct's reflection path, which logs via this injected logger when it hits the struct/pointer-valued-map gap (GOTCHAS §14.4)
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.sanitizeReflect|public-surface|recursive core of SanitizeStruct's reflection path (GOTCHAS §14.4); reachable only from SanitizeStruct
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.sanitizeReflectStruct|public-surface|struct-field branch of SanitizeStruct's reflection walk (GOTCHAS §14.4); reachable only from sanitizeReflect
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.sanitizeReflectMap|public-surface|map-value branch of SanitizeStruct's reflection walk, and the exact code that detects and warns on the struct/pointer-valued-map gap GOTCHAS §14.4 documents
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|reflectFieldSegment|public-surface|path-segment helper used only by SanitizeStruct's reflection walk (GOTCHAS §14.4)
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|joinReflectPath|public-surface|path-materialization helper used only by SanitizeStruct's reflection walk (GOTCHAS §14.4)
+
+# Deliberately-retained public surface: RuleEngine's name-only and one-call
+# convenience methods. Not part of the SanitizeStruct reflection chain above
+# (sanitizeValue calls ShouldRedactValue/RedactWithRule, not these) and not
+# covered by GOTCHAS §14.4 -- kept on separate evidence. ShouldRedactField's
+# own doc comment (internal/sanitizer/rules.go) states it is "kept for
+# name-only pattern queries and currently has no caller outside tests"; Redact
+# is the symmetric one-call wrapper around the ShouldRedactValue/RedactWithRule
+# pair production code uses via the two-step form (for statistics tracking),
+# kept for the same opt-in-consumer-API reason as its documented sibling.
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|RuleEngine.ShouldRedactField|public-surface|kept for name-only pattern queries per its own doc comment in rules.go; no caller outside tests by design, distinct from the value-aware ShouldRedactFieldValue production code must use
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|RuleEngine.Redact|public-surface|one-call convenience wrapper around the ShouldRedactValue/RedactWithRule pair production code uses via the two-step form; kept as the public single-call counterpart to the exported RedactWithRule
+

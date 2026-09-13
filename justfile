@@ -268,9 +268,9 @@ completeness-check:
     @{{ mise_exec }} go test -tags=completeness ./internal/testing/modeltest -run TestModelCompleteness
 
 # Check for unreachable functions not covered by internal/deadcode_allowlist.txt.
-# Advisory only for now (see .github/workflows/ci.yml) -- not wired into ci-check
-# until the dead-surface cleanup sweep empties the seeded surface (see the
-# guard's own doc comment in internal/deadcode_test.go).
+# Blocking: wired into ci-check and the CI Lint job (see .github/workflows/ci.yml)
+# now that the dead-surface cleanup sweep has emptied the seeded surface (see
+# the guard's own doc comment in internal/deadcode_test.go).
 [group('test')]
 deadcode-check:
     @{{ mise_exec }} go test -tags=deadcode ./internal/ -run TestDeadCodeGuard -v
@@ -433,7 +433,7 @@ notices:
 
 # Run full CI checks (pre-commit, format, lint, test)
 [group('ci')]
-ci-check: check format-check lint test test-integration test-race completeness-check
+ci-check: check format-check lint test test-integration test-race completeness-check deadcode-check
 
 # Run smoke tests (fast, minimal validation)
 [group('ci')]

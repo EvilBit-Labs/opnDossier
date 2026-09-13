@@ -133,7 +133,7 @@ Consumers who bypass the factory and call `pkg/parser/opnsense.ConvertDocument` 
 `pkg/` packages must not import CLI-only dependencies. As of this writing, that means no transitive dependency on:
 
 - `github.com/spf13/cobra` and `github.com/spf13/viper`
-- `github.com/charmbracelet/glamour`, `bubbletea`, `bubbles`, `lipgloss`
+- `github.com/charmbracelet/glamour`, `lipgloss`
 - `github.com/alecthomas/chroma`
 - `github.com/olekukonko/tablewriter`
 - `github.com/muesli/reflow`

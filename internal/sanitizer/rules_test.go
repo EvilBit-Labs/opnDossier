@@ -18,6 +18,21 @@ const (
 	testBase64PubKey           = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 )
 
+// ValidModes returns the supported sanitization modes (aggressive, moderate,
+// minimal) in order from most to least aggressive.
+//
+// Moved here from rules.go: no production caller reaches it (the CLI mode
+// flag is validated by IsValidMode, not by enumerating ValidModes), but it is
+// the standard iteration helper this package's own tests use to run an
+// assertion across every mode. Declaring it in a _test.go file keeps it out
+// of the shipped binary while still attaching it to every test in this
+// package -- see docs/development/standards.md's guidance to place a shared
+// helper in a _test.go file when its only callers are tests in its own
+// package.
+func ValidModes() []Mode {
+	return []Mode{ModeAggressive, ModeModerate, ModeMinimal}
+}
+
 func TestValidModes(t *testing.T) {
 	modes := ValidModes()
 	if len(modes) != 3 {

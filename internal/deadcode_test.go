@@ -2,12 +2,11 @@
 
 // This file is gated behind the `deadcode` build tag so that `go test ./...`,
 // `just test`, `just test-race`, `just test-coverage`, and CI's ordinary Test
-// job never run TestDeadCodeGuard. The guard is seeded red on purpose
-// (KTD7): without this tag, the first `go test ./...` after this file landed
-// would fail every one of those, which is exactly the "main goes red for the
-// duration of the sweep" outcome KTD7 exists to avoid. `just deadcode-check`
-// (and the CI step that runs it, with `continue-on-error: true`) pass
-// `-tags=deadcode` explicitly.
+// job never run TestDeadCodeGuard -- this guard runs the full `deadcode`
+// RTA analysis, which is far slower than the rest of the package's tests and
+// has no reason to run on every `go test ./...` invocation. `just
+// deadcode-check` (part of `just ci-check`, and the CI Lint job's
+// "Unreachable-symbol guard" step) passes `-tags=deadcode` explicitly.
 
 package internal
 
@@ -26,11 +25,12 @@ package internal
 // test files from the call graph, which is exactly the pattern this guard
 // targets.
 //
-// This guard is intentionally NOT wired into `just ci-check` yet: the CI
-// step that runs it is `continue-on-error: true` until the dead-surface
-// cleanup units land and remove the seeded, unexempted surface this test is
-// red against today. See docs/plans/2026-09-08-2250-refactor-dead-surface-
-// cleanup-plan.md, unit U1/U9.
+// This guard is wired into `just ci-check` and the CI Lint job's
+// "Unreachable-symbol guard" step (no `continue-on-error`). It was seeded
+// red on purpose (KTD7) when introduced and ran advisory-only until the
+// dead-surface cleanup swept the seeded, unexempted surface it was red
+// against and every remaining unreachable symbol was either deleted or
+// allowlisted with a documented class and reason.
 
 import (
 	"bufio"

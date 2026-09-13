@@ -354,6 +354,30 @@ func TestDetectTheme(t *testing.T) {
 	}
 }
 
+// GetColor returns a color from the theme palette.
+//
+// Moved here from theme.go: no production caller reaches it (the shipped
+// glamour-based rendering path never looks up an individual palette color by
+// key), but it is exercised extensively by this package's own tests
+// (TestThemeProperties, TestThemeColorPalette here and in theme_test.go).
+// Declaring it in a _test.go file keeps it out of the shipped binary while
+// still attaching it to Theme for every test in this package and the
+// external display_test package, which compiles against the same
+// test-augmented package -- see docs/development/standards.md's guidance to
+// place a shared helper in a _test.go file when its only callers are tests
+// in its own package.
+func (t *Theme) GetColor(colorKey string) string {
+	if color, exists := t.Palette[colorKey]; exists {
+		return color
+	}
+	// Return a default color if key not found
+	if t.Name == "dark" {
+		return "#FFFFFF" // White for dark theme
+	}
+
+	return "#000000" // Black for light theme
+}
+
 // TestThemeProperties tests the properties and methods of Theme struct.
 func TestThemeProperties(t *testing.T) {
 	tests := []struct {
