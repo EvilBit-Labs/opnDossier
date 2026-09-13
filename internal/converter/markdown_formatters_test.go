@@ -265,10 +265,14 @@ func BenchmarkOldVsNewConverter(b *testing.B) {
 		}
 	})
 
-	b.Run("OldMarkdownConverter", func(b *testing.B) {
-		converter := NewMarkdownConverter()
+	b.Run("HybridGenerator", func(b *testing.B) {
+		gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+		if err != nil {
+			b.Fatal(err)
+		}
+		opts := DefaultOptions()
 		for b.Loop() {
-			_, err := converter.ToMarkdown(context.Background(), testData)
+			_, err := gen.Generate(context.Background(), testData, opts)
 			if err != nil {
 				b.Fatal(err)
 			}

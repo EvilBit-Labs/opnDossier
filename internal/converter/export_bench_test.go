@@ -3,11 +3,58 @@ package converter
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
+
+// loadTestData loads test configuration data by parsing an XML file and converting
+// to CommonDevice format via the Factory.
+func loadTestData(filename string) *common.CommonDevice {
+	// Map test data size indicators to actual test files
+	var xmlFile string
+	switch filename {
+	case "testdata/minimal.json":
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.1.xml") // ~12KB
+	case "testdata/complete.json":
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.2.xml") // ~17KB
+	case "testdata/large.json":
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.6.xml") // ~119KB
+	default:
+		// Default to medium size
+		xmlFile = filepath.Join("..", "..", "testdata", "sample.config.2.xml")
+	}
+
+	xmlData, err := os.ReadFile(xmlFile)
+	if err != nil {
+		panic("Failed to read test XML file: " + err.Error())
+	}
+
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
+	device, _, err := factory.CreateDevice(
+		context.Background(),
+		strings.NewReader(string(xmlData)),
+		common.DeviceTypeOPNsense,
+		false,
+	)
+	if err != nil {
+		panic("XML parsing/conversion failed: " + err.Error())
+	}
+
+	return device
+}
+
+// loadLargeTestData loads a large test dataset for memory usage testing.
+func loadLargeTestData() *common.CommonDevice {
+	return loadTestData("testdata/large.json")
+}
 
 func BenchmarkJSONConverter_ToJSON(b *testing.B) {
 	ctx := context.Background()

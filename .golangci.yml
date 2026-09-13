@@ -191,13 +191,10 @@ linters:
       # field key. Field-key strings stay inline for readability.
       - path: 'internal/export/file\.go$'
         linters: [goconst]
-      # internal/converter/markdown.go and internal/display/display.go
-      # contain a small number of remaining inline labels ("Description",
-      # "Name", "custom") used in display/rendering contexts. Same
-      # rationale as builder_* column headers — they're presentation
-      # strings, not API identifiers.
-      - path: 'internal/converter/markdown\.go$'
-        linters: [goconst]
+      # internal/display/display.go contains a small number of remaining
+      # inline labels ("Description", "Name", "custom") used in
+      # display/rendering contexts. Same rationale as builder_* column
+      # headers — they're presentation strings, not API identifiers.
       - path: 'internal/display/display\.go$'
         linters: [goconst]
       # internal/config/config.go uses dotted config path strings

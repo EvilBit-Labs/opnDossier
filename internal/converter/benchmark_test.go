@@ -34,15 +34,19 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
 
-	converter := NewMarkdownConverter()
+	gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+	if err != nil {
+		b.Fatalf("failed to create generator: %v", err)
+	}
 	ctx := context.Background()
+	opts := DefaultOptions()
 
 	b.ReportAllocs()
 
 	for b.Loop() {
-		_, err := converter.ToMarkdown(ctx, device)
+		_, err := gen.Generate(ctx, device, opts)
 		if err != nil {
-			b.Fatalf("ToMarkdown failed: %v", err)
+			b.Fatalf("Generate failed: %v", err)
 		}
 	}
 }
@@ -182,15 +186,19 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
 
-	converter := NewMarkdownConverter()
+	gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+	if err != nil {
+		b.Fatalf("failed to create generator: %v", err)
+	}
 	ctx := context.Background()
+	opts := DefaultOptions()
 
 	b.ReportAllocs()
 
 	for b.Loop() {
-		_, err := converter.ToMarkdown(ctx, device)
+		_, err := gen.Generate(ctx, device, opts)
 		if err != nil {
-			b.Fatalf("ToMarkdown failed: %v", err)
+			b.Fatalf("Generate failed: %v", err)
 		}
 	}
 }
