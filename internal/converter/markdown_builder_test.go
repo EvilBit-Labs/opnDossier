@@ -560,48 +560,6 @@ func TestMarkdownBuilder_BuildComprehensiveReport_NilData(t *testing.T) {
 	assert.Equal(t, builderPkg.ErrNilDevice, err)
 }
 
-func TestFormatBoolean(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"true value", "1", "✓"},
-		{"true string", "true", "✓"},
-		{"on value", "on", "✓"},
-		{"false value", "0", "✗"},
-		{"false string", "false", "✗"},
-		{"empty string", "", "✗"},
-		{"random string", "random", "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatBoolean(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestFormatIntBoolean(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    int
-		expected string
-	}{
-		{"true value", 1, "✓"},
-		{"false value", 0, "✗"},
-		{"negative value", -1, "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatIntBoolean(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestFormatBool(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1429,26 +1387,6 @@ func TestMarkdownBuilder_BuildInterfaceTable_WithComplexInterfaces(t *testing.T)
 	assert.Equal(t, "`172.16.0.1`", opt1Row[2])
 	assert.Equal(t, "/16", opt1Row[3])
 	assert.Equal(t, "✓", opt1Row[4])
-}
-
-func TestFormatIntBooleanWithUnset(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    int
-		expected string
-	}{
-		{"true value", 1, "✓"},
-		{"false value", 0, "unset"},
-		{"unset value", -1, "✗"},
-		{"negative value", -5, "✗"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatters.FormatIntBooleanWithUnset(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }
 
 func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {

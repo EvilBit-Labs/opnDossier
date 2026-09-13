@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestYAMLConverter_ToYAML(t *testing.T) {
+func TestYAMLHandler_Generate(t *testing.T) {
 	tests := GetCommonTestCases()
 	for i := range tests {
 		if tests[i].Name == "valid device" {
@@ -22,9 +22,12 @@ func TestYAMLConverter_ToYAML(t *testing.T) {
 		}
 	}
 
-	c := NewYAMLConverter()
+	gen := newTestGenerator(t)
+	opts := DefaultOptions()
+	opts.Format = FormatYAML
+
 	convertFunc := func(ctx context.Context, data *common.CommonDevice) (string, error) {
-		return c.ToYAML(ctx, data, false)
+		return gen.Generate(ctx, data, opts)
 	}
 	RunConverterTests(t, tests, convertFunc)
 }

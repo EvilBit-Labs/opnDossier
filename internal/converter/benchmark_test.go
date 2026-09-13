@@ -58,7 +58,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 //   - Generate_Recompute / Generate_Enriched: realistic CLI workload —
 //     full Generate() per format including markdown rendering and JSON/YAML
 //     marshaling. _Recompute is the pre-memoization baseline (no
-//     EnrichForExport); _Enriched calls EnrichForExport before the format loop.
+//     enrich); _Enriched calls enrich before the format loop.
 //   - Prepare_Recompute / Prepare_Enriched: bare prepareForExport calls only,
 //     isolating the analysis cost from rendering and serialization noise.
 //
@@ -137,7 +137,7 @@ func runMultiFormatGenerate(
 		for b.Loop() {
 			d := *device
 			if preEnrich {
-				EnrichForExport(&d)
+				enrich(&d)
 			}
 			for _, f := range formats {
 				opts := DefaultOptions()
@@ -156,7 +156,7 @@ func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnr
 		for b.Loop() {
 			d := *device
 			if preEnrich {
-				EnrichForExport(&d)
+				enrich(&d)
 			}
 			for range formats {
 				_ = prepareForExport(&d, redact)

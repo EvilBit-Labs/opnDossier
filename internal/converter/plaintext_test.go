@@ -274,8 +274,8 @@ func TestHybridGenerator_GeneratePlainText(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatText)
-
+	opts := DefaultOptions()
+	opts.Format = FormatText
 	output, err := gen.Generate(context.Background(), doc, opts)
 	require.NoError(t, err)
 	assert.NotEmpty(t, output)
@@ -294,8 +294,8 @@ func TestHybridGenerator_GeneratePlainTextToWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatText)
-
+	opts := DefaultOptions()
+	opts.Format = FormatText
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -314,7 +314,8 @@ func TestHybridGenerator_GeneratePlainText_NilConfig(t *testing.T) {
 	gen, err := NewHybridGenerator(reportBuilder, nil)
 	require.NoError(t, err)
 
-	opts := DefaultOptions().WithFormat(FormatText)
+	opts := DefaultOptions()
+	opts.Format = FormatText
 	_, err = gen.Generate(context.Background(), nil, opts)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrNilDevice)

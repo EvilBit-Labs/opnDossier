@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	builderPkg "github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
-	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 func TestMarkdownBuilder_EscapeTableContent(t *testing.T) {
@@ -580,27 +578,6 @@ func TestMarkdownBuilder_SanitizeID(t *testing.T) {
 				t.Errorf("SanitizeID(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestNewMarkdownBuilderWithConfig(t *testing.T) {
-	config := &common.CommonDevice{}
-	logger, err := logging.New(logging.Config{Level: "debug"})
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-
-	builder := builderPkg.NewMarkdownBuilderWithConfig(config, logger)
-	if builder == nil {
-		t.Error("Expected builder to be created")
-	}
-	// Note: Internal fields are now unexported for proper encapsulation
-	// The builder is configured correctly but we cannot directly access the fields
-
-	// Test with nil logger - builder should handle nil logger gracefully
-	builder2 := builderPkg.NewMarkdownBuilderWithConfig(config, nil)
-	if builder2 == nil {
-		t.Error("Expected builder to be created even with nil logger")
 	}
 }
 

@@ -96,3 +96,10 @@ github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.Bool|public-surfac
 github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.Int|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
 github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.parse|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
 
+# Test-time safety gates: code whose only job is to be run against generated
+# output by a test. Not dead -- these are the actual enforcement mechanism
+# for a safety invariant (redaction-safe exploit notes, valid markdown
+# output), exercised by tests that generate real output and assert on it.
+github.com/EvilBit-Labs/opnDossier/internal/audit|FindInstructionalContent|test-time-safety-gate|scans generated ExploitNote text for weaponized/step-by-step instructional content; exercised only by exploit_notes_test.go and mode_controller_red_test.go running it over actual generated red-mode notes, which is the enforcement mechanism for the red-mode safety invariant, not test-only dead code
+github.com/EvilBit-Labs/opnDossier/internal/converter|ValidateMarkdown|test-time-safety-gate|asserts generated markdown parses; exercised only by internal/converter/builder/writer_test.go and internal/export/file_test.go running it over actual generated report output, which is the enforcement mechanism for the markdown-validity invariant, not test-only dead code
+

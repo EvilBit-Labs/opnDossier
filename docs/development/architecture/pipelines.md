@@ -324,7 +324,7 @@ classDiagram
         +EscapeMarkdownSpecialChars(input) string
         +FormatTimestamp(timestamp) string
         +TruncateDescription(text, length) string
-        +FormatBoolean(value) string
+        +FormatBool(value) string
     }
 
     ReportBuilder *-- SectionBuilder : composes

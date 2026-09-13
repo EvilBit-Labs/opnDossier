@@ -67,10 +67,10 @@ GitHub's shared runners cannot host it reliably. The instrumented suite is slow 
 
 ### 2.1 Registry Independence
 
-`audit.PluginManager` maintains its own internal `PluginRegistry` instance. This is **independent** of the global singleton returned by `audit.GetGlobalRegistry()`.
+`audit.PluginManager` owns its own `PluginRegistry` instance — there is no package-level global registry to opt into (the deprecated `GetGlobalRegistry`/`RegisterGlobalPlugin`/`GetGlobalPlugin`/`ListGlobalPlugins` singleton was removed; it had no production caller).
 
-- **Gotcha:** Calling `pm.InitializePlugins()` does **not** populate the global registry.
-- **Requirement:** If a plugin must be available globally (e.g., for simple CLI helpers), it must be explicitly registered via `audit.RegisterGlobalPlugin()`.
+- **Gotcha:** Two `PluginManager` instances constructed with `NewPluginManager(logger, nil)` each allocate a private registry and do **not** see each other's registrations. Pass the same `*PluginRegistry` to `NewPluginManager` when multiple managers or subsystems must observe the same plugin set.
+- **Requirement:** A dynamically loaded `.so` plugin is registered by the loader through its exported `Plugin` symbol into whichever `*PluginRegistry` the caller supplied to `NewPluginManager` — there is no separate "global" registration step.
 
 ### 2.2 Panic Recovery Retains Plugins
 
@@ -365,7 +365,7 @@ When changing a `Document` field type from an opnsense type to a local pfSense f
 pfSense stores user passwords in `<bcrypt-hash>` elements, not `<password>` or `<passwd>` like OPNsense. The sanitizer's field-pattern matching must explicitly include `bcrypt-hash` and `sha512-hash` — the generic `"pass"` substring match does not cover these.
 
 - **Symptom:** `sanitize` command outputs bcrypt hashes in cleartext.
-- **Fix:** Add `"bcrypt-hash"`, `"sha512-hash"` to the `password` rule's `FieldPatterns` in `internal/sanitizer/rules.go` and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Fix:** Add `"bcrypt-hash"`, `"sha512-hash"` to the `password` rule's `FieldPatterns` in `internal/sanitizer/rules.go`.
 - **Precedent:** The SNMP community string (`rocommunity`) required a dedicated field pattern for the same reason.
 
 ### 11.2 New Device Type Field Names
@@ -397,7 +397,7 @@ OpenVPN's `<tls>` element (under `<openvpn-server>` / `<openvpn-client>`) holds 
 The OPNsense `os-netbird` plugin persists the NetBird enrollment/setup key as `<setupKey>` under `<OPNsense><netbird><authentication>` (MVC model mounted at `//OPNsense/netbird/authentication`). The value is a UUID-format registration token. Because the sanitizer's bare `"key"` FieldPattern is exact-match only (see `exactMatchPatterns` — same trap as SNMPv3 `<enckey>`), compound names like `setupKey` leaked through `sanitize` in cleartext.
 
 - **Symptom:** `sanitize` leaves NetBird setup keys readable in output. The key remains in `config.xml` when NetBird is disabled and often survives plugin removal as orphaned MVC XML, so disabled/removed plugins still leak.
-- **Fix:** Add `"setupkey"`, `"setup_key"`, `"setup-key"` to the **`secret`** rule's `FieldPatterns` in `internal/sanitizer/rules.go` (enrollment token, not private-key material — unlike SNMPv3 `enckey` which lives on `private_key`) and to `passwordKeywords` in `internal/sanitizer/patterns.go`.
+- **Fix:** Add `"setupkey"`, `"setup_key"`, `"setup-key"` to the **`secret`** rule's `FieldPatterns` in `internal/sanitizer/rules.go` (enrollment token, not private-key material — unlike SNMPv3 `enckey` which lives on `private_key`).
 - **Detection:** `TestSanitizeXML_NetBirdSetupKey_RedactsSecret` + `TestSanitizeXML_NetBirdSetupKey_NoFalsePositives` in `internal/sanitizer/sanitizer_test.go`; `TestRedact_NetBirdSetupKey_RedactsSecret` in `rules_fieldpattern_test.go`.
 - **Rule-ordering impact:** None. The `secret` rule already precedes `private_key` and does not participate in the §19.1 ordering invariants.
 - **Upstream:** <https://github.com/opnsense/plugins> (`security/netbird`); field declared in `Authentication.xml` as `UpdateOnlyTextField` with UUID mask.

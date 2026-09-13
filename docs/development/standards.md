@@ -249,7 +249,7 @@ go test -race ./...
 
 ### Test Helpers
 
-Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place shared helpers in `test_helpers.go` (not `_test.go` — `revive` var-naming applies).
+Use `t.Helper()` in all test helpers and `t.Cleanup()` for teardown. Place shared helpers in a `_test.go` file (e.g. `helpers_test.go`) when the helper's only callers are tests in its own package — a helper with no non-test caller must not live in a production (non-`_test.go`) file, or it appears reachable to `go build` and dead-code analysis flags it as an exported symbol whose only callers are its own tests.
 
 ### Map Iteration in Tests
 
@@ -278,7 +278,7 @@ assert.Contains(t, interfaceCell, ", ") // Multi-value separator
 Use `sebdah/goldie/v2` for snapshot testing. Key patterns:
 
 - Golden files contain **actual** values (timestamps, versions), not placeholders
-- Inject dynamic values at construction time via builder options (e.g., `builder.WithGeneratedTime`, `builder.WithVersion`) rather than normalizing output after the fact. Goldie compares bytes directly.
+- Inject dynamic values by setting the builder's exported `Generated`/`ToolVersion` fields directly after construction rather than normalizing output after the fact. Goldie compares bytes directly.
 - Update golden files: `go test ./path -run TestGolden -update`
 - Use `time.RFC3339` for timestamps; fix the injected test time to UTC so goldens are byte-identical across machines
 - Clean trailing whitespace: `sed -i '' 's/[[:space:]]*$//' *.golden.md`
@@ -639,7 +639,7 @@ When a goroutine writes to an `io.Writer` and a stop method also writes after si
 
 ### Duplicate Code Detection in Tests
 
-The `dupl` linter flags structurally similar test files (e.g., `json_test.go` and `yaml_test.go`). When JSON and YAML tests share device construction and assertions, extract shared logic into `test_helpers.go` (e.g., `newFieldsTestDevice()`, `assertNewFieldsPresent()`) and use a single `Test*` function with subtests for each format. If the files remain structurally similar despite extraction, add `//nolint:dupl` on the package line.
+The `dupl` linter flags structurally similar test files (e.g., `json_test.go` and `yaml_test.go`). When JSON and YAML tests share device construction and assertions, extract shared logic into `helpers_test.go` (e.g., `newFieldsTestDevice()`, `assertNewFieldsPresent()`) and use a single `Test*` function with subtests for each format. If the files remain structurally similar despite extraction, add `//nolint:dupl` on the package line.
 
 ### Statistics Struct Synchronization
 
@@ -667,11 +667,11 @@ Files in `pkg/parser/opnsense/` (package `opnsense`) **must** alias the schema i
 
 ### Report Serialization Redaction
 
-Export serialization redacts a copy of the device so sensitive fields never reach a rendered report. `redactSensitiveFields` in `internal/converter/enrichment.go` owns this; it runs from `prepareForExport(device, redact=true)` against an already-cloned copy, so the caller's device is never modified. (`EnrichForExport` only computes the enrichment — it performs no redaction.) Currently redacted: `SNMP.ROCommunity`, `HighAvailability.Password`, `Certificate.PrivateKey`, `CertificateAuthority.PrivateKey`, `Users[].APIKeys[].Secret`, `VPN.WireGuard.Clients[].PSK`, and `AdvDHCP6KeyInfoStatementSecret`. **When adding a new sensitive field to `CommonDevice`, extend `redactSensitiveFields`** — a field added without a redaction rule ships in cleartext in every JSON, YAML, and HTML export. Slices are cloned before mutation, and only entries with a non-empty sensitive value are rewritten, so the caller's device is never modified. SNMP service-detail redaction is separate and shared: see `RedactServiceDetails` in `internal/analysis/statistics_redact.go`.
+Export serialization redacts a copy of the device so sensitive fields never reach a rendered report. `redactSensitiveFields` in `internal/converter/enrichment.go` owns this; it runs from `prepareForExport(device, redact=true)` against an already-cloned copy, so the caller's device is never modified. (`enrich` only computes the enrichment — it performs no redaction.) Currently redacted: `SNMP.ROCommunity`, `HighAvailability.Password`, `Certificate.PrivateKey`, `CertificateAuthority.PrivateKey`, `Users[].APIKeys[].Secret`, `VPN.WireGuard.Clients[].PSK`, and `AdvDHCP6KeyInfoStatementSecret`. **When adding a new sensitive field to `CommonDevice`, extend `redactSensitiveFields`** — a field added without a redaction rule ships in cleartext in every JSON, YAML, and HTML export. Slices are cloned before mutation, and only entries with a non-empty sensitive value are rewritten, so the caller's device is never modified. SNMP service-detail redaction is separate and shared: see `RedactServiceDetails` in `internal/analysis/statistics_redact.go`.
 
 ### Sanitizer Field Pattern Maintenance
 
-The `sanitize` command operates on raw XML element names via pattern matching in `internal/sanitizer/rules.go` (`FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). When adding a new device type, audit its XML element names for credential fields that differ from OPNsense and add them to both files.
+The `sanitize` command operates on raw XML element names via pattern matching in `internal/sanitizer/rules.go` (`FieldPatterns`). When adding a new device type, audit its XML element names for credential fields that differ from OPNsense and add them there.
 
 **Verification:** `opndossier sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass\|community'` — check for unredacted sensitive values.
 

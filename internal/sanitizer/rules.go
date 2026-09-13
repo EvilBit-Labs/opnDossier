@@ -115,11 +115,6 @@ func NewRuleEngine(mode Mode) *RuleEngine {
 	return engine
 }
 
-// SetMapper allows setting a custom mapper (useful for testing or chaining).
-func (e *RuleEngine) SetMapper(m *Mapper) {
-	e.mapper = m
-}
-
 // GetMapper returns the current mapper for generating reports.
 func (e *RuleEngine) GetMapper() *Mapper {
 	return e.mapper
@@ -390,7 +385,6 @@ func builtinRules() []Rule {
 				// "ldap_bindpw" matches none of the patterns above -- "pwd"
 				// does not appear in it -- so without this the value is emitted
 				// verbatim wherever authserver_config's path patterns miss.
-				// Keep in sync with passwordKeywords in patterns.go.
 				"bindpw",
 			},
 			Redactor: func(_ *Mapper, _, _ string) string {
@@ -795,26 +789,4 @@ func isSystemUser(username string) bool {
 // private_ip_aggressive rule's ValueDetector.
 func isPrivateIPv4(v string) bool {
 	return IsPrivateIP(v) && IsIPv4(v)
-}
-
-// GetActiveRules returns rules that are active for the current mode.
-func (e *RuleEngine) GetActiveRules() []Rule {
-	var active []Rule
-	for _, rule := range e.rules {
-		if e.ruleActiveForMode(&rule) {
-			active = append(active, rule)
-		}
-	}
-	return active
-}
-
-// GetRulesByCategory returns all rules in a specific category.
-func (e *RuleEngine) GetRulesByCategory(category RuleCategory) []Rule {
-	var result []Rule
-	for _, rule := range e.rules {
-		if rule.Category == category {
-			result = append(result, rule)
-		}
-	}
-	return result
 }

@@ -414,7 +414,7 @@ Use restrictive file permissions for sensitive material. Configuration files and
 
 Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. Two helpers own redaction and they are not interchangeable. `redactSensitiveFields` in `internal/converter/enrichment.go` is the export boundary: every secret-bearing `CommonDevice` field is rewritten there before a report is rendered, so a new sensitive field on the model belongs in that function. `RedactServiceDetails` in `internal/analysis/statistics_redact.go` handles the narrower case of sensitive values inside computed service statistics, such as the SNMP community string. Adding a model secret to the statistics helper alone would leave it in cleartext on the export path.
 
-When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern lists in `internal/sanitizer/rules.go` (`FieldPatterns`) and `internal/sanitizer/patterns.go` (`passwordKeywords`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -iE 'hash|secret|key|pass|community' | grep -v REDACTED` — the output should be empty. Any lines that appear contain unredacted sensitive values that need new sanitizer rules.
+When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern list in `internal/sanitizer/rules.go` (`FieldPatterns`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -iE 'hash|secret|key|pass|community' | grep -v REDACTED` — the output should be empty. Any lines that appear contain unredacted sensitive values that need new sanitizer rules.
 
 Never commit secrets to source control. Use environment variables or secure secret storage when a secret is genuinely required. For the full vulnerability reporting process and threat model, see `SECURITY.md` and `docs/security/security-assurance.md`.
 
@@ -832,7 +832,7 @@ Go map iteration is non-deterministic. When output is assembled from maps, tests
 
 ### Golden File Testing
 
-The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and dynamic values (timestamps, versions) should be injected at construction time via builder options (e.g., `builder.WithGeneratedTime`, `builder.WithVersion`) so that goldie can compare bytes directly — no post-hoc normalization. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
+The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and dynamic values (timestamps, versions) should be injected by setting the builder's exported `Generated`/`ToolVersion` fields directly after construction so that goldie can compare bytes directly — no post-hoc normalization. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see the [Development Standards](docs/development/standards.md#golden-file-testing).
 
 ### Pointer Identity Assertions
 
@@ -844,7 +844,7 @@ Tests in `cmd/` must account for Cobra's package-level flag bindings. Do not use
 
 ### Duplicate Code Detection
 
-The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `test_helpers.go` and use subtests to cover each format cleanly. See the [Development Standards](docs/development/standards.md#duplicate-code-detection-in-tests).
+The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `helpers_test.go` and use subtests to cover each format cleanly. See the [Development Standards](docs/development/standards.md#duplicate-code-detection-in-tests).
 
 ## Documentation
 
