@@ -293,6 +293,11 @@ func init() {
 		Title: "Utility Commands",
 	})
 
+	// Keep cobra's built-in `completion` command (which replaces the deleted
+	// custom completionCmd) grouped under Utility Commands in --help output,
+	// matching where the custom command used to appear.
+	rootCmd.SetCompletionCommandGroupID(groupUtility)
+
 	// Define flag groups for better help organization
 	rootCmd.PersistentFlags().SetNormalizeFunc(func(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 		// Normalize kebab-case consistently
@@ -301,9 +306,6 @@ func init() {
 
 	// Register global flag completion functions
 	registerRootFlagCompletions(rootCmd)
-
-	// Initialize enhanced help system with suggestions and custom templates
-	InitHelp(rootCmd)
 }
 
 // registerRootFlagCompletions registers completion functions for root command persistent flags.
@@ -383,21 +385,6 @@ func createFallbackLogger(reason error) *logging.Logger {
 // This provides access to the application's main command and its subcommands for integration or extension.
 func GetRootCmd() *cobra.Command {
 	return rootCmd
-}
-
-// GetFlagsByCategory returns flags grouped by their category annotation.
-// This demonstrates how flag annotations can be used for programmatic flag management.
-func GetFlagsByCategory(cmd *cobra.Command) map[string][]string {
-	categories := make(map[string][]string)
-
-	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if category, ok := flag.Annotations["category"]; ok && len(category) > 0 {
-			cat := category[0]
-			categories[cat] = append(categories[cat], flag.Name)
-		}
-	})
-
-	return categories
 }
 
 // setFlagAnnotation safely sets a flag annotation and logs any errors.
