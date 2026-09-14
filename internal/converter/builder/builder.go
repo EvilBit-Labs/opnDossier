@@ -104,95 +104,40 @@ var (
 // programmatic markdown generation capabilities.
 // MarkdownBuilder is not safe for concurrent use. Create a new instance per goroutine.
 type MarkdownBuilder struct {
-	config          *common.CommonDevice
-	logger          *logging.Logger
-	generated       time.Time
-	toolVersion     string
+	logger *logging.Logger
+
+	// Generated is the "Generated On" timestamp used in report headers.
+	// Exported so cross-package tests (e.g. golden file tests in
+	// internal/converter) can pin it to a fixed value for deterministic,
+	// byte-for-byte reproducible output. Zero falls back to time.Now() via
+	// getGeneratedTime.
+	Generated time.Time
+
+	// ToolVersion is the version string used in the "Parsed By" header line.
+	// Exported for the same cross-package determinism reason as Generated.
+	// Empty falls back to constants.Version via getToolVersion.
+	ToolVersion string
+
 	includeTunables bool
 	failuresOnly    bool
 }
 
-// Option configures a MarkdownBuilder at construction time.
-//
-// Options are applied after the default values are set and override them.
-// Use WithGeneratedTime and WithVersion in tests to produce deterministic,
-// byte-for-byte reproducible output (for golden files, for example).
-type Option func(*MarkdownBuilder)
-
-// WithGeneratedTime sets the "Generated On" timestamp used in report headers.
-//
-// When the zero time is supplied the default (time.Now at construction) is
-// retained. Tests should pass a fixed UTC time to make report output
-// deterministic and avoid post-hoc regex normalization of golden files.
-func WithGeneratedTime(t time.Time) Option {
-	return func(b *MarkdownBuilder) {
-		if !t.IsZero() {
-			b.generated = t
-		}
-	}
-}
-
-// WithVersion sets the tool version string used in the "Parsed By" header line.
-//
-// When an empty string is supplied the default (constants.Version) is retained.
-// Tests should pass a fixed version to decouple golden files from the
-// build-time -ldflags -X injection of constants.Version.
-func WithVersion(v string) Option {
-	return func(b *MarkdownBuilder) {
-		if v != "" {
-			b.toolVersion = v
-		}
-	}
-}
-
 // NewMarkdownBuilder creates a new MarkdownBuilder instance.
 //
-// By default the generated timestamp is time.Now() and the tool version is
-// constants.Version. Pass WithGeneratedTime and/or WithVersion to override
-// these defaults (typically for deterministic test output).
-func NewMarkdownBuilder(opts ...Option) *MarkdownBuilder {
+// The generated timestamp defaults to time.Now() and the tool version
+// defaults to constants.Version. Tests needing deterministic output (e.g.
+// golden file comparisons) may override the exported Generated and
+// ToolVersion fields directly after construction.
+func NewMarkdownBuilder() *MarkdownBuilder {
 	logger, err := logging.New(logging.Config{Level: "info"})
 	if err != nil {
 		logger = &logging.Logger{}
 	}
-	b := &MarkdownBuilder{
-		generated:   time.Now(),
-		toolVersion: constants.Version,
+	return &MarkdownBuilder{
+		Generated:   time.Now(),
+		ToolVersion: constants.Version,
 		logger:      logger,
 	}
-	for _, opt := range opts {
-		opt(b)
-	}
-	return b
-}
-
-// NewMarkdownBuilderWithConfig creates a new MarkdownBuilder instance with configuration.
-//
-// By default the generated timestamp is time.Now() and the tool version is
-// constants.Version. Pass WithGeneratedTime and/or WithVersion to override
-// these defaults (typically for deterministic test output).
-func NewMarkdownBuilderWithConfig(
-	config *common.CommonDevice,
-	logger *logging.Logger,
-	opts ...Option,
-) *MarkdownBuilder {
-	if logger == nil {
-		var err error
-		logger, err = logging.New(logging.Config{Level: "info"})
-		if err != nil {
-			logger = &logging.Logger{}
-		}
-	}
-	b := &MarkdownBuilder{
-		config:      config,
-		logger:      logger,
-		generated:   time.Now(),
-		toolVersion: constants.Version,
-	}
-	for _, opt := range opts {
-		opt(b)
-	}
-	return b
 }
 
 // SetIncludeTunables configures whether all system tunables are included in the report.
@@ -274,8 +219,8 @@ func (b *MarkdownBuilder) BuildStandardReport(data *common.CommonDevice) (string
 			markdown.Bold("Domain")+": "+formatters.EscapeMarkdownValue(data.System.Domain),
 			markdown.Bold("Platform")+
 				": "+formatters.EscapeMarkdownValue(strings.TrimSpace(platformName+" "+data.System.Firmware.Version)),
-			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
-			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
+			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
 		).
 		H2("Table of Contents").
 		BulletList(tocItems...)
@@ -312,8 +257,8 @@ func (b *MarkdownBuilder) BuildComprehensiveReport(data *common.CommonDevice) (s
 			markdown.Bold("Domain")+": "+formatters.EscapeMarkdownValue(data.System.Domain),
 			markdown.Bold("Platform")+
 				": "+formatters.EscapeMarkdownValue(strings.TrimSpace(platformName+" "+data.System.Firmware.Version)),
-			markdown.Bold("Generated On")+": "+b.generated.Format(time.RFC3339),
-			markdown.Bold("Parsed By")+": opnDossier v"+b.toolVersion,
+			markdown.Bold("Generated On")+": "+b.getGeneratedTime().Format(time.RFC3339),
+			markdown.Bold("Parsed By")+": opnDossier v"+b.getToolVersion(),
 		).
 		H2("Table of Contents").
 		BulletList(tocItems...)

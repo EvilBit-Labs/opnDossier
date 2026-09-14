@@ -291,8 +291,8 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | IDS.EveLog.TLS  | Enable            | `string` | MVC field, value-based                      |
 | IDS.EveLog.TLS  | Extended          | `string` | MVC field, value-based                      |
 | IDS.EveLog.TLS  | SessionResumption | `string` | MVC field, value-based                      |
-| IPsec.General   | Enabled           | `string` | MVC field, uses `FormatBoolean()`           |
-| IPsec.General   | Disablevpnrules   | `string` | MVC field, uses `FormatBoolean()`           |
+| IPsec.General   | Enabled           | `string` | MVC field, value-based                      |
+| IPsec.General   | Disablevpnrules   | `string` | MVC field, value-based                      |
 
 ### 5b. Services (services.go) — value-based, kept as string
 

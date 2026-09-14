@@ -264,16 +264,16 @@ func (b *MarkdownBuilder) writeStandardReportFooter(
 
 // getGeneratedTime returns the generation timestamp.
 func (b *MarkdownBuilder) getGeneratedTime() time.Time {
-	if b.generated.IsZero() {
+	if b.Generated.IsZero() {
 		return time.Now()
 	}
-	return b.generated
+	return b.Generated
 }
 
 // getToolVersion returns the tool version string.
 func (b *MarkdownBuilder) getToolVersion() string {
-	if b.toolVersion == "" {
+	if b.ToolVersion == "" {
 		return constants.Version
 	}
-	return b.toolVersion
+	return b.ToolVersion
 }

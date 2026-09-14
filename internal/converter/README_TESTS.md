@@ -6,7 +6,7 @@ This document describes the comprehensive test suite for the opnDossier converte
 
 ## Test Coverage
 
-The test suite achieves **97.5% code coverage** across all converter methods, with comprehensive testing of:
+The test suite provides comprehensive coverage across all converter methods; run `go test -cover ./internal/converter/...` for the current percentage rather than trusting a number in prose (test files here have been added, removed, and rewritten multiple times since this document was first written). Coverage areas include:
 
 - Utility functions (escaping, formatting, validation)
 - Data transformation methods
@@ -230,7 +230,7 @@ Large datasets for performance testing are generated programmatically:
 
 ### Coverage Requirements
 
-- **Overall Coverage**: >95% (Current: 97.5%)
+- **Overall Coverage**: run `go test -cover ./internal/converter/...` for the current figure
 - **Critical Functions**: 100% (Security assessment, data validation)
 - **Utility Functions**: >90%
 - **Error Paths**: All error conditions tested
@@ -266,7 +266,7 @@ When updating test data:
 - ✅ **All ported methods have corresponding unit tests**
 - ✅ **Integration tests validate functional parity**
 - ✅ **Performance benchmarks establish baselines**
-- ✅ **Code coverage exceeds 95% threshold**
+- ✅ **Code coverage tracked via `go test -cover`**
 - ✅ **Edge cases and error conditions tested**
 - ✅ **Test data fixtures comprehensive and version controlled**
 - ✅ **CI/CD pipeline successfully runs all tests**

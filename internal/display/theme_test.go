@@ -78,21 +78,16 @@ func TestThemeProperties(t *testing.T) {
 	tests := []struct {
 		name        string
 		theme       display.Theme
-		isLight     bool
-		isDark      bool
 		colorExists bool
 		colorKey    string
 	}{
-		{"Light theme properties", display.LightTheme(), true, false, true, "background"},
-		{"Dark theme properties", display.DarkTheme(), false, true, true, "foreground"},
-		{"Custom theme properties", display.CustomTheme(), false, false, false, "nonexistent"},
+		{"Light theme properties", display.LightTheme(), true, "background"},
+		{"Dark theme properties", display.DarkTheme(), true, "foreground"},
+		{"Custom theme properties", display.CustomTheme(), false, "nonexistent"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.isLight, tt.theme.IsLight())
-			assert.Equal(t, tt.isDark, tt.theme.IsDark())
-
 			if tt.colorExists {
 				color := tt.theme.GetColor(tt.colorKey)
 				assert.NotEmpty(t, color)
@@ -145,35 +140,13 @@ func TestThemeColorPalette(t *testing.T) {
 	})
 }
 
-// TestStyleSheetCreation tests the creation of StyleSheet with themes.
-func TestStyleSheetCreation(t *testing.T) {
-	t.Run("Default stylesheet creation", func(t *testing.T) {
-		stylesheet := display.NewStyleSheet()
-		require.NotNil(t, stylesheet)
-	})
-
-	t.Run("Themed stylesheet creation", func(t *testing.T) {
-		themes := []display.Theme{display.LightTheme(), display.DarkTheme(), display.CustomTheme()}
-
-		for _, theme := range themes {
-			stylesheet := display.NewStyleSheetWithTheme(theme)
-			require.NotNil(t, stylesheet, "Stylesheet should be created for theme %s", theme.Name)
-		}
-	})
-}
-
 // TestTerminalDisplayCreation tests the creation of TerminalDisplay with themes.
 func TestTerminalDisplayCreation(t *testing.T) {
-	t.Run("Default terminal display creation", func(t *testing.T) {
-		terminalDisplay := display.NewTerminalDisplay()
-		require.NotNil(t, terminalDisplay)
-	})
-
 	t.Run("Themed terminal display creation", func(t *testing.T) {
 		themes := []display.Theme{display.LightTheme(), display.DarkTheme(), display.CustomTheme()}
 
 		for _, theme := range themes {
-			terminalDisplay := display.NewTerminalDisplayWithTheme(theme)
+			terminalDisplay := display.NewTerminalDisplayWithOptions(display.Options{Theme: theme})
 			require.NotNil(t, terminalDisplay, "TerminalDisplay should be created for theme %s", theme.Name)
 		}
 	})

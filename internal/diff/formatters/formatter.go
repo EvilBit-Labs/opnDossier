@@ -27,12 +27,6 @@ const (
 	ModeSideBySide = "side-by-side"
 )
 
-// New creates a Formatter for the given format name and writer.
-// Supported formats: terminal, markdown, json, html.
-func New(format string, w io.Writer) (Formatter, error) {
-	return NewWithMode(format, ModeUnified, w)
-}
-
 // NewWithMode creates a Formatter for the given format, display mode, and writer.
 func NewWithMode(format, mode string, w io.Writer) (Formatter, error) {
 	isSideBySide := strings.EqualFold(mode, ModeSideBySide)

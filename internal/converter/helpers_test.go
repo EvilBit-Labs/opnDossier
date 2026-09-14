@@ -142,8 +142,11 @@ func RunNewFieldsSerializationTests(t *testing.T) {
 	t.Run("json", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewJSONConverter()
-		result, err := c.ToJSON(context.Background(), device, true)
+		gen := newTestGenerator(t)
+		opts := DefaultOptions()
+		opts.Format = FormatJSON
+		opts.Redact = true
+		result, err := gen.Generate(context.Background(), device, opts)
 		require.NoError(t, err)
 
 		var parsed map[string]any
@@ -156,8 +159,11 @@ func RunNewFieldsSerializationTests(t *testing.T) {
 	t.Run("yaml", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewYAMLConverter()
-		result, err := c.ToYAML(context.Background(), device, true)
+		gen := newTestGenerator(t)
+		opts := DefaultOptions()
+		opts.Format = FormatYAML
+		opts.Redact = true
+		result, err := gen.Generate(context.Background(), device, opts)
 		require.NoError(t, err)
 
 		var parsed map[string]any

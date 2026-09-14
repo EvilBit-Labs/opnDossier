@@ -89,23 +89,6 @@ func (s Section) String() string {
 	return string(s)
 }
 
-// AllSections returns all available sections.
-func AllSections() []Section {
-	return []Section{
-		SectionSystem,
-		SectionFirewall,
-		SectionNAT,
-		SectionInterfaces,
-		SectionVLANs,
-		SectionDHCP,
-		SectionDNS,
-		SectionVPN,
-		SectionUsers,
-		SectionRouting,
-		SectionCertificates,
-	}
-}
-
 // ImplementedSections returns sections that have comparison logic implemented.
 func ImplementedSections() []Section {
 	return []Section{
@@ -159,16 +142,6 @@ const (
 // String returns the string representation of the security impact.
 func (s SecurityImpact) String() string {
 	return string(s)
-}
-
-// IsValid returns true if the security impact is a valid value.
-func (s SecurityImpact) IsValid() bool {
-	switch s {
-	case SecurityImpactHigh, SecurityImpactMedium, SecurityImpactLow, "":
-		return true
-	default:
-		return false
-	}
 }
 
 // Change represents a single configuration change.

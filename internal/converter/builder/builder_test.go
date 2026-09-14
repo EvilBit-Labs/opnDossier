@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/nao1215/markdown"
@@ -17,11 +18,11 @@ func TestNewMarkdownBuilder(t *testing.T) {
 		t.Fatal("NewMarkdownBuilder returned nil")
 	}
 
-	if builder.generated.IsZero() {
+	if builder.Generated.IsZero() {
 		t.Error("NewMarkdownBuilder did not set generated time")
 	}
 
-	if builder.toolVersion == "" {
+	if builder.ToolVersion == "" {
 		t.Error("NewMarkdownBuilder did not set tool version")
 	}
 
@@ -30,24 +31,21 @@ func TestNewMarkdownBuilder(t *testing.T) {
 	}
 }
 
-func TestNewMarkdownBuilderWithConfig(t *testing.T) {
+func TestMarkdownBuilder_GeneratedAndToolVersion_AreDirectlySettable(t *testing.T) {
 	t.Parallel()
 
-	config := &common.CommonDevice{
-		System: common.System{Hostname: "test"},
-	}
+	fixed := time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
+	const fixedVersion = "test-1.2.3"
 
-	builder := NewMarkdownBuilderWithConfig(config, nil)
-	if builder == nil {
-		t.Fatal("NewMarkdownBuilderWithConfig returned nil")
-	}
+	builder := NewMarkdownBuilder()
+	builder.Generated = fixed
+	builder.ToolVersion = fixedVersion
 
-	if builder.config != config {
-		t.Error("NewMarkdownBuilderWithConfig did not set config")
+	if !builder.Generated.Equal(fixed) {
+		t.Errorf("Generated = %v, want %v", builder.Generated, fixed)
 	}
-
-	if builder.logger == nil {
-		t.Error("NewMarkdownBuilderWithConfig did not create logger")
+	if builder.ToolVersion != fixedVersion {
+		t.Errorf("ToolVersion = %q, want %q", builder.ToolVersion, fixedVersion)
 	}
 }
 

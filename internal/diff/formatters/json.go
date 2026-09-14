@@ -22,14 +22,6 @@ func NewJSONFormatter(writer io.Writer) *JSONFormatter {
 	}
 }
 
-// NewJSONFormatterCompact creates a new JSON formatter with compact output.
-func NewJSONFormatterCompact(writer io.Writer) *JSONFormatter {
-	return &JSONFormatter{
-		writer: writer,
-		pretty: false,
-	}
-}
-
 // Format formats the diff result as JSON.
 func (f *JSONFormatter) Format(result *diff.Result) error {
 	encoder := json.NewEncoder(f.writer)
