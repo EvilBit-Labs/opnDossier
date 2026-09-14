@@ -13,7 +13,7 @@ import (
 	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
 )
 
-func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
+func BenchmarkMarkdownGenerator_Generate(b *testing.B) {
 	// Load a medium-sized config.xml for realistic testing
 	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.1.xml")
 
@@ -34,15 +34,19 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
 
-	converter := NewMarkdownConverter()
+	gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+	if err != nil {
+		b.Fatalf("failed to create generator: %v", err)
+	}
 	ctx := context.Background()
+	opts := DefaultOptions()
 
 	b.ReportAllocs()
 
 	for b.Loop() {
-		_, err := converter.ToMarkdown(ctx, device)
+		_, err := gen.Generate(ctx, device, opts)
 		if err != nil {
-			b.Fatalf("ToMarkdown failed: %v", err)
+			b.Fatalf("Generate failed: %v", err)
 		}
 	}
 }
@@ -54,7 +58,7 @@ func BenchmarkMarkdownConverter_ToMarkdown(b *testing.B) {
 //   - Generate_Recompute / Generate_Enriched: realistic CLI workload —
 //     full Generate() per format including markdown rendering and JSON/YAML
 //     marshaling. _Recompute is the pre-memoization baseline (no
-//     EnrichForExport); _Enriched calls EnrichForExport before the format loop.
+//     enrich); _Enriched calls enrich before the format loop.
 //   - Prepare_Recompute / Prepare_Enriched: bare prepareForExport calls only,
 //     isolating the analysis cost from rendering and serialization noise.
 //
@@ -133,7 +137,7 @@ func runMultiFormatGenerate(
 		for b.Loop() {
 			d := *device
 			if preEnrich {
-				EnrichForExport(&d)
+				enrich(&d)
 			}
 			for _, f := range formats {
 				opts := DefaultOptions()
@@ -152,7 +156,7 @@ func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnr
 		for b.Loop() {
 			d := *device
 			if preEnrich {
-				EnrichForExport(&d)
+				enrich(&d)
 			}
 			for range formats {
 				_ = prepareForExport(&d, redact)
@@ -161,7 +165,7 @@ func runMultiFormatPrepare(device *common.CommonDevice, formats []Format, preEnr
 	}
 }
 
-func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
+func BenchmarkMarkdownGenerator_Generate_Large(b *testing.B) {
 	// Use the larger sample config for stress testing
 	xmlPath := filepath.Join("..", "..", "testdata", "sample.config.2.xml")
 
@@ -182,15 +186,19 @@ func BenchmarkMarkdownConverter_ToMarkdown_Large(b *testing.B) {
 		b.Fatalf("XML parsing failed: %v", err)
 	}
 
-	converter := NewMarkdownConverter()
+	gen, err := NewMarkdownGenerator(nil, DefaultOptions())
+	if err != nil {
+		b.Fatalf("failed to create generator: %v", err)
+	}
 	ctx := context.Background()
+	opts := DefaultOptions()
 
 	b.ReportAllocs()
 
 	for b.Loop() {
-		_, err := converter.ToMarkdown(ctx, device)
+		_, err := gen.Generate(ctx, device, opts)
 		if err != nil {
-			b.Fatalf("ToMarkdown failed: %v", err)
+			b.Fatalf("Generate failed: %v", err)
 		}
 	}
 }

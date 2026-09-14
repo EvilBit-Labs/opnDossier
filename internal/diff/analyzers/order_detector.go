@@ -56,8 +56,3 @@ func (d *OrderDetector) DetectReorders(oldIDs, newIDs []string) []OrderChange {
 
 	return reorders
 }
-
-// HasReorders returns true if any reordering was detected.
-func (d *OrderDetector) HasReorders(oldIDs, newIDs []string) bool {
-	return len(d.DetectReorders(oldIDs, newIDs)) > 0
-}

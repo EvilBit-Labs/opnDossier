@@ -1,7 +1,7 @@
 package security
 
 import (
-	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -111,48 +111,10 @@ func TestScorer_Score_PatternMatching(t *testing.T) {
 	}
 }
 
-func TestScorer_ScoreAll(t *testing.T) {
-	scorer := NewScorer()
-
-	changes := []ChangeInput{
-		{
-			Type:           "added",
-			Section:        "firewall",
-			Path:           "filter.rule[uuid=abc]",
-			Description:    "Added permissive rule",
-			SecurityImpact: "high",
-		},
-		{
-			Type:        "removed",
-			Section:     "firewall",
-			Path:        "filter.rule[uuid=def]",
-			Description: "Removed rule",
-		},
-		{
-			Type:        "modified",
-			Section:     "system",
-			Path:        "system.hostname",
-			Description: "Hostname changed",
-		},
-	}
-
-	summary := scorer.ScoreAll(changes)
-
-	assert.Equal(t, 1, summary.High)
-	assert.Equal(t, 1, summary.Medium)
-	assert.Equal(t, 0, summary.Low)
-	assert.True(t, summary.HasRisks())
-	assert.Equal(t, weightHigh+weightMedium, summary.Score)
-	// TopRisks uses tier-based prioritization: only high-impact items are included
-	// when high-impact changes exist (medium items are excluded).
-	require.Len(t, summary.TopRisks, 1)
-	assert.Equal(t, "high", summary.TopRisks[0].Impact)
-}
-
 func TestSummarizeScored(t *testing.T) {
 	t.Parallel()
 
-	// SummarizeScored mirrors ScoreAll but skips pattern matching — callers
+	// SummarizeScored aggregates pre-scored risks without pattern matching — callers
 	// supply the already-computed Impact. Arrange a mix of high/medium/low
 	// items plus an unscored one and assert tier-based TopRisks prioritization.
 	risks := []ScoredRisk{
@@ -193,6 +155,52 @@ func TestSummarizeScored_MediumOnly(t *testing.T) {
 	require.Len(t, summary.TopRisks, 2)
 }
 
+func TestSummarizeScored_MediumsFirstThenHigh(t *testing.T) {
+	t.Parallel()
+
+	// Tier-prioritization must hold regardless of input order: mediums that
+	// arrive before the first high must be evicted from TopRisks once that
+	// high is recorded, not left in place crowding it out.
+	risks := []ScoredRisk{
+		{Path: "a", Description: "d-a", Impact: "medium"},
+		{Path: "b", Description: "d-b", Impact: "medium"},
+		{Path: "c", Description: "d-c", Impact: "high"},
+	}
+
+	summary := SummarizeScored(risks)
+
+	assert.Equal(t, 1, summary.High)
+	assert.Equal(t, 2, summary.Medium)
+	require.Len(t, summary.TopRisks, 1)
+	assert.Equal(t, "high", summary.TopRisks[0].Impact)
+	assert.Equal(t, "c", summary.TopRisks[0].Path)
+}
+
+func TestSummarizeScored_MediumsFillCapThenHigh(t *testing.T) {
+	t.Parallel()
+
+	// Enough mediums to fill maxTopRisks arrive first; the high that follows
+	// must still appear in TopRisks rather than being dropped because the cap
+	// was already reached by mediums.
+	risks := make([]ScoredRisk, 0, maxTopRisks+1)
+	for i := range maxTopRisks {
+		risks = append(risks, ScoredRisk{
+			Path:        "medium-" + strconv.Itoa(i),
+			Description: "medium change",
+			Impact:      "medium",
+		})
+	}
+	risks = append(risks, ScoredRisk{Path: "the-high", Description: "high change", Impact: "high"})
+
+	summary := SummarizeScored(risks)
+
+	assert.Equal(t, 1, summary.High)
+	assert.Equal(t, maxTopRisks, summary.Medium)
+	require.Len(t, summary.TopRisks, 1)
+	assert.Equal(t, "high", summary.TopRisks[0].Impact)
+	assert.Equal(t, "the-high", summary.TopRisks[0].Path)
+}
+
 func TestSummarizeScored_Empty(t *testing.T) {
 	t.Parallel()
 
@@ -201,46 +209,6 @@ func TestSummarizeScored_Empty(t *testing.T) {
 	assert.False(t, summary.HasRisks())
 	assert.Equal(t, 0, summary.Score)
 	assert.Empty(t, summary.TopRisks)
-}
-
-func TestScorer_ScoreAll_NoRisks(t *testing.T) {
-	scorer := NewScorer()
-
-	changes := []ChangeInput{
-		{
-			Type:        "modified",
-			Section:     "system",
-			Path:        "system.hostname",
-			Description: "Hostname changed",
-		},
-	}
-
-	summary := scorer.ScoreAll(changes)
-
-	assert.False(t, summary.HasRisks())
-	assert.Equal(t, 0, summary.Score)
-	assert.Empty(t, summary.TopRisks)
-}
-
-func TestNewScorerWithPatterns(t *testing.T) {
-	custom := []Pattern{
-		{
-			Name:      "custom-pattern",
-			Section:   "system",
-			PathRegex: regexp.MustCompile(`system\.hostname`),
-			Impact:    "high",
-		},
-	}
-
-	scorer := NewScorerWithPatterns(custom)
-
-	change := ChangeInput{
-		Type:    "modified",
-		Section: "system",
-		Path:    "system.hostname",
-	}
-
-	assert.Equal(t, "high", scorer.Score(change))
 }
 
 func TestHigherImpact(t *testing.T) {
@@ -261,15 +229,4 @@ func TestHigherImpact(t *testing.T) {
 			assert.Equal(t, tt.expected, higherImpact(tt.a, tt.b))
 		})
 	}
-}
-
-func TestRiskSummary_HasRisks(t *testing.T) {
-	assert.False(t, (&RiskSummary{}).HasRisks())
-	assert.True(t, (&RiskSummary{High: 1}).HasRisks())
-	assert.True(t, (&RiskSummary{Medium: 1}).HasRisks())
-	assert.True(t, (&RiskSummary{Low: 1}).HasRisks())
-
-	// Nil receiver should not panic
-	var nilSummary *RiskSummary
-	assert.False(t, nilSummary.HasRisks())
 }

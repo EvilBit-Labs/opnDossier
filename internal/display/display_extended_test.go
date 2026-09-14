@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,19 +88,6 @@ func TestNewTerminalDisplayWithOptionsWrapWidth(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestNewTerminalDisplayWithThemeDeprecated(t *testing.T) {
-	t.Parallel()
-
-	// Test deprecated function
-	theme := DarkTheme()
-	td := NewTerminalDisplayWithTheme(theme)
-
-	assert.NotNil(t, td)
-	assert.Equal(t, theme.Name, td.options.Theme.Name)
-	// Should use getTerminalWidth for wrap width
-	assert.Positive(t, td.options.WrapWidth)
 }
 
 func TestWrapMarkdownContentEdgeCases(t *testing.T) {
@@ -256,23 +242,6 @@ func TestWrapRenderedLineWithANSI(t *testing.T) {
 	assert.Contains(t, joined, "\x1b[1m", "Bold ANSI sequence should be preserved")
 }
 
-func TestThemeApplyTheme(t *testing.T) {
-	t.Parallel()
-
-	theme := LightTheme()
-
-	// Create a dummy lipgloss style
-	style := lipgloss.NewStyle()
-
-	// Test applying a color that exists
-	newStyle := theme.ApplyTheme(style, "primary")
-	assert.NotNil(t, newStyle)
-
-	// Test applying a color that doesn't exist
-	newStyle2 := theme.ApplyTheme(style, "nonexistent")
-	assert.NotNil(t, newStyle2)
-}
-
 func TestGetTerminalWidthWithInvalidColumns(t *testing.T) {
 	// Can't use t.Parallel() because we're setting environment variables
 
@@ -347,39 +316,6 @@ func TestPerInstanceRendererBehavior(t *testing.T) {
 	assert.NotSame(t, td1.renderer, td2.renderer)
 }
 
-func TestContextChecking(t *testing.T) {
-	t.Parallel()
-
-	td := NewTerminalDisplay()
-
-	// Test with non-cancelled context
-	ctx := context.Background()
-	err := td.checkContext(ctx)
-	require.NoError(t, err)
-
-	// Test with cancelled context
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err = td.checkContext(cancelCtx)
-	require.ErrorIs(t, err, context.Canceled)
-}
-
-func TestProgressWithNilProgress(t *testing.T) {
-	t.Parallel()
-
-	// Create display with nil progress
-	td := &TerminalDisplay{
-		options:  &Options{Theme: LightTheme()},
-		progress: nil,
-	}
-
-	// ShowProgress should handle nil progress gracefully
-	assert.NotPanics(t, func() {
-		td.ShowProgress(0.5, "test")
-	})
-}
-
 func TestAutoDetectThemeHeuristics(t *testing.T) {
 	// Can't use t.Parallel() because we're setting environment variables
 
@@ -433,23 +369,6 @@ func TestDisplayErrorHandling(t *testing.T) {
 
 	err := td.Display(ctx, "# Test Content")
 	require.ErrorIs(t, err, context.Canceled)
-}
-
-func TestProgressEventStructure(t *testing.T) {
-	t.Parallel()
-
-	event := ProgressEvent{
-		Percent: 0.75,
-		Message: "Processing data",
-	}
-
-	assert.InDelta(t, 0.75, event.Percent, 0.01)
-	assert.Equal(t, "Processing data", event.Message)
-
-	// Test zero values
-	zeroEvent := ProgressEvent{}
-	assert.Zero(t, zeroEvent.Percent)
-	assert.Empty(t, zeroEvent.Message)
 }
 
 func TestGetThemeByNameEdgeCases(t *testing.T) {

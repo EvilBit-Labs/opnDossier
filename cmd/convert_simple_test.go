@@ -3,12 +3,16 @@ package cmd
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/config"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter"
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 )
 
 // TestDetermineOutputPathSimple covers destination resolution. Overwrite
@@ -35,6 +39,13 @@ func TestDetermineOutputPathSimple(t *testing.T) {
 }
 
 // TestGenerateOutputByFormatSimple tests the format-based generation.
+//
+// generateOutputByFormat (formerly exercised here directly) had no production
+// caller — every real caller in cmd/convert.go resolves the handler via
+// converter.DefaultRegistry.Get and generates via
+// generateWithProgrammaticGenerator as two separate steps, never through a
+// combining wrapper — so it was removed. This test now exercises those two
+// steps the same way production does.
 func TestGenerateOutputByFormatSimple(t *testing.T) {
 	logger, err := logging.New(logging.Config{})
 	if err != nil {
@@ -55,12 +66,9 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		Theme:  converter.ThemeAuto,
 	}
 
-	result, handler, err := generateOutputByFormat(ctx, device, opt, logger)
+	handler, err := converter.DefaultRegistry.Get(string(opt.Format))
 	if err != nil {
-		t.Errorf("Unexpected error for markdown: %v", err)
-	}
-	if result == "" {
-		t.Errorf("Expected non-empty result for markdown")
+		t.Errorf("Unexpected error resolving markdown handler: %v", err)
 	}
 	if handler == nil {
 		t.Errorf("Expected non-nil handler for markdown")
@@ -68,14 +76,20 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		t.Errorf("Expected .md extension, got: %s", handler.FileExtension())
 	}
 
+	result, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
+	if err != nil {
+		t.Errorf("Unexpected error for markdown: %v", err)
+	}
+	if result == "" {
+		t.Errorf("Expected non-empty result for markdown")
+	}
+
 	// Test JSON format - programmatic generation should succeed
 	opt.Format = converter.FormatJSON
-	jsonResult, jsonHandler, err := generateOutputByFormat(ctx, device, opt, logger)
+
+	jsonHandler, err := converter.DefaultRegistry.Get(string(opt.Format))
 	if err != nil {
-		t.Errorf("JSON format should succeed with programmatic generator: %v", err)
-	}
-	if jsonResult == "" {
-		t.Errorf("Expected non-empty result for JSON format")
+		t.Errorf("Unexpected error resolving JSON handler: %v", err)
 	}
 	if jsonHandler == nil {
 		t.Errorf("Expected non-nil handler for JSON")
@@ -83,17 +97,63 @@ func TestGenerateOutputByFormatSimple(t *testing.T) {
 		t.Errorf("Expected .json extension, got: %s", jsonHandler.FileExtension())
 	}
 
+	jsonResult, err := generateWithProgrammaticGenerator(ctx, device, opt, logger)
+	if err != nil {
+		t.Errorf("JSON format should succeed with programmatic generator: %v", err)
+	}
+	if jsonResult == "" {
+		t.Errorf("Expected non-empty result for JSON format")
+	}
+
 	// Test unknown format (should return an error)
-	opt.Format = converter.Format("unknown")
-	_, unknownHandler, err := generateOutputByFormat(ctx, device, opt, logger)
+	_, err = converter.DefaultRegistry.Get("unknown")
 	if err == nil {
 		t.Errorf("Expected error for unknown format, got nil")
-	} else if !errors.Is(err, ErrUnsupportedOutputFormat) {
-		t.Errorf("Expected ErrUnsupportedOutputFormat, got: %v", err)
+	} else if !errors.Is(err, converter.ErrUnsupportedFormat) {
+		t.Errorf("Expected converter.ErrUnsupportedFormat, got: %v", err)
 	}
-	if unknownHandler != nil {
-		t.Errorf("Expected nil handler for unknown format, got: %v", unknownHandler)
+}
+
+// TestRunConvert_UnsupportedFormat verifies that runConvert itself — not just
+// the registry — surfaces ErrUnsupportedOutputFormat for an unrecognized
+// --format value. This is the only remaining production call site that wraps
+// the registry's rejection in ErrUnsupportedOutputFormat (the other call site
+// was inside the now-deleted generateOutputByFormat), so it is the one place
+// left that can prove this cmd-level sentinel still fires.
+func TestRunConvert_UnsupportedFormat(t *testing.T) {
+	// No t.Parallel: forbidden throughout cmd/ (GOTCHAS 1.1), since the
+	// package binds CLI flags to globals.
+	fixture := filepath.Join("..", "testdata", "sample.config.1.xml")
+	if _, err := os.Stat(fixture); os.IsNotExist(err) {
+		t.Fatal("required testdata not available, ensure testdata/ is checked out")
 	}
+
+	sharedSnap := captureSharedFlags()
+	t.Cleanup(sharedSnap.restore)
+
+	origFormat, origOutput, origForce := format, outputFile, force
+	t.Cleanup(func() {
+		format, outputFile, force = origFormat, origOutput, origForce
+	})
+
+	format = "bogus-format"
+	outputFile = ""
+	force = true
+
+	testLogger, err := logging.New(logging.Config{Level: "error"})
+	require.NoError(t, err)
+
+	cmd := &cobra.Command{Use: "test"}
+	cmd.SetContext(context.Background())
+	//nolint:staticcheck // SA1019: exercising deprecated flat field for backward-compat coverage.
+	SetCommandContext(cmd, &CommandContext{
+		Config: &config.Config{Format: "bogus-format"},
+		Logger: testLogger,
+	})
+
+	err = runConvert(cmd, []string{fixture})
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrUnsupportedOutputFormat)
 }
 
 // TestGenerateWithProgrammaticGeneratorSimple tests the programmatic generator function.

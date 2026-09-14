@@ -73,7 +73,7 @@ func goldenTestCases() []goldenTestCase {
 
 // newGoldie creates a goldie instance for byte-for-byte golden file comparison.
 //
-// Determinism comes from builder.WithGeneratedTime and builder.WithVersion
+// Determinism comes from setting builder.Generated and builder.ToolVersion
 // (see createDeterministicBuilder below) — no post-hoc regex normalization
 // is applied. Every byte emitted by the builder must be reproducible across
 // machines.
@@ -154,9 +154,9 @@ func TestGolden_HybridGeneratorProgrammaticMode(t *testing.T) {
 			require.NoError(t, err)
 
 			// Configure options for programmatic mode (no template flags)
-			opts := DefaultOptions().
-				WithComprehensive(tc.comprehensive).
-				WithSuppressWarnings(true)
+			opts := DefaultOptions()
+			opts.Comprehensive = tc.comprehensive
+			opts.SuppressWarnings = true
 
 			// Generate via HybridGenerator
 			hybridOutput, err := hybridGen.Generate(context.Background(), testData, opts)
@@ -171,7 +171,7 @@ func TestGolden_HybridGeneratorProgrammaticMode(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// Both outputs are deterministic via WithGeneratedTime/WithVersion,
+			// Both outputs are deterministic via the fixed Generated/ToolVersion fields,
 			// so they should be byte-for-byte identical.
 			assert.Equal(t, directOutput, hybridOutput,
 				"HybridGenerator programmatic output should match direct builder output")
@@ -253,10 +253,11 @@ func verifyReportStructure(t *testing.T, output string, comprehensive bool) {
 func createDeterministicBuilder(t *testing.T) *builder.MarkdownBuilder {
 	t.Helper()
 
-	return builder.NewMarkdownBuilder(
-		builder.WithGeneratedTime(goldenGeneratedTime),
-		builder.WithVersion(goldenToolVersion),
-	)
+	b := builder.NewMarkdownBuilder()
+	b.Generated = goldenGeneratedTime
+	b.ToolVersion = goldenToolVersion
+
+	return b
 }
 
 // TestGolden_ConsistencyAcrossRuns ensures that multiple runs produce identical output.

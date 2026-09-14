@@ -106,8 +106,8 @@ func TestHybridGenerator_GenerateHTML(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatHTML)
-
+	opts := DefaultOptions()
+	opts.Format = FormatHTML
 	output, err := gen.Generate(context.Background(), doc, opts)
 	require.NoError(t, err)
 	assert.Contains(t, output, "<!DOCTYPE html>")
@@ -122,8 +122,8 @@ func TestHybridGenerator_GenerateHTMLToWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatHTML)
-
+	opts := DefaultOptions()
+	opts.Format = FormatHTML
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -142,8 +142,8 @@ func TestHybridGenerator_GenerateJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatJSON)
-
+	opts := DefaultOptions()
+	opts.Format = FormatJSON
 	output, err := gen.Generate(context.Background(), doc, opts)
 	require.NoError(t, err)
 	assert.Contains(t, output, "{")
@@ -157,8 +157,8 @@ func TestHybridGenerator_GenerateJSONToWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatJSON)
-
+	opts := DefaultOptions()
+	opts.Format = FormatJSON
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -172,8 +172,8 @@ func TestHybridGenerator_GenerateYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatYAML)
-
+	opts := DefaultOptions()
+	opts.Format = FormatYAML
 	output, err := gen.Generate(context.Background(), doc, opts)
 	require.NoError(t, err)
 	assert.NotEmpty(t, output)
@@ -186,8 +186,8 @@ func TestHybridGenerator_GenerateYAMLToWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatYAML)
-
+	opts := DefaultOptions()
+	opts.Format = FormatYAML
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -201,8 +201,8 @@ func TestHybridGenerator_GenerateMarkdownToWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
-
+	opts := DefaultOptions()
+	opts.Format = FormatMarkdown
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -229,7 +229,8 @@ func TestHybridGenerator_Generate_NilData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			opts := DefaultOptions().WithFormat(tt.format)
+			opts := DefaultOptions()
+			opts.Format = tt.format
 			_, err := gen.Generate(context.Background(), nil, opts)
 			require.Error(t, err)
 			assert.ErrorIs(t, err, ErrNilDevice)
@@ -258,7 +259,8 @@ func TestHybridGenerator_GenerateToWriter_NilData(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var buf bytes.Buffer
-			opts := DefaultOptions().WithFormat(tt.format)
+			opts := DefaultOptions()
+			opts.Format = tt.format
 			err := gen.GenerateToWriter(context.Background(), &buf, nil, opts)
 			require.Error(t, err)
 			assert.ErrorIs(t, err, ErrNilDevice)
@@ -273,8 +275,8 @@ func TestHybridGenerator_Generate_InvalidOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat("invalid_format")
-
+	opts := DefaultOptions()
+	opts.Format = "invalid_format"
 	_, err = gen.Generate(context.Background(), doc, opts)
 	require.Error(t, err)
 }
@@ -286,8 +288,8 @@ func TestHybridGenerator_GenerateToWriter_InvalidOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat("invalid_format")
-
+	opts := DefaultOptions()
+	opts.Format = "invalid_format"
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.Error(t, err)
@@ -313,8 +315,8 @@ func TestHybridGenerator_Generate_NilBuilder(t *testing.T) {
 			gen.SetBuilder(nil)
 
 			doc := &common.CommonDevice{}
-			opts := DefaultOptions().WithFormat(tt.format)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
 			_, err = gen.Generate(context.Background(), doc, opts)
 			require.Error(t, err)
 		})
@@ -341,8 +343,8 @@ func TestHybridGenerator_GenerateToWriter_NilBuilder(t *testing.T) {
 			gen.SetBuilder(nil)
 
 			doc := &common.CommonDevice{}
-			opts := DefaultOptions().WithFormat(tt.format)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
 			var buf bytes.Buffer
 			err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 			require.Error(t, err)
@@ -415,8 +417,8 @@ func TestHybridGenerator_GenerateMarkdownToWriter_FallbackPath(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
-
+	opts := DefaultOptions()
+	opts.Format = FormatMarkdown
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -430,7 +432,8 @@ func TestHybridGenerator_GenerateMarkdownToWriter_ComprehensiveStreaming(t *test
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatMarkdown)
+	opts := DefaultOptions()
+	opts.Format = FormatMarkdown
 	opts.Comprehensive = true
 
 	var buf bytes.Buffer
@@ -448,7 +451,8 @@ func TestHybridGenerator_Generate_UnsupportedFormat(t *testing.T) {
 
 	// Use a format that passes Validate() but isn't handled by Generate.
 	// Currently all valid formats are handled, so test with an invalid one.
-	opts := DefaultOptions().WithFormat("invalid")
+	opts := DefaultOptions()
+	opts.Format = "invalid"
 	_, err = gen.Generate(context.Background(), doc, opts)
 	require.Error(t, err)
 }
@@ -460,7 +464,8 @@ func TestHybridGenerator_GenerateToWriter_UnsupportedFormat(t *testing.T) {
 	require.NoError(t, err)
 	doc := &common.CommonDevice{}
 
-	opts := DefaultOptions().WithFormat("invalid")
+	opts := DefaultOptions()
+	opts.Format = "invalid"
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.Error(t, err)
@@ -486,8 +491,8 @@ func TestHybridGenerator_GenerateToWriter_WriteError(t *testing.T) {
 			require.NoError(t, err)
 
 			doc := &common.CommonDevice{}
-			opts := DefaultOptions().WithFormat(tt.format)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
 			err = gen.GenerateToWriter(context.Background(), &errWriter{}, doc, opts)
 			require.Error(t, err)
 		})
@@ -501,8 +506,8 @@ func TestHybridGenerator_GenerateText(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatText)
-
+	opts := DefaultOptions()
+	opts.Format = FormatText
 	output, err := gen.Generate(context.Background(), doc, opts)
 	require.NoError(t, err)
 	assert.NotEmpty(t, output)
@@ -517,8 +522,8 @@ func TestHybridGenerator_GenerateTextToWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	doc := &common.CommonDevice{}
-	opts := DefaultOptions().WithFormat(FormatText)
-
+	opts := DefaultOptions()
+	opts.Format = FormatText
 	var buf bytes.Buffer
 	err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 	require.NoError(t, err)
@@ -568,8 +573,9 @@ func TestHybridGenerator_Generate_RedactMarkdownFormats(t *testing.T) {
 			require.NoError(t, err)
 
 			doc := newRedactTestDevice()
-			opts := DefaultOptions().WithFormat(tt.format).WithRedact(tt.redact)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
+			opts.Redact = tt.redact
 			output, err := gen.Generate(context.Background(), doc, opts)
 			require.NoError(t, err)
 
@@ -622,8 +628,9 @@ func TestHybridGenerator_GenerateToWriter_RedactMarkdownFormats(t *testing.T) {
 			require.NoError(t, err)
 
 			doc := newRedactTestDevice()
-			opts := DefaultOptions().WithFormat(tt.format).WithRedact(tt.redact)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
+			opts.Redact = tt.redact
 			var buf bytes.Buffer
 			err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 			require.NoError(t, err)
@@ -669,8 +676,9 @@ func TestHybridGenerator_Generate_RedactJSONYAML(t *testing.T) {
 			require.NoError(t, err)
 
 			doc := newRedactTestDevice()
-			opts := DefaultOptions().WithFormat(tt.format).WithRedact(true)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
+			opts.Redact = true
 			output, err := gen.Generate(context.Background(), doc, opts)
 			require.NoError(t, err)
 
@@ -709,8 +717,9 @@ func TestHybridGenerator_GenerateToWriter_RedactJSONYAML(t *testing.T) {
 			require.NoError(t, err)
 
 			doc := newRedactTestDevice()
-			opts := DefaultOptions().WithFormat(tt.format).WithRedact(true)
-
+			opts := DefaultOptions()
+			opts.Format = tt.format
+			opts.Redact = true
 			var buf bytes.Buffer
 			err = gen.GenerateToWriter(context.Background(), &buf, doc, opts)
 			require.NoError(t, err)
@@ -772,8 +781,8 @@ func TestHybridGenerator_Generate_RespectsCanceledContext(t *testing.T) {
 			require.NoError(t, err)
 
 			doc := largeFixture(10_000)
-			opts := DefaultOptions().WithFormat(format)
-
+			opts := DefaultOptions()
+			opts.Format = format
 			start := time.Now()
 			_, err = gen.Generate(ctx, doc, opts)
 			dur := time.Since(start)
@@ -803,8 +812,8 @@ func TestHybridGenerator_GenerateToWriter_RespectsCanceledContext(t *testing.T) 
 			require.NoError(t, err)
 
 			doc := largeFixture(10_000)
-			opts := DefaultOptions().WithFormat(format)
-
+			opts := DefaultOptions()
+			opts.Format = format
 			start := time.Now()
 			err = gen.GenerateToWriter(ctx, io.Discard, doc, opts)
 			dur := time.Since(start)

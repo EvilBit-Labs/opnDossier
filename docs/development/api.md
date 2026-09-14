@@ -407,14 +407,6 @@ Warnings differ from errors in that they indicate data quality issues or missing
 
 ## Converter Package (internal/converter)
 
-### Converter Interface
-
-```go
-type Converter interface {
-    ToMarkdown(ctx context.Context, data *common.CommonDevice) (string, error)
-}
-```
-
 ### Generator Interface
 
 ```go

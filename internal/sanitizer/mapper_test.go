@@ -323,30 +323,6 @@ func TestMapAuthServerValue_UnknownField(t *testing.T) {
 	}
 }
 
-func TestReset(t *testing.T) {
-	m := NewMapper()
-
-	// Add some mappings
-	m.MapPublicIP("8.8.8.8")
-	m.MapHostname("test.example.com")
-	m.MapUsername("admin")
-
-	// Reset
-	m.Reset()
-
-	// Counters should be reset, so new mappings start from 1
-	result := m.MapPublicIP("1.1.1.1")
-	if result != expectedPublicIP1 {
-		t.Errorf("After Reset, MapPublicIP = %q, want %q", result, expectedPublicIP1)
-	}
-
-	// Same IP as before reset should get new mapping
-	result2 := m.MapPublicIP("8.8.8.8")
-	if result2 != expectedPublicIP2 {
-		t.Errorf("After Reset, previously mapped IP = %q, want %q", result2, expectedPublicIP2)
-	}
-}
-
 func TestGenerateReport(t *testing.T) {
 	m := NewMapper()
 

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNew_SupportedFormats(t *testing.T) {
+func TestNewWithMode_SupportedFormats(t *testing.T) {
 	tests := []struct {
 		name   string
 		format string
@@ -24,7 +24,7 @@ func TestNew_SupportedFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			f, err := New(tt.format, &buf)
+			f, err := NewWithMode(tt.format, ModeUnified, &buf)
 			require.NoError(t, err)
 			assert.NotNil(t, f)
 		})
@@ -50,9 +50,9 @@ func TestNewWithMode_UnifiedDefault(t *testing.T) {
 	assert.True(t, ok, "expected TerminalFormatter for terminal unified")
 }
 
-func TestNew_UnsupportedFormat(t *testing.T) {
+func TestNewWithMode_UnsupportedFormat(t *testing.T) {
 	var buf bytes.Buffer
-	f, err := New("xml", &buf)
+	f, err := NewWithMode("xml", ModeUnified, &buf)
 	assert.Nil(t, f)
 	require.ErrorContains(t, err, "unsupported format")
 }
