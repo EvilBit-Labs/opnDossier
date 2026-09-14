@@ -325,13 +325,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// ValidateV2 validates the configuration and returns detailed MultiValidationError
-// with suggestions and context for better error reporting.
-func (c *Config) ValidateV2() *MultiValidationError {
-	validator := NewValidator(c)
-	return validator.Validate()
-}
-
 // convertToLegacyError converts MultiValidationError to a legacy ValidationError format.
 func convertToLegacyError(errs *MultiValidationError) error {
 	if errs == nil || !errs.HasErrors() {

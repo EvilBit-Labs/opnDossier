@@ -1,0 +1,145 @@
+# deadcode_allowlist.txt -- exemptions for the unreachable-symbol guard
+# (internal/deadcode_test.go, run by `just deadcode-check`).
+#
+# `deadcode -test=false ./...` lists every function unreachable from the
+# shipped binary's call graph. This file is the only thing that may keep a
+# listed symbol out of a CI failure. An entry with no class or no reason is a
+# defect the guard itself rejects (R8); an entry naming a symbol that is no
+# longer in the current unreachable output -- deleted, renamed, or made
+# reachable -- is stale and also rejected (R11).
+#
+# Format: one entry per line, four "|"-delimited fields:
+#   <package import path>|<Symbol or Receiver.Method>|<class>|<reason>
+#
+# Classes (KTD3 -- no other value is accepted):
+#   reflection-dispatched   -- called only via encoding/xml, encoding/json,
+#                               yaml.v3, or fmt's %v/%s (Stringer); deadcode's
+#                               static RTA call graph cannot see the call.
+#   test-time-safety-gate   -- code whose whole job is to be run against
+#                               generated output by a test (e.g. a redaction
+#                               or markdown-validity assertion helper).
+#   public-surface          -- deliberately-retained public API, out of scope
+#                               for this sweep by Key Decision (session-settled:
+#                               the pkg/schema public surface is snapshot-locked
+#                               by d20d8535 and the dynamic plugin loader is a
+#                               deliberate open-core seam).
+#
+# Do NOT add an entry here because "nothing calls it any more" inside
+# internal/ or cmd/ -- delete the function instead. This file exists to
+# exempt code that is unreachable BY DESIGN, not to launder dead code back
+# into a passing build. See docs/plans/2026-09-08-2250-refactor-dead-surface-
+# cleanup-plan.md and GOTCHAS.md.
+
+# Reflection-dispatched: Stringer implementations reached only through fmt's %v/%s, and
+# encoding/xml + encoding/json + yaml.v3 codec methods on shared.FlexBool / shared.FlexInt.
+github.com/EvilBit-Labs/opnDossier/internal/analysis|Severity.String|reflection-dispatched|fmt's %v/%s verbs invoke Stringer via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/internal/analysis|Confidence.String|reflection-dispatched|fmt's %v/%s verbs invoke Stringer via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/internal/analysis|Coverage.String|reflection-dispatched|fmt's %v/%s verbs invoke Stringer via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/internal/diff|SecurityImpact.String|reflection-dispatched|fmt's %v/%s verbs invoke Stringer via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|RuleLocation.String|reflection-dispatched|fmt's %v/%s verbs invoke Stringer via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.UnmarshalXML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.MarshalXML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.UnmarshalJSON|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.MarshalJSON|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.UnmarshalYAML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.MarshalYAML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.UnmarshalXML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.MarshalXML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.UnmarshalJSON|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.MarshalJSON|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.UnmarshalYAML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.MarshalYAML|reflection-dispatched|encoding/xml, encoding/json, and yaml.v3 invoke Marshal*/Unmarshal* via reflection; never a static call deadcode's RTA can see
+
+# Deliberately-retained public surface: the pkg/ holdout (Key Decision). Zero-value
+# New* constructors, accessor methods, and small helpers on the snapshot-locked
+# pkg/schema and pkg/parser public API.
+github.com/EvilBit-Labs/opnDossier/pkg/model|ValidSeverities|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/model|IsValidSeverity|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/parser|NewFactoryWithRegistry|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/parser|NewSecureXMLDecoder|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense|ConvertDocument|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense|IsKnownGap|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense|KnownGaps|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense|ConvertDocument|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|RuleLocation.IsAny|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewDhcpdInterface|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewNetworkConfig|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewVLANs|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewBridges|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewGateways|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewGatewayGroup|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewStaticRoutes|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewOpnSenseDocument|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewPackage|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewService|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewIDS|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewSecurityConfig|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewFirewall|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewIPsec|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewSwanctl|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewDNSMasq|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewDNSMasqHost|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewSyslog|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewMonit|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewSystemConfig|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewUser|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewOpenVPN|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewClientExport|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewOpenVPNExport|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewOpenVPNSystem|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense|NewWireGuard|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense|NewDocument|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense|NewSystem|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/pfsense|NewIPsec|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|IsValueFalse|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexBool.Bool|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.Int|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+github.com/EvilBit-Labs/opnDossier/pkg/schema/shared|FlexInt.parse|public-surface|pkg/ public API surface held out of this sweep (Key Decision: schema constructors are snapshot-locked by d20d8535)
+
+# Test-time safety gates: code whose only job is to be run against generated
+# output by a test. Not dead -- these are the actual enforcement mechanism
+# for a safety invariant (redaction-safe exploit notes, valid markdown
+# output), exercised by tests that generate real output and assert on it.
+github.com/EvilBit-Labs/opnDossier/internal/audit|FindInstructionalContent|test-time-safety-gate|scans generated ExploitNote text for weaponized/step-by-step instructional content; exercised only by exploit_notes_test.go and mode_controller_red_test.go running it over actual generated red-mode notes, which is the enforcement mechanism for the red-mode safety invariant, not test-only dead code
+github.com/EvilBit-Labs/opnDossier/internal/converter|ValidateMarkdown|test-time-safety-gate|asserts generated markdown parses; exercised only by internal/converter/builder/writer_test.go and internal/export/file_test.go running it over actual generated report output, which is the enforcement mechanism for the markdown-validity invariant, not test-only dead code
+
+# Reflection-dispatched: error interface implementations reached only through
+# fmt's %v/%s verbs or structured-logger argument formatting, never a static
+# .Error() call deadcode's RTA can see. All three sit on the reachable
+# Config.Validate / ValidateOpnSenseDocument paths -- MultiValidationError and
+# FieldValidationError are constructed and returned as `error` by
+# internal/config's convertToLegacyError, and validator.ValidationError by
+# ValidateOpnSenseDocument -- so the type is live; only the interface-method
+# call is invisible to static analysis.
+github.com/EvilBit-Labs/opnDossier/internal/config|FieldValidationError.Error|reflection-dispatched|implements error; reached only via fmt %v/%s or a structured logger formatting the value returned by internal/config's reachable Config.Validate path, never a static .Error() call
+github.com/EvilBit-Labs/opnDossier/internal/config|MultiValidationError.Error|reflection-dispatched|implements error; reached only via fmt %v/%s or a structured logger formatting the value returned by internal/config's reachable Config.Validate path, never a static .Error() call
+github.com/EvilBit-Labs/opnDossier/internal/validator|ValidationError.Error|reflection-dispatched|implements error; reached only via fmt %v/%s or a structured logger formatting the value returned by the reachable ValidateOpnSenseDocument path, never a static .Error() call
+
+# Deliberately-retained public surface: internal/sanitizer's SanitizeStruct
+# reflection path (GOTCHAS §14.4). SanitizeStruct is a documented opt-in
+# alternative to the CLI's default SanitizeXML raw-element walk -- the CLI
+# never calls it, but it is kept as a struct-based entry point for in-module
+# consumers, with a known, tracked gap (struct/pointer-valued maps) rather
+# than a bug. Its whole recursive helper chain (sanitizeReflect ->
+# sanitizeReflectStruct / sanitizeReflectMap, plus the two path-building
+# helpers) is unreachable as a unit for the same reason.
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.SanitizeStruct|public-surface|opt-in reflection-based alternative to the CLI's SanitizeXML path (GOTCHAS §14.4); no production caller but deliberately retained with a documented, tracked gap
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.SetLogger|public-surface|only consumer is SanitizeStruct's reflection path, which logs via this injected logger when it hits the struct/pointer-valued-map gap (GOTCHAS §14.4)
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.sanitizeReflect|public-surface|recursive core of SanitizeStruct's reflection path (GOTCHAS §14.4); reachable only from SanitizeStruct
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.sanitizeReflectStruct|public-surface|struct-field branch of SanitizeStruct's reflection walk (GOTCHAS §14.4); reachable only from sanitizeReflect
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|Sanitizer.sanitizeReflectMap|public-surface|map-value branch of SanitizeStruct's reflection walk, and the exact code that detects and warns on the struct/pointer-valued-map gap GOTCHAS §14.4 documents
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|reflectFieldSegment|public-surface|path-segment helper used only by SanitizeStruct's reflection walk (GOTCHAS §14.4)
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|joinReflectPath|public-surface|path-materialization helper used only by SanitizeStruct's reflection walk (GOTCHAS §14.4)
+
+# Deliberately-retained public surface: RuleEngine's name-only and one-call
+# convenience methods. Not part of the SanitizeStruct reflection chain above
+# (sanitizeValue calls ShouldRedactValue/RedactWithRule, not these) and not
+# covered by GOTCHAS §14.4 -- kept on separate evidence. ShouldRedactField's
+# own doc comment (internal/sanitizer/rules.go) states it is "kept for
+# name-only pattern queries and currently has no caller outside tests"; Redact
+# is the symmetric one-call wrapper around the ShouldRedactValue/RedactWithRule
+# pair production code uses via the two-step form (for statistics tracking),
+# kept for the same opt-in-consumer-API reason as its documented sibling.
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|RuleEngine.ShouldRedactField|public-surface|kept for name-only pattern queries per its own doc comment in rules.go; no caller outside tests by design, distinct from the value-aware ShouldRedactFieldValue production code must use
+github.com/EvilBit-Labs/opnDossier/internal/sanitizer|RuleEngine.Redact|public-surface|one-call convenience wrapper around the ShouldRedactValue/RedactWithRule pair production code uses via the two-step form; kept as the public single-call counterpart to the exported RedactWithRule
+

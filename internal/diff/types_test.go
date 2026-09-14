@@ -66,14 +66,6 @@ func TestSection_String(t *testing.T) {
 	}
 }
 
-func TestAllSections(t *testing.T) {
-	sections := AllSections()
-	assert.Len(t, sections, 11)
-	assert.Contains(t, sections, SectionSystem)
-	assert.Contains(t, sections, SectionFirewall)
-	assert.Contains(t, sections, SectionNAT)
-}
-
 func TestNewResult(t *testing.T) {
 	result := NewResult()
 	require.NotNil(t, result)

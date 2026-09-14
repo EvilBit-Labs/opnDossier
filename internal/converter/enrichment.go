@@ -25,66 +25,6 @@ func computePerformanceMetrics(stats *common.Statistics) *common.PerformanceMetr
 // redactedValue is the placeholder for sensitive fields in exported output.
 const redactedValue = "[REDACTED]"
 
-// EnrichForExport populates the read-only enrichment fields on data in place
-// when they are nil: DeviceType (defaulting to OPNsense), Statistics, Analysis,
-// SecurityAssessment, and PerformanceMetrics. ComplianceResults is left alone —
-// it is populated externally by the audit handler.
-//
-// EnrichForExport is the explicit memoization entry point for callers preparing
-// the same device for multiple format exports (e.g. JSON + YAML + Markdown).
-// analysis.ComputeStatistics and analysis.ComputeAnalysis are linear-or-worse
-// in the number of interfaces, rules, and services and dominate per-format
-// export time; calling EnrichForExport once before the format loop avoids
-// recomputing them per format. Subsequent prepareForExport calls reuse the
-// populated fields and skip the heavy work.
-//
-// SECURITY: EnrichForExport does not redact sensitive fields. The resulting
-// *CommonDevice carries plaintext secrets — most notably the SNMP community
-// string in Statistics.ServiceDetails — because analysis.ComputeStatistics
-// observes unredacted input by design (presence checks must see real values).
-// Callers MUST NOT marshal or log the device directly after EnrichForExport.
-// Always pass the device through prepareForExport (or a downstream Generator
-// that calls prepareForExport) so the redact branch can produce a clone with
-// the sensitive fields stripped.
-//
-// Redaction is per-export and is applied by prepareForExport on its shallow
-// copy. The Statistics pointer produced here is reused by every subsequent
-// prepareForExport call — the redact-path clones the Statistics struct before
-// mutating ServiceDetails so a pre-enriched device is safe to share across
-// redact=true and redact=false callers.
-//
-// CACHE INVALIDATION: EnrichForExport memoizes Statistics and Analysis as a
-// snapshot of the device at call time. If the caller mutates a field that
-// feeds those computations (e.g., device.SNMP.ROCommunity, FirewallRules,
-// Interfaces) after calling EnrichForExport, the cached values go stale and
-// subsequent exports will reflect the pre-mutation state. Re-call
-// EnrichForExport after clearing the affected enrichment field when the
-// underlying configuration changes between exports.
-//
-// Clearing Statistics is sufficient to invalidate the Statistics-derived
-// fields too: SecurityAssessment and PerformanceMetrics are recomputed
-// together with Statistics. To refresh Analysis, clear Analysis. The two
-// caches are independent.
-//
-// EnrichForExport is not safe for concurrent use on the same *CommonDevice.
-// Callers preparing one device for parallel format exports must call
-// EnrichForExport once before fanning out.
-//
-// EnrichForExport on a nil *CommonDevice is a documented no-op. Note that
-// the downstream prepareForExport will still panic on nil; callers must guard
-// nil at their own boundary (the JSONConverter / YAMLConverter wrappers and
-// HybridGenerator.Generate already do).
-//
-// NOTE: analysis.ComputeStatistics and analysis.ComputeAnalysis intentionally
-// receive the unredacted data so that presence checks (e.g., "is SNMP
-// configured?") see real values.
-func EnrichForExport(data *common.CommonDevice) {
-	if data == nil {
-		return
-	}
-	enrich(data)
-}
-
 // enrich populates the read-only enrichment fields on dst in place when nil.
 // Callers must invoke enrich before any redaction so analysis.ComputeStatistics
 // and analysis.ComputeAnalysis observe unredacted input. Callers must also
@@ -129,7 +69,7 @@ func enrich(dst *common.CommonDevice) {
 // [REDACTED]. When redact is false, sensitive fields are passed through as-is.
 //
 // prepareForExport does not mutate data. Callers that prepare the same device for
-// multiple format exports should call EnrichForExport first to memoize the
+// multiple format exports should call enrich first to memoize the
 // expensive Statistics and Analysis computations across calls.
 //
 // NOTE: analysis.ComputeStatistics and analysis.ComputeAnalysis intentionally receive
@@ -283,7 +223,7 @@ func redactInterfaceDHCPv6Secrets(cp *common.CommonDevice) {
 // ServiceDetails values are replaced with the redaction marker. It delegates to
 // analysis.RedactServiceDetails (the shared redaction primitive) and preserves a
 // non-mutating contract: when nothing is redacted the input pointer is returned
-// unchanged, so EnrichForExport can
+// unchanged, so enrich can
 // memoize a single Statistics across mixed redact=true and redact=false callers
 // without leaking redacted values into the caller's data. Only when redaction
 // occurs is the Statistics struct cloned around the already-cloned slice.

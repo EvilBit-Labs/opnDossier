@@ -13,12 +13,21 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/pool"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
+
+// escapeBufPool pools the scratch buffers used by escapeXMLText, which runs
+// once per XML text node / attribute value while streaming a whole
+// config.xml. Every checkout MUST start at zero length: this is a redaction
+// path, and a buffer that still held bytes from a prior config would leak
+// them into the next result.
+var escapeBufPool = sync.Pool{ //nolint:gochecknoglobals // scratch-buffer pool, no cross-call state
+	New: func() any { return new(bytes.Buffer) },
+}
 
 // Sanitizer orchestrates the redaction of sensitive data from OPNsense configuration.
 type Sanitizer struct {
@@ -759,8 +768,10 @@ func isXMLIllegalRune(r rune) bool {
 // xml.EscapeText only errors if the writer fails; bytes.Buffer.Write never fails,
 // so the error path is unreachable under normal conditions.
 func escapeXMLText(s string) string {
-	buf := pool.GetBytesBuffer()
-	defer pool.PutBytesBuffer(buf)
+	//nolint:errcheck // Type assertion always succeeds; pool.New guarantees *bytes.Buffer
+	buf := escapeBufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer escapeBufPool.Put(buf)
 	if err := xml.EscapeText(buf, []byte(s)); err != nil {
 		// bytes.Buffer.Write should never fail. Log the error to avoid silent
 		// fallback to unescaped XML, which could produce malformed output.

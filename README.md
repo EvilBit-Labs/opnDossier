@@ -598,7 +598,7 @@ See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list of contributors.
 ## Acknowledgements
 
 - Inspired by [TKCERT/pfFocus](https://github.com/TKCERT/pfFocus) for pfSense configurations
-- Terminal UI powered by [Charm](https://charm.sh/) - [glamour](https://github.com/charmbracelet/glamour), [lipgloss](https://github.com/charmbracelet/lipgloss), [log](https://github.com/charmbracelet/log), [bubbles](https://github.com/charmbracelet/bubbles)
+- Terminal UI powered by [Charm](https://charm.sh/) - [glamour](https://github.com/charmbracelet/glamour), [lipgloss](https://github.com/charmbracelet/lipgloss), [log](https://github.com/charmbracelet/log)
 - CLI framework by [spf13/cobra](https://github.com/spf13/cobra) and [spf13/viper](https://github.com/spf13/viper)
 - Markdown generation by [nao1215/markdown](https://github.com/nao1215/markdown)
 - Documentation built with [MkDocs](https://www.mkdocs.org/) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)

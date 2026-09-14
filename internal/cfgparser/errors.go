@@ -15,15 +15,6 @@ type ParseError struct {
 	Message string // Human-readable error message
 }
 
-// NewParseError returns a new ParseError with the given line, column, and error message.
-func NewParseError(line, column int, message string) *ParseError {
-	return &ParseError{
-		Line:    line,
-		Column:  column,
-		Message: message,
-	}
-}
-
 // Error implements the error interface for ParseError.
 func (e *ParseError) Error() string {
 	return fmt.Sprintf("parse error at line %d, column %d: %s", e.Line, e.Column, e.Message)
@@ -58,14 +49,6 @@ type ValidationError struct {
 	Message string // Human-readable validation error message
 }
 
-// NewValidationError returns a new ValidationError for the given element path and message.
-func NewValidationError(path, message string) *ValidationError {
-	return &ValidationError{
-		Path:    path,
-		Message: message,
-	}
-}
-
 // Error implements the error interface for ValidationError.
 func (e *ValidationError) Error() string {
 	if e.Path != "" {
@@ -97,44 +80,6 @@ func (e *ValidationError) Is(target error) bool {
 		e.Message == targetValidation.Message
 }
 
-// WrapXMLSyntaxError wraps an xml.SyntaxError with location information and marshal context.
-// It extracts the line and column information from the xml.SyntaxError and creates a ParseError
-// WrapXMLSyntaxError converts an xml.SyntaxError into a ParseError, including the line number and optional element path context.
-// If the error is not an xml.SyntaxError, it wraps it as a generic ParseError with the error message. Returns nil if err is nil.
-func WrapXMLSyntaxError(err error, elementPath string) error {
-	if err == nil {
-		return nil
-	}
-
-	if syntaxErr, ok := errors.AsType[*xml.SyntaxError](err); ok {
-		message := syntaxErr.Msg
-
-		// Add element path context if available
-		if elementPath != "" {
-			message = fmt.Sprintf("%s (in element path: %s)", message, elementPath)
-		}
-
-		return &ParseError{
-			Line:    syntaxErr.Line,
-			Column:  0, // xml.SyntaxError doesn't provide column information
-			Message: message,
-		}
-	}
-
-	// If it's not an xml.SyntaxError, wrap it as a generic ParseError
-	return &ParseError{
-		Line:    0,
-		Column:  0,
-		Message: "XML error: " + err.Error(),
-	}
-}
-
-// BuildElementPath constructs an element path from a slice of element names.
-// BuildElementPath returns a dot-separated string representing the XML element path constructed from the provided slice of element names.
-func BuildElementPath(elements []string) string {
-	return strings.Join(elements, ".")
-}
-
 // IsParseError returns true if the provided error is or wraps a ParseError.
 func IsParseError(err error) bool {
 	var parseErr *ParseError
@@ -152,16 +97,6 @@ func IsValidationError(err error) bool {
 func GetParseError(err error) *ParseError {
 	if parseErr, ok := errors.AsType[*ParseError](err); ok {
 		return parseErr
-	}
-
-	return nil
-}
-
-// GetValidationError extracts a ValidationError from an error chain.
-// GetValidationError extracts a ValidationError from the error chain, or returns nil if none is found.
-func GetValidationError(err error) *ValidationError {
-	if validationErr, ok := errors.AsType[*ValidationError](err); ok {
-		return validationErr
 	}
 
 	return nil

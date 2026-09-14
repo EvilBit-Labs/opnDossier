@@ -18,14 +18,6 @@ func TestNewJSONFormatter(t *testing.T) {
 	assert.True(t, formatter.pretty)
 }
 
-func TestNewJSONFormatterCompact(t *testing.T) {
-	var buf bytes.Buffer
-	formatter := NewJSONFormatterCompact(&buf)
-
-	assert.NotNil(t, formatter)
-	assert.False(t, formatter.pretty)
-}
-
 func TestJSONFormatter_Format_NoChanges(t *testing.T) {
 	var buf bytes.Buffer
 	formatter := NewJSONFormatter(&buf)
@@ -87,7 +79,7 @@ func TestJSONFormatter_Format_WithChanges(t *testing.T) {
 
 func TestJSONFormatter_Format_Compact(t *testing.T) {
 	var buf bytes.Buffer
-	formatter := NewJSONFormatterCompact(&buf)
+	formatter := &JSONFormatter{writer: &buf, pretty: false}
 
 	result := diff.NewResult()
 	result.AddChange(diff.Change{
@@ -193,7 +185,7 @@ func TestJSONFormatter_Format_Pretty_vs_Compact(t *testing.T) {
 	t.Run("compact formatting", func(t *testing.T) {
 		t.Parallel()
 		var buf bytes.Buffer
-		formatter := NewJSONFormatterCompact(&buf)
+		formatter := &JSONFormatter{writer: &buf, pretty: false}
 
 		err := formatter.Format(result)
 		require.NoError(t, err)

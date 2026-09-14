@@ -385,7 +385,7 @@ Go map iteration is non-deterministic. When output is assembled from maps, tests
 
 ### Golden File Testing
 
-The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and dynamic values (timestamps, versions) should be injected at construction time via builder options (e.g., `builder.WithGeneratedTime`, `builder.WithVersion`) so that goldie can compare bytes directly — no post-hoc normalization. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see **[AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md)** §7.6.
+The project uses `sebdah/goldie/v2` for snapshot-style testing. Golden files should contain real expected values, not placeholders, and dynamic values (timestamps, versions) should be injected by setting the builder's exported `Generated`/`ToolVersion` fields directly after construction so that goldie can compare bytes directly — no post-hoc normalization. Update snapshots with `go test ./path -run TestGolden -update`, and make sure every golden file ends with a trailing newline. For the full pattern, see **[AGENTS.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/AGENTS.md)** §7.6.
 
 ### Pointer Identity Assertions
 
@@ -397,7 +397,7 @@ Tests in `cmd/` must account for Cobra's package-level flag bindings. Do not use
 
 ### Duplicate Code Detection
 
-The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `test_helpers.go` and use subtests to cover each format cleanly.
+The `dupl` linter will flag structurally similar test files, especially paired JSON and YAML coverage. When two test files mostly differ by format, extract the shared setup and assertions into `helpers_test.go` and use subtests to cover each format cleanly.
 
 ## Getting Help
 
