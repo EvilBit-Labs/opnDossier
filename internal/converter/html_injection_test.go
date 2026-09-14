@@ -168,7 +168,8 @@ func TestReportHTMLDoesNotExecuteConfigValues(t *testing.T) {
 
 			for _, comprehensive := range []bool{false, true} {
 				device := newInjectionTestDevice(payload)
-				opts := DefaultOptions().WithFormat(FormatHTML)
+				opts := DefaultOptions()
+				opts.Format = FormatHTML
 				opts.Comprehensive = comprehensive
 
 				gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)
@@ -222,7 +223,8 @@ func TestReportMarkdownEscapesConfigValues(t *testing.T) {
 	// Both variants. The VLAN, static route and NAT tables are emitted by the
 	// comprehensive report only, so a standard-only check leaves them unguarded.
 	for _, comprehensive := range []bool{false, true} {
-		opts := DefaultOptions().WithFormat(FormatMarkdown)
+		opts := DefaultOptions()
+		opts.Format = FormatMarkdown
 		opts.Comprehensive = comprehensive
 
 		gen, err := NewHybridGenerator(builder.NewMarkdownBuilder(), nil)

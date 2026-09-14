@@ -111,8 +111,8 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 // Each Change in result.Changes already has SecurityImpact populated by the
 // per-change loop in Compare (and by addReorderChanges). We aggregate those
 // existing values directly via security.SummarizeScored instead of rebuilding
-// a []ChangeInput and re-running pattern matching through ScoreAll — this
-// eliminates a second O(n) allocation on large diffs (PERF-M6).
+// a []ChangeInput and re-running pattern matching through Scorer.Score per
+// change — this eliminates a second O(n) allocation on large diffs (PERF-M6).
 func (e *Engine) computeRiskSummary(result *Result) RiskSummary {
 	risks := make([]security.ScoredRisk, len(result.Changes))
 	for i, c := range result.Changes {

@@ -303,3 +303,42 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 		"an <address> alias must resolve even when <any/> is also present")
 	assert.Equal(t, "WEB_SERVERS", addressAndAnyRule.Source.AddressRef.Name)
 }
+
+// TestConverter_NamedObjects_MergesLegacyAndMVCWithoutDuplication proves that
+// when a config populates BOTH the MVC-model alias path and the legacy
+// top-level <aliases> path, convertNamedObjects merges them into one
+// registry rather than duplicating entries -- and that an overlapping name
+// resolves to the legacy entry, per the documented (if incidental)
+// tie-breaking in convertNamedObjects.
+func TestConverter_NamedObjects_MergesLegacyAndMVCWithoutDuplication(t *testing.T) {
+	t.Parallel()
+
+	doc := withMVCAliases(schema.NewOpnSenseDocument(),
+		schema.Alias{Name: "MVC_ONLY", Type: "host", Content: "10.0.0.1"},
+		schema.Alias{Name: "SHARED_ALIAS", Type: "host", Content: "10.0.0.2"},
+	)
+	doc.Aliases.Alias = []schema.Alias{
+		{Name: "LEGACY_ONLY", Type: "host", Address: "10.0.0.3"},
+		{Name: "SHARED_ALIAS", Type: "host", Content: "10.0.0.4"},
+	}
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	// Three unique names, not four raw entries: SHARED_ALIAS must not
+	// duplicate.
+	require.Len(t, device.NamedObjects, 3)
+
+	mvcOnly, ok := device.NamedObjects["MVC_ONLY"]
+	require.True(t, ok)
+	assert.Equal(t, []string{"10.0.0.1"}, mvcOnly.Members)
+
+	legacyOnly, ok := device.NamedObjects["LEGACY_ONLY"]
+	require.True(t, ok)
+	assert.Equal(t, []string{"10.0.0.3"}, legacyOnly.Members)
+
+	shared, ok := device.NamedObjects["SHARED_ALIAS"]
+	require.True(t, ok)
+	assert.Equal(t, []string{"10.0.0.4"}, shared.Members, "legacy entry wins on a name collision")
+}

@@ -2,6 +2,8 @@ package sanitizer
 
 import (
 	"fmt"
+	"slices"
+	"sort"
 	"testing"
 )
 
@@ -17,6 +19,21 @@ const (
 	expectedMappedEmail1       = "user1@example.com"
 	testBase64PubKey           = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 )
+
+// ValidModes returns the supported sanitization modes (aggressive, moderate,
+// minimal) in order from most to least aggressive.
+//
+// Moved here from rules.go: no production caller reaches it (the CLI mode
+// flag is validated by IsValidMode, not by enumerating ValidModes), but it is
+// the standard iteration helper this package's own tests use to run an
+// assertion across every mode. Declaring it in a _test.go file keeps it out
+// of the shipped binary while still attaching it to every test in this
+// package -- see docs/development/standards.md's guidance to place a shared
+// helper in a _test.go file when its only callers are tests in its own
+// package.
+func ValidModes() []Mode {
+	return []Mode{ModeAggressive, ModeModerate, ModeMinimal}
+}
 
 func TestValidModes(t *testing.T) {
 	modes := ValidModes()
@@ -391,61 +408,90 @@ func TestRedact_AuthServerConfig(t *testing.T) {
 	}
 }
 
-func TestGetActiveRules(t *testing.T) {
+// TestRuleEngine_ActiveRuleCountPerMode pins the exact set of rules active
+// per mode, using direct access to engine.rules and ruleActiveForMode
+// (white-box, since this file is package sanitizer). Replaces the former
+// TestGetActiveRules, which called the now-removed GetActiveRules()
+// accessor (no production caller — every real caller iterates the rules
+// internally via ShouldRedactField/ShouldRedactValue).
+//
+// The set invariant is real production-logic coverage: it is the guard
+// that catches a rule's Modes field being edited such that the rule
+// silently drops out of a mode (under-count) or is wrongly added to a mode
+// (over-count) without any single test noticing, since
+// mode_monotonicity_test.go only pins the relative
+// aggressive-is-a-superset-of-moderate invariant, not the membership of any
+// mode. A floor assertion (active >= N) only catches the under-count
+// direction; comparing the exact name set catches both.
+func TestRuleEngine_ActiveRuleCountPerMode(t *testing.T) {
 	tests := []struct {
-		mode         Mode
-		minRuleCount int
+		mode          Mode
+		expectedNames []string
 	}{
-		{ModeAggressive, 18}, // All rules including aggressive-only
-		{ModeModerate, 9},    // Credentials + crypto + identity + network (public IP, MAC)
-		{ModeMinimal, 7},     // Credentials + crypto + system (SSH keys + authserver)
+		{
+			ModeAggressive,
+			[]string{
+				"authserver_config", "certificate", "cloud_identifier", "email", "endpoint",
+				"hostname", "ip_address_field", "mac_address", "password", "private_ip_aggressive",
+				"private_key", "psk", "public_ip", "public_key", "secret", "snmp_community",
+				"ssh_authorized_keys", "subnet_field", "username",
+			},
+		},
+		{
+			ModeModerate,
+			[]string{
+				"authserver_config", "email", "mac_address", "password", "private_key",
+				"psk", "public_ip", "secret", "snmp_community", "ssh_authorized_keys",
+			},
+		},
+		{
+			ModeMinimal,
+			[]string{
+				"authserver_config", "password", "private_key", "psk",
+				"secret", "snmp_community", "ssh_authorized_keys",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(string(tt.mode), func(t *testing.T) {
 			engine := NewRuleEngine(tt.mode)
-			active := engine.GetActiveRules()
-			if len(active) < tt.minRuleCount {
-				t.Errorf("GetActiveRules() returned %d rules, want at least %d", len(active), tt.minRuleCount)
+
+			var activeNames []string
+			for i := range engine.rules {
+				if engine.ruleActiveForMode(&engine.rules[i]) {
+					activeNames = append(activeNames, engine.rules[i].Name)
+				}
+			}
+			sort.Strings(activeNames)
+
+			expected := slices.Clone(tt.expectedNames)
+			sort.Strings(expected)
+
+			if !slices.Equal(activeNames, expected) {
+				t.Errorf("active rule names = %v, want %v", activeNames, expected)
 			}
 		})
 	}
 }
 
-func TestGetRulesByCategory(t *testing.T) {
-	engine := NewRuleEngine(ModeAggressive)
-
-	categories := []RuleCategory{
-		CategoryCredentials,
-		CategoryNetwork,
-		CategoryIdentity,
-		CategoryCrypto,
-	}
-
-	for _, cat := range categories {
-		rules := engine.GetRulesByCategory(cat)
-		if len(rules) == 0 {
-			t.Errorf("GetRulesByCategory(%q) returned no rules", cat)
-		}
-		for _, rule := range rules {
-			if rule.Category != cat {
-				t.Errorf("rule %q has category %q, want %q", rule.Name, rule.Category, cat)
-			}
-		}
-	}
-}
-
-func TestSetMapper(t *testing.T) {
+// TestRuleEngine_MapperIsUsedForRedaction verifies that the RuleEngine's
+// mapper field (set directly here since RuleEngine is white-box tested in
+// this package) is what actually drives Redact's output, not some other
+// path. Replaces the former SetMapper-based test: SetMapper had no
+// production caller (every real caller uses the mapper NewRuleEngine
+// creates), so it was removed in favor of direct field assignment here.
+func TestRuleEngine_MapperIsUsedForRedaction(t *testing.T) {
 	engine := NewRuleEngine(ModeAggressive)
 	customMapper := NewMapper()
 
 	// Pre-populate custom mapper
 	customMapper.MapPublicIP("1.2.3.4")
 
-	engine.SetMapper(customMapper)
+	engine.mapper = customMapper
 
 	if engine.GetMapper() != customMapper {
-		t.Error("SetMapper() did not update the mapper")
+		t.Error("engine.mapper assignment did not update GetMapper()'s return value")
 	}
 
 	// Verify the pre-populated mapping is used

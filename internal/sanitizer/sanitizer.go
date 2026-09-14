@@ -13,12 +13,21 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/logging"
-	"github.com/EvilBit-Labs/opnDossier/internal/pool"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
 )
+
+// escapeBufPool pools the scratch buffers used by escapeXMLText, which runs
+// once per XML text node / attribute value while streaming a whole
+// config.xml. Every checkout MUST start at zero length: this is a redaction
+// path, and a buffer that still held bytes from a prior config would leak
+// them into the next result.
+var escapeBufPool = sync.Pool{ //nolint:gochecknoglobals // scratch-buffer pool, no cross-call state
+	New: func() any { return new(bytes.Buffer) },
+}
 
 // Sanitizer orchestrates the redaction of sensitive data from OPNsense configuration.
 type Sanitizer struct {
@@ -327,7 +336,34 @@ func replaceTokens(s string, fn func(string) string) string {
 	return b.String()
 }
 
-// redactValueTokens splits content into whitespace-delimited tokens
+// looksLikeArmoredSecret reports whether content is shaped like a PEM block
+// or an OpenVPN static-key envelope. Such a value cannot be caught by
+// redactValueTokens' whitespace-tokenized pass below, because its BEGIN/END
+// armor markers are themselves whitespace-separated (e.g.
+// "-----BEGIN RSA PRIVATE KEY-----" splits into "-----BEGIN", "RSA",
+// "PRIVATE", "KEY-----") and so no single token ever carries both markers
+// for a value detector to match.
+//
+// This is deliberately narrow rather than "any value with whitespace in
+// it": the other value-detector rules (hostname, MAC, email) use unanchored
+// regexes that search for a match anywhere in the string, not just the
+// whole string. Running them against an arbitrary multi-line/multi-value
+// alias field (see redactValueTokens' own doc comment) would let one
+// member's shape (e.g. a hostname) claim the entire concatenated value,
+// swallowing every other member instead of leaving them for their own
+// per-token match. A PEM/OpenVPN envelope does not appear as one member of
+// a delimiter-separated multi-value field in practice — it is always the
+// field's entire content — so gating on it here is safe.
+func looksLikeArmoredSecret(content string) bool {
+	return IsPEM(content) || IsOpenVPNStaticKey(content)
+}
+
+// redactValueTokens first tries content whole against the value-detector
+// path (gated by looksLikeArmoredSecret — see that function's doc comment
+// for why this can't be widened to every value), so a PEM-armored secret or
+// OpenVPN static key is redacted as a single unit even though it cannot
+// match while tokenized. When that does not apply or does not match, it
+// falls back to splitting content into whitespace-delimited tokens
 // (preserving all original whitespace/newlines exactly — alias content is
 // newline-structured, one member per line) and independently matches and
 // redacts each token against the full rule set's value-detector path. A
@@ -336,8 +372,21 @@ func replaceTokens(s string, fn func(string) string) string {
 // ShouldRedactValue/RedactWithRule call. Reports one RedactedFields/
 // SkippedFields event for the whole CharData leaf (matching the prior
 // one-event-per-node accounting), but tracks RedactionsByType per rule
-// actually used across all tokens.
+// actually used across all tokens (or the single rule used for a whole-value
+// match).
 func (s *Sanitizer) redactValueTokens(fieldName, content string) string {
+	if looksLikeArmoredSecret(content) {
+		if should, rule := s.engine.ShouldRedactValue(fieldName, content); should {
+			if redacted := s.engine.RedactWithRule(rule, fieldName, content); redacted != content {
+				s.stats.RedactedFields++
+				if rule.Name != "" {
+					s.stats.RedactionsByType[rule.Name]++
+				}
+				return redacted
+			}
+		}
+	}
+
 	anyRedacted := false
 
 	result := replaceTokens(content, func(token string) string {
@@ -759,8 +808,10 @@ func isXMLIllegalRune(r rune) bool {
 // xml.EscapeText only errors if the writer fails; bytes.Buffer.Write never fails,
 // so the error path is unreachable under normal conditions.
 func escapeXMLText(s string) string {
-	buf := pool.GetBytesBuffer()
-	defer pool.PutBytesBuffer(buf)
+	//nolint:errcheck // Type assertion always succeeds; pool.New guarantees *bytes.Buffer
+	buf := escapeBufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer escapeBufPool.Put(buf)
 	if err := xml.EscapeText(buf, []byte(s)); err != nil {
 		// bytes.Buffer.Write should never fail. Log the error to avoid silent
 		// fallback to unescaped XML, which could produce malformed output.

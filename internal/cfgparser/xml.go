@@ -216,6 +216,13 @@ func handleStartElement(dec *xml.Decoder, doc *schema.OpnSenseDocument, se xml.S
 		return decodeChild(dec, &doc.DNSMasquerade, se)
 	case "syslog":
 		return decodeChild(dec, &doc.Syslog, se)
+	case "aliases":
+		// Legacy top-level <aliases> block, used by OPNsense configs that
+		// predate the MVC Firewall/Alias subsystem. See
+		// schema.OpnSenseDocument.Aliases and GOTCHAS.md §3.6 -- this case
+		// was missing entirely, so a config using this shape silently
+		// converted to namedObjects: null.
+		return decodeChild(dec, &doc.Aliases, se)
 	case "OPNsense":
 		return decodeChild(dec, &doc.OPNsense, se)
 	default:

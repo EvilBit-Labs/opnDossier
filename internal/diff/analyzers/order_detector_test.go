@@ -91,10 +91,3 @@ func TestOrderDetector_DetectReorders_PositionValues(t *testing.T) {
 	assert.Equal(t, 2, byID["uuid-3"].OldPosition)
 	assert.Equal(t, 0, byID["uuid-3"].NewPosition)
 }
-
-func TestOrderDetector_HasReorders(t *testing.T) {
-	d := NewOrderDetector()
-
-	assert.False(t, d.HasReorders([]string{"a", "b"}, []string{"a", "b"}))
-	assert.True(t, d.HasReorders([]string{"a", "b"}, []string{"b", "a"}))
-}
