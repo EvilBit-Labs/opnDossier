@@ -93,27 +93,19 @@ func generateNATHeavyPfSenseDocument() *pfsenseSchema.Document {
 // irrelevant — only the pointer's non-nil-ness drives Source.IsAny()
 // and Destination.IsAny().
 func buildPfSenseNATRuleEndpoints(i int, anyPresent *string) (opnsense.Source, opnsense.Destination) {
-	var (
-		src opnsense.Source
-		dst opnsense.Destination
-	)
-
 	switch i % 4 {
 	case 0:
-		src = opnsense.Source{Network: fmt.Sprintf("10.%d.0.0/24", i), Port: "1024"}
-		dst = opnsense.Destination{Network: fmt.Sprintf("172.16.%d.0/24", i), Port: "443"}
+		return opnsense.Source{Network: fmt.Sprintf("10.%d.0.0/24", i), Port: "1024"},
+			opnsense.Destination{Network: fmt.Sprintf("172.16.%d.0/24", i), Port: "443"}
 	case 1:
-		src = opnsense.Source{Address: fmt.Sprintf("203.0.113.%d", i%256), Port: "32768"}
-		dst = opnsense.Destination{Address: fmt.Sprintf("198.51.100.%d", i%256), Port: "80"}
+		return opnsense.Source{Address: fmt.Sprintf("203.0.113.%d", i%256), Port: "32768"},
+			opnsense.Destination{Address: fmt.Sprintf("198.51.100.%d", i%256), Port: "80"}
 	case 2:
-		src = opnsense.Source{Any: anyPresent}
-		dst = opnsense.Destination{Network: fmt.Sprintf("10.%d.1.0/24", i), Port: "53"}
+		return opnsense.Source{Any: anyPresent},
+			opnsense.Destination{Network: fmt.Sprintf("10.%d.1.0/24", i), Port: "53"}
 	default:
-		src = opnsense.Source{Network: fmt.Sprintf("10.%d.2.0/24", i)}
-		dst = opnsense.Destination{Any: anyPresent}
+		return opnsense.Source{Network: fmt.Sprintf("10.%d.2.0/24", i)}, opnsense.Destination{Any: anyPresent}
 	}
-
-	return src, dst
 }
 
 // BenchmarkConverter_PfSense_NATHeavy exercises ConvertDocument against
