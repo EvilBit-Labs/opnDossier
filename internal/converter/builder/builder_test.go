@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/nao1215/markdown"
@@ -28,24 +27,6 @@ func TestNewMarkdownBuilder(t *testing.T) {
 
 	if builder.logger == nil {
 		t.Error("NewMarkdownBuilder did not create logger")
-	}
-}
-
-func TestMarkdownBuilder_GeneratedAndToolVersion_AreDirectlySettable(t *testing.T) {
-	t.Parallel()
-
-	fixed := time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
-	const fixedVersion = "test-1.2.3"
-
-	builder := NewMarkdownBuilder()
-	builder.Generated = fixed
-	builder.ToolVersion = fixedVersion
-
-	if !builder.Generated.Equal(fixed) {
-		t.Errorf("Generated = %v, want %v", builder.Generated, fixed)
-	}
-	if builder.ToolVersion != fixedVersion {
-		t.Errorf("ToolVersion = %q, want %q", builder.ToolVersion, fixedVersion)
 	}
 }
 

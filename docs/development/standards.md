@@ -673,6 +673,8 @@ Export serialization redacts a copy of the device so sensitive fields never reac
 
 The `sanitize` command operates on raw XML element names via pattern matching in `internal/sanitizer/rules.go` (`FieldPatterns`). When adding a new device type, audit its XML element names for credential fields that differ from OPNsense and add them there.
 
+One class of secret needs no pattern entry: a PEM-armored value is redacted on the strength of its own envelope, even when the element holding it matches no `FieldPatterns` entry. That covers private keys and OpenVPN static keys parked under an unrecognized element name. Every other credential — password hashes, community strings, API secrets, enrollment tokens — is still matched by field name and still needs a pattern.
+
 **Verification:** `opndossier sanitize <config.xml> | grep -i 'hash\|secret\|key\|pass\|community'` — check for unredacted sensitive values.
 
 ### Schema-Level Secret Exclusion
