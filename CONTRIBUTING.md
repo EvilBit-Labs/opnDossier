@@ -414,7 +414,14 @@ Use restrictive file permissions for sensitive material. Configuration files and
 
 Keep error messages safe for operators and safe for logs. Do not leak credentials, raw configuration secrets, internal-only filesystem details, or sensitive values in returned errors. Two helpers own redaction and they are not interchangeable. `redactSensitiveFields` in `internal/converter/enrichment.go` is the export boundary: every secret-bearing `CommonDevice` field is rewritten there before a report is rendered, so a new sensitive field on the model belongs in that function. `RedactServiceDetails` in `internal/analysis/statistics_redact.go` handles the narrower case of sensitive values inside computed service statistics, such as the SNMP community string. Adding a model secret to the statistics helper alone would leave it in cleartext on the export path.
 
-When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern list in `internal/sanitizer/rules.go` (`FieldPatterns`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify with: `opndossier sanitize <config.xml> | grep -iE 'hash|secret|key|pass|community' | grep -v REDACTED` — the output should be empty. Any lines that appear contain unredacted sensitive values that need new sanitizer rules.
+When adding a new device type, audit its XML element names for credential fields and add them to the sanitizer's field-pattern list in `internal/sanitizer/rules.go` (`FieldPatterns`). Device types may use different element names for the same data (e.g., pfSense uses `<bcrypt-hash>` where OPNsense uses `<password>`). Verify by sentinel value rather than by field name. Give each credential element you identified a distinct, recognizable value, sanitize the file, and confirm none of those values survive:
+
+```bash
+opndossier sanitize probe.xml > sanitized.xml || echo 'sanitize failed'
+grep -F -e SENTINEL-ONE -e SENTINEL-TWO sanitized.xml   # must print nothing
+```
+
+Grepping the output for terms like `hash|secret|key|pass` only catches secrets whose element name happens to contain one of those words, so an element such as `<credential>` passes the check while still leaking. Searching for the sentinel values tests redaction directly. Redirect to a file first: `sanitize ... | grep` reports grep's exit code, so a crashed run and a clean run both look the same.
 
 Never commit secrets to source control. Use environment variables or secure secret storage when a secret is genuinely required. For the full vulnerability reporting process and threat model, see `SECURITY.md` and `docs/security/security-assurance.md`.
 

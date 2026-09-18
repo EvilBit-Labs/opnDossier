@@ -184,7 +184,12 @@ nav:
               - list formats: cli/opndossier_list_formats.md
               - list plugins: cli/opndossier_list_plugins.md
           - man: cli/opndossier_man.md
-          - completion: cli/opndossier_completion.md
+          - completion:
+              - Overview: cli/opndossier_completion.md
+              - completion bash: cli/opndossier_completion_bash.md
+              - completion zsh: cli/opndossier_completion_zsh.md
+              - completion fish: cli/opndossier_completion_fish.md
+              - completion powershell: cli/opndossier_completion_powershell.md
           - conv (alias): cli/opndossier_conv.md
           - version: cli/opndossier_version.md
 

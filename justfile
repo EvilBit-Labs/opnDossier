@@ -273,7 +273,7 @@ completeness-check:
 # the guard's own doc comment in internal/deadcode_test.go).
 [group('test')]
 deadcode-check:
-    @{{ mise_exec }} go test -tags=deadcode ./internal/ -run TestDeadCodeGuard -v
+    @{{ mise_exec }} go test -count=1 -tags=deadcode ./internal/ -run TestDeadCodeGuard -v
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build
