@@ -88,27 +88,19 @@ func generateNATHeavyOPNsenseDocument() *schema.OpnSenseDocument {
 // is irrelevant — only the pointer's non-nil-ness drives Source.IsAny()
 // and Destination.IsAny().
 func buildNATRuleEndpoints(i int, anyPresent *string) (schema.Source, schema.Destination) {
-	var (
-		src schema.Source
-		dst schema.Destination
-	)
-
 	switch i % 4 {
 	case 0:
-		src = schema.Source{Network: fmt.Sprintf("10.%d.0.0/24", i), Port: "1024"}
-		dst = schema.Destination{Network: fmt.Sprintf("172.16.%d.0/24", i), Port: "443"}
+		return schema.Source{Network: fmt.Sprintf("10.%d.0.0/24", i), Port: "1024"},
+			schema.Destination{Network: fmt.Sprintf("172.16.%d.0/24", i), Port: "443"}
 	case 1:
-		src = schema.Source{Address: fmt.Sprintf("203.0.113.%d", i%256), Port: "32768"}
-		dst = schema.Destination{Address: fmt.Sprintf("198.51.100.%d", i%256), Port: "80"}
+		return schema.Source{Address: fmt.Sprintf("203.0.113.%d", i%256), Port: "32768"},
+			schema.Destination{Address: fmt.Sprintf("198.51.100.%d", i%256), Port: "80"}
 	case 2:
-		src = schema.Source{Any: anyPresent}
-		dst = schema.Destination{Network: fmt.Sprintf("10.%d.1.0/24", i), Port: "53"}
+		return schema.Source{Any: anyPresent},
+			schema.Destination{Network: fmt.Sprintf("10.%d.1.0/24", i), Port: "53"}
 	default:
-		src = schema.Source{Network: fmt.Sprintf("10.%d.2.0/24", i)}
-		dst = schema.Destination{Any: anyPresent}
+		return schema.Source{Network: fmt.Sprintf("10.%d.2.0/24", i)}, schema.Destination{Any: anyPresent}
 	}
-
-	return src, dst
 }
 
 // BenchmarkConverter_OPNsense_NATHeavy exercises ConvertDocument against
