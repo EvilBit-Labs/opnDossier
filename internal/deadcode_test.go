@@ -10,7 +10,8 @@
 
 package internal
 
-// deadcode_test.go is what `just deadcode-check` runs. It fails when
+// deadcode_test.go holds the guard `just deadcode-check` runs, alongside the
+// allowlist logic tests in deadcode_logic_test.go. It fails when
 // `deadcode -test=false ./...` reports a function unreachable from the
 // shipped binary's call graph that is not exempted in deadcode_allowlist.txt.
 //
