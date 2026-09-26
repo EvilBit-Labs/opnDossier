@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-09-04 22:15:32
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-09-25 18:10:53
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
@@ -193,14 +193,14 @@ Network interface configuration including VLANs and gateways.
 | `AdvDHCPConfigFileOverridePath`                   | `string`       | `interfaces.<name>.advDhcpConfigFileOverridePath`                   | Optional    |
 | `AdvDHCP6InterfaceStatementSendOptions`           | `string`       | `interfaces.<name>.advDhcp6InterfaceStatementSendOptions`           | Optional    |
 | `AdvDHCP6InterfaceStatementRequestOptions`        | `string`       | `interfaces.<name>.advDhcp6InterfaceStatementRequestOptions`        | Optional    |
-| `AdvDHCP6InterfaceStatementInformationOnlyEnable` | `BoolFlag`     | `interfaces.<name>.advDhcp6InterfaceStatementInformationOnlyEnable` | Optional    |
+| `AdvDHCP6InterfaceStatementInformationOnlyEnable` | `string`       | `interfaces.<name>.advDhcp6InterfaceStatementInformationOnlyEnable` | Optional    |
 | `AdvDHCP6InterfaceStatementScript`                | `string`       | `interfaces.<name>.advDhcp6InterfaceStatementScript`                | Optional    |
-| `AdvDHCP6IDAssocStatementAddressEnable`           | `BoolFlag`     | `interfaces.<name>.advDhcp6IdAssocStatementAddressEnable`           | Optional    |
+| `AdvDHCP6IDAssocStatementAddressEnable`           | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementAddressEnable`           | Optional    |
 | `AdvDHCP6IDAssocStatementAddress`                 | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementAddress`                 | Optional    |
 | `AdvDHCP6IDAssocStatementAddressID`               | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementAddressId`               | Optional    |
 | `AdvDHCP6IDAssocStatementAddressPLTime`           | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementAddressPltime`           | Optional    |
 | `AdvDHCP6IDAssocStatementAddressVLTime`           | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementAddressVltime`           | Optional    |
-| `AdvDHCP6IDAssocStatementPrefixEnable`            | `BoolFlag`     | `interfaces.<name>.advDhcp6IdAssocStatementPrefixEnable`            | Optional    |
+| `AdvDHCP6IDAssocStatementPrefixEnable`            | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementPrefixEnable`            | Optional    |
 | `AdvDHCP6IDAssocStatementPrefix`                  | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementPrefix`                  | Optional    |
 | `AdvDHCP6IDAssocStatementPrefixID`                | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementPrefixId`                | Optional    |
 | `AdvDHCP6IDAssocStatementPrefixPLTime`            | `string`       | `interfaces.<name>.advDhcp6IdAssocStatementPrefixPltime`            | Optional    |
