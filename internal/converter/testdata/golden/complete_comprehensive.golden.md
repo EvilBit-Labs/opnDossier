@@ -79,9 +79,9 @@
   
 **LB Use Sticky**: ✗
   
-**RRD Backup**: ✗
+**Periodic RRD Backup**: ✗
   
-**Netflow Backup**: ✗
+**Periodic NetFlow Backup**: ✗
 ### Bogons Configuration
 **Interval**: weekly
   

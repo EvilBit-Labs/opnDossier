@@ -65,9 +65,9 @@
   
 **LB Use Sticky**: ✗
   
-**RRD Backup**: ✗
+**Periodic RRD Backup**: ✗
   
-**Netflow Backup**: ✗
+**Periodic NetFlow Backup**: ✗
 ### Firmware Information
 **Version**: 23.1.1
   

@@ -1431,6 +1431,9 @@ func TestMarkdownBuilder_BuildSystemSection_WithAllFields(t *testing.T) {
 	assert.Contains(t, result, "admin")
 	assert.Contains(t, result, "8.8.8.8")
 	assert.Contains(t, result, "pool.ntp.org")
+	// The fixture sets the two backup fields differently, so swapped lines fail.
+	assert.Contains(t, result, "**Periodic RRD Backup**: ✓")
+	assert.Contains(t, result, "**Periodic NetFlow Backup**: ✗")
 }
 
 // createComprehensiveTestData creates a comprehensive test data structure.

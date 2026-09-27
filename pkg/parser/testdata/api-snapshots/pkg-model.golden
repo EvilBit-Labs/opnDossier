@@ -2726,9 +2726,15 @@ type System struct {
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
 	// LbUseSticky enables sticky connections for load balancing.
 	LbUseSticky bool `json:"lbUseSticky,omitempty" yaml:"lbUseSticky,omitempty"`
-	// RrdBackup enables RRD data backup on shutdown.
+	// RrdBackup reports a periodic RRD backup: the config sets a positive whole
+	// number of hours (the OPNsense GUI offers 1 to 24). It is false when backup
+	// is disabled or runs only at power-off. OPNsense 26.7 removed periodic
+	// backups without removing the element, so a positive value kept through an
+	// upgrade still reads true. The pfSense converter does not read <rrdbackup>,
+	// so it is always false for pfSense.
 	RrdBackup bool `json:"rrdBackup,omitempty" yaml:"rrdBackup,omitempty"`
-	// NetflowBackup enables NetFlow data backup on shutdown.
+	// NetflowBackup reports a periodic NetFlow backup, read the same way as
+	// RrdBackup.
 	NetflowBackup bool `json:"netflowBackup,omitempty" yaml:"netflowBackup,omitempty"`
 
 	// Bogons contains bogon network update configuration.

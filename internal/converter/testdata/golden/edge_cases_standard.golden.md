@@ -63,9 +63,9 @@
   
 **LB Use Sticky**: ✗
   
-**RRD Backup**: ✗
+**Periodic RRD Backup**: ✗
   
-**Netflow Backup**: ✗
+**Periodic NetFlow Backup**: ✗
 ### System Users
 | Name | Description | Group | Scope |
 |---------|---------|---------|---------|

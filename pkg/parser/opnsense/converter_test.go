@@ -37,8 +37,8 @@ func TestConverter_System(t *testing.T) {
 	doc.System.DisableSegmentationOffloading = true
 	doc.System.DisableLargeReceiveOffloading = true
 	doc.System.LbUseSticky = true
-	doc.System.RrdBackup = true
-	doc.System.NetflowBackup = true
+	doc.System.RrdBackup = "24"
+	doc.System.NetflowBackup = "1"
 	doc.System.UseVirtualTerminal = true
 	doc.System.NextUID = 2000
 	doc.System.NextGID = 2000
