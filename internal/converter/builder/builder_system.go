@@ -101,8 +101,9 @@ func writeSystemFeatures(md *markdown.Markdown, sys common.System) {
 	md.H3("System Features").
 		PlainTextf("%s: %s", markdown.Bold("PF Share Forward"), formatters.FormatBool(sys.PfShareForward)).LF().
 		PlainTextf("%s: %s", markdown.Bold("LB Use Sticky"), formatters.FormatBool(sys.LbUseSticky)).LF().
-		PlainTextf("%s: %s", markdown.Bold("Periodic RRD Backup"), formatters.FormatBool(sys.RrdBackup)).LF().
-		PlainTextf("%s: %s", markdown.Bold("Periodic NetFlow Backup"), formatters.FormatBool(sys.NetflowBackup))
+		PlainTextf("%s: %s", markdown.Bold("RRD Backup Interval Configured"), formatters.FormatBool(sys.RrdBackup)).
+		LF().
+		PlainTextf("%s: %s", markdown.Bold("NetFlow Backup Interval Configured"), formatters.FormatBool(sys.NetflowBackup))
 }
 
 func writeSystemMisc(md *markdown.Markdown, sys common.System) {

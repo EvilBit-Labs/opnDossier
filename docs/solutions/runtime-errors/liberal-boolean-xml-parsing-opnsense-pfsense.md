@@ -52,7 +52,7 @@ Reported in [#558](https://github.com/EvilBit-Labs/opnDossier/issues/558). Root 
 ## Symptoms
 
 - Opaque `strconv.ParseInt: parsing "on"` error surfaced to the CLI with no element path to identify the offending field.
-- 10 OPNsense `System` fields (`DNSAllowOverride`, `UseVirtualTerminal`, `DisableVLANHWFilter`, `DisableChecksumOffloading`, `DisableSegmentationOffloading`, `DisableLargeReceiveOffloading`, `PfShareForward`, `LbUseSticky`, `RrdBackup`, `NetflowBackup`) and 3 pfSense `System` fields (`DNSAllowOverride`, `DisableSegmentationOffloading`, `DisableLargeReceiveOffloading`) were declared `int` despite being boolean toggles. Two of those were not toggles: `RrdBackup` and `NetflowBackup` hold an hour interval, so `BoolFlag` read a 24-hour backup as none. They are strings now (GOTCHAS 15.0).
+- 10 OPNsense `System` fields (`DNSAllowOverride`, `UseVirtualTerminal`, `DisableVLANHWFilter`, `DisableChecksumOffloading`, `DisableSegmentationOffloading`, `DisableLargeReceiveOffloading`, `PfShareForward`, `LbUseSticky`, `RrdBackup`, `NetflowBackup`) and 3 pfSense `System` fields (`DNSAllowOverride`, `DisableSegmentationOffloading`, `DisableLargeReceiveOffloading`) were declared `int`. The three pfSense fields and seven of the OPNsense ones are boolean toggles. `DisableVLANHWFilter` is a three-way select (enable, disable, leave default), and `BoolFlag` reads it as true only for the disable choice, which is what the field name asks. `RrdBackup` and `NetflowBackup` hold an hour interval, so the `BoolFlag` this fix gave them read a 24-hour backup as none. They are strings now (GOTCHAS 15.0).
 - Truthy parsing was duplicated and inconsistent across the codebase:
   - `pfsense.isPfSenseValueTrue` accepted `1|on|yes` only (session history).
   - `internal/converter/formatters/IsTruthy` accepted a broader set at the formatter layer.
@@ -134,7 +134,7 @@ func (bf *BoolFlag) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 ### 5. Field migrations
 
-- OPNsense `System`: 10 fields `int` → `BoolFlag` (enumerated above).
+- OPNsense `System`: 10 fields `int` → `BoolFlag` (enumerated above; `RrdBackup` and `NetflowBackup` have since become strings).
 - pfSense `System`: 3 fields `int` → `BoolFlag`.
 - `pfsense.isPfSenseValueTrue` deleted; call sites (`converter_network.go` for `BlockPriv`, `BlockBogons`, `FarGW`) moved to `shared.IsValueTrue`.
 - `pkg/parser/opnsense/converter.go`: both `DisableNATReflection` call sites replaced `strings.EqualFold(x, xmlBoolYes)` with `shared.IsValueTrue(x)`.
