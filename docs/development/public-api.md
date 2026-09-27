@@ -194,7 +194,7 @@ Any accidental change to the public surface — a renamed type, a new exported m
 When an intentional API change lands, regenerate the fixtures:
 
 ```bash
-go test ./pkg/parser/... -run TestPublicAPISnapshot -update
+go test ./pkg/parser -run TestPublicAPISnapshot -update
 ```
 
 Then review the diff carefully — everything new in a `pkg-parser-*` or `pkg-model` snapshot becomes a stability commitment. The three `pkg-schema-*` fixtures are the exception: `pkg/schema/*` is public but vendor-tracking (see above), so a diff there is not a semver commitment. Those fixtures exist so that a field removed or a serialization tag changed to follow the vendor's `config.xml` is visible in review rather than silent, and any PR that touches `pkg/schema/*` must regenerate them. The release checklist in [RELEASING.md](https://github.com/EvilBit-Labs/opnDossier/blob/main/RELEASING.md) requires a snapshot diff review before any tag is pushed.
@@ -212,5 +212,6 @@ Packages outside `pkg/` (everything under `cmd/` and `internal/`) are not snapsh
 | 2026-04-19 | Declare `ConvertDocument` the idiomatic consumer entry point and `Factory.CreateDevice` the auto-detection escape hatch; document error-semantics difference between the two paths.   |
 | 2026-04-19 | Add API shape enforcement section — `var _ Interface = (*Impl)(nil)` compile-time assertions plus `go doc -all` goldie snapshot tests capturing the v1.5 public-API baseline.         |
 | 2026-09-12 | Remove `bubbletea` and `bubbles` from the CLI-only dependency isolation list (no longer a transitive dependency).                                                                     |
+| 2026-09-25 | Correct the snapshot regeneration command to `go test ./pkg/parser -run TestPublicAPISnapshot -update`.                                                                               |
 
 Every change to this document must add a row to the Revision History table with date (YYYY-MM-DD) and a one-line description.
