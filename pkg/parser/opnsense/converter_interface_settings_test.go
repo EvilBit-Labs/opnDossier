@@ -71,6 +71,7 @@ func TestConverter_IPv6Allow_LegacyElementIsAPresenceToggle(t *testing.T) {
 	}{
 		{name: "empty element", element: "<ipv6allow/>", want: true},
 		{name: "element with a value", element: "<ipv6allow>1</ipv6allow>", want: true},
+		{name: "element with a false-looking value", element: "<ipv6allow>0</ipv6allow>", want: true},
 		{name: "element absent", element: "", want: false},
 	}
 

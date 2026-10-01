@@ -187,7 +187,7 @@ func (c *converter) convertSystem(doc *pfsense.Document) common.System {
 		DisableNATReflection:          strings.EqualFold(sys.DisableNATReflection, xmlBoolYes),
 		DisableSegmentationOffloading: bool(sys.DisableSegmentationOffloading),
 		DisableLargeReceiveOffloading: bool(sys.DisableLargeReceiveOffloading),
-		IPv6Allow:                     bool(sys.IPv6Allow),
+		IPv6Allow:                     sys.IPv6Allow != nil,
 		NextUID:                       sys.NextUID,
 		NextGID:                       sys.NextGID,
 		PowerdACMode:                  sys.PowerdACMode,

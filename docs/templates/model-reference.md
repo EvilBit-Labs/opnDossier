@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-09-30 19:21:59
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-10-01 10:58:36
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
@@ -86,7 +86,7 @@ Core system settings including hostname, users, and SSH configuration.
 | `DisableChecksumOffloading`     | `BoolFlag`     | `system.disableChecksumOffloading`     | Optional        |
 | `DisableSegmentationOffloading` | `BoolFlag`     | `system.disableSegmentationOffloading` | Optional        |
 | `DisableLargeReceiveOffloading` | `BoolFlag`     | `system.disableLargeReceiveOffloading` | Optional        |
-| `IPv6Allow`                     | `BoolFlag`     | `system.ipv6Allow`                     | Optional        |
+| `IPv6Allow`                     | `*string`      | `system.ipv6Allow`                     | Optional        |
 | `DisableNATReflection`          | `string`       | `system.disableNatReflection`          | Optional        |
 | `DisableConsoleMenu`            | `BoolFlag`     | `system.disableConsoleMenu`            | -               |
 | `NextUID`                       | `int`          | `system.nextUid`                       | Optional        |

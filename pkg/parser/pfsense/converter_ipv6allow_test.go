@@ -28,6 +28,7 @@ func TestConverter_IPv6Allow_PresenceToggle(t *testing.T) {
 		want    bool
 	}{
 		{name: "empty element", element: "<ipv6allow></ipv6allow>", want: true},
+		{name: "element with a false-looking value", element: "<ipv6allow>0</ipv6allow>", want: true},
 		{name: "element absent", element: "", want: false},
 	}
 

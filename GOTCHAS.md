@@ -131,7 +131,7 @@ Go map iteration is non-deterministic.
 The `encoding/xml` package treats self-closing tags (e.g., `<disabled/>`) and missing tags identically for `string` fields.
 
 - **Gotcha:** Use `*string` (pointer to string) when you need to distinguish between "element present but empty" (`""`) and "element absent" (`nil`).
-- **Instance (fixed):** OPNsense before 26.1 and pfSense both test `<system><ipv6allow>` with `isset()`. pfSense writes an enabled setting as an empty element and OPNsense shipped `<ipv6allow/>` as its default up to 24.1, but both schemas typed the field `string` and both converters tested `!= ""`. Every pfSense config with IPv6 allowed, and eight of the nine OPNsense fixtures that carry the element, read IPv6 as disabled, so FIREWALL-006 passed. Both fields are `BoolFlag` now, like the offload toggles beside them.
+- **Instance (fixed):** OPNsense before 26.1 and pfSense both test `<system><ipv6allow>` with `isset()`. pfSense writes an enabled setting as an empty element and OPNsense shipped `<ipv6allow/>` as its default up to 24.1, but both schemas typed the field `string` and both converters tested `!= ""`. Every pfSense config with IPv6 allowed, and eight of the nine OPNsense fixtures that carry the element, read IPv6 as disabled, so FIREWALL-006 passed. Both fields are `*string` now and the converters test for non-nil. `BoolFlag` is not used here: it reads `<ipv6allow>0</ipv6allow>` as off, and for this field that misread makes FIREWALL-006 pass on a firewall that allows IPv6.
 
 ### 3.3 Repeated XML Elements and `string` Fields
 
@@ -481,6 +481,8 @@ Four boolean/int handling styles coexist in the schema layer — pick the right 
 | `shared.FlexBool`     | `pkg/schema/shared/flex_bool.go` | body → `shared.IsValueTrue(body)`; no presence semantics                                  | Field is a boolean but the element is always emitted and presence carries no signal.                  |
 | `shared.FlexInt`      | `pkg/schema/shared/flex_int.go`  | numeric → that value; `on`/`yes` → 1; `off`/`no` → 0; unknown non-numeric → wrapped error | Field must stay int-typed (may carry a count or a liberal toggle).                                    |
 | strict `int` / `bool` | built-in                         | only decimal digits (for `int`); `true`/`false` only (for `bool`)                         | Field is genuinely numeric (UID, GID, PID, MTU) and non-numeric input is a real error.                |
+
+A presence toggle whose body must be ignored is a fifth case: type it `*string` and test for non-nil, as `IPv6Allow` does (§3.2). `BoolFlag` reads `<tag>0</tag>` as false, where a bare `isset()` reads it as set.
 
 Both OPNsense and pfSense emit the same liberal truthy vocabulary (`1|on|yes|true|enable|enabled`, case-insensitive). Always go through `shared.IsValueTrue` / `shared.IsValueFalse` — never hand-roll a truthy parser at the call site.
 

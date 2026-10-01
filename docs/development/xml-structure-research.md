@@ -26,7 +26,7 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **Upstream PHP pattern:** `isset($rule['disabled'])` or `!empty($rule['disabled'])`
 
-**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`)
+**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`)
 
 | Element                     | Parent Context              | Upstream Evidence                                       |
 | --------------------------- | --------------------------- | ------------------------------------------------------- |
@@ -54,7 +54,7 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **pfSense Bug #6893 note:** Prior to pfSense 2.3.3, some code produced `<tag/>` while other code produced `<tag></tag>`. Both forms are valid XML and our `*string` / `BoolFlag` types handle both correctly via Go's `encoding/xml`.
 
-**OPNsense 26.1 `ipv6allow` note:** 26.1 replaced `<system><ipv6allow>` with the value-based `<OPNsense><Interfaces><settings><disableipv6>`, which is inverted (see GOTCHAS §3.7).
+**OPNsense 26.1 `ipv6allow` note:** 26.1 replaced `<system><ipv6allow>` with the value-based `<OPNsense><Interfaces><settings><disableipv6>`, which is inverted (see GOTCHAS §3.7). The legacy element is typed `*string`, not `BoolFlag`: `isset()` allows IPv6 for any body, including `0`, which `BoolFlag` reads as false.
 
 **pfSense presence-based enable note:** pfSense correctly parses `Interface` and `DhcpdInterface` `<enable/>` elements as presence-based using BoolFlag types. The public API converts to string `"1"` for backward compatibility.
 
@@ -270,16 +270,19 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 - NATRule: Disabled, Log (security.go) — Phase 2
 - InboundRule: Disabled, Log (security.go) — Phase 2
 - System: DisableConsoleMenu (system.go) — Phase 3
-- System: IPv6Allow (system.go, and pfSense system.go)
 - Firmware: Type, Subscription, Reboot (system.go) — Phase 3
 - User: Expires, AuthorizedKeys, IPSecPSK, OTPSeed (system.go) — Phase 3
 - System.RRD: Enable (system.go) — Phase 3
 - Rrd: Enable (services.go) — Phase 3
 - OpnSenseDocument: TriggerInitialWizard (opnsense.go) — Phase 3
 
+**Converted to `*string` (presence only, the body is ignored):**
+
+- System: IPv6Allow (system.go, and pfSense system.go)
+
 **Kept as string (value-based — `== "1"` in PHP):**
 
-The following fields use OPNsense MVC value-based semantics where `<field>0</field>` is valid and distinct from absent. `BoolFlag` would incorrectly treat `<field>0</field>` as true (element present), breaking the `== "1"` / `== "0"` distinction. These remain `string`:
+The following fields use OPNsense MVC value-based semantics where `<field>0</field>` is valid and distinct from absent. `BoolFlag` would read an empty `<field/>` as true and would drop a `0` on marshal, breaking the `== "1"` / `== "0"` distinction. These remain `string`:
 
 ### 5a. Security (security.go) — value-based, kept as string
 

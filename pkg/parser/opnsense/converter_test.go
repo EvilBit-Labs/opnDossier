@@ -30,7 +30,7 @@ func TestConverter_System(t *testing.T) {
 	doc.System.DisableNATReflection = "yes"
 	doc.System.DisableConsoleMenu = true
 	doc.System.PfShareForward = true
-	doc.System.IPv6Allow = true
+	doc.System.IPv6Allow = new(string)
 	doc.System.DNSAllowOverride = true
 	doc.System.DisableVLANHWFilter = true
 	doc.System.DisableChecksumOffloading = true
