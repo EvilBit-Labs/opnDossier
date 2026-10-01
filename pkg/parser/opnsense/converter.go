@@ -131,7 +131,7 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		DisableChecksumOffloading:     bool(sys.DisableChecksumOffloading),
 		DisableSegmentationOffloading: bool(sys.DisableSegmentationOffloading),
 		DisableLargeReceiveOffloading: bool(sys.DisableLargeReceiveOffloading),
-		IPv6Allow:                     sys.IPv6Allow != "",
+		IPv6Allow:                     bool(sys.IPv6Allow),
 		PfShareForward:                bool(sys.PfShareForward),
 		LbUseSticky:                   bool(sys.LbUseSticky),
 		RrdBackup:                     bool(sys.RrdBackup),

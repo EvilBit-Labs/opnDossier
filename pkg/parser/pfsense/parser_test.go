@@ -233,7 +233,7 @@ func TestConverter_System(t *testing.T) {
 	doc.System.DisableNATReflection = "yes"
 	doc.System.DisableSegmentationOffloading = true
 	doc.System.DisableLargeReceiveOffloading = true
-	doc.System.IPv6Allow = "1"
+	doc.System.IPv6Allow = true
 	doc.System.NextUID = 2000
 	doc.System.NextGID = 2000
 	doc.System.PowerdACMode = "hadp"

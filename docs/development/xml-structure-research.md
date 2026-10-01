@@ -48,6 +48,7 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<interfacenot/>`           | `<rule>` (filter)           | `!empty($rule['interfacenot'])`                         |
 | `<nottagged/>`              | `<rule>` (filter)           | Match packets NOT tagged                                |
 | `<trigger_initial_wizard/>` | `<opnsense>` (root)         | First-boot wizard trigger                               |
+| `<ipv6allow/>`              | `<system>`                  | `isset($config['system']['ipv6allow'])`, before 26.1    |
 | `<enable/>`                 | `<interfaces><wan>`         | Interface enabled (pfSense uses BoolFlag)               |
 | `<enable/>`                 | `<dhcpd><lan>`              | DHCP scope enabled (pfSense uses BoolFlag)              |
 
@@ -59,7 +60,7 @@ Element existing = true, absent = false. Content is irrelevant.
 
 Element contains `1`, `yes`, or a specific value. Absent or empty = false.
 
-**Upstream PHP pattern:** `$config['system']['ipv6allow'] == "1"`
+**Upstream PHP pattern:** the stored value is tested, so an empty element reads as false
 
 **Go type:** `string` with value check, or `BoolFlag` (which now delegates non-empty body content to `shared.IsValueTrue`)
 
@@ -70,7 +71,6 @@ Element contains `1`, `yes`, or a specific value. Absent or empty = false.
 | `<blockpriv>`            | `<interfaces><wan>`      | `1`    | `string`   | Block private networks                                                                      |
 | `<blockbogons>`          | `<interfaces><wan>`      | `1`    | `string`   | Block bogon networks                                                                        |
 | `<dnsallowoverride>`     | `<system>`               | `1`    | `BoolFlag` | Allow DNS override (migrated from int)                                                      |
-| `<ipv6allow>`            | `<system>`               | `1`    | `string`   | IPv6 enabled                                                                                |
 | `<usevirtualterminal>`   | `<system>`               | `1`    | `BoolFlag` | Virtual terminal (migrated from int)                                                        |
 | `<pf_share_forward>`     | `<system>`               | `1`    | `BoolFlag` | Shared forwarding (migrated from int)                                                       |
 | `<lb_use_sticky>`        | `<system>`               | `1`    | `BoolFlag` | Sticky load balancing (migrated from int)                                                   |
@@ -268,6 +268,7 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 - NATRule: Disabled, Log (security.go) — Phase 2
 - InboundRule: Disabled, Log (security.go) — Phase 2
 - System: DisableConsoleMenu (system.go) — Phase 3
+- System: IPv6Allow (system.go, and pfSense system.go)
 - Firmware: Type, Subscription, Reboot (system.go) — Phase 3
 - User: Expires, AuthorizedKeys, IPSecPSK, OTPSeed (system.go) — Phase 3
 - System.RRD: Enable (system.go) — Phase 3

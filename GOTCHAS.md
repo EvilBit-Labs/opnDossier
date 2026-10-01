@@ -131,6 +131,7 @@ Go map iteration is non-deterministic.
 The `encoding/xml` package treats self-closing tags (e.g., `<disabled/>`) and missing tags identically for `string` fields.
 
 - **Gotcha:** Use `*string` (pointer to string) when you need to distinguish between "element present but empty" (`""`) and "element absent" (`nil`).
+- **Instance (fixed):** OPNsense before 26.1 and pfSense both test `<system><ipv6allow>` with `isset()`. pfSense writes an enabled setting as an empty element and OPNsense shipped `<ipv6allow/>` as its default up to 24.1, but both schemas typed the field `string` and both converters tested `!= ""`. Every pfSense config with IPv6 allowed, and eight of the nine OPNsense fixtures that carry the element, read IPv6 as disabled, so FIREWALL-006 passed. Both fields are `BoolFlag` now, like the offload toggles beside them.
 
 ### 3.3 Repeated XML Elements and `string` Fields
 

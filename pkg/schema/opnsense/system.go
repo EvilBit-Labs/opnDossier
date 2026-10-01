@@ -177,7 +177,7 @@ type System struct {
 	DisableChecksumOffloading     BoolFlag     `xml:"disablechecksumoffloading"     json:"disableChecksumOffloading,omitempty"     yaml:"disableChecksumOffloading,omitempty"`
 	DisableSegmentationOffloading BoolFlag     `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
 	DisableLargeReceiveOffloading BoolFlag     `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
-	IPv6Allow                     string       `xml:"ipv6allow"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
+	IPv6Allow                     BoolFlag     `xml:"ipv6allow"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
 	DisableNATReflection          string       `xml:"disablenatreflection"          json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
 	DisableConsoleMenu            BoolFlag     `xml:"disableconsolemenu"            json:"disableConsoleMenu"                      yaml:"disableConsoleMenu,omitempty"`
 	NextUID                       int          `xml:"nextuid"                       json:"nextUid,omitempty"                       yaml:"nextUid,omitempty"`
