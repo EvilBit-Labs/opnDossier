@@ -54,6 +54,8 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **pfSense Bug #6893 note:** Prior to pfSense 2.3.3, some code produced `<tag/>` while other code produced `<tag></tag>`. Both forms are valid XML and our `*string` / `BoolFlag` types handle both correctly via Go's `encoding/xml`.
 
+**OPNsense 26.1 `ipv6allow` note:** 26.1 replaced `<system><ipv6allow>` with the value-based `<OPNsense><Interfaces><settings><disableipv6>`, which is inverted (see GOTCHAS §3.7).
+
 **pfSense presence-based enable note:** pfSense correctly parses `Interface` and `DhcpdInterface` `<enable/>` elements as presence-based using BoolFlag types. The public API converts to string `"1"` for backward compatibility.
 
 ### 1b. Value-Based Booleans
@@ -328,6 +330,9 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | SyslogInternal.General | Enabled             | `string` | MVC field, value-based |
 | Netflow.Capture        | EgressOnly          | `string` | MVC field, value-based |
 | Netflow.Collect        | Enable              | `string` | MVC field, value-based |
+| Interfaces.Settings    | DisableIPv6         | `string` | MVC field, inverted    |
+| Interfaces.Settings    | \*Offloading (x3)   | `string` | MVC field, value-based |
+| Interfaces.Settings    | DisableVLANHWFilter | `string` | MVC option: 0, 1 or 2  |
 
 ### 5d. Interfaces and DHCP (interfaces.go, dhcp.go) — platform-specific
 

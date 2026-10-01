@@ -186,6 +186,14 @@ The schema and `CommonDevice` are separate models, and a value can be decoded co
   - **Guard:** `TestHandleStartElement_DispatchCoversEverySchemaField` in `internal/cfgparser/dispatch_coverage_test.go` parses `xml.go` via `go/ast`, extracts every case label in `handleStartElement`'s switch *together with the `doc.<Field>` it decodes into*, and reflects over `schema.OpnSenseDocument`'s `xml:` tags to assert a 1:1 pairing. It fails on a missing case (a new top-level element added to the schema with nothing dispatching it) and — checking the target, not just the label — on a case that decodes into the wrong field (a copy-paste swap between adjacent, structurally identical elements like `gifs`/`gres`/`laggs`, which a label-only check would miss).
   - **When adding a new top-level `<opnsense>` child element to the schema, add its dispatch case in the same change.** The coverage test will fail the build if you forget; it will not tell you if you *misroute* one unless the swap changes which field is referenced in the case body.
 
+### 3.7 A Newer OPNsense Release Can Delete the Element You Read
+
+An OPNsense migration can move a legacy element into an `<OPNsense>` model and delete the original, or raise a model's version and drop a field the new version no longer defines. A value opnDossier reads correctly on older configs then reads as unset on current ones, with no error and no warning.
+
+- **Instance (fixed):** OPNsense 26.1 moved the IPv6, offload and VLAN filter settings from `<system>` into `<OPNsense><Interfaces><settings>` (`Interfaces/Migrations/SET1_0_0.php`), turning `ipv6allow` into the inverted `disableipv6`. On a migrated config all five fields read as off, so FIREWALL-006 passed on firewalls with IPv6 enabled. `applyInterfaceSettings` reads the block now. OPNsense 26.1 and later read only the block, so it wins over anything left in `<system>`. Without the block the converter falls back to `<system>`, which is right for older configs but can disagree with a 26.1.0 config whose migration failed (a `<dhcp6_norelease>yes</dhcp6_norelease>` broke it until 26.1.1); OPNsense then treats IPv6 as allowed and offloading as on.
+- **Detection:** for each OPNsense release, check what its migrations do to the elements the schema reads: a `post()` that unsets a legacy path (`src/opnsense/mvc/app/models/OPNsense/*/Migrations/`), or a model whose `<version>` went up and whose field list lost or renamed a field, since the migration replaces the model's whole node. Test the migrated shape by rewriting a fixture the way the migration does, as `TestConverter_InterfaceSettings_ReadFromMigratedBlock` does, rather than generating XML from the schema.
+- **Pin the model version.** The new block's element names belong to its model version, so the converter warns on a `version` attribute it does not recognize, as it does for Unbound. See §18.1 for the risk.
+
 ## 4. Diff Engine
 
 ### 4.1 Section-Level Added/Removed Guards
