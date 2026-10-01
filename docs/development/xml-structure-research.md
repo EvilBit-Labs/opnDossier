@@ -347,7 +347,17 @@ pfSense and OPNsense use different boolean semantics for interface and DHCP scop
 
 ### 6a. NAT XML Path
 
-In OPNsense config.xml, inbound NAT (port forward) rules are at `<nat><rule>`, **not** `<nat><inbound><rule>`. Our schema uses `xml:"inbound>rule"` path mapping.
+In OPNsense config.xml, inbound NAT (port forward) rules are at `<nat><rule>`, **not** `<nat><inbound><rule>`. The redirect address is in `<target>` and the redirect port in `<local-port>`; the port the rule matches on is `<destination><port>`. `Nat.Inbound` binds `xml:"rule"`. Until #877 it bound `xml:"inbound>rule"` and read `<internalip>`, a shape no release writes, so no OPNsense port forward was read.
+
+From 26.1 the Destination NAT model is mounted on the same path (`/nat/rule+`), so the rules do not move. The rule body changes:
+
+- each rule has a `uuid` attribute and a `<sequence>`, and the ruleset is built in `<sequence>` order rather than document order. A rule without one is numbered after the highest on load, and equal sequences are ordered by uuid
+- `<pass>` (empty, `pass` or `rule`) holds the filter rule association and `<associated-rule-id>` is written empty
+- `<disabled>`, `<nordr>`, `<nosync>`, `<log>` and `<not>` are always written, as `0` or `1`
+- aliases and literal addresses are in `<network>` rather than `<address>`, next to the interface macros, and an empty `<network/>` means any. A name that is both an interface and an alias resolves to the alias
+- from 26.7.4 `<audit>` (base64 JSON) replaces `<created>` and `<updated>`
+
+OPNsense 18.7.10 to 25.7 leave an empty `<rule/>` under `<nat>` once the last port forward is deleted. `InboundRule.IsPlaceholder` identifies it and the converter skips it.
 
 ### 6b. NAT Outbound Rule Fields (Added in Phase 4)
 
@@ -360,13 +370,21 @@ In OPNsense config.xml, inbound NAT (port forward) rules are at `<nat><rule>`, *
 
 ### 6c. NAT Inbound Rule Fields (Added in Phase 4)
 
-| Field            | XML Element            | Type       | Status |
-| ---------------- | ---------------------- | ---------- | ------ |
-| NATReflection    | `<natreflection>`      | `string`   | Added  |
-| AssociatedRuleID | `<associated-rule-id>` | `string`   | Added  |
-| NoRDR            | `<nordr>`              | `BoolFlag` | Added  |
-| NoSync           | `<nosync>`             | `BoolFlag` | Added  |
-| LocalPort        | `<local-port>`         | `string`   | Added  |
+| Field            | XML Element            | Type       | Status       |
+| ---------------- | ---------------------- | ---------- | ------------ |
+| NATReflection    | `<natreflection>`      | `string`   | Added        |
+| AssociatedRuleID | `<associated-rule-id>` | `string`   | Added        |
+| NoRDR            | `<nordr>`              | `BoolFlag` | Added        |
+| NoSync           | `<nosync>`             | `BoolFlag` | Added        |
+| LocalPort        | `<local-port>`         | `string`   | Added        |
+| Target           | `<target>`             | `string`   | Added (#877) |
+| Sequence         | `<sequence>`           | `string`   | Added (#877) |
+| Pass             | `<pass>`               | `string`   | Added (#877) |
+| Audit            | `<audit>`              | `string`   | Added (#877) |
+| Category         | `<category>`           | `string`   | Added (#877) |
+| Tag              | `<tag>`                | `string`   | Added (#877) |
+| Tagged           | `<tagged>`             | `string`   | Added (#877) |
+| PoolOpts         | `<poolopts>`           | `string`   | Added (#877) |
 
 ### 6d. Outbound NAT Mode Values
 
@@ -409,6 +427,8 @@ OPNsense maintains two parallel systems:
 - **MVC/New-style**: Rules in `<OPNsense><Firewall><Filter>` with `<rules>`, `<snatrules>`, etc.
 
 Both are loaded by `pf_firewall()`. Our schema currently only models the legacy format.
+
+Port forwards are the exception to the split: the 26.1 Destination NAT model is a legacy mapper on `<nat><rule>`, so both generations are read from that one path (see 6a).
 
 ---
 

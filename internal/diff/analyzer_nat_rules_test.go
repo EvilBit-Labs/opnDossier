@@ -32,8 +32,9 @@ func TestInboundNATRulesEqual_ComparesEveryField(t *testing.T) {
 
 // TestCompareNAT_DetectsContentChanges is the end-to-end half: CompareNAT
 // compared only len(OutboundRules) and len(InboundRules), so any edit that left
-// the counts intact reported nothing at all. No NAT rule in any shipped fixture
-// carries a UUID, so this is the path every real config takes.
+// the counts intact reported nothing at all. Only port forwards saved by
+// OPNsense 26.1 or later carry a UUID, so this is the path most real configs
+// take.
 func TestCompareNAT_DetectsContentChanges(t *testing.T) {
 	t.Parallel()
 
@@ -97,6 +98,27 @@ func TestCompareNAT_DetectsContentChanges(t *testing.T) {
 			assert.True(t, found, "expected a modified %s entry, got %+v", tt.wantHit, changes)
 		})
 	}
+}
+
+// TestCompareNAT_PortForwardResequence_ShowsBothValues covers a port forward
+// moved within the ruleset. OPNsense 26.1 and later record its place as a
+// sequence, which reaches the model as Priority, and a change there must not
+// read as an entry with identical old and new values.
+func TestCompareNAT_PortForwardResequence_ShowsBothValues(t *testing.T) {
+	t.Parallel()
+
+	oldCfg := common.NATConfig{InboundRules: []common.InboundNATRule{{
+		UUID: "b2b2b2b2-0000-4000-8000-000000000001", Interfaces: []string{"wan"}, Protocol: "tcp",
+		Description: "web", InternalIP: "192.168.1.10", LocalPort: "8443", Priority: 100,
+	}}}
+	newCfg := deepCopyNAT(oldCfg)
+	newCfg.InboundRules[0].Priority = 300
+
+	changes := NewAnalyzer().CompareNAT(oldCfg, newCfg)
+	require.Len(t, changes, 1)
+	assert.Equal(t, ChangeModified, changes[0].Type)
+	assert.Contains(t, changes[0].OldValue, "priority=100")
+	assert.Contains(t, changes[0].NewValue, "priority=300")
 }
 
 // deepCopyNAT clones the slices so table cases cannot mutate each other.

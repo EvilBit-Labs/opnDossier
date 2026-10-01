@@ -6,9 +6,8 @@ import (
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// Nat represents the pfSense NAT configuration.
-// The key structural difference from OPNsense is that inbound (port-forward) rules
-// are direct children of <nat> rather than nested under <nat><inbound>.
+// Nat represents the pfSense NAT configuration. Inbound (port-forward) rules
+// are direct children of <nat>, as they are on OPNsense.
 type Nat struct {
 	Outbound  opnsense.Outbound `xml:"outbound"            json:"outbound"            yaml:"outbound"`
 	Inbound   []InboundRule     `xml:"rule"                json:"inbound,omitempty"   yaml:"inbound,omitempty"`
@@ -16,8 +15,10 @@ type Nat struct {
 }
 
 // InboundRule represents a pfSense inbound NAT rule (port forwarding).
-// This is a copy-on-write fork of opnsense.InboundRule because pfSense uses a
-// <target> element for the internal redirect IP, whereas OPNsense uses <internalip>.
+// Both vendors keep the redirect address in <target>. This is a copy-on-write
+// fork of opnsense.InboundRule because the OPNsense rule carries elements
+// pfSense does not write: sequence, pass, audit, category, tag, tagged and
+// poolopts.
 type InboundRule struct {
 	XMLName          xml.Name               `xml:"rule"`
 	Interface        opnsense.InterfaceList `xml:"interface,omitempty"          json:"interface,omitempty"        yaml:"interface,omitempty"`

@@ -313,7 +313,8 @@ type InboundNATRule struct {
 	// resolved from, when expressed as a port alias rather than a literal. Nil
 	// for literals. Tracked as an unused-object root.
 	InternalPortRef *ObjectRef `json:"internalPortRef,omitempty" yaml:"internalPortRef,omitempty"`
-	// LocalPort is the local port used for NAT reflection.
+	// LocalPort is the port on the internal host that traffic is redirected to.
+	// The port the rule matches on is Destination.Port.
 	LocalPort string `json:"localPort,omitempty" yaml:"localPort,omitempty"`
 	// LocalPortRef identifies the named object (alias) LocalPort was resolved
 	// from, when expressed as a port alias rather than a literal. Nil for literals.
@@ -322,9 +323,13 @@ type InboundNATRule struct {
 	Reflection string `json:"reflection,omitempty" yaml:"reflection,omitempty"`
 	// NATReflection is the NAT reflection mode (e.g., "enable", "disable", "purenat").
 	NATReflection string `json:"natReflection,omitempty" yaml:"natReflection,omitempty"`
-	// AssociatedRuleID links this rule to an automatically generated filter rule.
+	// AssociatedRuleID links this rule to the filter rule that passes its
+	// traffic: the ID shared with a stored filter rule, "pass" when the
+	// redirect passes the traffic itself, or "rule" when OPNsense 26.1 or later
+	// generates the pass rule without storing it.
 	AssociatedRuleID string `json:"associatedRuleId,omitempty" yaml:"associatedRuleId,omitempty"`
-	// Priority is the rule evaluation priority.
+	// Priority is the rule evaluation priority. OPNsense 26.1 and later record
+	// it as the rule's sequence; lower values are evaluated first.
 	Priority int `json:"priority,omitempty" yaml:"priority,omitempty"`
 	// NoRDR disables the redirect for matching traffic.
 	NoRDR bool `json:"noRdr,omitempty" yaml:"noRdr,omitempty"`
