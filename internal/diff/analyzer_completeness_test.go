@@ -50,10 +50,67 @@ func varyField(v reflect.Value) bool {
 	}
 }
 
+// fillValue gives v non-zero content all the way down. Every pointer and slice
+// is a fresh allocation, as it is in each parse of a config.
+func fillValue(t *testing.T, v reflect.Value) {
+	t.Helper()
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString("filled")
+	case reflect.Bool:
+		v.SetBool(true)
+	case reflect.Int:
+		v.SetInt(1)
+	case reflect.Slice:
+		v.Set(reflect.MakeSlice(v.Type(), 1, 1))
+		fillValue(t, v.Index(0))
+	case reflect.Pointer:
+		v.Set(reflect.New(v.Type().Elem()))
+		fillValue(t, v.Elem())
+	case reflect.Struct:
+		for _, f := range v.Fields() {
+			fillValue(t, f)
+		}
+	default:
+		require.Failf(t, "no fill for this kind", "%s", v.Kind())
+	}
+}
+
+// varyLeaves changes each scalar reachable from a filled v through structs,
+// pointers and slices, one at a time, and calls check while it is changed.
+func varyLeaves(t *testing.T, v reflect.Value, path string, check func(path string)) {
+	t.Helper()
+
+	switch v.Kind() {
+	case reflect.Struct:
+		for i := range v.NumField() {
+			varyLeaves(t, v.Field(i), path+"."+v.Type().Field(i).Name, check)
+		}
+	case reflect.Pointer:
+		varyLeaves(t, v.Elem(), path, check)
+	case reflect.Slice:
+		varyLeaves(t, v.Index(0), path+"[0]", check)
+	default:
+		saved := reflect.New(v.Type()).Elem()
+		saved.Set(v)
+		require.Truef(t, varyField(v), "no probe for %s (%s)", path, v.Kind())
+		check(path)
+		v.Set(saved)
+	}
+}
+
 // assertEqualityCoversEveryField varies each field of a zero value in turn and
 // asserts the equality helper notices, so a field added to the model without
 // being added to the helper fails here rather than silently disappearing from
 // every diff.
+//
+// It then checks the helper compares by value. The zero values of the first
+// pass hold no reference, and that pass only asserts that a change is noticed,
+// so a helper that compares a pointer and not what it points to passes it while
+// reporting every unchanged item that holds a reference as modified. Two values
+// filled separately must compare equal, and a change to any leaf of either must
+// be noticed.
 func assertEqualityCoversEveryField[T any](t *testing.T, equal func(a, b T) bool, ignored map[string]string) {
 	t.Helper()
 
@@ -81,6 +138,30 @@ func assertEqualityCoversEveryField[T any](t *testing.T, equal func(a, b T) bool
 
 		assert.Falsef(t, equal(a, b),
 			"%s is not compared, so a change to it produces no diff entry; add it to the equality helper", name)
+	}
+
+	filled := func() T {
+		var x T
+		fillValue(t, reflect.ValueOf(&x).Elem())
+
+		return x
+	}
+
+	require.True(t, equal(filled(), filled()),
+		"equal content held in separate allocations compares unequal, so an unchanged item is reported as modified")
+
+	for i := range typ.NumField() {
+		name := typ.Field(i).Name
+
+		if _, skip := ignored[name]; skip {
+			continue
+		}
+
+		a, b := filled(), filled()
+
+		varyLeaves(t, reflect.ValueOf(&b).Elem().Field(i), name, func(path string) {
+			assert.Falsef(t, equal(a, b), "%s is not compared by value, so a change to it produces no diff entry", path)
+		})
 	}
 }
 
