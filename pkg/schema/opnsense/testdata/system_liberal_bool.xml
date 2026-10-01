@@ -10,6 +10,6 @@
     <disablesegmentationoffloading>ENABLED</disablesegmentationoffloading>
     <pf_share_forward>0</pf_share_forward>
     <lb_use_sticky>off</lb_use_sticky>
-    <rrdbackup>no</rrdbackup>
+    <disablelargereceiveoffloading>no</disablelargereceiveoffloading>
   </system>
 </opnsense>

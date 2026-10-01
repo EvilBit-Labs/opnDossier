@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -134,8 +135,8 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		IPv6Allow:                     sys.IPv6Allow != "",
 		PfShareForward:                bool(sys.PfShareForward),
 		LbUseSticky:                   bool(sys.LbUseSticky),
-		RrdBackup:                     bool(sys.RrdBackup),
-		NetflowBackup:                 bool(sys.NetflowBackup),
+		RrdBackup:                     c.periodicBackupConfigured("System.RrdBackup", sys.RrdBackup),
+		NetflowBackup:                 c.periodicBackupConfigured("System.NetflowBackup", sys.NetflowBackup),
 		UseVirtualTerminal:            bool(sys.UseVirtualTerminal),
 		NextUID:                       sys.NextUID,
 		NextGID:                       sys.NextGID,
@@ -163,6 +164,27 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 			Plugins: sys.Firmware.Plugins,
 		},
 	}
+}
+
+// periodicBackupConfigured reports whether an OPNsense periodic backup field
+// holds an hour interval. Any positive whole number of hours is a periodic
+// backup (the GUI offers 1 to 24); -1, 0 and a missing element are not. The
+// vendor's cron check accepts any value above 0, so a value that is not a
+// whole number is warned about and treated as not configured.
+func (c *converter) periodicBackupConfigured(field, value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+
+	hours, err := strconv.Atoi(value)
+	if err != nil {
+		c.addWarning(field, value, "periodic backup interval is not a whole number of hours", common.SeverityLow)
+
+		return false
+	}
+
+	return hours > 0
 }
 
 // convertInterfaces maps doc.Interfaces.Items to []common.Interface.
