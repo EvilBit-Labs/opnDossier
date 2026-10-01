@@ -734,7 +734,7 @@ type System struct {
 	DisableNATReflection          string             `xml:"disablenatreflection"                    json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
 	DisableSegmentationOffloading opnsense.BoolFlag  `xml:"disablesegmentationoffloading,omitempty" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
 	DisableLargeReceiveOffloading opnsense.BoolFlag  `xml:"disablelargereceiveoffloading,omitempty" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
-	IPv6Allow                     string             `xml:"ipv6allow"                               json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
+	IPv6Allow                     *string            `xml:"ipv6allow,omitempty"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
 	MaximumTableEntries           string             `xml:"maximumtableentries,omitempty"           json:"maximumTableEntries,omitempty"           yaml:"maximumTableEntries,omitempty"`
 	CryptoHardware                string             `xml:"crypto_hardware,omitempty"               json:"cryptoHardware,omitempty"                yaml:"cryptoHardware,omitempty"`
 	EnableSerial                  opnsense.BoolFlag  `xml:"enableserial,omitempty"                  json:"enableSerial"                            yaml:"enableSerial,omitempty"`
