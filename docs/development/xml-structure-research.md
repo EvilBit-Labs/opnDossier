@@ -177,22 +177,23 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 
 ### 3b. Rate-Limiting and Advanced Fields (Added in Phase 3)
 
-| Field           | XML Element            | Go Type    | Phase   |
-| --------------- | ---------------------- | ---------- | ------- |
-| MaxSrcNodes     | `<max-src-nodes>`      | `string`   | Phase 3 |
-| MaxSrcConn      | `<max-src-conn>`       | `string`   | Phase 3 |
-| MaxSrcConnRate  | `<max-src-conn-rate>`  | `string`   | Phase 3 |
-| MaxSrcConnRates | `<max-src-conn-rates>` | `string`   | Phase 3 |
-| TCPFlags1       | `<tcpflags1>`          | `string`   | Phase 3 |
-| TCPFlags2       | `<tcpflags2>`          | `string`   | Phase 3 |
-| TCPFlagsAny     | `<tcpflags_any>`       | `BoolFlag` | Phase 3 |
-| ICMPType        | `<icmptype>`           | `string`   | Phase 3 |
-| ICMP6Type       | `<icmp6-type>`         | `string`   | Phase 3 |
-| StateTimeout    | `<statetimeout>`       | `string`   | Phase 3 |
-| AllowOpts       | `<allowopts>`          | `BoolFlag` | Phase 3 |
-| DisableReplyTo  | `<disablereplyto>`     | `BoolFlag` | Phase 3 |
-| NoPfSync        | `<nopfsync>`           | `BoolFlag` | Phase 3 |
-| NoSync          | `<nosync>`             | `BoolFlag` | Phase 3 |
+| Field            | XML Element            | Go Type    | Phase   |
+| ---------------- | ---------------------- | ---------- | ------- |
+| MaxSrcNodes      | `<max-src-nodes>`      | `string`   | Phase 3 |
+| MaxSrcConn       | `<max-src-conn>`       | `string`   | Phase 3 |
+| MaxSrcConnRate   | `<max-src-conn-rate>`  | `string`   | Phase 3 |
+| MaxSrcConnRates  | `<max-src-conn-rates>` | `string`   | Phase 3 |
+| TCPFlags1        | `<tcpflags1>`          | `string`   | Phase 3 |
+| TCPFlags2        | `<tcpflags2>`          | `string`   | Phase 3 |
+| TCPFlagsAny      | `<tcpflags_any>`       | `BoolFlag` | Phase 3 |
+| ICMPType         | `<icmptype>`           | `string`   | Phase 3 |
+| ICMP6Type        | `<icmp6-type>`         | `string`   | Phase 3 |
+| StateTimeout     | `<statetimeout>`       | `string`   | Phase 3 |
+| AllowOpts        | `<allowopts>`          | `BoolFlag` | Phase 3 |
+| DisableReplyTo   | `<disablereplyto>`     | `BoolFlag` | Phase 3 |
+| NoPfSync         | `<nopfsync>`           | `BoolFlag` | Phase 3 |
+| NoSync           | `<nosync>`             | `BoolFlag` | Phase 3 |
+| AssociatedRuleID | `<associated-rule-id>` | `string`   | #877    |
 
 ### 3c. Remaining Missing Fields (LOW importance)
 

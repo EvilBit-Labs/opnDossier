@@ -205,7 +205,8 @@ type FirewallRule struct {
 	NoPfSync bool `json:"noPfSync,omitempty" yaml:"noPfSync,omitempty"`
 	// NoSync excludes the rule from XMLRPC config synchronization.
 	NoSync bool `json:"noSync,omitempty" yaml:"noSync,omitempty"`
-	// AssociatedRuleID links this rule to an automatically generated companion rule.
+	// AssociatedRuleID is set on the pass rule a port forward stores for itself
+	// and ties it to that forward.
 	AssociatedRuleID string `json:"associatedRuleId,omitempty" yaml:"associatedRuleId,omitempty"`
 	// Tag is the pf tag this rule applies to matching packets.
 	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`

@@ -279,6 +279,10 @@ type Rule struct {
 	Updated        *Updated `xml:"updated,omitempty"`
 	Created        *Created `xml:"created,omitempty"`
 	UUID           string   `xml:"uuid,attr,omitempty"`
+	// AssociatedRuleID is set on the pass rule a port forward stores for itself.
+	// Up to 25.7 the forward carries the same value; from 26.1 only this rule
+	// keeps it.
+	AssociatedRuleID string `xml:"associated-rule-id,omitempty"`
 }
 
 // Source represents a firewall rule source.

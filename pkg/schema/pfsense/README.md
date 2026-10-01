@@ -19,22 +19,22 @@ The root XML element is `<pfsense>` (vs OPNsense's `<opnsense>`).
 
 ## Key Structural Differences from OPNsense
 
-| Area            | pfSense                                                | OPNsense                             |
-| --------------- | ------------------------------------------------------ | ------------------------------------ |
-| Root element    | `<pfsense>`                                            | `<opnsense>`                         |
-| NAT 1:1 / NPt   | `<nat><onetoone>`, `<nat><npt>`                        | Different location                   |
-| User passwords  | `<bcrypt-hash>`                                        | `<password>` (SHA-based)             |
-| User privileges | `<priv>[]` per-user array                              | Group-based model                    |
-| DNS servers     | `<dnsserver>[]` (repeating elements)                   | Single `<dnsserver>` string          |
-| Aliases         | Flat `aliases/alias[]`                                 | UUID-based `OPNsense/Firewall/Alias` |
-| Captive portal  | Zone-keyed map                                         | Completely different implementation  |
-| Traffic shaping | ALTQ + dummynet                                        | Different model in newer OPNsense    |
-| Auth servers    | `system/authserver[]`                                  | Different location                   |
-| Notifications   | `system/notifications` (SMTP/Telegram/etc.)            | Different system                     |
-| Filter rules    | Adds `id`, `tag`, `tagged`, `os`, `associated-rule-id` | Does not have these                  |
-| Config version  | Decimal (22.9, 24.0)                                   | Different numbering                  |
-| CRL             | Top-level `<crl>[]`                                    | Integrated differently               |
-| Kea DHCP        | `<kea>` / `<kea6>` (newer versions)                    | Not present                          |
+| Area            | pfSense                                     | OPNsense                             |
+| --------------- | ------------------------------------------- | ------------------------------------ |
+| Root element    | `<pfsense>`                                 | `<opnsense>`                         |
+| NAT 1:1 / NPt   | `<nat><onetoone>`, `<nat><npt>`             | Different location                   |
+| User passwords  | `<bcrypt-hash>`                             | `<password>` (SHA-based)             |
+| User privileges | `<priv>[]` per-user array                   | Group-based model                    |
+| DNS servers     | `<dnsserver>[]` (repeating elements)        | Single `<dnsserver>` string          |
+| Aliases         | Flat `aliases/alias[]`                      | UUID-based `OPNsense/Firewall/Alias` |
+| Captive portal  | Zone-keyed map                              | Completely different implementation  |
+| Traffic shaping | ALTQ + dummynet                             | Different model in newer OPNsense    |
+| Auth servers    | `system/authserver[]`                       | Different location                   |
+| Notifications   | `system/notifications` (SMTP/Telegram/etc.) | Different system                     |
+| Filter rules    | Adds `id`                                   | Does not have it                     |
+| Config version  | Decimal (22.9, 24.0)                        | Different numbering                  |
+| CRL             | Top-level `<crl>[]`                         | Integrated differently               |
+| Kea DHCP        | `<kea>` / `<kea6>` (newer versions)         | Not present                          |
 
 ## listtags (XML Array Elements)
 

@@ -529,3 +529,38 @@ func TestConverter_PortForwards_RedirectAddress(t *testing.T) {
 		})
 	}
 }
+
+// TestParser_PortForwardFixtures_CompanionRuleKeepsItsLink covers the pass rule
+// a port forward stores for itself under <filter>. The rule carries the same
+// <associated-rule-id> as the forward, which is the only thing tying the two
+// together, and the filter rule schema did not bind it.
+func TestParser_PortForwardFixtures_CompanionRuleKeepsItsLink(t *testing.T) {
+	t.Parallel()
+
+	const linkID = "nat_68dd1c2a4b5c61.23456789"
+
+	for _, name := range []string{"opnsense-legacy-port-forwards.xml", "opnsense-port-forwards.xml"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			device, _ := parsePortForwardFixture(t, name)
+
+			var linked []common.FirewallRule
+			for _, rule := range device.FirewallRules {
+				if rule.AssociatedRuleID != "" {
+					linked = append(linked, rule)
+				}
+			}
+
+			require.Len(t, linked, 1)
+			assert.Equal(t, linkID, linked[0].AssociatedRuleID)
+			assert.Equal(t, common.RuleTypePass, linked[0].Type)
+			assert.Equal(t, "192.168.10.50", linked[0].Destination.Address)
+			assert.Equal(t, "8443", linked[0].Destination.Port)
+		})
+	}
+
+	legacy, _ := parsePortForwardFixture(t, "opnsense-legacy-port-forwards.xml")
+	assert.Equal(t, linkID, legacy.NAT.InboundRules[0].AssociatedRuleID,
+		"up to 25.7 the forward carries the same ID as its filter rule")
+}

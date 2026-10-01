@@ -104,6 +104,8 @@ func (c *converter) convertFirewallRules(
 			NoSync:          bool(rule.NoSync),
 			Tag:             rule.Tag,
 			Tagged:          rule.Tagged,
+			// Set on the pass rule a port forward stores for itself.
+			AssociatedRuleID: rule.AssociatedRuleID,
 		})
 	}
 

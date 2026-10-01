@@ -266,3 +266,21 @@ func TestInboundRule_IsPlaceholder_RetainsRulesWithData(t *testing.T) {
 	require.Len(t, uuidOnly.Inbound, 1)
 	assert.False(t, uuidOnly.Inbound[0].IsPlaceholder(), "a rule holding only a uuid must be kept")
 }
+
+// TestRule_AssociatedRuleID_FixtureRoundTrip pins <associated-rule-id> on a
+// filter rule against the fixtures and checks the element is written back.
+func TestRule_AssociatedRuleID_FixtureRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, name := range []string{portForwardFixture, legacyPortForwardFixture} {
+		rules := decodePortForwardFixture(t, name).Filter.Rule
+		require.Len(t, rules, 2, name)
+		assert.Empty(t, rules[0].AssociatedRuleID, name)
+		assert.Equal(t, "nat_68dd1c2a4b5c61.23456789", rules[1].AssociatedRuleID, name)
+
+		data, err := xml.Marshal(rules[1])
+		require.NoError(t, err)
+		assert.Contains(t, string(data),
+			"<associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>", name)
+	}
+}
