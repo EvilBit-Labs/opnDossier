@@ -322,8 +322,8 @@ func rulesMatchEqual(a, b common.FirewallRule) bool {
 		a.Description == b.Description &&
 		a.Protocol == b.Protocol &&
 		a.Disabled == b.Disabled &&
-		a.Source == b.Source &&
-		a.Destination == b.Destination &&
+		endpointsEqual(a.Source, b.Source) &&
+		endpointsEqual(a.Destination, b.Destination) &&
 		slices.Equal(a.Interfaces, b.Interfaces) &&
 		a.IPProtocol == b.IPProtocol &&
 		a.ICMPType == b.ICMPType &&
@@ -360,6 +360,18 @@ func rulesOptionsEqual(a, b common.FirewallRule) bool {
 		a.NoSync == b.NoSync &&
 		a.Tag == b.Tag &&
 		a.Tagged == b.Tagged
+}
+
+// endpointsEqual compares two rule endpoints by value. RuleEndpoint holds its
+// alias references as pointers, so == compares the pointers: two parses of the
+// same rule then differ whenever an endpoint names an alias, and an unchanged
+// rule is reported as modified.
+func endpointsEqual(a, b common.RuleEndpoint) bool {
+	return a.Address == b.Address &&
+		a.Port == b.Port &&
+		a.Negated == b.Negated &&
+		objectRefsEqual(a.AddressRef, b.AddressRef) &&
+		objectRefsEqual(a.PortRef, b.PortRef)
 }
 
 // objectRefsEqual compares two optional named-object references by value, so a
