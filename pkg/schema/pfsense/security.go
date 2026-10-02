@@ -6,9 +6,8 @@ import (
 	opnsense "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
-// Nat represents the pfSense NAT configuration.
-// The key structural difference from OPNsense is that inbound (port-forward) rules
-// are direct children of <nat> rather than nested under <nat><inbound>.
+// Nat represents the pfSense NAT configuration. Inbound (port-forward) rules
+// are direct children of <nat>, as they are on OPNsense.
 type Nat struct {
 	Outbound  opnsense.Outbound `xml:"outbound"            json:"outbound"            yaml:"outbound"`
 	Inbound   []InboundRule     `xml:"rule"                json:"inbound,omitempty"   yaml:"inbound,omitempty"`
@@ -16,8 +15,10 @@ type Nat struct {
 }
 
 // InboundRule represents a pfSense inbound NAT rule (port forwarding).
-// This is a copy-on-write fork of opnsense.InboundRule because pfSense uses a
-// <target> element for the internal redirect IP, whereas OPNsense uses <internalip>.
+// Both vendors keep the redirect address in <target>. This is a copy-on-write
+// fork of opnsense.InboundRule because the OPNsense rule carries elements
+// pfSense does not write: sequence, pass, audit, category, tag, tagged and
+// poolopts.
 type InboundRule struct {
 	XMLName          xml.Name               `xml:"rule"`
 	Interface        opnsense.InterfaceList `xml:"interface,omitempty"          json:"interface,omitempty"        yaml:"interface,omitempty"`
@@ -52,8 +53,9 @@ type Filter struct {
 }
 
 // FilterRule represents a pfSense firewall rule.
-// It extends the base OPNsense Rule fields with pfSense-specific attributes
-// such as rule ID, pf tags, state limits, OS fingerprinting, and NAT association.
+// It extends the base OPNsense Rule fields with rule ID, state limits and OS
+// fingerprinting. The pf tags and the NAT association are on the OPNsense rule
+// as well.
 type FilterRule struct {
 	XMLName     xml.Name               `xml:"rule"`
 	Type        string                 `xml:"type"                 json:"type"                  yaml:"type"`
@@ -93,7 +95,7 @@ type FilterRule struct {
 	Updated        *opnsense.Updated `xml:"updated,omitempty"        json:"updated,omitempty"      yaml:"updated,omitempty"`
 	Created        *opnsense.Created `xml:"created,omitempty"        json:"created,omitempty"      yaml:"created,omitempty"`
 	UUID           string            `xml:"uuid,attr,omitempty"      json:"uuid,omitempty"         yaml:"uuid,omitempty"`
-	// pfSense-specific fields
+	// Fields this type declares itself
 	ID               string `xml:"id,omitempty"                 json:"id,omitempty"               yaml:"id,omitempty"`
 	Tag              string `xml:"tag,omitempty"                json:"tag,omitempty"              yaml:"tag,omitempty"`
 	Tagged           string `xml:"tagged,omitempty"             json:"tagged,omitempty"           yaml:"tagged,omitempty"`

@@ -1,0 +1,202 @@
+<?xml version="1.0"?>
+<opnsense>
+  <system>
+    <hostname>legacy-port-forwards-test</hostname>
+    <domain>localdomain</domain>
+  </system>
+  <interfaces>
+    <wan>
+      <enable>1</enable>
+      <if>vtnet0</if>
+      <ipaddr>198.51.100.2</ipaddr>
+      <subnet>24</subnet>
+    </wan>
+    <lan>
+      <enable>1</enable>
+      <if>vtnet1</if>
+      <ipaddr>192.168.10.1</ipaddr>
+      <subnet>24</subnet>
+    </lan>
+    <opt1>
+      <enable>1</enable>
+      <if>vtnet2</if>
+      <descr>DMZ</descr>
+      <ipaddr>192.168.20.1</ipaddr>
+      <subnet>24</subnet>
+    </opt1>
+  </interfaces>
+  <OPNsense>
+    <Firewall>
+      <Alias version="1.0.1">
+        <aliases>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000001">
+            <name>MAIL_HOST</name>
+            <type>host</type>
+            <content>192.168.20.25</content>
+            <descr>Mail server</descr>
+          </alias>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000002">
+            <name>MAIL_PORTS</name>
+            <type>port</type>
+            <content>25
+587</content>
+            <descr>Mail submission ports</descr>
+          </alias>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000003">
+            <name>TRUSTED_NETS</name>
+            <type>network</type>
+            <content>203.0.113.0/24</content>
+            <descr>Networks allowed to reach the mail server</descr>
+          </alias>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000004">
+            <name>SPARE_HOST</name>
+            <type>host</type>
+            <content>192.168.20.99</content>
+            <descr>Referenced by nothing</descr>
+          </alias>
+        </aliases>
+      </Alias>
+    </Firewall>
+  </OPNsense>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Default allow LAN to any rule</descr>
+      <source>
+        <network>lan</network>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+    </rule>
+    <rule>
+      <type>pass</type>
+      <associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>
+      <source>
+        <any>1</any>
+      </source>
+      <interface>wan</interface>
+      <statetype>keep state</statetype>
+      <protocol>tcp</protocol>
+      <ipprotocol>inet</ipprotocol>
+      <destination>
+        <address>192.168.10.50</address>
+        <port>8443</port>
+      </destination>
+      <descr>HTTPS to web server</descr>
+      <created>
+        <username>root@192.0.2.10</username>
+        <time>1759312345.1234</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </created>
+    </rule>
+  </filter>
+  <!--
+    Port forwards as OPNsense wrote them up to 25.7: <rule> elements directly
+    under <nat>, with no uuid attribute and with flags present only when set.
+    The first rule uses the default association, which stores a companion pass
+    rule under <filter>. The second uses the "Pass" association and has no
+    filter rule. The third is a disabled no-RDR rule.
+  -->
+  <nat>
+    <outbound>
+      <mode>automatic</mode>
+    </outbound>
+    <rule>
+      <protocol>tcp</protocol>
+      <interface>wan</interface>
+      <category/>
+      <ipprotocol>inet</ipprotocol>
+      <descr>HTTPS to web server</descr>
+      <tag/>
+      <tagged/>
+      <poolopts/>
+      <associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>
+      <target>192.168.10.50</target>
+      <local-port>8443</local-port>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>443</port>
+      </destination>
+      <updated>
+        <username>root@192.0.2.10</username>
+        <time>1759312345.1234</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@192.0.2.10</username>
+        <time>1759312345.1234</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule>
+      <protocol>tcp/udp</protocol>
+      <interface>wan,opt1</interface>
+      <category>Mail</category>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Mail submission to mail server</descr>
+      <tag/>
+      <tagged/>
+      <poolopts/>
+      <associated-rule-id>pass</associated-rule-id>
+      <nosync>1</nosync>
+      <log>1</log>
+      <target>MAIL_HOST</target>
+      <local-port>MAIL_PORTS</local-port>
+      <source>
+        <address>TRUSTED_NETS</address>
+        <not>1</not>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>MAIL_PORTS</port>
+      </destination>
+      <natreflection>purenat</natreflection>
+      <updated>
+        <username>root@192.0.2.10</username>
+        <time>1759312399.5678</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@192.0.2.10</username>
+        <time>1759312399.5678</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule>
+      <protocol>tcp</protocol>
+      <interface>lan</interface>
+      <category/>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Do not redirect traffic to the firewall itself</descr>
+      <tag/>
+      <tagged/>
+      <poolopts/>
+      <associated-rule-id/>
+      <disabled>1</disabled>
+      <nordr>1</nordr>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <network>(self)</network>
+        <port>443</port>
+      </destination>
+      <updated>
+        <username>root@192.0.2.10</username>
+        <time>1759312455.9012</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@192.0.2.10</username>
+        <time>1759312455.9012</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </created>
+    </rule>
+  </nat>
+</opnsense>

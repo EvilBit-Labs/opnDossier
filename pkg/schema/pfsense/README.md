@@ -19,24 +19,22 @@ The root XML element is `<pfsense>` (vs OPNsense's `<opnsense>`).
 
 ## Key Structural Differences from OPNsense
 
-| Area                  | pfSense                                                | OPNsense                             |
-| --------------------- | ------------------------------------------------------ | ------------------------------------ |
-| Root element          | `<pfsense>`                                            | `<opnsense>`                         |
-| NAT port forwards     | `<nat><rule>` (direct child)                           | `<nat><inbound><rule>` (nested)      |
-| NAT redirect IP field | `<target>`                                             | `<internalip>`                       |
-| NAT 1:1 / NPt         | `<nat><onetoone>`, `<nat><npt>`                        | Different location                   |
-| User passwords        | `<bcrypt-hash>`                                        | `<password>` (SHA-based)             |
-| User privileges       | `<priv>[]` per-user array                              | Group-based model                    |
-| DNS servers           | `<dnsserver>[]` (repeating elements)                   | Single `<dnsserver>` string          |
-| Aliases               | Flat `aliases/alias[]`                                 | UUID-based `OPNsense/Firewall/Alias` |
-| Captive portal        | Zone-keyed map                                         | Completely different implementation  |
-| Traffic shaping       | ALTQ + dummynet                                        | Different model in newer OPNsense    |
-| Auth servers          | `system/authserver[]`                                  | Different location                   |
-| Notifications         | `system/notifications` (SMTP/Telegram/etc.)            | Different system                     |
-| Filter rules          | Adds `id`, `tag`, `tagged`, `os`, `associated-rule-id` | Does not have these                  |
-| Config version        | Decimal (22.9, 24.0)                                   | Different numbering                  |
-| CRL                   | Top-level `<crl>[]`                                    | Integrated differently               |
-| Kea DHCP              | `<kea>` / `<kea6>` (newer versions)                    | Not present                          |
+| Area            | pfSense                                     | OPNsense                             |
+| --------------- | ------------------------------------------- | ------------------------------------ |
+| Root element    | `<pfsense>`                                 | `<opnsense>`                         |
+| NAT 1:1 / NPt   | `<nat><onetoone>`, `<nat><npt>`             | Different location                   |
+| User passwords  | `<bcrypt-hash>`                             | `<password>` (SHA-based)             |
+| User privileges | `<priv>[]` per-user array                   | Group-based model                    |
+| DNS servers     | `<dnsserver>[]` (repeating elements)        | Single `<dnsserver>` string          |
+| Aliases         | Flat `aliases/alias[]`                      | UUID-based `OPNsense/Firewall/Alias` |
+| Captive portal  | Zone-keyed map                              | Completely different implementation  |
+| Traffic shaping | ALTQ + dummynet                             | Different model in newer OPNsense    |
+| Auth servers    | `system/authserver[]`                       | Different location                   |
+| Notifications   | `system/notifications` (SMTP/Telegram/etc.) | Different system                     |
+| Filter rules    | Adds `id`                                   | Does not have it                     |
+| Config version  | Decimal (22.9, 24.0)                        | Different numbering                  |
+| CRL             | Top-level `<crl>[]`                         | Integrated differently               |
+| Kea DHCP        | `<kea>` / `<kea6>` (newer versions)         | Not present                          |
 
 ## listtags (XML Array Elements)
 
@@ -62,7 +60,7 @@ vlan, wolentry
 | `system`                   | `system.go`   | Partial (Group, SSHConfig)    | pfSense-specific User, WebGUI, DNS arrays                                      |
 | `interfaces`               | `document.go` | Yes (full)                    | Map-based, identical structure                                                 |
 | `filter`                   | `security.go` | Partial (Source, Destination) | pfSense-specific FilterRule                                                    |
-| `nat` (inbound + outbound) | `security.go` | Outbound reused               | Inbound forked for `<target>` vs `<internalip>`                                |
+| `nat` (inbound + outbound) | `security.go` | Outbound reused               | Inbound forked: the OPNsense rule has elements pfSense does not write          |
 | `dhcpd`                    | `document.go` | Yes (full)                    | Identical map-based structure                                                  |
 | `dhcpdv6`                  | `network.go`  | No (pfSense-specific)         | Map-based with RAMode, RAPriority                                              |
 | `snmpd`                    | `document.go` | Yes (full)                    | Identical                                                                      |

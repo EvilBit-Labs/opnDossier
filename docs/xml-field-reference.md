@@ -136,15 +136,24 @@ The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5
 </rule>
 ```
 
-**Inbound NAT with reflection:**
+**Inbound NAT (port forward) with reflection:**
+
+Port forwards are `<rule>` elements directly under `<nat>`. `<target>` is the redirect address and `<local-port>` the redirect port; the port the rule matches on is `<destination><port>`.
 
 ```xml
-<rule>
-  <natreflection>enable</natreflection>
-  <associated-rule-id>5f1234567890abcd</associated-rule-id>
-  <local-port>8080</local-port>
-  ...
-</rule>
+<nat>
+  <rule>
+    <destination>
+      <network>wanip</network>
+      <port>443</port>
+    </destination>
+    <target>192.168.1.50</target>
+    <local-port>8080</local-port>
+    <natreflection>purenat</natreflection>
+    <associated-rule-id>nat_5f1234567890ab.12345678</associated-rule-id>
+    ...
+  </rule>
+</nat>
 ```
 
 Valid NAT reflection modes: `enable`, `disable`, `purenat`
