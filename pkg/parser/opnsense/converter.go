@@ -110,13 +110,20 @@ func (c *converter) ToCommonDevice(
 	return device, c.warnings, nil
 }
 
+// knownInterfaceSettingsVersions lists the <OPNsense><Interfaces><settings
+// version="..."> values this converter has been checked against.
+var knownInterfaceSettingsVersions = map[string]struct{}{
+	"":      {},
+	"1.0.0": {},
+}
+
 // convertSystem maps doc.System to common.System.
 // NOTE: SSH and WebGUI sub-structs are partially mapped; some fields
 // (SSH.Enabled, SSH.Port, WebGUI.LoginAutocomplete, etc.) are not yet populated.
 func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 	sys := doc.System
 
-	return common.System{
+	system := common.System{
 		Hostname:                      sys.Hostname,
 		Domain:                        sys.Domain,
 		Optimization:                  sys.Optimization,
@@ -131,7 +138,7 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		DisableChecksumOffloading:     bool(sys.DisableChecksumOffloading),
 		DisableSegmentationOffloading: bool(sys.DisableSegmentationOffloading),
 		DisableLargeReceiveOffloading: bool(sys.DisableLargeReceiveOffloading),
-		IPv6Allow:                     sys.IPv6Allow != "",
+		IPv6Allow:                     sys.IPv6Allow != nil,
 		PfShareForward:                bool(sys.PfShareForward),
 		LbUseSticky:                   bool(sys.LbUseSticky),
 		RrdBackup:                     bool(sys.RrdBackup),
@@ -163,6 +170,35 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 			Plugins: sys.Firmware.Plugins,
 		},
 	}
+
+	if settings := doc.OPNsense.Interfaces.Settings; settings != nil {
+		c.applyInterfaceSettings(&system, settings)
+	}
+
+	return system
+}
+
+// applyInterfaceSettings sets the IPv6 and hardware offload fields from the
+// OPNsense 26.1 <OPNsense><Interfaces><settings> block. Migration SET1_0_0
+// deletes the <system> elements they were read from, and OPNsense 26.1 and
+// later read only this block, so it wins over anything left in <system>.
+func (c *converter) applyInterfaceSettings(sys *common.System, settings *schema.InterfaceSettings) {
+	if _, ok := knownInterfaceSettingsVersions[settings.Version]; !ok {
+		c.addWarning(
+			"OPNsense.Interfaces.Settings.Version",
+			settings.Version,
+			"unrecognized OPNsense interface settings model version; element mapping may be stale",
+			common.SeverityMedium,
+		)
+	}
+
+	// OPNsense negates the field so that IPv6 is allowed by default.
+	sys.IPv6Allow = !shared.IsValueTrue(settings.DisableIPv6)
+	sys.DisableChecksumOffloading = shared.IsValueTrue(settings.DisableChecksumOffloading)
+	sys.DisableSegmentationOffloading = shared.IsValueTrue(settings.DisableSegmentationOffloading)
+	sys.DisableLargeReceiveOffloading = shared.IsValueTrue(settings.DisableLargeReceiveOffloading)
+	// "2" leaves the driver default, so only "1" disables the filter.
+	sys.DisableVLANHWFilter = shared.IsValueTrue(settings.DisableVLANHWFilter)
 }
 
 // convertInterfaces maps doc.Interfaces.Items to []common.Interface.

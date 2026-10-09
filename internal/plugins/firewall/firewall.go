@@ -91,7 +91,7 @@ func NewPlugin() *Plugin {
 			Category:    "Network Configuration",
 			Severity:    "medium",
 			Rationale:   "Disabling IPv6 reduces attack surface if not needed",
-			Remediation: "Disable IPv6 in System > Advanced > Networking if not required",
+			Remediation: "Disable IPv6 under Interfaces > Settings on OPNsense or System > Advanced > Networking on pfSense if not required",
 			Tags:        []string{"ipv6", "attack-surface", "firewall-controls"},
 		},
 		{
@@ -229,7 +229,7 @@ func (fp *Plugin) RunChecks(
 			failOnTrue:     true,
 			title:          "IPv6 Enabled",
 			description:    "IPv6 is enabled and should be disabled if not required",
-			recommendation: "Disable IPv6 in System > Advanced > Networking if not required",
+			recommendation: "Disable IPv6 under Interfaces > Settings on OPNsense or System > Advanced > Networking on pfSense if not required",
 			component:      "ipv6-config",
 			tags:           []string{"ipv6", "attack-surface", "firewall-controls"},
 		},
