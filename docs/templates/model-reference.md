@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-09-04 22:15:32
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-10-01 13:03:48
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
@@ -247,45 +247,46 @@ Firewall rules and NAT configuration.
 
 ### Rule (Firewall)
 
-| Field             | Type          | JSON Path                       | Description |
-| ----------------- | ------------- | ------------------------------- | ----------- |
-| `XMLName`         | `Name`        | `filter.rule[].xmlname`         | -           |
-| `Type`            | `string`      | `filter.rule[].type`            | -           |
-| `Descr`           | `string`      | `filter.rule[].descr`           | -           |
-| `Interface`       | `[]string`    | `filter.rule[].interface`       | -           |
-| `IPProtocol`      | `string`      | `filter.rule[].ipprotocol`      | -           |
-| `StateType`       | `string`      | `filter.rule[].statetype`       | -           |
-| `Direction`       | `string`      | `filter.rule[].direction`       | -           |
-| `Floating`        | `string`      | `filter.rule[].floating`        | -           |
-| `Quick`           | `BoolFlag`    | `filter.rule[].quick`           | -           |
-| `Protocol`        | `string`      | `filter.rule[].protocol`        | -           |
-| `Source`          | `Source`      | `filter.rule[].source`          | -           |
-| `Destination`     | `Destination` | `filter.rule[].destination`     | -           |
-| `Target`          | `string`      | `filter.rule[].target`          | -           |
-| `Gateway`         | `string`      | `filter.rule[].gateway`         | -           |
-| `SourcePort`      | `string`      | `filter.rule[].sourceport`      | -           |
-| `Log`             | `BoolFlag`    | `filter.rule[].log`             | -           |
-| `Disabled`        | `BoolFlag`    | `filter.rule[].disabled`        | -           |
-| `Tracker`         | `string`      | `filter.rule[].tracker`         | -           |
-| `MaxSrcNodes`     | `string`      | `filter.rule[].maxsrcnodes`     | -           |
-| `MaxSrcConn`      | `string`      | `filter.rule[].maxsrcconn`      | -           |
-| `MaxSrcConnRate`  | `string`      | `filter.rule[].maxsrcconnrate`  | -           |
-| `MaxSrcConnRates` | `string`      | `filter.rule[].maxsrcconnrates` | -           |
-| `TCPFlags1`       | `string`      | `filter.rule[].tcpflags1`       | -           |
-| `TCPFlags2`       | `string`      | `filter.rule[].tcpflags2`       | -           |
-| `TCPFlagsAny`     | `BoolFlag`    | `filter.rule[].tcpflagsany`     | -           |
-| `ICMPType`        | `string`      | `filter.rule[].icmptype`        | -           |
-| `ICMP6Type`       | `string`      | `filter.rule[].icmp6type`       | -           |
-| `StateTimeout`    | `string`      | `filter.rule[].statetimeout`    | -           |
-| `AllowOpts`       | `BoolFlag`    | `filter.rule[].allowopts`       | -           |
-| `DisableReplyTo`  | `BoolFlag`    | `filter.rule[].disablereplyto`  | -           |
-| `NoPfSync`        | `BoolFlag`    | `filter.rule[].nopfsync`        | -           |
-| `NoSync`          | `BoolFlag`    | `filter.rule[].nosync`          | -           |
-| `Tag`             | `string`      | `filter.rule[].tag`             | -           |
-| `Tagged`          | `string`      | `filter.rule[].tagged`          | -           |
-| `Updated`         | `*Updated`    | `filter.rule[].updated`         | -           |
-| `Created`         | `*Created`    | `filter.rule[].created`         | -           |
-| `UUID`            | `string`      | `filter.rule[].uuid`            | -           |
+| Field              | Type          | JSON Path                        | Description |
+| ------------------ | ------------- | -------------------------------- | ----------- |
+| `XMLName`          | `Name`        | `filter.rule[].xmlname`          | -           |
+| `Type`             | `string`      | `filter.rule[].type`             | -           |
+| `Descr`            | `string`      | `filter.rule[].descr`            | -           |
+| `Interface`        | `[]string`    | `filter.rule[].interface`        | -           |
+| `IPProtocol`       | `string`      | `filter.rule[].ipprotocol`       | -           |
+| `StateType`        | `string`      | `filter.rule[].statetype`        | -           |
+| `Direction`        | `string`      | `filter.rule[].direction`        | -           |
+| `Floating`         | `string`      | `filter.rule[].floating`         | -           |
+| `Quick`            | `BoolFlag`    | `filter.rule[].quick`            | -           |
+| `Protocol`         | `string`      | `filter.rule[].protocol`         | -           |
+| `Source`           | `Source`      | `filter.rule[].source`           | -           |
+| `Destination`      | `Destination` | `filter.rule[].destination`      | -           |
+| `Target`           | `string`      | `filter.rule[].target`           | -           |
+| `Gateway`          | `string`      | `filter.rule[].gateway`          | -           |
+| `SourcePort`       | `string`      | `filter.rule[].sourceport`       | -           |
+| `Log`              | `BoolFlag`    | `filter.rule[].log`              | -           |
+| `Disabled`         | `BoolFlag`    | `filter.rule[].disabled`         | -           |
+| `Tracker`          | `string`      | `filter.rule[].tracker`          | -           |
+| `MaxSrcNodes`      | `string`      | `filter.rule[].maxsrcnodes`      | -           |
+| `MaxSrcConn`       | `string`      | `filter.rule[].maxsrcconn`       | -           |
+| `MaxSrcConnRate`   | `string`      | `filter.rule[].maxsrcconnrate`   | -           |
+| `MaxSrcConnRates`  | `string`      | `filter.rule[].maxsrcconnrates`  | -           |
+| `TCPFlags1`        | `string`      | `filter.rule[].tcpflags1`        | -           |
+| `TCPFlags2`        | `string`      | `filter.rule[].tcpflags2`        | -           |
+| `TCPFlagsAny`      | `BoolFlag`    | `filter.rule[].tcpflagsany`      | -           |
+| `ICMPType`         | `string`      | `filter.rule[].icmptype`         | -           |
+| `ICMP6Type`        | `string`      | `filter.rule[].icmp6type`        | -           |
+| `StateTimeout`     | `string`      | `filter.rule[].statetimeout`     | -           |
+| `AllowOpts`        | `BoolFlag`    | `filter.rule[].allowopts`        | -           |
+| `DisableReplyTo`   | `BoolFlag`    | `filter.rule[].disablereplyto`   | -           |
+| `NoPfSync`         | `BoolFlag`    | `filter.rule[].nopfsync`         | -           |
+| `NoSync`           | `BoolFlag`    | `filter.rule[].nosync`           | -           |
+| `Tag`              | `string`      | `filter.rule[].tag`              | -           |
+| `Tagged`           | `string`      | `filter.rule[].tagged`           | -           |
+| `Updated`          | `*Updated`    | `filter.rule[].updated`          | -           |
+| `Created`          | `*Created`    | `filter.rule[].created`          | -           |
+| `UUID`             | `string`      | `filter.rule[].uuid`             | -           |
+| `AssociatedRuleID` | `string`      | `filter.rule[].associatedruleid` | -           |
 
 ### NATRule (Outbound)
 

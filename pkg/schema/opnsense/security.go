@@ -78,9 +78,13 @@ type NATSummary struct {
 }
 
 // Nat represents the complete NAT configuration, including outbound NAT rules and inbound port-forwarding rules.
+//
+// Port forwards are <rule> elements directly under <nat>. The legacy page wrote
+// them there, and from 26.1 the Destination NAT model is mounted on the same
+// path, so no release nests them in a container.
 type Nat struct {
-	Outbound Outbound      `xml:"outbound"     json:"outbound"          yaml:"outbound"`
-	Inbound  []InboundRule `xml:"inbound>rule" json:"inbound,omitempty" yaml:"inbound,omitempty"`
+	Outbound Outbound      `xml:"outbound" json:"outbound"          yaml:"outbound"`
+	Inbound  []InboundRule `xml:"rule"     json:"inbound,omitempty" yaml:"inbound,omitempty"`
 }
 
 // Outbound represents outbound NAT configuration, including the NAT mode
@@ -96,7 +100,6 @@ type Filter struct {
 }
 
 // NATRule represents an outbound NAT rule. The Target field specifies the NAT target address.
-// Tag and Tagged fields are available on outbound rules only (not on [InboundRule] or [Rule]).
 type NATRule struct {
 	XMLName            xml.Name      `xml:"rule"`
 	Interface          InterfaceList `xml:"interface,omitempty"              json:"interface,omitempty"          yaml:"interface,omitempty"`
@@ -138,21 +141,32 @@ func (r NATRule) EffectiveDestinationPort() string {
 	return r.DstPort
 }
 
-// InboundRule represents an inbound NAT rule (port forwarding). The InternalIP field specifies
-// the port-forward destination address; there is no Target field on InboundRule (unlike [NATRule]).
+// InboundRule represents an inbound NAT rule (port forwarding). The redirect
+// address is in Target and the redirect port in LocalPort; the port the rule
+// matches on is Destination.Port.
+//
+// Sequence and Pass are written from 26.1 on, where Pass replaces the
+// association the legacy page kept in AssociatedRuleID. Audit is written from
+// 26.7.4 on, in place of Created and Updated. InternalIP, ExternalPort,
+// InternalPort, Reflection and Priority bind elements no OPNsense release
+// writes.
 type InboundRule struct {
 	XMLName          xml.Name      `xml:"rule"`
+	Sequence         string        `xml:"sequence,omitempty"           json:"sequence,omitempty"         yaml:"sequence,omitempty"`
 	Interface        InterfaceList `xml:"interface,omitempty"          json:"interface,omitempty"        yaml:"interface,omitempty"`
 	IPProtocol       string        `xml:"ipprotocol,omitempty"         json:"ipProtocol,omitempty"       yaml:"ipProtocol,omitempty"`
 	Protocol         string        `xml:"protocol,omitempty"           json:"protocol,omitempty"         yaml:"protocol,omitempty"`
 	Source           Source        `xml:"source"                       json:"source"                     yaml:"source"`
 	Destination      Destination   `xml:"destination"                  json:"destination"                yaml:"destination"`
+	Target           string        `xml:"target,omitempty"             json:"target,omitempty"           yaml:"target,omitempty"`
 	ExternalPort     string        `xml:"externalport,omitempty"       json:"externalPort,omitempty"     yaml:"externalPort,omitempty"`
 	InternalIP       string        `xml:"internalip,omitempty"         json:"internalIP,omitempty"       yaml:"internalIP,omitempty"`
 	InternalPort     string        `xml:"internalport,omitempty"       json:"internalPort,omitempty"     yaml:"internalPort,omitempty"`
 	LocalPort        string        `xml:"local-port,omitempty"         json:"localPort,omitempty"        yaml:"localPort,omitempty"`
+	PoolOpts         string        `xml:"poolopts,omitempty"           json:"poolOpts,omitempty"         yaml:"poolOpts,omitempty"`
 	Reflection       string        `xml:"reflection,omitempty"         json:"reflection,omitempty"       yaml:"reflection,omitempty"`
 	NATReflection    string        `xml:"natreflection,omitempty"      json:"natReflection,omitempty"    yaml:"natReflection,omitempty"`
+	Pass             string        `xml:"pass,omitempty"               json:"pass,omitempty"             yaml:"pass,omitempty"`
 	AssociatedRuleID string        `xml:"associated-rule-id,omitempty" json:"associatedRuleID,omitempty" yaml:"associatedRuleID,omitempty"`
 	Priority         int           `xml:"priority,omitempty"           json:"priority,omitempty"         yaml:"priority,omitempty"`
 	NoRDR            BoolFlag      `xml:"nordr,omitempty"              json:"noRDR,omitempty"            yaml:"noRDR,omitempty"`
@@ -160,9 +174,66 @@ type InboundRule struct {
 	Disabled         BoolFlag      `xml:"disabled,omitempty"           json:"disabled,omitempty"         yaml:"disabled,omitempty"`
 	Log              BoolFlag      `xml:"log,omitempty"                json:"log,omitempty"              yaml:"log,omitempty"`
 	Descr            string        `xml:"descr,omitempty"              json:"description,omitempty"      yaml:"description,omitempty"`
+	Category         string        `xml:"category,omitempty"           json:"category,omitempty"         yaml:"category,omitempty"`
+	Tag              string        `xml:"tag,omitempty"                json:"tag,omitempty"              yaml:"tag,omitempty"`
+	Tagged           string        `xml:"tagged,omitempty"             json:"tagged,omitempty"           yaml:"tagged,omitempty"`
+	Audit            string        `xml:"audit,omitempty"              json:"audit,omitempty"            yaml:"audit,omitempty"`
 	Updated          *Updated      `xml:"updated,omitempty"            json:"updated,omitempty"          yaml:"updated,omitempty"`
 	Created          *Created      `xml:"created,omitempty"            json:"created,omitempty"          yaml:"created,omitempty"`
 	UUID             string        `xml:"uuid,attr,omitempty"          json:"uuid,omitempty"             yaml:"uuid,omitempty"`
+}
+
+// IsPlaceholder reports whether r is an empty <rule/> marker rather than a
+// configured port forward. From 18.7.10 to 25.7 OPNsense leaves one under <nat>
+// once the last port forward is deleted, and a config upgraded to 26.x can
+// still carry it.
+//
+// An entry is dropped only when every field is zero; see
+// [StaticRoute.IsPlaceholder] for why the check is conservative and why the
+// fields are compared by name.
+func (r InboundRule) IsPlaceholder() bool {
+	return r.matchIsUnset() && r.redirectIsUnset() && r.optionsAreUnset()
+}
+
+// matchIsUnset reports whether r names no traffic to match.
+func (r InboundRule) matchIsUnset() bool {
+	return r.Sequence == "" &&
+		r.Interface.IsEmpty() &&
+		r.IPProtocol == "" &&
+		r.Protocol == "" &&
+		r.Source == (Source{}) &&
+		r.Destination == (Destination{}) &&
+		r.ExternalPort == ""
+}
+
+// redirectIsUnset reports whether r says nothing about where traffic goes.
+func (r InboundRule) redirectIsUnset() bool {
+	return r.Target == "" &&
+		r.InternalIP == "" &&
+		r.InternalPort == "" &&
+		r.LocalPort == "" &&
+		r.PoolOpts == "" &&
+		r.Reflection == "" &&
+		r.NATReflection == "" &&
+		r.Pass == "" &&
+		r.AssociatedRuleID == "" &&
+		r.Priority == 0 &&
+		!bool(r.NoRDR)
+}
+
+// optionsAreUnset reports whether r carries no flag, label or bookkeeping.
+func (r InboundRule) optionsAreUnset() bool {
+	return !bool(r.NoSync) &&
+		!bool(r.Disabled) &&
+		!bool(r.Log) &&
+		r.Descr == "" &&
+		r.Category == "" &&
+		r.Tag == "" &&
+		r.Tagged == "" &&
+		r.Audit == "" &&
+		r.Updated == nil &&
+		r.Created == nil &&
+		r.UUID == ""
 }
 
 // Rule represents a firewall filter rule with full source/destination specification,
@@ -208,6 +279,10 @@ type Rule struct {
 	Updated        *Updated `xml:"updated,omitempty"`
 	Created        *Created `xml:"created,omitempty"`
 	UUID           string   `xml:"uuid,attr,omitempty"`
+	// AssociatedRuleID is set on the pass rule a port forward stores for itself.
+	// Up to 25.7 the forward carries the same value; from 26.1 only this rule
+	// keeps it.
+	AssociatedRuleID string `xml:"associated-rule-id,omitempty"`
 }
 
 // Source represents a firewall rule source.
