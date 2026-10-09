@@ -201,6 +201,7 @@ Both had drifted badly: `rulesEqual` compared 7 of `common.FirewallRule`'s 33 fi
 
 - **When you add a field to `common.FirewallRule` or `common.User`, add it to the equality helper.** `TestRulesEqual_ComparesEveryFirewallRuleField` and `TestUsersEqual_ComparesEveryUserField` walk the struct reflectively and fail until you do.
 - **Only identity fields belong on the ignore list.** `UUID` and `Tracker` are excluded because `CompareFirewallRules` pairs on them; comparing them would mark every paired rule modified.
+- **Compare endpoints with `endpointsEqual`, never `==`.** `common.RuleEndpoint` holds its alias references as pointers, so `a.Source == b.Source` compares the pointers and is false for two parses of the same rule whenever an endpoint names an alias. `rulesEqual`, `natRulesEqual` and `inboundNATRulesEqual` all did this, and a config diffed against itself reported each such rule as modified, with identical old and new values. The per-field guards could not see it: they started from zero values, whose references are nil, and only asserted that a changed field is noticed, never that equal content compares equal. They now also fill two values separately and require them equal, and `TestCompare_TwoParsesOfOneConfig_ProduceNoChange` diffs each shipped config against a second parse of itself.
 
 ### 4.3 Most Configs Have No Rule UUIDs
 
