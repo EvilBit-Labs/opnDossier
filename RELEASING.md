@@ -495,7 +495,7 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 
 - [ ] CI green on `main` — `gh run list --branch main --limit 5`
 - [ ] `just ci-check` passes locally (lint, tests, race detector)
-- [ ] Review `pkg/*/testdata/api-snapshots/*.golden` diffs since the last tag for unintended public-API changes. Every new or removed line in these fixtures is a stability-tracked change — see [docs/development/public-api.md § API Shape Enforcement](docs/development/public-api.md#api-shape-enforcement). Regenerate with `go test ./pkg/parser/... -run TestPublicAPISnapshot -update` only for intentional changes.
+- [ ] Review `pkg/*/testdata/api-snapshots/*.golden` diffs since the last tag for unintended public-API changes. Every new or removed line in these fixtures is a stability-tracked change — see [docs/development/public-api.md § API Shape Enforcement](docs/development/public-api.md#api-shape-enforcement). Regenerate with `go test ./pkg/parser -run TestPublicAPISnapshot -update` only for intentional changes.
 - [ ] Milestone closed — `gh milestone list --state open`, then close if exists
 - [ ] No uncommitted or unrelated changes on `main`
 

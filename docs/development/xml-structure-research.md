@@ -269,10 +269,11 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 - InboundRule: Disabled, Log (security.go) — Phase 2
 - System: DisableConsoleMenu (system.go) — Phase 3
 - Firmware: Type, Subscription, Reboot (system.go) — Phase 3
-- User: Expires, AuthorizedKeys, IPSecPSK, OTPSeed (system.go) — Phase 3
 - System.RRD: Enable (system.go) — Phase 3
 - Rrd: Enable (services.go) — Phase 3
 - OpnSenseDocument: TriggerInitialWizard (opnsense.go) — Phase 3
+
+`User.Expires`, `AuthorizedKeys`, `IPSecPSK` and `OTPSeed` were also on this list. They hold values, not flags, and are strings now (see GOTCHAS.md §15.0).
 
 **Kept as string (value-based — `== "1"` in PHP):**
 
