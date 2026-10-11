@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Generated: 2026-09-25 22:48:13
+> **Auto-generated documentation** - Do not edit manually. Generated: 2026-09-04 22:15:32
 
 This document provides a complete reference of all data fields available in the opnDossier configuration model. Use this reference when working with JSON/YAML exports or building custom integrations.
 
