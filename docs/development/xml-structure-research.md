@@ -264,6 +264,10 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 
 ### Resolution Status
 
+**Converted to `*string` (presence only, the body is ignored):**
+
+- System: IPv6Allow (system.go, and pfSense system.go)
+
 **Converted to BoolFlag (presence-based — `isset()` in PHP):**
 
 - Rule: Disabled, Quick, Log (security.go) — Phase 2
@@ -275,10 +279,6 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 - System.RRD: Enable (system.go) — Phase 3
 - Rrd: Enable (services.go) — Phase 3
 - OpnSenseDocument: TriggerInitialWizard (opnsense.go) — Phase 3
-
-**Converted to `*string` (presence only, the body is ignored):**
-
-- System: IPv6Allow (system.go, and pfSense system.go)
 
 **Kept as string (value-based — `== "1"` in PHP):**
 
