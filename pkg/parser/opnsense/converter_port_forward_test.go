@@ -387,15 +387,15 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 		t.Run("sequence "+bad+" warns and keeps document order", func(t *testing.T) {
 			t.Parallel()
 
-			// The rejected rule is first and the numbered ones are out of
-			// order, so only document order gives y, z, a.
-			rules := rule("y", `<sequence>`+bad+`</sequence>`) +
-				rule("z", `<sequence>200</sequence>`) + rule("a", `<sequence>100</sequence>`)
+			// The rejected rule sits between two numbered rules that are out
+			// of order, so no sort by sequence gives z, y, a.
+			rules := rule("z", `<sequence>200</sequence>`) +
+				rule("y", `<sequence>`+bad+`</sequence>`) + rule("a", `<sequence>100</sequence>`)
 			device, warnings := parsePortForwards(t, rules)
-			require.Equal(t, []string{"y", "z", "a"}, descriptions(device))
-			assert.Zero(t, device.NAT.InboundRules[0].Priority, "a rejected sequence is not reported")
+			require.Equal(t, []string{"z", "y", "a"}, descriptions(device))
+			assert.Zero(t, device.NAT.InboundRules[1].Priority, "a rejected sequence is not reported")
 			require.Len(t, warnings, 1)
-			assert.Equal(t, "NAT.InboundRules[0].Priority", warnings[0].Field)
+			assert.Equal(t, "NAT.InboundRules[1].Priority", warnings[0].Field)
 			assert.Equal(t, bad, warnings[0].Value)
 			assert.Equal(t, common.SeverityLow, warnings[0].Severity)
 		})
