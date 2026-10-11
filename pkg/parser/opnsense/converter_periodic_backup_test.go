@@ -43,6 +43,7 @@ func TestConverter_PeriodicBackup_ReadsHourInterval(t *testing.T) {
 	tests := []struct {
 		name    string
 		value   string // "" removes the element
+		empty   bool   // writes the element with no body
 		want    bool
 		warning bool
 	}{
@@ -52,6 +53,7 @@ func TestConverter_PeriodicBackup_ReadsHourInterval(t *testing.T) {
 		{name: "every 24 hours", value: "24", want: true},
 		{name: "above 24", value: "48", want: true},
 		{name: "no element", value: "", want: false},
+		{name: "empty element", empty: true, want: false},
 		{name: "not a number", value: "yes", want: false, warning: true},
 	}
 
@@ -65,7 +67,10 @@ func TestConverter_PeriodicBackup_ReadsHourInterval(t *testing.T) {
 				t.Parallel()
 
 				var replacement []byte
-				if tt.value != "" {
+				switch {
+				case tt.empty:
+					replacement = []byte("<" + f.element + "/>")
+				case tt.value != "":
 					replacement = []byte("<" + f.element + ">" + tt.value + "</" + f.element + ">")
 				}
 
