@@ -271,9 +271,13 @@ completeness-check:
 # Blocking: wired into ci-check and the CI Lint job (see .github/workflows/ci.yml)
 # now that the dead-surface cleanup sweep has emptied the seeded surface (see
 # the guard's own doc comment in internal/deadcode_test.go).
+# The -run filter names the guard plus the allowlist logic tests in
+# internal/deadcode_logic_test.go. Everything behind this build tag, in that
+# file and in deadcode_test.go, runs nowhere else, so a new test in either
+# needs its prefix added here or go test exits 0 without running it.
 [group('test')]
 deadcode-check:
-    @{{ mise_exec }} go test -count=1 -tags=deadcode ./internal/ -run TestDeadCodeGuard -v
+    @{{ mise_exec }} go test -count=1 -tags=deadcode ./internal/ -run 'TestDeadCodeGuard|TestCheckDeadcodeAllowlist|TestParseDeadcodeAllowlist' -v
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build
