@@ -118,7 +118,8 @@ func natRuleIdentity(rule common.NATRule) (string, bool) {
 	return "uuid=" + rule.UUID, true
 }
 
-// inboundNATRuleIdentity is natRuleIdentity for port forwards.
+// inboundNATRuleIdentity is natRuleIdentity for port forwards. OPNsense 26.1
+// and later give each one a UUID; earlier releases and pfSense do not.
 func inboundNATRuleIdentity(rule common.InboundNATRule) (string, bool) {
 	if rule.UUID == "" {
 		return "", false
@@ -304,6 +305,10 @@ func formatInboundNATRule(rule common.InboundNATRule) string {
 	parts = append(parts,
 		"ext="+joinHostPort(formatEndpoint(rule.Destination), rule.ExternalPort),
 		"int="+joinHostPort(cmp.Or(rule.InternalIP, addressUnknown), rule.InternalPort))
+
+	if rule.Priority != 0 {
+		parts = append(parts, "priority="+strconv.Itoa(rule.Priority))
+	}
 
 	if rule.Disabled {
 		parts = append(parts, "disabled")
