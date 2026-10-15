@@ -1,11 +1,13 @@
 package opnsense_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -41,10 +43,14 @@ const advDHCPConfigTemplate = `<?xml version="1.0"?>
 // the wrong source field produces a mismatch rather than an accidental pass.
 func advDHCPSentinel(field string) string { return "sentinel-" + field }
 
+// advDHCPTickedValue is what OPNsense 16.1 and later store for a ticked
+// checkbox: the form input has no value attribute, so the browser posts "on".
+const advDHCPTickedValue = "on"
+
 // advDHCPFlagFields reports which fields of the given advanced-DHCP structs are
-// presence-only flags (bool) rather than value-bearing strings. The XML those
-// two kinds require differs, so the generator and the assertions both key off
-// this rather than hardcoding a list that would drift.
+// checkboxes (bool) rather than value-bearing strings. The XML those two kinds
+// require differs, so the generator and the assertions both key off this rather
+// than hardcoding a list that would drift.
 func advDHCPFlagFields(structs ...any) map[string]bool {
 	flags := map[string]bool{}
 
@@ -98,16 +104,17 @@ func advDHCPXMLTags(t *testing.T, ifaceType reflect.Type, fields []string) map[s
 	return tags
 }
 
-// advDHCPAssertFields checks every field against its own sentinel.
-func advDHCPAssertFields(t *testing.T, got reflect.Value, fields []string) {
+// advDHCPAssertFields checks every string field against its own sentinel and
+// every checkbox against ticked.
+func advDHCPAssertFields(t *testing.T, got reflect.Value, fields []string, ticked bool) {
 	t.Helper()
 
 	for _, name := range fields {
 		field := got.FieldByName(name)
 
 		if field.Kind() == reflect.Bool {
-			assert.Truef(t, field.Bool(),
-				"%s is a presence-only flag and is unwired in the interface advanced-DHCP builder", name)
+			assert.Equalf(t, ticked, field.Bool(),
+				"%s is a checkbox and is unwired or cross-wired in the interface advanced-DHCP builder", name)
 
 			continue
 		}
@@ -120,51 +127,66 @@ func advDHCPAssertFields(t *testing.T, got reflect.Value, fields []string) {
 // TestConverter_InterfaceDHCPAdvanced_AllFieldsWired drives XML through the full
 // parse -> convert path, so it covers both halves of the gap: the schema must
 // declare the element, and the converter must carry it onto the common model.
+// The unticked case keeps every other field set, so a checkbox read from any
+// element but its own fails there.
 func TestConverter_InterfaceDHCPAdvanced_AllFieldsWired(t *testing.T) {
 	t.Parallel()
 
 	v4Fields := advDHCPFieldNames(common.InterfaceDHCPAdvancedV4{})
 	v6Fields := advDHCPFieldNames(common.InterfaceDHCPAdvancedV6{})
 	tags := advDHCPXMLTags(t, reflect.TypeFor[schema.Interface](), slices.Concat(v4Fields, v6Fields))
-
-	var body strings.Builder
 	flags := advDHCPFlagFields(common.InterfaceDHCPAdvancedV4{}, common.InterfaceDHCPAdvancedV6{})
 
-	for _, name := range slices.Concat(v4Fields, v6Fields) {
-		// Presence-only flags are written by both GUIs as a self-closing element.
-		// Emitting them that way is what proves BoolFlag reads presence rather
-		// than body text; a sentinel body would not be truthy and the field
-		// would read false whether or not the wiring is correct.
-		if flags[name] {
-			fmt.Fprintf(&body, "      <%s/>\n", tags[name])
-
-			continue
-		}
-
-		fmt.Fprintf(&body, "      <%s>%s</%s>\n", tags[name], advDHCPSentinel(name), tags[name])
+	tests := []struct {
+		name   string
+		ticked bool
+	}{
+		{name: "checkboxes ticked", ticked: true},
+		{name: "checkboxes unticked", ticked: false},
 	}
 
-	xmlBody := fmt.Sprintf(advDHCPConfigTemplate, body.String())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
-		context.Background(), strings.NewReader(xmlBody), common.DeviceTypeUnknown, false,
-	)
-	require.NoError(t, err)
-	require.NotNil(t, device)
-	require.Len(t, device.Interfaces, 1)
+			var body strings.Builder
 
-	iface := device.Interfaces[0]
-	require.NotNil(t, iface.DHCPAdvancedV4, "advanced DHCPv4 client settings under <interfaces> must be converted")
-	require.NotNil(t, iface.DHCPAdvancedV6, "advanced DHCPv6 client settings under <interfaces> must be converted")
+			for _, name := range slices.Concat(v4Fields, v6Fields) {
+				switch {
+				case flags[name] && tt.ticked:
+					fmt.Fprintf(&body, "      <%s>%s</%s>\n", tags[name], advDHCPTickedValue, tags[name])
+				case flags[name]:
+					fmt.Fprintf(&body, "      <%s/>\n", tags[name])
+				default:
+					fmt.Fprintf(&body, "      <%s>%s</%s>\n", tags[name], advDHCPSentinel(name), tags[name])
+				}
+			}
 
-	advDHCPAssertFields(t, reflect.ValueOf(*iface.DHCPAdvancedV4), v4Fields)
-	advDHCPAssertFields(t, reflect.ValueOf(*iface.DHCPAdvancedV6), v6Fields)
+			xmlBody := fmt.Sprintf(advDHCPConfigTemplate, body.String())
+
+			device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
+				context.Background(), strings.NewReader(xmlBody), common.DeviceTypeUnknown, false,
+			)
+			require.NoError(t, err)
+			require.NotNil(t, device)
+			require.Len(t, device.Interfaces, 1)
+
+			iface := device.Interfaces[0]
+			require.NotNil(t, iface.DHCPAdvancedV4,
+				"advanced DHCPv4 client settings under <interfaces> must be converted")
+			require.NotNil(t, iface.DHCPAdvancedV6,
+				"advanced DHCPv6 client settings under <interfaces> must be converted")
+
+			advDHCPAssertFields(t, reflect.ValueOf(*iface.DHCPAdvancedV4), v4Fields, tt.ticked)
+			advDHCPAssertFields(t, reflect.ValueOf(*iface.DHCPAdvancedV6), v6Fields, tt.ticked)
+		})
+	}
 }
 
 // TestConverter_InterfaceDHCPAdvanced_NilWhenUnset asserts the pointers stay nil
 // for the two shapes real configs actually produce: elements absent entirely, and
 // elements present but self-closing. testdata/sample.config.5.xml is the latter,
-// so without this the fixture would grow two empty objects per interface.
+// checkboxes included, since an unticked box is written that way too.
 func TestConverter_InterfaceDHCPAdvanced_NilWhenUnset(t *testing.T) {
 	t.Parallel()
 
@@ -172,20 +194,9 @@ func TestConverter_InterfaceDHCPAdvanced_NilWhenUnset(t *testing.T) {
 	v6Fields := advDHCPFieldNames(common.InterfaceDHCPAdvancedV6{})
 	tags := advDHCPXMLTags(t, reflect.TypeFor[schema.Interface](), slices.Concat(v4Fields, v6Fields))
 
-	// Presence-only flags are deliberately excluded here. For a value-bearing
-	// element an empty tag means "no value set"; for a flag it means the box is
-	// checked, so emitting one would correctly produce a non-nil struct and
-	// would be testing the opposite of what this case is about. Flag presence
-	// has its own test, TestConverter_InterfaceDHCPAdvancedV6_FlagOnlyConfig_NotDropped.
-	flags := advDHCPFlagFields(common.InterfaceDHCPAdvancedV4{}, common.InterfaceDHCPAdvancedV6{})
-
 	var empties strings.Builder
 
 	for _, name := range slices.Concat(v4Fields, v6Fields) {
-		if flags[name] {
-			continue
-		}
-
 		fmt.Fprintf(&empties, "      <%s/>\n", tags[name])
 	}
 
@@ -322,32 +333,142 @@ func TestSchema_Interface_CoversFixtureAdvancedDHCPElements(t *testing.T) {
 	)
 }
 
-// TestConverter_InterfaceDHCPAdvancedV6_FlagOnlyConfig_NotDropped pins the
-// presence-only flag handling that a plain string field silently lost.
-//
-// Both GUIs write a checked box as a self-closing element. As a string field an
-// absent element and a checked one both unmarshal to "", so a configuration
-// whose only advanced-DHCPv6 setting was a checkbox matched the builder's
-// all-fields-empty guard and the entire InterfaceDHCPAdvancedV6 struct was
-// omitted from every export. BoolFlag distinguishes the two, so the guard sees
-// a non-zero struct and the setting survives.
-func TestConverter_InterfaceDHCPAdvancedV6_FlagOnlyConfig_NotDropped(t *testing.T) {
+// TestConverter_InterfaceDHCPAdvancedV6_CheckboxValues pins how the three
+// DHCPv6 checkboxes are read. OPNsense 16.1 and later store a ticked box as
+// "on", 15.x stored "Selected", and releases through 26.7.4 write an unticked
+// one as a self-closing element. BoolFlag read "Selected" as unset and the
+// self-closing form as set, so every DHCPv6 interface saved from the GUI by
+// those releases reported all three boxes ticked. "x" is no vendor's value: it
+// pins that any other non-empty value also reads as ticked.
+func TestConverter_InterfaceDHCPAdvancedV6_CheckboxValues(t *testing.T) {
 	t.Parallel()
 
-	body := "      <adv_dhcp6_interface_statement_information_only_enable/>\n"
-	xmlBody := fmt.Sprintf(advDHCPConfigTemplate, body)
+	fields := slices.Sorted(maps.Keys(advDHCPFlagFields(common.InterfaceDHCPAdvancedV6{})))
+	tags := advDHCPXMLTags(t, reflect.TypeFor[schema.Interface](), fields)
+
+	require.Len(t, fields, 3, "the DHCPv6 checkbox set changed; review the cases below")
+
+	tests := []struct {
+		name  string
+		value string // "" writes the element self-closing
+	}{
+		{name: "ticked", value: advDHCPTickedValue},
+		{name: "ticked by 15.x", value: "Selected"},
+		{name: "ticked other value", value: "x"},
+		{name: "unticked", value: ""},
+	}
+
+	for _, field := range fields {
+		for _, tt := range tests {
+			t.Run(field+"/"+tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				element := fmt.Sprintf("<%s/>", tags[field])
+				if tt.value != "" {
+					element = fmt.Sprintf("<%[1]s>%[2]s</%[1]s>", tags[field], tt.value)
+				}
+
+				xmlBody := fmt.Sprintf(advDHCPConfigTemplate, "      "+element+"\n")
+
+				device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
+					context.Background(), strings.NewReader(xmlBody), common.DeviceTypeUnknown, false,
+				)
+				require.NoError(t, err)
+				require.NotNil(t, device)
+				require.Len(t, device.Interfaces, 1)
+
+				adv := device.Interfaces[0].DHCPAdvancedV6
+				if tt.value == "" {
+					assert.Nil(t, adv, "an unticked box is the only advanced-DHCPv6 element, so nothing is configured")
+
+					return
+				}
+
+				require.NotNil(t, adv,
+					"an interface whose only advanced-DHCPv6 setting is a ticked box must still convert")
+
+				for _, other := range fields {
+					assert.Equalf(t, other == field, reflect.ValueOf(*adv).FieldByName(other).Bool(),
+						"%s is the only box ticked in the config; %s read wrong", field, other)
+				}
+			})
+		}
+	}
+}
+
+// emptyInterfaceChildren returns the elements directly under
+// <interfaces><iface> that have no content. encoding/xml reports <a/> and
+// <a></a> alike, so this finds empty elements, not self-closing ones as such.
+func emptyInterfaceChildren(t *testing.T, raw []byte, iface string) map[string]bool {
+	t.Helper()
+
+	var (
+		stack []string
+		open  string
+		empty = map[string]bool{}
+	)
+
+	dec := xml.NewDecoder(bytes.NewReader(raw))
+
+	for {
+		tok, err := dec.Token()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		require.NoError(t, err)
+
+		switch e := tok.(type) {
+		case xml.StartElement:
+			stack = append(stack, e.Name.Local)
+			open = ""
+			// root > interfaces > iface > element
+			if len(stack) == 4 && stack[1] == "interfaces" && stack[2] == iface {
+				open = e.Name.Local
+			}
+		case xml.EndElement:
+			if open != "" {
+				empty[open] = true
+			}
+
+			open = ""
+			stack = stack[:len(stack)-1]
+		default:
+			open = ""
+		}
+	}
+
+	return empty
+}
+
+// TestConverter_SampleConfig5_UntickedCheckboxesNotReported reads a config an
+// OPNsense firewall wrote rather than XML generated from the schema. Its lan
+// interface uses DHCPv6 and carries every advanced-DHCPv6 element self-closing,
+// the three checkboxes included, which is how releases through 26.7.4 save the
+// page with nothing set. Under BoolFlag this reported all three boxes ticked.
+func TestConverter_SampleConfig5_UntickedCheckboxesNotReported(t *testing.T) {
+	t.Parallel()
+
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "sample.config.5.xml"))
+	require.NoError(t, err)
+
+	tags := advDHCPXMLTags(t, reflect.TypeFor[schema.Interface](),
+		slices.Sorted(maps.Keys(advDHCPFlagFields(common.InterfaceDHCPAdvancedV6{}))))
+	empty := emptyInterfaceChildren(t, raw, "lan")
+
+	for _, tag := range tags {
+		require.Truef(t, empty[tag], "fixture lan no longer carries an empty <%s>; this test is vacuous", tag)
+	}
 
 	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
-		context.Background(), strings.NewReader(xmlBody), common.DeviceTypeUnknown, false,
+		context.Background(), bytes.NewReader(raw), common.DeviceTypeUnknown, false,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, device)
-	require.Len(t, device.Interfaces, 1)
 
-	adv := device.Interfaces[0].DHCPAdvancedV6
-	require.NotNil(t, adv,
-		"an interface whose only advanced-DHCPv6 setting is a checked box must still convert; "+
-			"nil here means the presence-only flag was read as empty and the whole struct was dropped")
-	assert.True(t, adv.AdvDHCP6InterfaceStatementInformationOnlyEnable,
-		"the information-only checkbox is set in the config and must survive conversion")
+	idx := slices.IndexFunc(device.Interfaces, func(i common.Interface) bool { return i.Name == "lan" })
+	require.NotEqual(t, -1, idx, "fixture no longer has a lan interface; this test is vacuous")
+
+	assert.Nil(t, device.Interfaces[idx].DHCPAdvancedV6,
+		"every advanced-DHCPv6 element on lan is empty, so no box is ticked and nothing is configured")
 }
