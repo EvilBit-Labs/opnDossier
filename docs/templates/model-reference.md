@@ -86,7 +86,7 @@ Core system settings including hostname, users, and SSH configuration.
 | `DisableChecksumOffloading`     | `BoolFlag`     | `system.disableChecksumOffloading`     | Optional        |
 | `DisableSegmentationOffloading` | `BoolFlag`     | `system.disableSegmentationOffloading` | Optional        |
 | `DisableLargeReceiveOffloading` | `BoolFlag`     | `system.disableLargeReceiveOffloading` | Optional        |
-| `IPv6Allow`                     | `string`       | `system.ipv6Allow`                     | Optional        |
+| `IPv6Allow`                     | `*string`      | `system.ipv6Allow`                     | Optional        |
 | `DisableNATReflection`          | `string`       | `system.disableNatReflection`          | Optional        |
 | `DisableConsoleMenu`            | `BoolFlag`     | `system.disableConsoleMenu`            | -               |
 | `NextUID`                       | `int`          | `system.nextUid`                       | Optional        |

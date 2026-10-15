@@ -131,6 +131,7 @@ Go map iteration is non-deterministic.
 The `encoding/xml` package treats self-closing tags (e.g., `<disabled/>`) and missing tags identically for `string` fields.
 
 - **Gotcha:** Use `*string` (pointer to string) when you need to distinguish between "element present but empty" (`""`) and "element absent" (`nil`).
+- **Instance (fixed):** OPNsense before 26.1 and pfSense both test `<system><ipv6allow>` with `isset()`. pfSense writes an enabled setting as an empty element and OPNsense shipped `<ipv6allow/>` as its default up to 24.1, but both schemas typed the field `string` and both converters tested `!= ""`. Every pfSense config with IPv6 allowed, and eight of the nine OPNsense fixtures that carry the element, read IPv6 as disabled, so FIREWALL-006 passed. Both fields are `*string` now and the converters test for non-nil. `BoolFlag` is not used here: it reads `<ipv6allow>0</ipv6allow>` as off, and for this field that misread makes FIREWALL-006 pass on a firewall that allows IPv6.
 
 ### 3.3 Repeated XML Elements and `string` Fields
 
@@ -184,6 +185,14 @@ The schema and `CommonDevice` are separate models, and a value can be decoded co
 - **A value can also be dropped before it ever reaches the schema struct, one layer earlier than the usual case above.** `internal/cfgparser/xml.go`'s `handleStartElement` dispatches each top-level `<opnsense>` child through a hand-maintained `switch` that mirrors the `xml:` tags on `schema.OpnSenseDocument`. It had no case for `aliases`, so a config using the legacy top-level `<aliases>` block (predating the MVC Firewall/Alias subsystem — see `schema.OpnSenseDocument.Aliases`) decoded to `namedObjects: null` even though the field existed on the schema struct and the converter (`convertNamedObjects` in `pkg/parser/opnsense/converter_aliases.go`) already read it correctly. No shipped fixture used that shape, so nothing failed until `testdata/opnsense-legacy-aliases.xml` was added.
   - **Guard:** `TestHandleStartElement_DispatchCoversEverySchemaField` in `internal/cfgparser/dispatch_coverage_test.go` parses `xml.go` via `go/ast`, extracts every case label in `handleStartElement`'s switch *together with the `doc.<Field>` it decodes into*, and reflects over `schema.OpnSenseDocument`'s `xml:` tags to assert a 1:1 pairing. It fails on a missing case (a new top-level element added to the schema with nothing dispatching it) and — checking the target, not just the label — on a case that decodes into the wrong field (a copy-paste swap between adjacent, structurally identical elements like `gifs`/`gres`/`laggs`, which a label-only check would miss).
   - **When adding a new top-level `<opnsense>` child element to the schema, add its dispatch case in the same change.** The coverage test will fail the build if you forget; it will not tell you if you *misroute* one unless the swap changes which field is referenced in the case body.
+
+### 3.7 A Newer OPNsense Release Can Delete the Element You Read
+
+An OPNsense migration can move a legacy element into an `<OPNsense>` model and delete the original, or raise a model's version and drop a field the new version no longer defines. A value opnDossier reads correctly on older configs then reads as unset on current ones, with no error and no warning.
+
+- **Instance (fixed):** OPNsense 26.1 moved the IPv6, offload and VLAN filter settings from `<system>` into `<OPNsense><Interfaces><settings>` (`Interfaces/Migrations/SET1_0_0.php`), turning `ipv6allow` into the inverted `disableipv6`. On a migrated config all five fields read as off, so FIREWALL-006 passed on firewalls with IPv6 enabled. `applyInterfaceSettings` reads the block now. OPNsense 26.1 and later read only the block, so it wins over anything left in `<system>`. Without the block the converter falls back to `<system>`, which is right for older configs but can disagree with a 26.1.0 config whose migration failed (a `<dhcp6_norelease>yes</dhcp6_norelease>` broke it until 26.1.1); OPNsense then treats IPv6 as allowed and offloading as on.
+- **Detection:** for each OPNsense release, check what its migrations do to the elements the schema reads: a `post()` that unsets a legacy path (`src/opnsense/mvc/app/models/OPNsense/*/Migrations/`), or a model whose `<version>` went up and whose field list lost or renamed a field, since the migration replaces the model's whole node. Test the migrated shape by rewriting a fixture the way the migration does, as `TestConverter_InterfaceSettings_ReadFromMigratedBlock` does, rather than generating XML from the schema.
+- **Pin the model version.** The new block's element names belong to its model version, so the converter warns on a `version` attribute it does not recognize, as it does for Unbound. See §18.1 for the risk.
 
 ## 4. Diff Engine
 
@@ -472,6 +481,8 @@ Four boolean/int handling styles coexist in the schema layer — pick the right 
 | `shared.FlexBool`     | `pkg/schema/shared/flex_bool.go` | body → `shared.IsValueTrue(body)`; no presence semantics                                  | Field is a boolean but the element is always emitted and presence carries no signal.                  |
 | `shared.FlexInt`      | `pkg/schema/shared/flex_int.go`  | numeric → that value; `on`/`yes` → 1; `off`/`no` → 0; unknown non-numeric → wrapped error | Field must stay int-typed (may carry a count or a liberal toggle).                                    |
 | strict `int` / `bool` | built-in                         | only decimal digits (for `int`); `true`/`false` only (for `bool`)                         | Field is genuinely numeric (UID, GID, PID, MTU) and non-numeric input is a real error.                |
+
+A presence toggle whose body must be ignored is a fifth case: type it `*string` and test for non-nil, as `IPv6Allow` does (§3.2). `BoolFlag` reads `<tag>0</tag>` as false, where a bare `isset()` reads it as set.
 
 Both OPNsense and pfSense emit the same liberal truthy vocabulary (`1|on|yes|true|enable|enabled`, case-insensitive). Always go through `shared.IsValueTrue` / `shared.IsValueFalse` — never hand-roll a truthy parser at the call site.
 

@@ -53,6 +53,25 @@ type Wireless struct {
 	Clone   string   `xml:"clone,omitempty" json:"clone,omitempty" yaml:"clone,omitempty"`
 }
 
+// InterfaceSettings is <OPNsense><Interfaces><settings>, the global interface
+// settings model OPNsense 26.1 introduced (Interfaces/Settings.xml, model
+// version 1.0.0). Its migration, SET1_0_0, moves the matching <system>
+// elements here and deletes them, and OPNsense reads only this block from then
+// on. The values are the MVC field values: "0"/"1" for the boolean fields and
+// "0" (enable), "1" (disable) or "2" (leave default) for DisableVLANHWFilter.
+type InterfaceSettings struct {
+	Version                       string `xml:"version,attr,omitempty"        json:"version,omitempty"                       yaml:"version,omitempty"`
+	DisableChecksumOffloading     string `xml:"disablechecksumoffloading"     json:"disableChecksumOffloading,omitempty"     yaml:"disableChecksumOffloading,omitempty"`
+	DisableSegmentationOffloading string `xml:"disablesegmentationoffloading" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	DisableLargeReceiveOffloading string `xml:"disablelargereceiveoffloading" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	DisableVLANHWFilter           string `xml:"disablevlanhwfilter"           json:"disableVlanHwFilter,omitempty"           yaml:"disableVlanHwFilter,omitempty"`
+	DisableIPv6                   string `xml:"disableipv6"                   json:"disableIpv6,omitempty"                   yaml:"disableIpv6,omitempty"`
+	DHCP6NoRelease                string `xml:"dhcp6_norelease"               json:"dhcp6NoRelease,omitempty"                yaml:"dhcp6NoRelease,omitempty"`
+	DHCP6Debug                    string `xml:"dhcp6_debug"                   json:"dhcp6Debug,omitempty"                    yaml:"dhcp6Debug,omitempty"`
+	DHCP6DUID                     string `xml:"dhcp6_duid"                    json:"dhcp6Duid,omitempty"                     yaml:"dhcp6Duid,omitempty"`
+	DHCP6RATimeout                string `xml:"dhcp6_ratimeout"               json:"dhcp6RaTimeout,omitempty"                yaml:"dhcp6RaTimeout,omitempty"`
+}
+
 // Interfaces contains the network interface configurations.
 // Uses a map-based representation to store all interface blocks generically,
 // supporting wan, lan, opt0, opt1, etc., and any custom interface elements.
