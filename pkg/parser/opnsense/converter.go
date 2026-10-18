@@ -569,15 +569,20 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 // sequenceStep is the gap OPNsense leaves between the sequences it assigns.
 const sequenceStep = 100
 
+// sortKeyWidth is the width OPNsense right-aligns a numeric sort field to.
+const sortKeyWidth = 30
+
 // sequencedRule pairs a port forward with its place in the ruleset. numbered
 // reports that the document gave the rule a <sequence>, and invalid that it
-// gave one that is not a number.
+// gave one that is not a number. sortKey is the key the firewall sorts a
+// numbered rule by.
 type sequencedRule struct {
 	*schema.InboundRule
 
 	sequence int
 	numbered bool
 	invalid  bool
+	sortKey  string
 }
 
 // portForwardsInOrder drops empty <rule/> placeholders and returns the rest in
@@ -586,9 +591,9 @@ type sequencedRule struct {
 // <sequence>, which need not match document order, and a rule without one is
 // numbered after the highest, as the firewall numbers it on load.
 //
-// Rules with equal sequences keep document order here; the firewall orders
-// them by uuid. A sequence that is not a number leaves the whole set in
-// document order.
+// Rules with equal sequences are ordered by uuid, compared the way the
+// firewall's sortedBy compares its keys. A sequence that is not a number
+// leaves the whole set in document order.
 func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
 	var kept []sequencedRule
 
@@ -608,6 +613,7 @@ func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
 				sortable = false
 			} else {
 				entry.sequence, entry.numbered = sequence, true
+				entry.sortKey = fmt.Sprintf("%*s,%s", sortKeyWidth, text, r.UUID)
 				highest = max(highest, sequence)
 			}
 		}
@@ -627,7 +633,11 @@ func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
 	}
 
 	slices.SortStableFunc(kept, func(a, b sequencedRule) int {
-		return cmp.Compare(a.sequence, b.sequence)
+		if order := cmp.Compare(a.sequence, b.sequence); order != 0 || !a.numbered || !b.numbered {
+			return order
+		}
+
+		return naturalCompareFold(a.sortKey, b.sortKey)
 	})
 
 	return kept

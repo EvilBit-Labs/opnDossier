@@ -140,6 +140,8 @@ The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5
 
 Port forwards are `<rule>` elements directly under `<nat>`. `<target>` is the redirect address and `<local-port>` the redirect port; the port the rule matches on is `<destination><port>`.
 
+The example is the shape written through 25.7. From 26.1 each rule also has a `uuid` attribute and a `<sequence>`, and `<pass>` holds the filter rule association while `<associated-rule-id>` is written empty.
+
 ```xml
 <nat>
   <rule>

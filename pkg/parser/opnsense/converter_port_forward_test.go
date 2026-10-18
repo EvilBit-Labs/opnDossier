@@ -337,7 +337,22 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 		assert.Equal(t, []string{"a", "b", "c"}, descriptions(device))
 	})
 
-	t.Run("equal sequences keep document order", func(t *testing.T) {
+	t.Run("equal sequences are ordered by uuid", func(t *testing.T) {
+		t.Parallel()
+
+		// A byte comparison puts "10..." first; the firewall's natural sort
+		// compares 9 with 10 as numbers.
+		withUUID := func(descr, uuid string) string {
+			return strings.Replace(rule(descr, `<sequence>100</sequence>`), `<rule>`, `<rule uuid="`+uuid+`">`, 1)
+		}
+		device, warnings := parsePortForwards(t,
+			withUUID("ten", "10aaaaaa-0000-4000-8000-000000000000")+
+				withUUID("nine", "9aaaaaaa-0000-4000-8000-000000000000"))
+		assert.Empty(t, warnings)
+		assert.Equal(t, []string{"nine", "ten"}, descriptions(device))
+	})
+
+	t.Run("equal sequences without a uuid keep document order", func(t *testing.T) {
 		t.Parallel()
 
 		device, _ := parsePortForwards(t,
