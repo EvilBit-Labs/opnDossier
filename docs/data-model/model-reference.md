@@ -289,6 +289,8 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 | `Disabled`     | `bool`         | `nat.inboundRules[].disabled`     | Administratively disabled |
 | `Log`          | `bool`         | `nat.inboundRules[].log`          | Log matched packets       |
 | `Description`  | `string`       | `nat.inboundRules[].description`  | Description               |
+| `Category`     | `string`       | `nat.inboundRules[].category`     | Classification category   |
+| `PoolOpts`     | `string`       | `nat.inboundRules[].poolOpts`     | Address pool options      |
 
 ---
 
