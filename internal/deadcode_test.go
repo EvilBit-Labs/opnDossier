@@ -7,12 +7,15 @@
 // has no reason to run on every `go test ./...` invocation. `just
 // deadcode-check` (part of `just ci-check`, and the CI Lint job's
 // "Unreachable-symbol guard" step) passes `-tags=deadcode` explicitly.
+// deadcode_logic_test.go carries the same tag because it exercises helpers
+// defined in this file, not because it is slow.
 
 package internal
 
-// deadcode_test.go is what `just deadcode-check` runs. It fails when
-// `deadcode -test=false ./...` reports a function unreachable from the
-// shipped binary's call graph that is not exempted in deadcode_allowlist.txt.
+// deadcode_test.go holds TestDeadCodeGuard, which `just deadcode-check` runs
+// together with the allowlist logic tests in deadcode_logic_test.go. The guard
+// fails when `deadcode -test=false ./...` reports a function unreachable from
+// the shipped binary's call graph that is not exempted in deadcode_allowlist.txt.
 //
 // This is the recurrence guard for unreachable *symbols* inside otherwise
 // reachable packages -- the class TestAllInternalPackagesReachable (in
