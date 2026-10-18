@@ -1,9 +1,11 @@
 package opnsense
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -369,6 +371,8 @@ func (c *converter) convertFirewallRules(
 			NoSync:          bool(rule.NoSync),
 			Tag:             rule.Tag,
 			Tagged:          rule.Tagged,
+			// Set on the pass rule a port forward stores for itself.
+			AssociatedRuleID: rule.AssociatedRuleID,
 		})
 	}
 
@@ -503,14 +507,23 @@ func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 }
 
 // convertInboundNATRules maps []schema.InboundRule to []common.InboundNATRule.
+//
+// Empty <rule/> placeholders are skipped and the rest are returned in the order
+// the firewall evaluates them, so a warning's index addresses the entry in the
+// converted output.
 func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.InboundNATRule {
-	if len(rules) == 0 {
+	ordered := portForwardsInOrder(rules)
+	if len(ordered) == 0 {
 		return nil
 	}
 
-	result := make([]common.InboundNATRule, 0, len(rules))
-	for i, r := range rules {
-		if r.InternalIP == "" {
+	result := make([]common.InboundNATRule, 0, len(ordered))
+	for i, r := range ordered {
+		// The vendor writes <target>. No release writes <internalip>; it is read
+		// for XML this tool marshalled before the schema bound <target>.
+		internalIP := cmp.Or(r.Target, r.InternalIP)
+		// A no-RDR rule exempts traffic from redirection and has no target.
+		if internalIP == "" && !bool(r.NoRDR) {
 			c.addWarning(
 				fmt.Sprintf("NAT.InboundRules[%d].InternalIP", i),
 				r.UUID,
@@ -537,42 +550,167 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 			)
 		}
 
+		priority := r.Priority
+		if r.numbered {
+			priority = r.sequence
+		} else if r.invalid {
+			c.addWarning(
+				fmt.Sprintf("NAT.InboundRules[%d].Priority", i),
+				r.Sequence,
+				"inbound NAT rule sequence is not a number; the port forwards are reported in document order",
+				common.SeverityMedium,
+			)
+		}
+
+		if !slices.Contains(portForwardPassValues, r.Pass) {
+			c.addWarning(
+				fmt.Sprintf("NAT.InboundRules[%d].AssociatedRuleID", i),
+				r.Pass,
+				"unrecognized port forward filter rule association",
+				common.SeverityLow,
+			)
+		}
+
 		result = append(result, common.InboundNATRule{
 			UUID:       r.UUID,
 			Interfaces: []string(r.Interface),
 			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
-			Source: common.RuleEndpoint{
-				Address:    r.Source.EffectiveAddress(),
-				Port:       r.Source.Port,
-				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
-				PortRef:    c.namedObjects.Ref(r.Source.Port),
-			},
-			Destination: common.RuleEndpoint{
-				Address:    r.Destination.EffectiveAddress(),
-				Port:       r.Destination.Port,
-				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
-				PortRef:    c.namedObjects.Ref(r.Destination.Port),
-			},
-			ExternalPort:     r.ExternalPort,
-			ExternalPortRef:  c.namedObjects.Ref(r.ExternalPort),
-			InternalIP:       r.InternalIP,
-			InternalIPRef:    c.namedObjects.Ref(r.InternalIP),
-			InternalPort:     r.InternalPort,
-			InternalPortRef:  c.namedObjects.Ref(r.InternalPort),
-			LocalPort:        r.LocalPort,
-			LocalPortRef:     c.namedObjects.Ref(r.LocalPort),
-			Reflection:       r.Reflection,
-			NATReflection:    r.NATReflection,
-			AssociatedRuleID: r.AssociatedRuleID,
-			Priority:         r.Priority,
+			Source: c.portForwardEndpoint(
+				r.Source.EffectiveAddress(),
+				r.Source.Port,
+				bool(r.Source.Not),
+			),
+			Destination: c.portForwardEndpoint(
+				r.Destination.EffectiveAddress(),
+				r.Destination.Port,
+				bool(r.Destination.Not),
+			),
+			ExternalPort:    r.ExternalPort,
+			ExternalPortRef: c.namedObjects.Ref(r.ExternalPort),
+			InternalIP:      internalIP,
+			InternalIPRef:   c.namedObjects.Ref(internalIP),
+			InternalPort:    r.InternalPort,
+			InternalPortRef: c.namedObjects.Ref(r.InternalPort),
+			LocalPort:       r.LocalPort,
+			LocalPortRef:    c.namedObjects.Ref(r.LocalPort),
+			Reflection:      r.Reflection,
+			NATReflection:   r.NATReflection,
+			// From 26.1 the association is in <pass> and <associated-rule-id>
+			// is written empty.
+			AssociatedRuleID: cmp.Or(r.AssociatedRuleID, r.Pass),
+			Priority:         priority,
 			NoRDR:            bool(r.NoRDR),
 			NoSync:           bool(r.NoSync),
 			Disabled:         bool(r.Disabled),
 			Log:              bool(r.Log),
 			Description:      r.Descr,
+			Tag:              r.Tag,
+			Tagged:           r.Tagged,
 		})
 	}
 
 	return result
+}
+
+// sequenceStep is the gap OPNsense leaves between the sequences it assigns.
+const sequenceStep = 100
+
+// sortKeyWidth is the width OPNsense right-aligns a numeric sort field to.
+const sortKeyWidth = 30
+
+// portForwardPassValues are the values <pass> takes from 26.1 on: empty for a
+// stored filter rule, pass for a redirect that passes its own traffic, and
+// rule for a filter rule the firewall generates without storing.
+var portForwardPassValues = []string{"", "pass", "rule"}
+
+// sequencedRule pairs a port forward with its place in the ruleset. numbered
+// reports that the document gave the rule a <sequence>, and invalid that it
+// gave one that is not a number. sortKey is the key the firewall sorts a
+// numbered rule by.
+type sequencedRule struct {
+	*schema.InboundRule
+
+	sequence int
+	numbered bool
+	invalid  bool
+	sortKey  string
+}
+
+// portForwardsInOrder drops empty <rule/> placeholders and returns the rest in
+// the order the firewall evaluates them. Legacy rules carry no <sequence> and
+// are evaluated in document order. From 26.1 the ruleset is built sorted by
+// <sequence>, which need not match document order, and a rule without one is
+// numbered after the highest, as the firewall numbers it on load.
+//
+// Rules with equal sequences are ordered by uuid, compared the way the
+// firewall's sortedBy compares its keys. A sequence that is not a number
+// leaves the whole set in document order.
+func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
+	var kept []sequencedRule
+
+	highest := 0
+	sortable := true
+	for i := range rules {
+		r := &rules[i]
+		if r.IsPlaceholder() {
+			continue
+		}
+
+		entry := sequencedRule{InboundRule: r}
+		if text := strings.TrimSpace(r.Sequence); text != "" {
+			sequence, err := strconv.Atoi(text)
+			if err != nil {
+				entry.invalid = true
+				sortable = false
+			} else {
+				entry.sequence, entry.numbered = sequence, true
+				entry.sortKey = fmt.Sprintf("%*s,%s", sortKeyWidth, text, r.UUID)
+				highest = max(highest, sequence)
+			}
+		}
+
+		kept = append(kept, entry)
+	}
+
+	if !sortable {
+		return kept
+	}
+
+	for i := range kept {
+		if !kept[i].numbered {
+			highest += sequenceStep
+			kept[i].sequence = highest
+		}
+	}
+
+	slices.SortStableFunc(kept, func(a, b sequencedRule) int {
+		if order := cmp.Compare(a.sequence, b.sequence); order != 0 || !a.numbered || !b.numbered {
+			return order
+		}
+
+		return naturalCompareFold(a.sortKey, b.sortKey)
+	})
+
+	return kept
+}
+
+// portForwardEndpoint builds one side of a port forward from its effective
+// address. An endpoint with no address matches everything: 26.x writes an
+// empty <network/> for it where the legacy page wrote <any>, so both are
+// reported as any.
+//
+// The address is looked up as an alias whichever element held it. The legacy
+// page keeps aliases in <address>, and the 26.x model keeps aliases, literal
+// addresses and interface macros alike in <network>. A value that names no
+// alias has no reference, and OPNsense resolves a name that is both an
+// interface and an alias to the alias.
+func (c *converter) portForwardEndpoint(address, port string, negated bool) common.RuleEndpoint {
+	return common.RuleEndpoint{
+		Address:    cmp.Or(address, schema.NetworkAny),
+		Port:       port,
+		AddressRef: c.namedObjects.Ref(address),
+		PortRef:    c.namedObjects.Ref(port),
+		Negated:    negated,
+	}
 }

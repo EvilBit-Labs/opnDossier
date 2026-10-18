@@ -810,7 +810,7 @@ Warnings are generated for configuration elements with missing or incomplete dat
 #### NAT Rules
 
 - **Outbound NAT without interface**: Medium severity warning for unassigned outbound rules
-- **Inbound NAT missing internal IP**: High severity warning for port forwards without target IP
+- **Inbound NAT missing internal IP**: High severity warning for port forwards without target IP. A no-RDR rule has none and is exempt
 - **Inbound NAT without interface**: Medium severity warning for unassigned inbound rules
 
 #### Network Configuration
