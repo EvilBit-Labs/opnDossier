@@ -179,12 +179,6 @@ opnDossier uses programmatic markdown generation rather than text templates. If 
 
 See the [Architecture Documentation](../development/architecture.md) for details on the generator system.
 
-## Regenerating Documentation
+## Keeping the Model Reference Current
 
-The model reference is auto-generated from Go types:
-
-```bash
-just generate-docs
-```
-
-This ensures documentation stays in sync with the codebase.
+The [Model Reference](model-reference.md) is hand-maintained. When a `pkg/model` type gains, loses, or renames a field, edit that type's table on the page in the same commit. `just generate-docs` does not write it; that recipe documents the vendor XML schema types under `docs/templates/`. The generated record of the Go surface is the public-API snapshot under `pkg/parser/testdata/api-snapshots/`, refreshed with the `-update` form of `TestPublicAPISnapshot` and reviewed as part of the change.
