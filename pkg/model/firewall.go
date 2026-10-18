@@ -284,6 +284,10 @@ type NATRule struct {
 }
 
 // InboundNATRule represents an inbound (port-forward) NAT rule.
+//
+// Vendor change-tracking metadata (created, updated, and the audit blob
+// OPNsense writes from 26.7.4 in their place) is not carried on this or any
+// other rule type.
 type InboundNATRule struct {
 	// UUID is the unique identifier for the port-forward rule.
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
@@ -347,6 +351,10 @@ type InboundNATRule struct {
 	Log bool `json:"log,omitempty" yaml:"log,omitempty"`
 	// Description is a human-readable description of the port-forward rule.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Category is the classification category for the port-forward rule.
+	Category string `json:"category,omitempty" yaml:"category,omitempty"`
+	// PoolOpts specifies the address pool options for the redirect target.
+	PoolOpts string `json:"poolOpts,omitempty" yaml:"poolOpts,omitempty"`
 	// Tag is the pf tag this rule applies to matching packets.
 	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
 	// Tagged is the pf tag this rule matches on. A forward read without it
