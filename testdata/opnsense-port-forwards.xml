@@ -1,0 +1,262 @@
+<?xml version="1.0"?>
+<opnsense>
+  <system>
+    <hostname>port-forwards-test</hostname>
+    <domain>localdomain</domain>
+  </system>
+  <interfaces>
+    <wan>
+      <enable>1</enable>
+      <if>vtnet0</if>
+      <ipaddr>198.51.100.2</ipaddr>
+      <subnet>24</subnet>
+    </wan>
+    <lan>
+      <enable>1</enable>
+      <if>vtnet1</if>
+      <ipaddr>192.168.10.1</ipaddr>
+      <subnet>24</subnet>
+    </lan>
+    <opt1>
+      <enable>1</enable>
+      <if>vtnet2</if>
+      <descr>DMZ</descr>
+      <ipaddr>192.168.20.1</ipaddr>
+      <subnet>24</subnet>
+    </opt1>
+  </interfaces>
+  <OPNsense>
+    <Firewall>
+      <Alias version="1.0.1">
+        <aliases>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000001">
+            <name>MAIL_HOST</name>
+            <type>host</type>
+            <content>192.168.20.25</content>
+            <descr>Mail server</descr>
+          </alias>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000002">
+            <name>MAIL_PORTS</name>
+            <type>port</type>
+            <content>25
+587</content>
+            <descr>Mail submission ports</descr>
+          </alias>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000003">
+            <name>TRUSTED_NETS</name>
+            <type>network</type>
+            <content>203.0.113.0/24</content>
+            <descr>Networks allowed to reach the mail server</descr>
+          </alias>
+          <alias uuid="a1a1a1a1-0000-4000-8000-000000000004">
+            <name>SPARE_HOST</name>
+            <type>host</type>
+            <content>192.168.20.99</content>
+            <descr>Referenced by nothing</descr>
+          </alias>
+        </aliases>
+      </Alias>
+    </Firewall>
+  </OPNsense>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Default allow LAN to any rule</descr>
+      <source>
+        <network>lan</network>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+    </rule>
+    <rule>
+      <type>pass</type>
+      <associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>
+      <source>
+        <any>1</any>
+      </source>
+      <interface>wan</interface>
+      <statetype>keep state</statetype>
+      <protocol>tcp</protocol>
+      <ipprotocol>inet</ipprotocol>
+      <destination>
+        <address>192.168.10.50</address>
+        <port>8443</port>
+      </destination>
+      <descr>HTTPS to web server</descr>
+      <created>
+        <username>root@192.0.2.10</username>
+        <time>1759312345.12</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </created>
+    </rule>
+  </filter>
+  <!--
+    Port forwards as OPNsense 26.1 and later store them: the Destination NAT
+    model is mounted on <nat><rule>, so each rule is still a direct child of
+    <nat>. The rules are deliberately out of <sequence> order.
+
+    The file is a composite of the two rule bodies those releases write. The
+    sequence 300 rule has the 26.7.4 and later body, with <audit> in place of
+    <created> and <updated>, and the others have the 26.1 to 26.7.3 body. A
+    real export holds one of the two, because a save rewrites every rule.
+  -->
+  <nat>
+    <outbound>
+      <mode>automatic</mode>
+    </outbound>
+    <rule uuid="b2b2b2b2-0000-4000-8000-000000000001">
+      <sequence>100</sequence>
+      <disabled>0</disabled>
+      <nordr>0</nordr>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <protocol>tcp</protocol>
+      <source>
+        <network/>
+        <port/>
+        <not>0</not>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>443</port>
+        <not>0</not>
+      </destination>
+      <target>192.168.10.50</target>
+      <local-port>8443</local-port>
+      <poolopts/>
+      <log>0</log>
+      <category/>
+      <descr>HTTPS to web server</descr>
+      <tag/>
+      <tagged/>
+      <nosync>0</nosync>
+      <natreflection/>
+      <pass/>
+      <associated-rule-id/>
+      <created>
+        <username>root@192.0.2.10</username>
+        <time>1759312345.12</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </created>
+      <updated>
+        <username>root@192.0.2.10</username>
+        <time>1759312345.12</time>
+        <description>/firewall_nat_edit.php made changes</description>
+      </updated>
+    </rule>
+    <rule uuid="b2b2b2b2-0000-4000-8000-000000000003">
+      <sequence>300</sequence>
+      <disabled>0</disabled>
+      <nordr>0</nordr>
+      <interface>wan,opt1</interface>
+      <ipprotocol/>
+      <protocol>tcp</protocol>
+      <source>
+        <network>TRUSTED_NETS</network>
+        <port/>
+        <not>0</not>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>MAIL_PORTS</port>
+        <not>0</not>
+      </destination>
+      <target>MAIL_HOST</target>
+      <local-port>MAIL_PORTS</local-port>
+      <poolopts/>
+      <log>1</log>
+      <category>Mail</category>
+      <descr>Mail submission to mail server</descr>
+      <tag/>
+      <tagged/>
+      <nosync>0</nosync>
+      <natreflection>purenat</natreflection>
+      <pass>pass</pass>
+      <audit>eyJjcmVhdGVkIjp7InVzZXJuYW1lIjoicm9vdEAxOTIuMC4yLjEwIiwidGltZSI6IjE3ODk3MjE2MTUuNzgiLCJkZXNjcmlwdGlvbiI6IlwvYXBpXC9hcGkucGhwIG1hZGUgY2hhbmdlcyJ9LCJ1cGRhdGVkIjp7InVzZXJuYW1lIjoicm9vdEAxOTIuMC4yLjEwIiwidGltZSI6IjE3ODk3MjIwMDQuMzEiLCJkZXNjcmlwdGlvbiI6IlwvYXBpXC9hcGkucGhwIG1hZGUgY2hhbmdlcyJ9LCJ1c2VyZGF0YSI6eyJub3RlIjoiIn19</audit>
+      <associated-rule-id/>
+    </rule>
+    <rule uuid="b2b2b2b2-0000-4000-8000-000000000002">
+      <sequence>200</sequence>
+      <disabled>0</disabled>
+      <nordr>1</nordr>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <protocol>tcp</protocol>
+      <source>
+        <network/>
+        <port/>
+        <not>0</not>
+      </source>
+      <destination>
+        <network>(self)</network>
+        <port>https</port>
+        <not>0</not>
+      </destination>
+      <target/>
+      <local-port/>
+      <poolopts/>
+      <log>0</log>
+      <category/>
+      <descr>Do not redirect traffic to the firewall itself</descr>
+      <tag/>
+      <tagged/>
+      <nosync>0</nosync>
+      <natreflection/>
+      <pass/>
+      <associated-rule-id/>
+      <created>
+        <username>root</username>
+        <time>1774445658.55</time>
+        <description>/api/api.php made changes</description>
+      </created>
+      <updated>
+        <username>root</username>
+        <time>1774445658.55</time>
+        <description>/api/api.php made changes</description>
+      </updated>
+    </rule>
+    <rule uuid="b2b2b2b2-0000-4000-8000-000000000004">
+      <sequence>400</sequence>
+      <disabled>1</disabled>
+      <nordr>0</nordr>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <protocol>tcp</protocol>
+      <source>
+        <network>opt1</network>
+        <port/>
+        <not>1</not>
+      </source>
+      <destination>
+        <network>any</network>
+        <port>2222</port>
+        <not>0</not>
+      </destination>
+      <target>192.168.10.60</target>
+      <local-port>ssh</local-port>
+      <poolopts/>
+      <log>0</log>
+      <category/>
+      <descr>SSH to jump host</descr>
+      <tag/>
+      <tagged/>
+      <nosync>0</nosync>
+      <natreflection/>
+      <pass>rule</pass>
+      <associated-rule-id/>
+      <created>
+        <username>root</username>
+        <time>1774446011.02</time>
+        <description>/api/api.php made changes</description>
+      </created>
+      <updated>
+        <username>root</username>
+        <time>1774446011.02</time>
+        <description>/api/api.php made changes</description>
+      </updated>
+    </rule>
+  </nat>
+</opnsense>
