@@ -267,17 +267,16 @@ bench-focused:
 completeness-check:
     @{{ mise_exec }} go test -tags=completeness ./internal/testing/modeltest -run TestModelCompleteness
 
-# Check for unreachable functions not covered by internal/deadcode_allowlist.txt.
 # Blocking: wired into ci-check and the CI Lint job (see .github/workflows/ci.yml)
 # now that the dead-surface cleanup sweep has emptied the seeded surface (see
 # the guard's own doc comment in internal/deadcode_test.go).
-# The -run filter names the guard plus the allowlist logic tests in
-# internal/deadcode_logic_test.go. Everything behind this build tag, in that
-# file and in deadcode_test.go, runs nowhere else, so a new test in either
-# needs its prefix added here or go test exits 0 without running it.
+# -skip names the untagged tests in internal/, so every test behind the
+# deadcode build tag runs without being listed here. A new untagged test in
+# the package shows up in this run; a tagged one cannot silently drop out.
+# Check for unreachable functions not covered by internal/deadcode_allowlist.txt.
 [group('test')]
 deadcode-check:
-    @{{ mise_exec }} go test -count=1 -tags=deadcode ./internal/ -run 'TestDeadCodeGuard|TestCheckDeadcodeAllowlist|TestParseDeadcodeAllowlist' -v
+    @{{ mise_exec }} go test -count=1 -tags=deadcode ./internal/ -skip 'TestNoNetworkDependencies|TestNoTelemetry|TestAllInternalPackagesReachable' -v
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Build
