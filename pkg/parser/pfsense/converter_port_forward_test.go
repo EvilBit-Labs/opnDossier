@@ -203,6 +203,14 @@ func TestConverter_PortForwards_EmptyEndpointIsAny(t *testing.T) {
 			wantDstPort: "443",
 			wantNegated: true,
 		},
+		{
+			name:        "negated explicit any source",
+			body:        target + `<source><any></any><not></not></source>` + wanDest,
+			wantSrc:     "any",
+			wantDst:     "wanip",
+			wantDstPort: "443",
+			wantNegated: true,
+		},
 	}
 
 	for _, tt := range tests {

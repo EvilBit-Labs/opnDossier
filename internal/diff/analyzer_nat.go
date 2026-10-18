@@ -300,11 +300,28 @@ func formatNATRule(rule common.NATRule) string {
 		"dst="+formatEndpoint(rule.Destination),
 		"target="+cmp.Or(rule.Target, addressUnknown))
 
+	parts = appendLabelAndPool(parts, rule.Category, rule.PoolOpts)
+
 	if rule.Disabled {
 		parts = append(parts, "disabled")
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// appendLabelAndPool adds the category and pool option when set. Both are
+// compared by the equality helpers, so a change to either pairs the rule as
+// modified; printing them is what lets the entry show which value moved.
+func appendLabelAndPool(parts []string, category, poolOpts string) []string {
+	if category != "" {
+		parts = append(parts, "category="+category)
+	}
+
+	if poolOpts != "" {
+		parts = append(parts, "poolopts="+poolOpts)
+	}
+
+	return parts
 }
 
 // formatInboundNATRule renders a port forward compactly for diff output.
@@ -329,6 +346,8 @@ func formatInboundNATRule(rule common.InboundNATRule) string {
 	if rule.Priority != 0 {
 		parts = append(parts, "priority="+strconv.Itoa(rule.Priority))
 	}
+
+	parts = appendLabelAndPool(parts, rule.Category, rule.PoolOpts)
 
 	if rule.Disabled {
 		parts = append(parts, "disabled")
