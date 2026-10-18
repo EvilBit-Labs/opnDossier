@@ -112,6 +112,7 @@ func TestParser_LegacyPortForwardsFixture(t *testing.T) {
 	assert.Equal(t, "purenat", mail.NATReflection)
 	assert.True(t, mail.NoSync)
 	assert.True(t, mail.Log)
+	assert.Equal(t, "Mail", mail.Category)
 
 	exempt := rules[2]
 	assert.True(t, exempt.NoRDR)
@@ -169,6 +170,7 @@ func TestParser_PortForwardsFixture(t *testing.T) {
 	require.NotNil(t, mail.LocalPortRef)
 	assert.Equal(t, "purenat", mail.NATReflection)
 	assert.True(t, mail.Log)
+	assert.Equal(t, "Mail", mail.Category)
 
 	jump := rules[3]
 	assert.True(t, jump.Disabled)
@@ -463,6 +465,27 @@ func TestConverter_PortForwards_Tags(t *testing.T) {
 	require.Len(t, device.NAT.InboundRules, 1)
 	assert.Equal(t, "mark", device.NAT.InboundRules[0].Tag)
 	assert.Equal(t, "match", device.NAT.InboundRules[0].Tagged)
+}
+
+// TestConverter_PortForwards_CategoryAndPoolOpts covers <category> and
+// <poolopts>, which the schema bound and the converter dropped while the
+// outbound NAT converter carried both. Neither shipped fixture sets <poolopts>,
+// so the value is driven inline.
+func TestConverter_PortForwards_CategoryAndPoolOpts(t *testing.T) {
+	t.Parallel()
+
+	const body = `<interface>wan</interface><target>192.168.1.50</target>`
+
+	device, _ := parsePortForwards(t,
+		`<rule>`+body+`<category>Mail</category><poolopts>round-robin</poolopts></rule>`)
+	require.Len(t, device.NAT.InboundRules, 1)
+	assert.Equal(t, "Mail", device.NAT.InboundRules[0].Category)
+	assert.Equal(t, "round-robin", device.NAT.InboundRules[0].PoolOpts)
+
+	device, _ = parsePortForwards(t, `<rule>`+body+`</rule>`)
+	require.Len(t, device.NAT.InboundRules, 1)
+	assert.Empty(t, device.NAT.InboundRules[0].Category)
+	assert.Empty(t, device.NAT.InboundRules[0].PoolOpts)
 }
 
 // TestConverter_PortForwards_EndpointAlias covers which endpoint values are

@@ -1,6 +1,7 @@
 package pfsense
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -238,9 +239,17 @@ func (c *converter) convertOutboundNATRules(rules []opnsense.NATRule) []common.N
 
 // convertInboundNATRules maps []pfsense.InboundRule to []common.InboundNATRule.
 // The redirect address is in <target>; <internalip> is read for XML this tool
-// marshalled before the schema bound <target>. pfSense writes no empty <rule/>
-// placeholder under <nat>, so there is no IsPlaceholder guard here (GOTCHAS
-// 3.4).
+// marshalled before the schema bound <target>.
+//
+// There is no IsPlaceholder guard here (GOTCHAS 3.4), because pfSense's own
+// writer never produces an empty <rule/> under <nat>. In src/etc/inc/xmlparse.inc
+// (RELENG_2_7_2, dump_xml_config_sub, lines 256-291) rule is a list tag: an
+// empty list iterates zero times and emits nothing, so a box with no port
+// forwards writes <nat></nat>. firewall_nat.php line 43 creates that list with
+// init_config_arr. <rule></rule> is emitted only when a list element is itself
+// an empty array or empty string, which no pfSense page writes; a hand-planted
+// one round-trips rather than self-heals. Because the loop never skips an
+// append, the preallocation below is correct.
 func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common.InboundNATRule {
 	if len(rules) == 0 {
 		return nil
@@ -286,15 +295,18 @@ func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common
 			Interfaces: []string(r.Interface),
 			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
+			// An endpoint with no address matches everything and is reported
+			// as any, as the OPNsense converter reports it. The alias lookup
+			// stays on <address>, which is where pfSense keeps aliases.
 			Source: common.RuleEndpoint{
-				Address:    r.Source.EffectiveAddress(),
+				Address:    cmp.Or(r.Source.EffectiveAddress(), opnsense.NetworkAny),
 				Port:       r.Source.Port,
 				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
 				PortRef:    c.namedObjects.Ref(r.Source.Port),
 				Negated:    bool(r.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
-				Address:    r.Destination.EffectiveAddress(),
+				Address:    cmp.Or(r.Destination.EffectiveAddress(), opnsense.NetworkAny),
 				Port:       r.Destination.Port,
 				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
 				PortRef:    c.namedObjects.Ref(r.Destination.Port),

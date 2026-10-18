@@ -46,6 +46,10 @@ The registry of named object definitions a device declares, plus the rule-level 
 
 Resolved values stay populated whether or not the layer is present, so checks written against addresses and ports keep firing unmodified; the layer is simply empty for platforms that have no named-object concept. Its presence is what makes reference-integrity questions expressible at all — whether a reference points at nothing, and whether a defined object is reachable from any policy.
 
+### Vendor placeholder element
+
+A self-closing or empty XML element a vendor's config writer leaves inside a container when nothing of that type is configured (`<staticroutes><route/></staticroutes>`, or OPNsense's `<nat><rule/></nat>` after the last port forward is deleted). It decodes into a struct whose configuration fields are all zero and, appended unconditionally, becomes a phantom entry on the Common device. Converters drop it at their boundary with a field-explicit `IsPlaceholder` predicate; whether a container needs one is settled by reading the vendor's writer, not by whether a phantom has been reported.
+
 ### DeviceBundle
 
 The planned container for a config file that yields more than one Common device from a single parse — the deferred FortiGate VDOM case, where each VDOM (plus the global scope) becomes its own device rather than being merged into one. Not yet implemented: today's parsers are single-device-per-file only, and a VDOM-bearing FortiGate config is detected and warned rather than expanded into a DeviceBundle.
