@@ -51,7 +51,7 @@ JSON shape is stable: `list plugins` returns `[{"name":"stig","description":"...
 | JSON   | `json`            | `CommonDevice` serialized with `encoding/json`      | [JSON Export Examples](data-model/examples/json-export.md)         |
 | YAML   | `yaml` (or `yml`) | `CommonDevice` serialized with `go.yaml.in/yaml/v3` | [YAML Processing Examples](data-model/examples/yaml-processing.md) |
 
-The `CommonDevice` schema these formats expose is documented in [Model Reference](data-model/model-reference.md) (auto-generated from the Go struct definitions in `pkg/model`).
+The `CommonDevice` schema these formats expose is documented in [Model Reference](data-model/model-reference.md), a hand-maintained page kept in step with the Go struct definitions in `pkg/model`; the generated record of that Go surface is the API snapshot under `pkg/parser/testdata/api-snapshots/`.
 
 !!! tip "Structural honesty on unpopulated fields"
     JSON and YAML output include every `CommonDevice` field. When a subsystem is not yet implemented for a given device type (e.g., `KeaDHCP` on pfSense), the field is empty AND a `ConversionWarning` is emitted with a stable message: `"not yet implemented in pfSense converter"`. Agents can filter on this substring instead of guessing why a field is empty. The canonical list of gaps is exposed via `pkg/parser/pfsense.KnownGaps()` and documented in the [Device Support Matrix](user-guide/device-support-matrix.md).

@@ -645,6 +645,13 @@ MkDocs maps both `docs/foo.md` and `docs/foo/index.md` to the same output path, 
 - **Rule:** when splitting a page into a directory, delete the original. Do not leave both.
 - **Corollary for `mkdocs-redirects`:** never add a `redirect_map` entry whose *source* collides with a real page's output path. `examples.md: examples/index.md` writes a redirect stub over `site/examples/index.html` — the very page it points at — replacing the Overview content with a self-redirect. `--strict` reports nothing. A colliding source needs no redirect anyway: the URL never changed meaning, only which file backed it.
 
+### 22.5 `just generate-docs` Does Not Write the Served Model Reference
+
+`docs/data-model/model-reference.md`, the page mkdocs serves as "Model Reference", is hand-maintained. The `generate-docs` recipe runs `tools/docgen/main.go`, which reflects over the vendor XML schema types in `pkg/schema` and writes `docs/templates/model-reference.md`, a different file mkdocs does not serve and that has no `InboundNATRule` section. Until #899 the served page carried an "auto-generated, regenerate with `just generate-docs`" banner, and one session trusted it: it regenerated the templates page, grepped it for the type it had changed, found nothing, and concluded no documentation update was needed.
+
+- **When you change a `pkg/model` type:** regenerate the API snapshot (`TestPublicAPISnapshot -update`, under `mise exec`) and hand-edit the type's table in `docs/data-model/model-reference.md` in the same commit. Do not run `just generate-docs` for this.
+- **A banner naming a generator is a claim to verify,** not provenance: check the generator's output path and the site's nav entry. Full write-up: `docs/solutions/workflow-issues/model-reference-banner-points-at-wrong-generator-output.md`.
+
 ### 22.2 mdformat Excludes Live in `.pre-commit-config.yaml`, Not `.mdformat.toml`
 
 File exclusions for the `mdformat` hook are the pre-commit hook's native `exclude:` regex in `.pre-commit-config.yaml` (currently `*.golden.md`, `docs/cli/`, `CHANGELOG.md`, `*.tpl.md`). Do NOT reintroduce an `exclude = [...]` list in `.mdformat.toml`: that feature requires the hook to run under Python 3.13+, but pre-commit builds the hook venv with its own interpreter (3.11 today), so it fails on every markdown file with `'exclude' patterns are only available on Python 3.13+`.
