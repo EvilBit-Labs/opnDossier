@@ -1,6 +1,7 @@
 package pfsense
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -286,15 +287,18 @@ func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common
 			Interfaces: []string(r.Interface),
 			IPProtocol: ipProto,
 			Protocol:   r.Protocol,
+			// An endpoint with no address matches everything and is reported
+			// as any, as the OPNsense converter reports it. The alias lookup
+			// stays on <address>, which is where pfSense keeps aliases.
 			Source: common.RuleEndpoint{
-				Address:    r.Source.EffectiveAddress(),
+				Address:    cmp.Or(r.Source.EffectiveAddress(), opnsense.NetworkAny),
 				Port:       r.Source.Port,
 				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
 				PortRef:    c.namedObjects.Ref(r.Source.Port),
 				Negated:    bool(r.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
-				Address:    r.Destination.EffectiveAddress(),
+				Address:    cmp.Or(r.Destination.EffectiveAddress(), opnsense.NetworkAny),
 				Port:       r.Destination.Port,
 				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
 				PortRef:    c.namedObjects.Ref(r.Destination.Port),
