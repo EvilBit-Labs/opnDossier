@@ -605,6 +605,8 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 			Disabled:         bool(r.Disabled),
 			Log:              bool(r.Log),
 			Description:      r.Descr,
+			Category:         r.Category,
+			PoolOpts:         r.PoolOpts,
 			Tag:              r.Tag,
 			Tagged:           r.Tagged,
 		})

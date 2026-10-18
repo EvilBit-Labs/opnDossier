@@ -1467,6 +1467,10 @@ type InboundNATRule struct {
 	Log bool `json:"log,omitempty" yaml:"log,omitempty"`
 	// Description is a human-readable description of the port-forward rule.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Category is the classification category for the port-forward rule.
+	Category string `json:"category,omitempty" yaml:"category,omitempty"`
+	// PoolOpts specifies the address pool options for the redirect target.
+	PoolOpts string `json:"poolOpts,omitempty" yaml:"poolOpts,omitempty"`
 	// Tag is the pf tag this rule applies to matching packets.
 	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
 	// Tagged is the pf tag this rule matches on. A forward read without it
@@ -1474,6 +1478,10 @@ type InboundNATRule struct {
 	Tagged string `json:"tagged,omitempty" yaml:"tagged,omitempty"`
 }
     InboundNATRule represents an inbound (port-forward) NAT rule.
+
+    Vendor change-tracking metadata (created, updated, and the audit blob
+    OPNsense writes from 26.7.4 in their place) is not carried on this or any
+    other rule type.
 
 type Interface struct {
 	// Name is the logical interface name (e.g., "lan", "wan", "opt1").

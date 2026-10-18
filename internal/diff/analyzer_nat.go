@@ -164,31 +164,49 @@ func natRulesEqual(a, b common.NATRule) bool {
 // traffic to a different host, which is the change this comparison exists to
 // surface.
 //
-// When a field is added to common.InboundNATRule it belongs here.
-// TestInboundNATRulesEqual_ComparesEveryField fails until it is.
+// When a field is added to common.InboundNATRule it belongs in one of the three
+// helpers below. TestInboundNATRulesEqual_ComparesEveryField fails until it is.
 func inboundNATRulesEqual(a, b common.InboundNATRule) bool {
+	return inboundNATMatchEqual(a, b) && inboundNATRedirectEqual(a, b) && inboundNATOptionsEqual(a, b)
+}
+
+// inboundNATMatchEqual compares the fields that decide which traffic the
+// forward matches.
+func inboundNATMatchEqual(a, b common.InboundNATRule) bool {
 	return slices.Equal(a.Interfaces, b.Interfaces) &&
 		a.IPProtocol == b.IPProtocol &&
 		a.Protocol == b.Protocol &&
 		a.Source == b.Source &&
 		a.Destination == b.Destination &&
 		a.ExternalPort == b.ExternalPort &&
-		objectRefsEqual(a.ExternalPortRef, b.ExternalPortRef) &&
-		a.InternalIP == b.InternalIP &&
+		objectRefsEqual(a.ExternalPortRef, b.ExternalPortRef)
+}
+
+// inboundNATRedirectEqual compares where matched traffic is sent and how the
+// redirect is reflected.
+func inboundNATRedirectEqual(a, b common.InboundNATRule) bool {
+	return a.InternalIP == b.InternalIP &&
 		objectRefsEqual(a.InternalIPRef, b.InternalIPRef) &&
 		a.InternalPort == b.InternalPort &&
 		objectRefsEqual(a.InternalPortRef, b.InternalPortRef) &&
 		a.LocalPort == b.LocalPort &&
 		objectRefsEqual(a.LocalPortRef, b.LocalPortRef) &&
+		a.PoolOpts == b.PoolOpts &&
 		a.Reflection == b.Reflection &&
-		a.NATReflection == b.NATReflection &&
-		a.AssociatedRuleID == b.AssociatedRuleID &&
+		a.NATReflection == b.NATReflection
+}
+
+// inboundNATOptionsEqual compares the forward's association, ordering, flags
+// and labels.
+func inboundNATOptionsEqual(a, b common.InboundNATRule) bool {
+	return a.AssociatedRuleID == b.AssociatedRuleID &&
 		a.Priority == b.Priority &&
 		a.NoRDR == b.NoRDR &&
 		a.NoSync == b.NoSync &&
 		a.Disabled == b.Disabled &&
 		a.Log == b.Log &&
 		a.Description == b.Description &&
+		a.Category == b.Category &&
 		a.Tag == b.Tag &&
 		a.Tagged == b.Tagged
 }
@@ -282,11 +300,28 @@ func formatNATRule(rule common.NATRule) string {
 		"dst="+formatEndpoint(rule.Destination),
 		"target="+cmp.Or(rule.Target, addressUnknown))
 
+	parts = appendLabelAndPool(parts, rule.Category, rule.PoolOpts)
+
 	if rule.Disabled {
 		parts = append(parts, "disabled")
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// appendLabelAndPool adds the category and pool option when set. Both are
+// compared by the equality helpers, so a change to either pairs the rule as
+// modified; printing them is what lets the entry show which value moved.
+func appendLabelAndPool(parts []string, category, poolOpts string) []string {
+	if category != "" {
+		parts = append(parts, "category="+category)
+	}
+
+	if poolOpts != "" {
+		parts = append(parts, "poolopts="+poolOpts)
+	}
+
+	return parts
 }
 
 // formatInboundNATRule renders a port forward compactly for diff output.
@@ -311,6 +346,8 @@ func formatInboundNATRule(rule common.InboundNATRule) string {
 	if rule.Priority != 0 {
 		parts = append(parts, "priority="+strconv.Itoa(rule.Priority))
 	}
+
+	parts = appendLabelAndPool(parts, rule.Category, rule.PoolOpts)
 
 	if rule.Disabled {
 		parts = append(parts, "disabled")
