@@ -1,6 +1,6 @@
 # For AI Agents & Automation
 
-This page is the entry point for **AI agents, LLM-driven tools, and automation pipelines** that invoke `opnDossier` programmatically. Every link below points at a stable, machine-readable interface or a reference doc that is kept in sync with the code via generator (so it does not drift).
+This page is the entry point for **AI agents, LLM-driven tools, and automation pipelines** that invoke `opnDossier` programmatically. Every link below points at a stable, machine-readable interface or a reference doc. The CLI reference and the public-API snapshot are generated from the code; the Model Reference is hand-maintained and updated in the same commit as any change to `pkg/model`.
 
 If you are a human operator, start with the [User Guide](user-guide/getting-started.md) instead — that path is narrative and assumes you are reading top-to-bottom. This page is optimized for agents that need to jump directly to a flag list, an output schema, or an exit-code table.
 
@@ -51,7 +51,7 @@ JSON shape is stable: `list plugins` returns `[{"name":"stig","description":"...
 | JSON   | `json`            | `CommonDevice` serialized with `encoding/json`      | [JSON Export Examples](data-model/examples/json-export.md)         |
 | YAML   | `yaml` (or `yml`) | `CommonDevice` serialized with `go.yaml.in/yaml/v3` | [YAML Processing Examples](data-model/examples/yaml-processing.md) |
 
-The `CommonDevice` schema these formats expose is documented in [Model Reference](data-model/model-reference.md) (auto-generated from the Go struct definitions in `pkg/model`).
+The `CommonDevice` schema these formats expose is documented in [Model Reference](data-model/model-reference.md), a hand-maintained page kept in step with the Go struct definitions in `pkg/model`; the generated record of that Go surface is the API snapshot under `pkg/parser/testdata/api-snapshots/`.
 
 !!! tip "Structural honesty on unpopulated fields"
     JSON and YAML output include every `CommonDevice` field. When a subsystem is not yet implemented for a given device type (e.g., `KeaDHCP` on pfSense), the field is empty AND a `ConversionWarning` is emitted with a stable message: `"not yet implemented in pfSense converter"`. Agents can filter on this substring instead of guessing why a field is empty. The canonical list of gaps is exposed via `pkg/parser/pfsense.KnownGaps()` and documented in the [Device Support Matrix](user-guide/device-support-matrix.md).

@@ -1,6 +1,6 @@
 # Model Reference
 
-> **Auto-generated documentation** - Do not edit manually. Regenerate with `just generate-docs`.
+> **Hand-maintained.** This page is edited by hand, in the same commit as any change to `pkg/model`. `just generate-docs` does not write it (that recipe produces `docs/templates/model-reference.md`, a reference for the vendor XML schema). The generated record of the Go surface is the API snapshot under `pkg/parser/testdata/api-snapshots/`.
 
 This document provides a complete reference of all data fields available in the opnDossier **CommonDevice** export model. This is the model used for JSON and YAML exports. It normalizes the raw OPNsense XML schema into clean, platform-agnostic types.
 
@@ -289,6 +289,8 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 | `Disabled`     | `bool`         | `nat.inboundRules[].disabled`     | Administratively disabled |
 | `Log`          | `bool`         | `nat.inboundRules[].log`          | Log matched packets       |
 | `Description`  | `string`       | `nat.inboundRules[].description`  | Description               |
+| `Category`     | `string`       | `nat.inboundRules[].category`     | Classification category   |
+| `PoolOpts`     | `string`       | `nat.inboundRules[].poolOpts`     | Address pool options      |
 
 ---
 
