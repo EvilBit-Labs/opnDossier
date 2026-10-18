@@ -1,6 +1,6 @@
 # For AI Agents & Automation
 
-This page is the entry point for **AI agents, LLM-driven tools, and automation pipelines** that invoke `opnDossier` programmatically. Every link below points at a stable, machine-readable interface or a reference doc that is kept in sync with the code via generator (so it does not drift).
+This page is the entry point for **AI agents, LLM-driven tools, and automation pipelines** that invoke `opnDossier` programmatically. Every link below points at a stable, machine-readable interface or a reference doc. The CLI reference and the public-API snapshot are generated from the code; the Model Reference is hand-maintained and updated in the same commit as any change to `pkg/model`.
 
 If you are a human operator, start with the [User Guide](user-guide/getting-started.md) instead — that path is narrative and assumes you are reading top-to-bottom. This page is optimized for agents that need to jump directly to a flag list, an output schema, or an exit-code table.
 
