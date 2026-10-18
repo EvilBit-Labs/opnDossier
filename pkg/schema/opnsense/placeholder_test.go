@@ -53,6 +53,9 @@ func TestIsPlaceholder_EveryFieldDefeatsPlaceholder_NoFieldIsSilentlyUncovered(t
 		// the whole suite still green. It has no XMLName, so no harness change
 		// is needed to enrol it.
 		{name: "SysctlItem", zero: SysctlItem{}},
+		// InboundRule is the first enrolled type with fields that are not
+		// strings or bools, which is what populateField is for.
+		{name: "InboundRule", zero: InboundRule{}},
 	}
 
 	for _, tt := range types {
@@ -70,33 +73,65 @@ func TestIsPlaceholder_EveryFieldDefeatsPlaceholder_NoFieldIsSilentlyUncovered(t
 					continue
 				}
 
-				populated := reflect.New(typ).Elem()
-				switch field.Type.Kind() {
-				case reflect.String:
-					populated.Field(i).SetString("x")
-				case reflect.Bool:
-					populated.Field(i).SetBool(true)
-				default:
-					t.Fatalf(
-						"field %s.%s has kind %s, which this test cannot populate -- "+
-							"extend both this test and %s.IsPlaceholder to cover it",
-						tt.name, field.Name, field.Type.Kind(), tt.name,
-					)
+				// A struct field is populated one leaf at a time, so the
+				// predicate cannot pass by looking at only some of it.
+				leaves := 1
+				if field.Type.Kind() == reflect.Struct {
+					leaves = field.Type.NumField()
 				}
 
-				entry, ok := populated.Interface().(placeholderReporter)
-				if !ok {
-					t.Fatalf("%s does not implement placeholderReporter", tt.name)
-				}
+				for leaf := range leaves {
+					populated := reflect.New(typ).Elem()
 
-				if entry.IsPlaceholder() {
-					t.Errorf(
-						"%s.IsPlaceholder() dropped an entry carrying only %s -- "+
-							"the field is missing from the predicate",
-						tt.name, field.Name,
-					)
+					target, label := populated.Field(i), field.Name
+					if field.Type.Kind() == reflect.Struct {
+						target, label = target.Field(leaf), field.Name+"."+field.Type.Field(leaf).Name
+					}
+
+					if !populateField(target) {
+						t.Fatalf(
+							"field %s.%s has kind %s, which this test cannot populate -- "+
+								"extend both this test and %s.IsPlaceholder to cover it",
+							tt.name, label, target.Kind(), tt.name,
+						)
+					}
+
+					entry, ok := populated.Interface().(placeholderReporter)
+					if !ok {
+						t.Fatalf("%s does not implement placeholderReporter", tt.name)
+					}
+
+					if entry.IsPlaceholder() {
+						t.Errorf(
+							"%s.IsPlaceholder() dropped an entry carrying only %s -- "+
+								"the field is missing from the predicate",
+							tt.name, label,
+						)
+					}
 				}
 			}
 		})
 	}
+}
+
+// populateField gives v a non-zero value and reports whether it could.
+func populateField(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString("x")
+	case reflect.Bool:
+		v.SetBool(true)
+	case reflect.Int:
+		v.SetInt(1)
+	case reflect.Pointer:
+		v.Set(reflect.New(v.Type().Elem()))
+	case reflect.Slice:
+		v.Set(reflect.MakeSlice(v.Type(), 1, 1))
+
+		return populateField(v.Index(0))
+	default:
+		return false
+	}
+
+	return true
 }

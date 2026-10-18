@@ -104,6 +104,8 @@ func (c *converter) convertFirewallRules(
 			NoSync:          bool(rule.NoSync),
 			Tag:             rule.Tag,
 			Tagged:          rule.Tagged,
+			// Set on the pass rule a port forward stores for itself.
+			AssociatedRuleID: rule.AssociatedRuleID,
 		})
 	}
 
@@ -235,7 +237,10 @@ func (c *converter) convertOutboundNATRules(rules []opnsense.NATRule) []common.N
 }
 
 // convertInboundNATRules maps []pfsense.InboundRule to []common.InboundNATRule.
-// pfSense uses <target> for the internal redirect IP, with fallback to <internalip>.
+// The redirect address is in <target>; <internalip> is read for XML this tool
+// marshalled before the schema bound <target>. pfSense writes no empty <rule/>
+// placeholder under <nat>, so there is no IsPlaceholder guard here (GOTCHAS
+// 3.4).
 func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common.InboundNATRule {
 	if len(rules) == 0 {
 		return nil
@@ -248,7 +253,8 @@ func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common
 			internalIP = r.InternalIP
 		}
 
-		if internalIP == "" {
+		// A no-RDR rule exempts traffic from redirection and has no target.
+		if internalIP == "" && !bool(r.NoRDR) {
 			c.addWarning(
 				fmt.Sprintf("NAT.InboundRules[%d].InternalIP", i),
 				r.UUID,
@@ -285,12 +291,14 @@ func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common
 				Port:       r.Source.Port,
 				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
 				PortRef:    c.namedObjects.Ref(r.Source.Port),
+				Negated:    bool(r.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
 				Address:    r.Destination.EffectiveAddress(),
 				Port:       r.Destination.Port,
 				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
 				PortRef:    c.namedObjects.Ref(r.Destination.Port),
+				Negated:    bool(r.Destination.Not),
 			},
 			ExternalPort:     r.ExternalPort,
 			ExternalPortRef:  c.namedObjects.Ref(r.ExternalPort),

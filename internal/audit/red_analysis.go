@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strconv"
@@ -343,8 +344,9 @@ func (r *Report) addWANExposedServices(services []exposedService, blackhat bool)
 // addWeakNATRules renders each WAN-reachable inbound NAT port-forward as a
 // red-mode Finding (R15). A NAT rule is included only when it correlates with
 // an enabled WAN pass rule (via InboundNATRuleReachability, R3) — a port
-// forward with no matching pass rule is inert and is not reported. blackhat only
-// selects the sharper ExploitNote tone.
+// forward with no matching pass rule is inert and is not reported, and neither
+// is a no-RDR rule, which exempts traffic from redirection and forwards
+// nothing. blackhat only selects the sharper ExploitNote tone.
 func (r *Report) addWeakNATRules(blackhat bool) {
 	device := r.Configuration
 	if device == nil {
@@ -355,7 +357,8 @@ func (r *Report) addWeakNATRules(blackhat bool) {
 
 	count := 0
 	for i, nat := range device.NAT.InboundRules {
-		if analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
+		if nat.NoRDR ||
+			analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
 			continue
 		}
 
@@ -370,8 +373,10 @@ func (r *Report) addWeakNATRules(blackhat bool) {
 			"Restrict the source scope of the port forward and its associated pass rule, or remove the rule if the exposure is unnecessary.",
 			fmt.Sprintf("nat.inbound[%d]", i),
 			&AttackSurface{
-				Type:            constants.FindingTypePortForward,
-				Ports:           portsOf(parsePort(nat.ExternalPort, unknownPort)),
+				Type: constants.FindingTypePortForward,
+				// Neither vendor writes <externalport>; the matched port is the
+				// destination port.
+				Ports:           portsOf(parsePort(cmp.Or(nat.ExternalPort, nat.Destination.Port), unknownPort)),
 				Services:        natServices(nat),
 				Vulnerabilities: []string{"exposed-internal-host"},
 			},
