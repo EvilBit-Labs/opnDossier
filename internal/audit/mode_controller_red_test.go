@@ -660,6 +660,70 @@ func TestRedMode_WeakNATRule_PositivePath(t *testing.T) {
 	}
 }
 
+// TestRedMode_WeakNATRule_PortFromDestination covers the port on the Finding.
+// Neither vendor writes <externalport>; the port a forward matches on is the
+// destination port, so the Finding reads that when ExternalPort is empty.
+func TestRedMode_WeakNATRule_PortFromDestination(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{Type: common.RuleTypePass, Interfaces: []string{"wan"}},
+		},
+		NAT: common.NATConfig{
+			InboundRules: []common.InboundNATRule{{
+				Interfaces:  []string{"wan"},
+				Protocol:    "tcp",
+				Destination: common.RuleEndpoint{Address: "wanip", Port: "8443"},
+				InternalIP:  "192.168.1.50",
+			}},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	nat, ok := findingByTitlePrefix(report.Findings, "WAN-Reachable Port Forward")
+	if !ok {
+		t.Fatalf("expected a WAN-Reachable Port Forward finding, got %+v", report.Findings)
+	}
+	if nat.AttackSurface == nil || !slices.Equal(nat.AttackSurface.Ports, []int{8443}) {
+		t.Errorf("NAT finding AttackSurface = %+v, want Ports [8443]", nat.AttackSurface)
+	}
+}
+
+// TestRedMode_WeakNATRule_NoRDRNotReported covers a no-RDR rule, which exempts
+// traffic from redirection and forwards nothing, so it is not an exposure.
+func TestRedMode_WeakNATRule_NoRDRNotReported(t *testing.T) {
+	t.Parallel()
+
+	device := &common.CommonDevice{
+		Interfaces: []common.Interface{{Name: "wan", Enabled: true}},
+		FirewallRules: []common.FirewallRule{
+			{Type: common.RuleTypePass, Interfaces: []string{"wan"}},
+		},
+		NAT: common.NATConfig{
+			InboundRules: []common.InboundNATRule{{
+				Interfaces:  []string{"wan"},
+				Protocol:    "tcp",
+				Destination: common.RuleEndpoint{Address: "wanip", Port: "443"},
+				NoRDR:       true,
+			}},
+		},
+	}
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	if got := report.Metadata["weak_nat_rules_count"]; got != 0 {
+		t.Errorf("weak_nat_rules_count = %v, want 0 (a no-RDR rule forwards nothing)", got)
+	}
+	if f, ok := findingByTitlePrefix(report.Findings, "WAN-Reachable Port Forward"); ok {
+		t.Errorf("unexpected finding for a no-RDR rule: %+v", f)
+	}
+}
+
 // TestRedMode_NATForward_DoesNotExposeFirewallLocalService covers the
 // serviceReachability/wanRulePermitsPort correctness fix: a WAN-reachable NAT
 // port-forward must never be treated as evidence that the FIREWALL'S OWN
