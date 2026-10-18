@@ -2341,6 +2341,7 @@ func TestInboundRule_NewFields_XMLRoundTrip(t *testing.T) {
 			}
 
 			// Round-trip: marshal → unmarshal → compare
+			//nolint:gosec // G117: <pass> is the filter rule association, not a credential
 			marshaled, err := xml.Marshal(got)
 			if err != nil {
 				t.Fatalf("xml.Marshal() error = %v", err)
@@ -2481,6 +2482,7 @@ func TestInboundRule_CompleteWithNewFields_XMLRoundTrip(t *testing.T) {
 	}
 
 	// Round-trip
+	//nolint:gosec // G117: <pass> is the filter rule association, not a credential
 	marshaled, err := xml.Marshal(&got)
 	if err != nil {
 		t.Fatalf("xml.Marshal() error = %v", err)
