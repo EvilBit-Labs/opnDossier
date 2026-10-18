@@ -188,7 +188,9 @@ func inboundNATRulesEqual(a, b common.InboundNATRule) bool {
 		a.NoSync == b.NoSync &&
 		a.Disabled == b.Disabled &&
 		a.Log == b.Log &&
-		a.Description == b.Description
+		a.Description == b.Description &&
+		a.Tag == b.Tag &&
+		a.Tagged == b.Tagged
 }
 
 // natRuleSimilarity scores how likely two outbound NAT rules are the same rule

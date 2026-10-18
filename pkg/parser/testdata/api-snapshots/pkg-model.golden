@@ -927,8 +927,9 @@ type FirewallRule struct {
 	NoPfSync bool `json:"noPfSync,omitempty" yaml:"noPfSync,omitempty"`
 	// NoSync excludes the rule from XMLRPC config synchronization.
 	NoSync bool `json:"noSync,omitempty" yaml:"noSync,omitempty"`
-	// AssociatedRuleID is set on the pass rule a port forward stores for itself
-	// and ties it to that forward.
+	// AssociatedRuleID is set on the pass rule a port forward stores for itself.
+	// Up to OPNsense 25.7, and on pfSense, the forward carries the same value;
+	// from 26.1 only this rule keeps it.
 	AssociatedRuleID string `json:"associatedRuleId,omitempty" yaml:"associatedRuleId,omitempty"`
 	// Tag is the pf tag this rule applies to matching packets.
 	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
@@ -1447,10 +1448,14 @@ type InboundNATRule struct {
 	// AssociatedRuleID links this rule to the filter rule that passes its
 	// traffic: the ID shared with a stored filter rule, "pass" when the
 	// redirect passes the traffic itself, or "rule" when OPNsense 26.1 or later
-	// generates the pass rule without storing it.
+	// generates the pass rule without storing it. From 26.1 a forward with a
+	// stored filter rule carries nothing here; the link survives only on that
+	// rule's FirewallRule.AssociatedRuleID.
 	AssociatedRuleID string `json:"associatedRuleId,omitempty" yaml:"associatedRuleId,omitempty"`
-	// Priority is the rule evaluation priority. OPNsense 26.1 and later record
-	// it as the rule's sequence; lower values are evaluated first.
+	// Priority is the <sequence> OPNsense 26.1 and later record on the rule.
+	// Zero means none was recorded: a legacy rule, or a 26.x rule the firewall
+	// numbers on load and evaluates after the sequenced ones. The slice order
+	// is the evaluation order; do not sort by Priority.
 	Priority int `json:"priority,omitempty" yaml:"priority,omitempty"`
 	// NoRDR disables the redirect for matching traffic.
 	NoRDR bool `json:"noRdr,omitempty" yaml:"noRdr,omitempty"`
@@ -1462,6 +1467,11 @@ type InboundNATRule struct {
 	Log bool `json:"log,omitempty" yaml:"log,omitempty"`
 	// Description is a human-readable description of the port-forward rule.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Tag is the pf tag this rule applies to matching packets.
+	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	// Tagged is the pf tag this rule matches on. A forward read without it
+	// looks unconditional when it only matches marked packets.
+	Tagged string `json:"tagged,omitempty" yaml:"tagged,omitempty"`
 }
     InboundNATRule represents an inbound (port-forward) NAT rule.
 

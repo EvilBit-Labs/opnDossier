@@ -237,7 +237,10 @@ func (c *converter) convertOutboundNATRules(rules []opnsense.NATRule) []common.N
 }
 
 // convertInboundNATRules maps []pfsense.InboundRule to []common.InboundNATRule.
-// pfSense uses <target> for the internal redirect IP, with fallback to <internalip>.
+// The redirect address is in <target>; <internalip> is read for XML this tool
+// marshalled before the schema bound <target>. pfSense writes no empty <rule/>
+// placeholder under <nat>, so there is no IsPlaceholder guard here (GOTCHAS
+// 3.4).
 func (c *converter) convertInboundNATRules(rules []pfsense.InboundRule) []common.InboundNATRule {
 	if len(rules) == 0 {
 		return nil

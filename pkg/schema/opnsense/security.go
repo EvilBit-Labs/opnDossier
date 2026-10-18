@@ -146,7 +146,9 @@ func (r NATRule) EffectiveDestinationPort() string {
 // matches on is Destination.Port.
 //
 // Sequence and Pass are written from 26.1 on, where Pass replaces the
-// association the legacy page kept in AssociatedRuleID. Audit is written from
+// association the legacy page kept in AssociatedRuleID; both are empty when
+// the forward stores its own filter rule, and only that rule's
+// AssociatedRuleID keeps the link. Audit is written from
 // 26.7.4 on, in place of Created and Updated. InternalIP, ExternalPort,
 // InternalPort, Reflection and Priority bind elements no OPNsense release
 // writes.

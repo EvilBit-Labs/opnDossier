@@ -356,8 +356,10 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 		t.Parallel()
 
 		device, _ := parsePortForwards(t,
-			rule("first", `<sequence>100</sequence>`)+rule("second", `<sequence>100</sequence>`))
-		assert.Equal(t, []string{"first", "second"}, descriptions(device))
+			rule("first", `<sequence>100</sequence>`)+
+				rule("second", `<sequence>100</sequence>`)+
+				rule("third", `<sequence>100</sequence>`))
+		assert.Equal(t, []string{"first", "second", "third"}, descriptions(device))
 	})
 
 	t.Run("a padded sequence is still a number", func(t *testing.T) {
@@ -412,9 +414,55 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 			require.Len(t, warnings, 1)
 			assert.Equal(t, "NAT.InboundRules[1].Priority", warnings[0].Field)
 			assert.Equal(t, bad, warnings[0].Value)
-			assert.Equal(t, common.SeverityLow, warnings[0].Severity)
+			assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
+			assert.Contains(t, warnings[0].Message, "document order")
 		})
 	}
+}
+
+// TestConverter_PortForwards_PassValues covers the three values 26.1 and later
+// write to <pass>, and that anything else is reported rather than stored
+// silently.
+func TestConverter_PortForwards_PassValues(t *testing.T) {
+	t.Parallel()
+
+	const body = `<interface>wan</interface><target>192.168.1.50</target>`
+
+	for _, pass := range []string{"", "pass", "rule"} {
+		t.Run("pass "+pass+" is accepted", func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := parsePortForwards(t, `<rule>`+body+`<pass>`+pass+`</pass></rule>`)
+			require.Len(t, device.NAT.InboundRules, 1)
+			assert.Equal(t, pass, device.NAT.InboundRules[0].AssociatedRuleID)
+			assert.Empty(t, warnings)
+		})
+	}
+
+	t.Run("an unrecognized value warns", func(t *testing.T) {
+		t.Parallel()
+
+		device, warnings := parsePortForwards(t, `<rule>`+body+`<pass>bogus</pass></rule>`)
+		require.Len(t, device.NAT.InboundRules, 1)
+		assert.Equal(t, "bogus", device.NAT.InboundRules[0].AssociatedRuleID)
+		require.Len(t, warnings, 1)
+		assert.Equal(t, "NAT.InboundRules[0].AssociatedRuleID", warnings[0].Field)
+		assert.Equal(t, "bogus", warnings[0].Value)
+		assert.Equal(t, common.SeverityLow, warnings[0].Severity)
+	})
+}
+
+// TestConverter_PortForwards_Tags covers <tag> and <tagged>, which the schema
+// bound and the converter dropped. A forward with <tagged> matches only marked
+// packets, so without it the export showed an unconditional forward.
+func TestConverter_PortForwards_Tags(t *testing.T) {
+	t.Parallel()
+
+	device, _ := parsePortForwards(t,
+		`<rule><interface>wan</interface><target>192.168.1.50</target><tag>mark</tag><tagged>match</tagged></rule>`)
+	require.Len(t, device.NAT.InboundRules, 1)
+	assert.Equal(t, "mark", device.NAT.InboundRules[0].Tag)
+	assert.Equal(t, "match", device.NAT.InboundRules[0].Tagged)
 }
 
 // TestConverter_PortForwards_EndpointAlias covers which endpoint values are

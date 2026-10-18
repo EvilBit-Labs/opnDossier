@@ -483,8 +483,8 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 
 	result := make([]common.InboundNATRule, 0, len(ordered))
 	for i, r := range ordered {
-		// The vendor writes <target>. <internalip> is read for documents built
-		// against the earlier schema.
+		// The vendor writes <target>. No release writes <internalip>; it is read
+		// for XML this tool marshalled before the schema bound <target>.
 		internalIP := cmp.Or(r.Target, r.InternalIP)
 		// A no-RDR rule exempts traffic from redirection and has no target.
 		if internalIP == "" && !bool(r.NoRDR) {
@@ -521,7 +521,16 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 			c.addWarning(
 				fmt.Sprintf("NAT.InboundRules[%d].Priority", i),
 				r.Sequence,
-				"inbound NAT rule sequence is not a number",
+				"inbound NAT rule sequence is not a number; the port forwards are reported in document order",
+				common.SeverityMedium,
+			)
+		}
+
+		if !slices.Contains(portForwardPassValues, r.Pass) {
+			c.addWarning(
+				fmt.Sprintf("NAT.InboundRules[%d].AssociatedRuleID", i),
+				r.Pass,
+				"unrecognized port forward filter rule association",
 				common.SeverityLow,
 			)
 		}
@@ -560,6 +569,8 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 			Disabled:         bool(r.Disabled),
 			Log:              bool(r.Log),
 			Description:      r.Descr,
+			Tag:              r.Tag,
+			Tagged:           r.Tagged,
 		})
 	}
 
@@ -571,6 +582,11 @@ const sequenceStep = 100
 
 // sortKeyWidth is the width OPNsense right-aligns a numeric sort field to.
 const sortKeyWidth = 30
+
+// portForwardPassValues are the values <pass> takes from 26.1 on: empty for a
+// stored filter rule, pass for a redirect that passes its own traffic, and
+// rule for a filter rule the firewall generates without storing.
+var portForwardPassValues = []string{"", "pass", "rule"}
 
 // sequencedRule pairs a port forward with its place in the ruleset. numbered
 // reports that the document gave the rule a <sequence>, and invalid that it

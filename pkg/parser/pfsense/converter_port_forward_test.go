@@ -89,6 +89,37 @@ func TestConverter_PortForwards_NoRDRHasNoTarget(t *testing.T) {
 	assert.Equal(t, common.SeverityHigh, warnings[0].Severity)
 }
 
+// TestConverter_PortForwards_RedirectAddress covers which element supplies the
+// redirect address. pfSense writes <target>; <internalip> is read for XML this
+// tool marshalled before the schema bound <target>.
+func TestConverter_PortForwards_RedirectAddress(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{name: "target", body: `<target>192.168.1.50</target>`, want: "192.168.1.50"},
+		{name: "internalip alone", body: `<internalip>192.168.1.60</internalip>`, want: "192.168.1.60"},
+		{
+			name: "target wins over internalip",
+			body: `<target>192.168.1.50</target><internalip>192.168.1.60</internalip>`,
+			want: "192.168.1.50",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rule, warnings := parsePfSensePortForward(t, tt.body)
+			assert.Equal(t, tt.want, rule.InternalIP)
+			assert.Empty(t, warnings)
+		})
+	}
+}
+
 // TestConverter_PortForwards_KeepNegation covers <not> on a port forward's
 // source and destination, which firewall rules kept and port forwards dropped.
 func TestConverter_PortForwards_KeepNegation(t *testing.T) {
