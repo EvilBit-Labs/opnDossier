@@ -97,8 +97,8 @@ Core system settings including hostname, users, and SSH configuration.
 | `Bogons`                        | `struct`       | `system.bogons`                        | -               |
 | `PfShareForward`                | `BoolFlag`     | `system.pfShareForward`                | Optional        |
 | `LbUseSticky`                   | `BoolFlag`     | `system.lbUseSticky`                   | Optional        |
-| `RrdBackup`                     | `BoolFlag`     | `system.rrdBackup`                     | Optional        |
-| `NetflowBackup`                 | `BoolFlag`     | `system.netflowBackup`                 | Optional        |
+| `RrdBackup`                     | `string`       | `system.rrdBackup`                     | Optional        |
+| `NetflowBackup`                 | `string`       | `system.netflowBackup`                 | Optional        |
 | `NTPD`                          | `struct`       | `system.ntpd`                          | -               |
 | `SNMPD`                         | `struct`       | `system.snmpd`                         | -               |
 | `RRD`                           | `struct`       | `system.rrd`                           | -               |
@@ -119,10 +119,8 @@ Core system settings including hostname, users, and SSH configuration.
 | `UID`            | `string`   | `system.users[].uid`            | Required                  |
 | `Priv`           | `[]string` | `system.users[].privileges`     | Optional                  |
 | `APIKeys`        | `[]APIKey` | `system.users[].apiKeys`        | Optional                  |
-| `Expires`        | `BoolFlag` | `system.users[].expires`        | -                         |
-| `AuthorizedKeys` | `BoolFlag` | `system.users[].authorizedKeys` | -                         |
-| `IPSecPSK`       | `BoolFlag` | `system.users[].ipsecPsk`       | -                         |
-| `OTPSeed`        | `BoolFlag` | `system.users[].otpSeed`        | -                         |
+| `Expires`        | `string`   | `system.users[].expires`        | -                         |
+| `AuthorizedKeys` | `string`   | `system.users[].authorizedKeys` | -                         |
 
 ### Group
 

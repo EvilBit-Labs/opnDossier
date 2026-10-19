@@ -49,9 +49,14 @@ func TestSystem_LiberalBoolean_Issue558(t *testing.T) {
 		// Falsy string values → false.
 		{"PfShareForward", func() bool { return bool(doc.System.PfShareForward) }, false, "0"},
 		{"LbUseSticky", func() bool { return bool(doc.System.LbUseSticky) }, false, "off"},
-		{"RrdBackup", func() bool { return bool(doc.System.RrdBackup) }, false, "no"},
+		{
+			"DisableLargeReceiveOffloading",
+			func() bool { return bool(doc.System.DisableLargeReceiveOffloading) },
+			false,
+			"no",
+		},
 		// Absent element → false (Go zero value).
-		{"NetflowBackup", func() bool { return bool(doc.System.NetflowBackup) }, false, "absent"},
+		{"DisableConsoleMenu", func() bool { return bool(doc.System.DisableConsoleMenu) }, false, "absent"},
 	}
 
 	for _, tc := range cases {

@@ -72,9 +72,9 @@
   
 **LB Use Sticky**: ✗
   
-**RRD Backup**: ✗
+**RRD Backup Interval Configured**: ✗
   
-**Netflow Backup**: ✗
+**NetFlow Backup Interval Configured**: ✗
 ### Bogons Configuration
 **Interval**: weekly
   
