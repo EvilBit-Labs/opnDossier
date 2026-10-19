@@ -53,6 +53,12 @@ func TestNoNetworkDependencies(t *testing.T) {
 			return err
 		}
 
+		// .git holds no Go source, and its lock files appear and vanish while
+		// the walk is in flight, which failed the walk on a Windows runner.
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
 		// Skip non-Go files and test files
 		if info.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
@@ -118,6 +124,11 @@ func TestNoTelemetry(t *testing.T) {
 	err = filepath.Walk(root.Dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+
+		// See TestNoNetworkDependencies: .git is skipped as a directory.
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
 		}
 
 		if !info.IsDir() || strings.Contains(path, "/vendor/") {
