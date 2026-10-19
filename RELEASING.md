@@ -509,7 +509,7 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Bump `action.yml` default `version:` input to the new tag (e.g. `vX.Y.Z`)
 - [ ] Sweep README GitHub Action examples (`uses: EvilBit-Labs/opnDossier@vX.Y.Z` lines) to the new tag — grep for the previous tag to catch every callsite
 - [ ] Sweep user-guide docs for stale version examples — `grep -rn "vPREV\.Y\.Z" docs/user-guide/` and update all matches to the new tag (covers `getting-started.md` version-output example, `installation.md` cosign TAG example, and any future callsites)
-- [ ] Update the SHA-pin example in the README "Pinning" section to the new release commit SHA (`git rev-parse vX.Y.Z` after the tag is pushed, or the commit you intend to tag)
+- [ ] Update the SHA-pin example in the README "Pinning" section to the new release commit SHA (`git rev-parse "vX.Y.Z^{commit}"` once the tag exists, or the commit you intend to tag; the bare tag name resolves to the annotated tag object, not the commit)
 - [ ] Commit `RELEASE_NOTES.md`, `CHANGELOG.md`, `action.yml`, and `README.md` to `main`
 - [ ] Push to `main`
 

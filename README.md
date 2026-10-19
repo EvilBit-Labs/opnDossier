@@ -394,7 +394,7 @@ GitHub Action references should be pinned with intention. The three options, in 
 ```yaml
   - name: Audit OPNsense config
   # v1.7.3 — verify SHA against the release at https://github.com/EvilBit-Labs/opnDossier/releases/tag/v1.7.3
-    uses: EvilBit-Labs/opnDossier@809158be83419fb68af33fcede675418c5e0c2c4
+    uses: EvilBit-Labs/opnDossier@d8d17855c586528087d792c8f7bbccd548cc1963
     with:
       command: audit
       config-file: config.xml
