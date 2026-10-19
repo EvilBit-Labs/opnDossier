@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.0] - 2026-10-18
+## [1.8.0] - 2026-10-19
 
 ### Added
 
@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **parser**: Return the NAT endpoints directly ([#847](https://github.com/EvilBit-Labs/opnDossier/pull/847))
 
 - **cli**: Regenerate the CLI reference and close the cached deadcode-guard hole ([#854](https://github.com/EvilBit-Labs/opnDossier/pull/854))
+
+- **release**: Prepare v1.8.0 ([#901](https://github.com/EvilBit-Labs/opnDossier/pull/901))
 
 
 ### Fixed
@@ -53,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **deps**: Bump Go toolchain to 1.26.9 ([#889](https://github.com/EvilBit-Labs/opnDossier/pull/889))
 
 
-## [1.7.3] - 2026-09-03
+## [1.7.3] - 2026-09-04
 
 ### Changed
 

@@ -243,62 +243,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ============================================================
-Package: github.com/charmbracelet/bubbles/progress
-License: MIT
-URL:     https://github.com/charmbracelet/bubbles/blob/v1.0.0/LICENSE
-------------------------------------------------------------
-MIT License
-
-Copyright (c) 2020-2025 Charmbracelet, Inc
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-============================================================
-Package: github.com/charmbracelet/bubbletea
-License: MIT
-URL:     https://github.com/charmbracelet/bubbletea/blob/v1.3.10/LICENSE
-------------------------------------------------------------
-MIT License
-
-Copyright (c) 2020-2025 Charmbracelet, Inc
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-============================================================
 Package: github.com/charmbracelet/colorprofile
 License: MIT
 URL:     https://github.com/charmbracelet/colorprofile/blob/v0.4.3/LICENSE
@@ -383,34 +327,6 @@ SOFTWARE.
 
 
 ============================================================
-Package: github.com/charmbracelet/harmonica
-License: MIT
-URL:     https://github.com/charmbracelet/harmonica/blob/v0.2.0/LICENSE
-------------------------------------------------------------
-MIT License
-
-Copyright (c) 2021 Charmbracelet, Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-============================================================
 Package: github.com/charmbracelet/lipgloss
 License: MIT
 URL:     https://github.com/charmbracelet/lipgloss/blob/76690c660834/LICENSE
@@ -469,7 +385,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/ultraviolet
 License: MIT
-URL:     https://github.com/charmbracelet/ultraviolet/blob/68fa937c71be/LICENSE
+URL:     https://github.com/charmbracelet/ultraviolet/blob/ae99b731b8c5/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -553,7 +469,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/x/exp/charmtone
 License: MIT
-URL:     https://github.com/charmbracelet/x/blob/3c30eef5e73e/exp/charmtone/LICENSE
+URL:     https://github.com/charmbracelet/x/blob/6f6ad8b37b0a/exp/charmtone/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -581,7 +497,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/charmbracelet/x/exp/slice
 License: MIT
-URL:     https://github.com/charmbracelet/x/blob/3c30eef5e73e/exp/slice/LICENSE
+URL:     https://github.com/charmbracelet/x/blob/6f6ad8b37b0a/exp/slice/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -984,7 +900,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================
 Package: github.com/k3a/html2text
 License: MIT
-URL:     https://github.com/k3a/html2text/blob/v1.4.0/LICENSE
+URL:     https://github.com/k3a/html2text/blob/v1.5.0/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -1102,7 +1018,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ============================================================
 Package: github.com/mattn/go-runewidth
 License: MIT
-URL:     https://github.com/mattn/go-runewidth/blob/v0.0.28/LICENSE
+URL:     https://github.com/mattn/go-runewidth/blob/v0.0.30/LICENSE
 ------------------------------------------------------------
 The MIT License (MIT)
 
@@ -1160,34 +1076,6 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-============================================================
-Package: github.com/muesli/ansi
-License: MIT
-URL:     https://github.com/muesli/ansi/blob/276c6243b2f6/LICENSE
-------------------------------------------------------------
-MIT License
-
-Copyright (c) 2021 Christian Muehlhaeuser
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 
 
 ============================================================
@@ -1389,7 +1277,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/nao1215/markdown
 License: MIT
-URL:     https://github.com/nao1215/markdown/blob/v1.0.0/LICENSE
+URL:     https://github.com/nao1215/markdown/blob/v1.1.1/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -1501,7 +1389,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/olekukonko/tablewriter
 License: MIT
-URL:     https://github.com/olekukonko/tablewriter/blob/v1.1.4/LICENSE.md
+URL:     https://github.com/olekukonko/tablewriter/blob/v1.1.5/LICENSE.md
 ------------------------------------------------------------
 Copyright (C) 2014 by Oleku Konko
 
@@ -2095,89 +1983,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ============================================================
-Package: github.com/stretchr/testify
-License: MIT
-URL:     https://github.com/stretchr/testify/blob/v1.12.1/LICENSE
-------------------------------------------------------------
-MIT License
-
-Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-============================================================
-Package: github.com/stretchr/testify/internal/difflib
-License: BSD-3-Clause
-URL:     https://github.com/stretchr/testify/blob/v1.12.1/internal/difflib/LICENSE
-------------------------------------------------------------
-Copyright (c) 2013, Patrick Mezard
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-    Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-    Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-    The names of its contributors may not be used to endorse or promote
-products derived from this software without specific prior written
-permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-============================================================
-Package: github.com/stretchr/testify/internal/spew
-License: ISC
-URL:     https://github.com/stretchr/testify/blob/v1.12.1/internal/spew/LICENSE
-------------------------------------------------------------
-ISC License
-
-Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-
-============================================================
 Package: github.com/subosito/gotenv
 License: MIT
 URL:     https://github.com/subosito/gotenv/blob/v1.6.0/LICENSE
@@ -2236,7 +2041,7 @@ SOFTWARE.
 ============================================================
 Package: github.com/yuin/goldmark
 License: MIT
-URL:     https://github.com/yuin/goldmark/blob/v1.8.5/LICENSE
+URL:     https://github.com/yuin/goldmark/blob/v1.8.6/LICENSE
 ------------------------------------------------------------
 MIT License
 
@@ -2374,7 +2179,7 @@ limitations under the License.
 ============================================================
 Package: golang.org/x/net/html
 License: BSD-3-Clause
-URL:     https://cs.opensource.google/go/x/net/+/v0.58.0:LICENSE
+URL:     https://cs.opensource.google/go/x/net/+/v0.61.0:LICENSE
 ------------------------------------------------------------
 Copyright 2009 The Go Authors.
 
@@ -2408,7 +2213,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================
 Package: golang.org/x/sync/errgroup
 License: BSD-3-Clause
-URL:     https://cs.opensource.google/go/x/sync/+/v0.22.0:LICENSE
+URL:     https://cs.opensource.google/go/x/sync/+/v0.24.0:LICENSE
 ------------------------------------------------------------
 Copyright 2009 The Go Authors.
 
@@ -2442,7 +2247,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================
 Package: golang.org/x/sys/unix
 License: BSD-3-Clause
-URL:     https://cs.opensource.google/go/x/sys/+/v0.47.0:LICENSE
+URL:     https://cs.opensource.google/go/x/sys/+/v0.49.0:LICENSE
 ------------------------------------------------------------
 Copyright 2009 The Go Authors.
 
@@ -2476,7 +2281,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================
 Package: golang.org/x/term
 License: BSD-3-Clause
-URL:     https://cs.opensource.google/go/x/term/+/v0.45.0:LICENSE
+URL:     https://cs.opensource.google/go/x/term/+/v0.47.0:LICENSE
 ------------------------------------------------------------
 Copyright 2009 The Go Authors.
 
@@ -2510,7 +2315,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================
 Package: golang.org/x/text
 License: BSD-3-Clause
-URL:     https://cs.opensource.google/go/x/text/+/v0.41.0:LICENSE
+URL:     https://cs.opensource.google/go/x/text/+/v0.43.0:LICENSE
 ------------------------------------------------------------
 Copyright 2009 The Go Authors.
 
