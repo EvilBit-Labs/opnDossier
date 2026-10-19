@@ -231,10 +231,13 @@ Reads `System.IPv6Allow` from the CommonDevice. A finding is emitted when IPv6 *
 
 Disable IPv6 if not required:
 
-1. Navigate to **System > Advanced > Networking**
-2. Uncheck "Allow IPv6"
-3. Save and apply changes
-4. Review firewall rules for any IPv6-specific entries that can be removed
+1. Turn IPv6 off:
+   - OPNsense 26.1 and later: **Interfaces > Settings**, check "Turn off IPv6"
+   - OPNsense 24.1.9 to 25.7: **Interfaces > Settings**, uncheck "Allow IPv6"
+   - OPNsense 24.1.8 and earlier: **Firewall > Settings > Advanced**, uncheck "Allow IPv6"
+   - pfSense: **System > Advanced > Networking**, uncheck "Allow IPv6"
+2. Save and apply changes
+3. Review firewall rules for any IPv6-specific entries that can be removed
 
 ---
 

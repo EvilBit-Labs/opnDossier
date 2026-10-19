@@ -108,6 +108,8 @@ type OPNsense struct {
 			Text    string `xml:",chardata" json:"text,omitempty"`
 			Version string `xml:"version,attr" json:"version,omitempty"`
 		} `xml:"vxlans" json:"vxlans"`
+		// Settings is nil for a config from before OPNsense 26.1.
+		Settings *InterfaceSettings `xml:"settings,omitempty" json:"settings,omitempty"`
 	} `xml:"Interfaces" json:"interfaces"`
 
 	// DHCP components
