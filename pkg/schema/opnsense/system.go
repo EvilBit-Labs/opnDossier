@@ -190,8 +190,14 @@ type System struct {
 	} `xml:"bogons"                        json:"bogons"                                  yaml:"bogons,omitempty"`
 	PfShareForward BoolFlag `xml:"pf_share_forward"              json:"pfShareForward,omitempty"                yaml:"pfShareForward,omitempty"`
 	LbUseSticky    BoolFlag `xml:"lb_use_sticky"                 json:"lbUseSticky,omitempty"                   yaml:"lbUseSticky,omitempty"`
-	RrdBackup      BoolFlag `xml:"rrdbackup"                     json:"rrdBackup,omitempty"                     yaml:"rrdBackup,omitempty"`
-	NetflowBackup  BoolFlag `xml:"netflowbackup"                 json:"netflowBackup,omitempty"                 yaml:"netflowBackup,omitempty"`
+	// RrdBackup and NetflowBackup hold an hour interval, not a flag. 1 to 24
+	// backs up every N hours. From 18.7.8 to 26.1, -1 disables backup and a
+	// missing element means a backup only at power-off; before 18.7.8 there
+	// was no -1 and no setting turned the power-off backup off. OPNsense 26.7
+	// removed periodic backups, so later configs carry these only if they
+	// survived an upgrade.
+	RrdBackup     string `xml:"rrdbackup"     json:"rrdBackup,omitempty"     yaml:"rrdBackup,omitempty"`
+	NetflowBackup string `xml:"netflowbackup" json:"netflowBackup,omitempty" yaml:"netflowBackup,omitempty"`
 
 	// Missing service configurations
 	NTPD struct {
@@ -245,7 +251,10 @@ type Firmware struct {
 }
 
 // User represents a local user account with authentication credentials, group membership,
-// UID, scope, API keys, and optional OTP/IPsec PSK/SSH authorized key flags.
+// UID, scope, API keys, and the optional expiry date, SSH authorized keys, IPsec PSK
+// and OTP seed. Those four hold values, not flags: an MM/DD/YYYY date, base64-encoded
+// keys, a legacy PSK and a seed. An unset one can appear as an empty element.
+// IPSecPSK and OTPSeed are secrets, so JSON and YAML leave them out.
 type User struct {
 	Name      string   `xml:"name"      json:"name"                  yaml:"name"                  validate:"required,alphanum"`
 	Disabled  BoolFlag `xml:"disabled"  json:"disabled"              yaml:"disabled"`
@@ -257,10 +266,10 @@ type User struct {
 	UID            string   `xml:"uid"            json:"uid"                  yaml:"uid"                      validate:"required,numeric"`
 	Priv           []string `xml:"priv"           json:"privileges,omitempty" yaml:"privileges,omitempty"`
 	APIKeys        []APIKey `xml:"apikeys>item"   json:"apiKeys,omitempty"    yaml:"apiKeys,omitempty"`
-	Expires        BoolFlag `xml:"expires"        json:"expires"              yaml:"expires,omitempty"`
-	AuthorizedKeys BoolFlag `xml:"authorizedkeys" json:"authorizedKeys"       yaml:"authorizedKeys,omitempty"`
-	IPSecPSK       BoolFlag `xml:"ipsecpsk"       json:"ipsecPsk"             yaml:"ipsecPsk,omitempty"`
-	OTPSeed        BoolFlag `xml:"otp_seed"       json:"otpSeed"              yaml:"otpSeed,omitempty"`
+	Expires        string   `xml:"expires"        json:"expires"              yaml:"expires,omitempty"`
+	AuthorizedKeys string   `xml:"authorizedkeys" json:"authorizedKeys"       yaml:"authorizedKeys,omitempty"`
+	IPSecPSK       string   `xml:"ipsecpsk"       json:"-"                    yaml:"-"`
+	OTPSeed        string   `xml:"otp_seed"       json:"-"                    yaml:"-"`
 }
 
 // APIKey represents a user API key pair with its key, secret, associated privileges,
