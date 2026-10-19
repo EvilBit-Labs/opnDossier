@@ -140,8 +140,8 @@ func natRulesEqual(a, b common.NATRule) bool {
 	return slices.Equal(a.Interfaces, b.Interfaces) &&
 		a.IPProtocol == b.IPProtocol &&
 		a.Protocol == b.Protocol &&
-		a.Source == b.Source &&
-		a.Destination == b.Destination &&
+		endpointsEqual(a.Source, b.Source) &&
+		endpointsEqual(a.Destination, b.Destination) &&
 		a.Target == b.Target &&
 		objectRefsEqual(a.TargetRef, b.TargetRef) &&
 		a.SourcePort == b.SourcePort &&
@@ -176,8 +176,8 @@ func inboundNATMatchEqual(a, b common.InboundNATRule) bool {
 	return slices.Equal(a.Interfaces, b.Interfaces) &&
 		a.IPProtocol == b.IPProtocol &&
 		a.Protocol == b.Protocol &&
-		a.Source == b.Source &&
-		a.Destination == b.Destination &&
+		endpointsEqual(a.Source, b.Source) &&
+		endpointsEqual(a.Destination, b.Destination) &&
 		a.ExternalPort == b.ExternalPort &&
 		objectRefsEqual(a.ExternalPortRef, b.ExternalPortRef)
 }
