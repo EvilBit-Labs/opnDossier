@@ -15,7 +15,7 @@
 //
 // To regenerate the fixtures after an intentional API change:
 //
-//	go test ./pkg/parser/... -run TestPublicAPISnapshot -update
+//	go test ./pkg/parser -run TestPublicAPISnapshot -update
 //
 // Review the diff carefully — every new symbol in a pkg/parser or pkg/model
 // snapshot becomes a stability commitment under the semver rules in
@@ -75,7 +75,7 @@ func newAPISnapshotGoldie(t *testing.T) *goldie.Goldie {
 }
 
 // TestPublicAPISnapshot_pkg_parser captures the go-doc surface of pkg/parser.
-// Regenerate with `go test ./pkg/parser/... -run TestPublicAPISnapshot -update`.
+// Regenerate with `go test ./pkg/parser -run TestPublicAPISnapshot -update`.
 func TestPublicAPISnapshot_pkg_parser(t *testing.T) {
 	t.Parallel()
 
