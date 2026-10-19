@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-10-18
+
+### Added
+
+- **parser**: Convert the advanced DHCP client settings on interfaces ([#829](https://github.com/EvilBit-Labs/opnDossier/pull/829))
+
+
+### Changed
+
+- **readme**: Remove outdated Go Report Card and Mergify badges
+
+- Run modernize and the completeness suite ([#828](https://github.com/EvilBit-Labs/opnDossier/pull/828))
+
+- **parser**: Snapshot the public API of pkg/schema ([#827](https://github.com/EvilBit-Labs/opnDossier/pull/827))
+
+- Remove unreachable Go surface and guard against its return ([#841](https://github.com/EvilBit-Labs/opnDossier/pull/841))
+
+- **parser**: Return the NAT endpoints directly ([#847](https://github.com/EvilBit-Labs/opnDossier/pull/847))
+
+- **cli**: Regenerate the CLI reference and close the cached deadcode-guard hole ([#854](https://github.com/EvilBit-Labs/opnDossier/pull/854))
+
+
+### Fixed
+
+- **ci**: Make the lint gate fail on formatter drift ([#838](https://github.com/EvilBit-Labs/opnDossier/pull/838))
+
+- **sanitizer**: Redact PEM-armored secrets in fields with no name match ([#842](https://github.com/EvilBit-Labs/opnDossier/pull/842))
+
+- **parser**: Read OPNsense port forwards ([#881](https://github.com/EvilBit-Labs/opnDossier/pull/881))
+
+- **parser**: Close the port forward gaps left after #881 ([#900](https://github.com/EvilBit-Labs/opnDossier/pull/900))
+
+- **ci**: Run the deadcode guard's own logic tests ([#863](https://github.com/EvilBit-Labs/opnDossier/pull/863))
+
+- **parser**: Read the interface DHCPv6 checkboxes as the vendors write them ([#866](https://github.com/EvilBit-Labs/opnDossier/pull/866))
+
+- **parser**: Stop reading OPNsense value fields as BoolFlag ([#867](https://github.com/EvilBit-Labs/opnDossier/pull/867))
+
+- **parser**: Stop reading enabled IPv6 and offload settings as off ([#874](https://github.com/EvilBit-Labs/opnDossier/pull/874))
+
+- **diff**: Compare rule endpoints by value ([#880](https://github.com/EvilBit-Labs/opnDossier/pull/880))
+
+
+### Build
+
+- **deps**: Bump Go toolchain to 1.26.9 ([#889](https://github.com/EvilBit-Labs/opnDossier/pull/889))
+
+
 ## [1.7.3] - 2026-09-03
 
 ### Changed
@@ -20,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Align the golangci-lint pin with mise.toml ([#819](https://github.com/EvilBit-Labs/opnDossier/pull/819))
 
 - Refresh solutions store against the current codebase ([#823](https://github.com/EvilBit-Labs/opnDossier/pull/823))
+
+- **notices**: Update third-party package URLs to latest versions
+
+- **release**: Add v1.7.3 release notes ([#830](https://github.com/EvilBit-Labs/opnDossier/pull/830))
 
 
 ### Fixed
