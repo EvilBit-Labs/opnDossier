@@ -480,7 +480,7 @@ func TestCompareFirewallRules_DeletionDoesNotMisattributeEdit(t *testing.T) {
 	changes := NewAnalyzer().CompareFirewallRules(old, newCfg)
 	require.Len(t, changes, 2, "one edit and one deletion: %+v", changes)
 
-	byType := map[ChangeType]Change{}
+	byType := make(map[ChangeType]Change)
 	for _, c := range changes {
 		byType[c.Type] = c
 	}

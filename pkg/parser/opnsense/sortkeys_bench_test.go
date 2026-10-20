@@ -31,7 +31,6 @@ func BenchmarkSortedMapKeys_Sorted(b *testing.B) {
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				//nolint:revive // benchmark consumes the iterator with no per-element work
 				for range slices.Sorted(maps.Keys(m)) {
 				}
 			}
@@ -50,7 +49,6 @@ func BenchmarkSortedMapKeys_PreallocSort(b *testing.B) {
 					keys = append(keys, k)
 				}
 				slices.Sort(keys)
-				//nolint:revive // benchmark consumes the slice with no per-element work
 				for range keys {
 				}
 			}
