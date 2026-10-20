@@ -18,7 +18,7 @@ var (
 	reDNSServer       = regexp.MustCompile(`system\.dnsserver`)
 	reNATOutboundMode = regexp.MustCompile(`nat\.outbound\.mode`)
 	reNATInbound      = regexp.MustCompile(`nat\.inbound`)
-	reInterfaceEnable = regexp.MustCompile(`\.enable$`)
+	reInterfaceEnable = regexp.MustCompile(`\.enabled$`)
 )
 
 // DefaultPatterns returns the built-in security impact patterns.
