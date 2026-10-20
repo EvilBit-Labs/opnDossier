@@ -1955,6 +1955,34 @@ func TestFirewallPlugin_AnyAnyPassRule_AllAnySpellings(t *testing.T) {
 	}
 }
 
+// TestFirewallPlugin_NegatedAddressList_AnyAnyFinding covers an OPNsense rule
+// whose source and destination are negated lists. OPNsense negates each entry
+// on its own, so with entries that do not overlap the rule passes all traffic,
+// and the two checks have to fire.
+func TestFirewallPlugin_NegatedAddressList_AnyAnyFinding(t *testing.T) {
+	t.Parallel()
+
+	negated := common.RuleEndpoint{Address: "WEB_HOST,DB_HOST", Negated: true}
+	device := &common.CommonDevice{
+		Interfaces: []common.Interface{
+			{Name: "wan", IPAddress: "203.0.113.10", Enabled: true},
+		},
+		FirewallRules: []common.FirewallRule{{
+			Type:        common.RuleTypePass,
+			Interfaces:  []string{"wan"},
+			Description: "everything but two hosts, read per entry",
+			Source:      negated,
+			Destination: negated,
+		}},
+	}
+
+	findings, _, err := firewall.NewPlugin().RunChecks(device)
+	require.NoError(t, err)
+
+	assert.True(t, hasFindingRef(findings, "FIREWALL-022"))
+	assert.True(t, hasFindingRef(findings, "FIREWALL-023"))
+}
+
 // TestFirewallPlugin_ScopedRule_NoAnyAnyFinding is the false-positive half:
 // widening the any predicate must not flag a properly scoped rule.
 func TestFirewallPlugin_ScopedRule_NoAnyAnyFinding(t *testing.T) {

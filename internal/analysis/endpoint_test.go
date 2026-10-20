@@ -160,6 +160,11 @@ func TestIsAnyEndpoint_RespectsNegation(t *testing.T) {
 		// A negated specific address was never "any" either way.
 		{"host", common.RuleEndpoint{Address: "192.168.1.1"}, false},
 		{"NOT host", common.RuleEndpoint{Address: "192.168.1.1", Negated: true}, false},
+
+		// A negated list matches every address outside the entries' overlap,
+		// every address when they do not overlap, so it counts as any.
+		{"list", common.RuleEndpoint{Address: "WEB_HOST,DB_HOST"}, false},
+		{"NOT list", common.RuleEndpoint{Address: "WEB_HOST,DB_HOST", Negated: true}, true},
 	}
 
 	for _, tt := range tests {

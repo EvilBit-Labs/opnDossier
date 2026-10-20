@@ -59,8 +59,18 @@ func IsAnyAddress(addr string) bool {
 // overlap.go and rules.go already account for Negated; routing the checks
 // through this keeps the audit path consistent with them rather than letting
 // the two disagree about what a rule means.
+//
+// A negated address list is the exception. OPNsense negates each entry of a
+// list on its own and matches each result, so the list matches every address
+// outside the entries' overlap, which is every address when they do not
+// overlap (GOTCHAS 3.8). It counts as any here, where reading it too broadly
+// is the safe error; the overlap engine reads Negated and does not rely on it.
 func IsAnyEndpoint(ep common.RuleEndpoint) bool {
-	return !ep.Negated && IsAnyAddress(ep.Address)
+	if ep.Negated {
+		return strings.Contains(ep.Address, ",")
+	}
+
+	return IsAnyAddress(ep.Address)
 }
 
 // IsAnyPort reports whether an endpoint port specification matches every port.

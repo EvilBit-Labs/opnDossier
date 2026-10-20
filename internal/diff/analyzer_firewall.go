@@ -381,16 +381,17 @@ func rulesOptionsEqual(a, b common.FirewallRule) bool {
 		a.Tagged == b.Tagged
 }
 
-// endpointsEqual compares two rule endpoints by value. RuleEndpoint holds its
-// alias references as pointers, so == compares the pointers: two parses of the
-// same rule then differ whenever an endpoint names an alias, and an unchanged
-// rule is reported as modified.
+// endpointsEqual compares two rule endpoints by value. Comparing the alias
+// references as pointers made two parses of the same rule differ whenever an
+// endpoint named an alias, so an unchanged rule was reported as modified.
+// RuleEndpoint holds a slice and cannot be compared with ==.
 func endpointsEqual(a, b common.RuleEndpoint) bool {
 	return a.Address == b.Address &&
 		a.Port == b.Port &&
 		a.Negated == b.Negated &&
 		objectRefsEqual(a.AddressRef, b.AddressRef) &&
-		objectRefsEqual(a.PortRef, b.PortRef)
+		objectRefsEqual(a.PortRef, b.PortRef) &&
+		slices.Equal(a.AddressRefs, b.AddressRefs)
 }
 
 // objectRefsEqual compares two optional named-object references by value, so a

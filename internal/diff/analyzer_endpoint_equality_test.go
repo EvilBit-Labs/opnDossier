@@ -102,6 +102,9 @@ func TestCompare_AliasSwappedOnEndpoint_IsReported(t *testing.T) {
 		{"firewall rule destination port alias", func(d *common.CommonDevice) {
 			d.FirewallRules[0].Destination.PortRef = &common.ObjectRef{Name: "OTHER_PORTS"}
 		}, SectionFirewall},
+		{"firewall rule source list gains an alias", func(d *common.CommonDevice) {
+			d.FirewallRules[0].Source.AddressRefs = []common.ObjectRef{{Name: "TRUSTED_NETS"}}
+		}, SectionFirewall},
 		{"outbound NAT destination alias", func(d *common.CommonDevice) {
 			d.NAT.OutboundRules[0].Destination = aliasEndpoint("OTHER_UPSTREAMS", "WEB_PORTS")
 		}, SectionNAT},
