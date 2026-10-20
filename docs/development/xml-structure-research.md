@@ -437,7 +437,7 @@ OPNsense maintains two parallel systems:
 - **Legacy**: Rules in `<filter><rule>` and `<nat><rule>` (pfSense-compatible)
 - **MVC/New-style**: Rules in `<OPNsense><Firewall><Filter>` with `<rules>`, `<snatrules>`, etc.
 
-Both are loaded into the ruleset. Firewall rules are read from both stores: `<filter><rule>` and `<OPNsense><Firewall><Filter><rules><rule>`. The converter merges them in evaluation order, except that rules on an interface group are not placed ahead of rules on a single interface, and converts the model's vocabulary to the legacy one (see GOTCHAS §3.8).
+Both are loaded into the ruleset. Firewall rules are read from both stores: `<filter><rule>` and `<OPNsense><Firewall><Filter><rules><rule>`. The converter merges them in the order the firewall evaluates them, floating rules first, then rules on an interface group by the group's `<ifgroups>` sequence, then rules on one interface, and converts the model's vocabulary to the legacy one (see GOTCHAS §3.8).
 
 The NAT containers of the same model, `<snatrules>`, `<npt>` and `<onetoone>`, are bound as strings and not read. From 24.1 the ruleset takes manual source NAT rules from `<snatrules>` as well as from `<nat><outbound><rule>`. It takes NPT rules only from the model from 24.1, and one-to-one rules only from the model from 24.7.
 
