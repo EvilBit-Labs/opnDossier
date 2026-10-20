@@ -27,7 +27,7 @@ var (
 	diffMode         string   //nolint:gochecknoglobals // Display mode (unified, side-by-side)
 	diffSections     []string //nolint:gochecknoglobals // Sections to compare
 	diffSecurityOnly bool     //nolint:gochecknoglobals // Show only security-relevant changes
-	diffNormalize    bool     //nolint:gochecknoglobals // Normalize values before comparing
+	diffNormalize    bool     //nolint:gochecknoglobals // Normalize displayed values
 	diffDetectOrder  bool     //nolint:gochecknoglobals // Detect rule reordering
 )
 

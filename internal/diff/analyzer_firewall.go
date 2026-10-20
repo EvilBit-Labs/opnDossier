@@ -80,6 +80,7 @@ func (a *Analyzer) CompareFirewallRules(old, newCfg []common.FirewallRule) []Cha
 				OldValue:       formatRule(oldRule),
 				NewValue:       formatRule(newRule),
 				SecurityImpact: impact,
+				summarized:     true,
 			})
 		}
 	}
@@ -217,6 +218,7 @@ func modifiedRuleChange(oldRule, newRule common.FirewallRule, index int) Change 
 		OldValue:       formatRule(oldRule),
 		NewValue:       formatRule(newRule),
 		SecurityImpact: impact,
+		summarized:     true,
 	}
 }
 

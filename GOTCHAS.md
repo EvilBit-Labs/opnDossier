@@ -237,6 +237,18 @@ No outbound NAT rule in any shipped fixture carries a `uuid`, and neither does a
 - **`natRulesEqual` and `inboundNATRulesEqual` must cover every model field.** A field missing from either produces no diff entry at all, not a less detailed one. `TestNATRulesEqual_ComparesEveryField` and `TestInboundNATRulesEqual_ComparesEveryField` walk the structs reflectively and fail until you add it.
 - **Paths are `nat.inbound.rules[N]` and `nat.outbound.rules[N]`.** The `nat.inbound` prefix is load-bearing: the security scorer's `port-forward-change` pattern matches on it, so renaming the path silently drops the impact rating from every port-forward entry.
 
+### 4.5 The Displayed Text Is Not What Was Compared
+
+A `Change` carries `OldValue` and `NewValue` for display. For most entries they are the one setting that was compared. For four they are not: a firewall rule, an outbound NAT rule and a port forward are shown as a one-line summary of a few fields (`formatRule`, `formatNATRule`, `formatInboundNATRule`), and a modified user has no value at all. The equality helpers of §4.2 and §4.4 compare every field but the identity ones (`UUID`, and `Tracker` on firewall rules), so a real change to a field the summary omits yields an entry whose two values are identical.
+
+`--normalize` used to drop a modified entry whenever its two values were equal after normalization. Every entry of those four kinds whose change was outside the summary went: a rule that lost its logging, a redirected gateway, a reversed direction, any change to a user. With nothing else changed the command printed "No changes detected".
+
+- **Those four kinds are marked `summarized` and are never skipped.** Requiring the raw values to differ is not enough for them. The whitespace normalizer runs over the whole summary, so whitespace at the end of one, such as a trailing space in a pfSense port forward's target, which ends its summary, made the two summaries differ before normalization and match after it, and the entry went together with the redirected port behind it. `formattingOnly` holds the rule and `TestFormattingOnly` pins each clause. `TestEngine_Compare_Normalize_KeepsChangesTheTextDoesNotShow` and `TestEngine_Compare_Normalize_KeepsChangeBehindSummaryWhitespace` cover the kinds.
+- **A new entry whose values leave out something that was compared must set `summarized`.** Nothing enforces it. An unmarked entry with identical values is still kept, because the skip also requires the raw values to differ, but one whose summaries differ by whitespace alone is dropped.
+- **The cost: a formatting-only edit to one of those four kinds is reported with the flag.** A doubled space in a rule description, or a port forward's `<local-port>` rewritten from `8080` to `08080`, is a modified entry with the same text on both sides. Both used to be hidden.
+- **Do not decide anything else on the displayed text.** A filter, a deduplication or a severity rule that reads `OldValue` and `NewValue` sees less than the comparison did. Adding a field to a summary does not change that: nothing ties the summaries to the equality helpers, and a user entry cannot show an API key secret.
+- **The normalizers see the whole displayed string.** Whitespace is collapsed in any value, a summary included. The address and port normalizers act only on a value that is an address or a port by itself, so leading zeros inside a rule summary, a DHCP range or a list of several DNS servers are never normalized, and a value of any other field that happens to look like one is: a hostname of `007` and one of `7` normalize to the same text, and that change is dropped.
+
 ## 5. CLI Flag Wiring
 
 ### 5.1 Silent Flag Ignores
