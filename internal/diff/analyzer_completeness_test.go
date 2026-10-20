@@ -552,3 +552,85 @@ func TestCompareFirewallRules_SimilarityCapFallsBackToPosition(t *testing.T) {
 
 	assert.Len(t, changes, n, "every changed rule must still be reported past the cap")
 }
+
+// TestCompareFirewallRules_SharedUUID covers a config between the two steps of
+// OPNsense's rule migration: every migrated rule is in the filter model and,
+// under the same uuid, still under <filter>. Both are loaded. With one map
+// entry for each uuid only the last copy was compared, so an edit to the other
+// copy went unreported.
+//
+// The copy often differs from its original: the migration assistant writes
+// quick, a state type and a direction a legacy rule may leave out. The copies
+// pair by content first, so adding or removing one is not read as an edit to
+// the other.
+func TestCompareFirewallRules_SharedUUID(t *testing.T) {
+	t.Parallel()
+
+	rule := func(destination string) common.FirewallRule {
+		return common.FirewallRule{
+			UUID: "u1", Type: common.RuleTypePass, Description: "web", Interfaces: []string{"wan"},
+			Source:      common.RuleEndpoint{Address: "any"},
+			Destination: common.RuleEndpoint{Address: destination},
+		}
+	}
+	both := []common.FirewallRule{rule("wanip"), rule("wanip")}
+
+	original := rule("wanip")
+	migrated := rule("wanip")
+	migrated.Quick = true
+
+	tests := []struct {
+		name string
+		old  []common.FirewallRule
+		new  []common.FirewallRule
+		want []ChangeType
+	}{
+		{"unchanged", both, []common.FirewallRule{rule("wanip"), rule("wanip")}, nil},
+		{"first copy widened", both, []common.FirewallRule{rule("any"), rule("wanip")}, []ChangeType{ChangeModified}},
+		{"second copy widened", both, []common.FirewallRule{rule("wanip"), rule("any")}, []ChangeType{ChangeModified}},
+		{"one copy removed", both, []common.FirewallRule{rule("wanip")}, []ChangeType{ChangeRemoved}},
+		{"a copy added", []common.FirewallRule{rule("wanip")}, both, []ChangeType{ChangeAdded}},
+		{
+			"a copy that differs added ahead of its original",
+			[]common.FirewallRule{original},
+			[]common.FirewallRule{migrated, original},
+			[]ChangeType{ChangeAdded},
+		},
+		{
+			"the original removed from behind its copy",
+			[]common.FirewallRule{original, migrated},
+			[]common.FirewallRule{migrated},
+			[]ChangeType{ChangeRemoved},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got []ChangeType
+			for _, change := range NewAnalyzer().CompareFirewallRules(tt.old, tt.new) {
+				assert.Equal(t, "filter.rule[uuid=u1]", change.Path)
+
+				got = append(got, change.Type)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+
+	t.Run("the copy is what is reported added", func(t *testing.T) {
+		t.Parallel()
+
+		// formatRule leaves quick out, so the copy also differs in a field it
+		// prints.
+		copied := migrated
+		copied.Protocol = "tcp"
+		require.NotEqual(t, formatRule(original), formatRule(copied))
+
+		changes := NewAnalyzer().CompareFirewallRules(
+			[]common.FirewallRule{original}, []common.FirewallRule{copied, original})
+		require.Len(t, changes, 1)
+		assert.Equal(t, formatRule(copied), changes[0].NewValue)
+	})
+}
