@@ -275,7 +275,7 @@ linters:
     exhaustive:
       check:
         - switch
-        - map
+        - mapliteral
       # Any switch with a default: branch is treated as exhaustive. This
       # matches the project's convention where partial switches on large
       # enum-style types (e.g., reflect.Kind) include an explicit default
