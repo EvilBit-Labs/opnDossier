@@ -404,6 +404,20 @@ func TestEngine_Compare_DetectOrder_SharedUUID(t *testing.T) {
 			"filter.rule[uuid=u1,copy=1]": {ChangeReordered},
 		}, got)
 	})
+
+	t.Run("a copy added beside its original is reported as added", func(t *testing.T) {
+		// The new copy has no partner on the old side and takes the next
+		// count, so the original keeps its name and only the other rule moves.
+		got := changesByPath(t,
+			[]common.FirewallRule{rule("u1", "SSH"), rule("u2", "HTTP")},
+			[]common.FirewallRule{rule("u2", "HTTP"), rule("u1", "SSH, migrated"), rule("u1", "SSH")},
+		)
+
+		assert.Equal(t, map[string][]ChangeType{
+			"filter.rule[uuid=u1]": {ChangeAdded},
+			"filter.rule[uuid=u2]": {ChangeReordered},
+		}, got)
+	})
 }
 
 func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
