@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
@@ -256,10 +257,24 @@ func ruleDescription(rule common.FirewallRule) string {
 		return rule.Description
 	}
 
-	src := cmp.Or(rule.Source.Address, addressUnknown)
-	dst := cmp.Or(rule.Destination.Address, addressUnknown)
+	src := ruleAddress(rule.Source)
+	dst := ruleAddress(rule.Destination)
 
 	return fmt.Sprintf("%s %s → %s", string(rule.Type), src, dst)
+}
+
+// ruleAddress returns the address a rule heading names for an endpoint,
+// prefixed with "!" when it is negated. Both firewalls ignore negation on any,
+// so a negated any or empty endpoint is named without it; a network such as
+// 0.0.0.0/0 keeps it, because they do negate it.
+func ruleAddress(ep common.RuleEndpoint) string {
+	if ep.Address == "" {
+		return addressUnknown
+	}
+	if ep.Negated && !strings.EqualFold(ep.Address, constants.NetworkAny) {
+		return "!" + ep.Address
+	}
+	return ep.Address
 }
 
 // formatRule returns a compact, human-readable representation of a firewall rule
