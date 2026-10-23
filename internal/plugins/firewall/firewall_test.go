@@ -813,6 +813,20 @@ func TestFirewallPlugin_NoAnySourceOnWANInbound(t *testing.T) {
 			expectFinding: true,
 		},
 		{
+			name: "WAN pass rule with negated any source and scoped destination - finding expected",
+			config: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Type:        common.RuleTypePass,
+						Interfaces:  []string{"wan"},
+						Source:      common.RuleEndpoint{Address: constants.NetworkAny, Negated: true},
+						Destination: common.RuleEndpoint{Address: "192.0.2.10"},
+					},
+				},
+			},
+			expectFinding: true,
+		},
+		{
 			name: "WAN pass rule with specific source - no finding",
 			config: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
