@@ -378,10 +378,11 @@ func (sp *Plugin) hasDefaultDenyPolicy(device *common.CommonDevice) bool {
 //
 // broadNetworks holds the wildcards themselves ("any", 0.0.0.0/0, ::/0)
 // alongside genuinely large but bounded ranges. Those two halves invert
-// differently: a negated wildcard matches nothing and is not broad, while a
-// negated bounded range is everything outside it and stays broad. Testing
-// membership on the raw address alone would keep reporting a rule that matches
-// no traffic as overly permissive.
+// differently: a negated 0.0.0.0/0 or ::/0 matches nothing and is not broad,
+// while a negated bounded range is everything outside it and stays broad. A
+// negated any still matches every host, and the caller has already counted it
+// through analysis.IsAnyEndpoint. Testing membership on the raw address alone
+// would keep reporting a rule that matches no traffic as overly permissive.
 func isBroadEndpoint(ep common.RuleEndpoint, addr string) bool {
 	if ep.Negated && analysis.IsAnyAddress(addr) {
 		return false

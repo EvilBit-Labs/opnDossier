@@ -135,8 +135,10 @@ func TestIsWideOpenPassRule_NotWideOpen(t *testing.T) {
 
 // TestIsAnyEndpoint_RespectsNegation guards the difference between an address
 // spelling and an endpoint. A negated endpoint matches the complement of what
-// its address names, so a negated wildcard matches nothing at all. Judging it
-// by address alone reports a rule that passes no traffic as wide open.
+// its address names, so a negated 0.0.0.0/0 or ::/0 matches nothing at all.
+// Judging it by address alone reports a rule that passes no traffic as wide
+// open. A negated any, or a negated endpoint with no address, still counts as
+// any, because neither firewall inverts any.
 func TestIsAnyEndpoint_RespectsNegation(t *testing.T) {
 	t.Parallel()
 
@@ -151,15 +153,23 @@ func TestIsAnyEndpoint_RespectsNegation(t *testing.T) {
 		{"ipv6 wildcard", common.RuleEndpoint{Address: "::/0"}, true},
 		{"uppercase", common.RuleEndpoint{Address: "ANY"}, true},
 
-		// Negating a wildcard yields the empty set, not everything.
-		{"NOT any", common.RuleEndpoint{Address: "any", Negated: true}, false},
-		{"NOT empty", common.RuleEndpoint{Address: "", Negated: true}, false},
+		// Neither firewall inverts any, so a negated any still matches everything.
+		{"NOT any", common.RuleEndpoint{Address: "any", Negated: true}, true},
+		{"NOT uppercase", common.RuleEndpoint{Address: "ANY", Negated: true}, true},
+		{"NOT empty", common.RuleEndpoint{Address: "", Negated: true}, true},
+		{"NOT blank", common.RuleEndpoint{Address: "   ", Negated: true}, true},
+		{"NOT padded any", common.RuleEndpoint{Address: " any ", Negated: true}, true},
+
+		// Both firewalls do invert a wildcard network, which yields the empty set.
 		{"NOT ipv4 wildcard", common.RuleEndpoint{Address: "0.0.0.0/0", Negated: true}, false},
 		{"NOT ipv6 wildcard", common.RuleEndpoint{Address: "::/0", Negated: true}, false},
 
 		// A negated specific address was never "any" either way.
 		{"host", common.RuleEndpoint{Address: "192.168.1.1"}, false},
 		{"NOT host", common.RuleEndpoint{Address: "192.168.1.1", Negated: true}, false},
+		{"NOT range", common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true}, false},
+		{"NOT interface net", common.RuleEndpoint{Address: "lan", Negated: true}, false},
+		{"NOT alias", common.RuleEndpoint{Address: "Company_Hosts", Negated: true}, false},
 	}
 
 	for _, tt := range tests {
@@ -181,8 +191,8 @@ func TestIsWideOpenPassRule_NegatedEndpointIsNotWideOpen(t *testing.T) {
 	wideOpen := func() common.FirewallRule {
 		return common.FirewallRule{
 			Type:        common.RuleTypePass,
-			Source:      common.RuleEndpoint{Address: "any"},
-			Destination: common.RuleEndpoint{Address: "any"},
+			Source:      common.RuleEndpoint{Address: "0.0.0.0/0"},
+			Destination: common.RuleEndpoint{Address: "0.0.0.0/0"},
 		}
 	}
 
@@ -207,11 +217,11 @@ func TestIsWideOpenPassRule_NegatedEndpointIsNotWideOpen(t *testing.T) {
 		assert.False(t, analysis.IsWideOpenPassRule(r))
 	})
 
-	t.Run("negated wildcard cidr source", func(t *testing.T) {
+	t.Run("negated ipv6 wildcard source", func(t *testing.T) {
 		t.Parallel()
 
 		r := wideOpen()
-		r.Source = common.RuleEndpoint{Address: "0.0.0.0/0", Negated: true}
+		r.Source = common.RuleEndpoint{Address: "::/0", Negated: true}
 		assert.False(t, analysis.IsWideOpenPassRule(r))
 	})
 
@@ -223,4 +233,29 @@ func TestIsWideOpenPassRule_NegatedEndpointIsNotWideOpen(t *testing.T) {
 		r.Destination.Negated = true
 		assert.False(t, analysis.IsWideOpenPassRule(r))
 	})
+}
+
+// TestIsWideOpenPassRule_NegatedAnyIsWideOpen is the other half: neither
+// firewall inverts any, so a pass rule from or to a negated any still passes
+// all traffic. A negated endpoint with no address counts as any as well.
+func TestIsWideOpenPassRule_NegatedAnyIsWideOpen(t *testing.T) {
+	t.Parallel()
+
+	for _, addr := range []string{"any", "ANY", ""} {
+		t.Run("addr="+addr, func(t *testing.T) {
+			t.Parallel()
+
+			negated := common.RuleEndpoint{Address: addr, Negated: true}
+			plain := common.RuleEndpoint{Address: addr}
+
+			for _, r := range []common.FirewallRule{
+				{Type: common.RuleTypePass, Source: negated, Destination: plain},
+				{Type: common.RuleTypePass, Source: plain, Destination: negated},
+				{Type: common.RuleTypePass, Source: negated, Destination: negated},
+			} {
+				assert.True(t, analysis.IsWideOpenPassRule(r),
+					"source %+v, destination %+v", r.Source, r.Destination)
+			}
+		})
+	}
 }

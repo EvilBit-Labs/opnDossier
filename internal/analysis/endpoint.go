@@ -48,9 +48,18 @@ func IsAnyAddress(addr string) bool {
 // This is the endpoint-level predicate, and it is the one audit checks want.
 // IsAnyAddress answers only whether an address string is a wildcard spelling;
 // an endpoint additionally carries Negated, and a negated endpoint matches the
-// complement of what its address names. A negated wildcard therefore matches
-// nothing at all, so classifying it by address alone turns a rule that passes
-// no traffic into a highest-severity wide-open finding.
+// complement of what its address names. A negated 0.0.0.0/0 or ::/0 therefore
+// matches nothing at all, so classifying it by address alone turns a rule that
+// passes no traffic into a highest-severity wide-open finding.
+//
+// A negated any still matches every host. Neither firewall inverts any:
+// OPNsense adds "!" only to an address that is set and is not any (Rule.php
+// mapAddressInfo), and pfSense emits a plain any for <any/> (filter.inc
+// filter_generate_address). A negated endpoint with no address counts as any
+// too. OPNsense reads it as any (Rule.php legacyMoveAddressFields), while
+// pfSense skips a rule whose endpoint is empty or names any as a network or
+// address, so any is the conservative reading, as it already is for those
+// endpoints without the flag.
 //
 // Negated inverts the address only. The vendor schema carries <not> beside the
 // address fields and pfSense presents it as an invert-match toggle on the
@@ -60,7 +69,12 @@ func IsAnyAddress(addr string) bool {
 // through this keeps the audit path consistent with them rather than letting
 // the two disagree about what a rule means.
 func IsAnyEndpoint(ep common.RuleEndpoint) bool {
-	return !ep.Negated && IsAnyAddress(ep.Address)
+	if ep.Negated {
+		address := strings.TrimSpace(ep.Address)
+		return address == "" || strings.EqualFold(address, constants.NetworkAny)
+	}
+
+	return IsAnyAddress(ep.Address)
 }
 
 // IsAnyPort reports whether an endpoint port specification matches every port.

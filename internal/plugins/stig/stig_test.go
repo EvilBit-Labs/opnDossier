@@ -533,10 +533,11 @@ func TestPlugin_analyzeLoggingConfiguration(t *testing.T) {
 // TestHasOverlyPermissiveRules_NegatedWildcardIsNotBroad covers the half of the
 // broad-network test that inverts. broadNetworks holds the wildcards ("any",
 // 0.0.0.0/0, ::/0) alongside genuinely large but bounded ranges, and the two
-// invert differently: a negated wildcard matches nothing and is not broad,
-// while a negated bounded range is everything outside it and stays broad.
-// Testing membership on the raw address alone reported a rule that matches no
-// traffic as overly permissive.
+// invert differently: a negated 0.0.0.0/0 or ::/0 matches nothing and is not
+// broad, while a negated bounded range is everything outside it and stays
+// broad. Testing membership on the raw address alone reported a rule that
+// matches no traffic as overly permissive. Neither firewall inverts any, so a
+// negated any stays broad.
 func TestHasOverlyPermissiveRules_NegatedWildcardIsNotBroad(t *testing.T) {
 	t.Parallel()
 
@@ -551,17 +552,19 @@ func TestHasOverlyPermissiveRules_NegatedWildcardIsNotBroad(t *testing.T) {
 		{"wildcard v6", "::/0", false, true},
 		{"bounded broad range", "10.0.0.0/8", false, true},
 
-		// Negating a wildcard yields the empty set.
-		{"negated any", "any", true, false},
+		// Negating a wildcard network yields the empty set.
 		{"negated wildcard v4", "0.0.0.0/0", true, false},
 		{"negated wildcard v6", "::/0", true, false},
+
+		// Negation on any is ignored, so the rule still matches every host.
+		{"negated any", "any", true, true},
 
 		// Negating a bounded range leaves everything outside it, still broad.
 		{"negated bounded range", "10.0.0.0/8", true, true},
 
-		// An omitted endpoint is a wildcard, so its negation is the empty set too.
+		// An omitted endpoint counts as any, so its negation is ignored too.
 		{"empty address", "", false, true},
-		{"negated empty address", "", true, false},
+		{"negated empty address", "", true, true},
 
 		{"scoped host", "192.168.1.5", false, false},
 	}
