@@ -3,11 +3,8 @@
 Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-
 <!-- prettier-ignore-start -->
-
 <!-- markdownlint-disable -->
-
 <table>
   <tbody>
     <tr>
@@ -17,12 +14,12 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/KryptoKat08"><img src="https://avatars.githubusercontent.com/u/51892820?v=4?s=100" width="100px;" alt="KryptoKat"/><br /><sub><b>KryptoKat</b></sub></a><br /><a href="#security-KryptoKat08" title="Security">🛡️</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/intigenesis"><img src="https://avatars.githubusercontent.com/u/313311150?v=4?s=100" width="100px;" alt="intigenesis"/><br /><sub><b>intigenesis</b></sub></a><br /><a href="https://github.com/EvilBit-Labs/opnDossier/commits?author=intigenesis" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/AshSgDe29071999"><img src="https://avatars.githubusercontent.com/u/192003854?v=4?s=100" width="100px;" alt="AshSgDe29071999"/><br /><sub><b>AshSgDe29071999</b></sub></a><br /><a href="https://github.com/EvilBit-Labs/opnDossier/commits?author=AshSgDe29071999" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/bercedev"><img src="https://avatars.githubusercontent.com/u/75228263?v=4?s=100" width="100px;" alt="berce"/><br /><sub><b>berce</b></sub></a><br /><a href="https://github.com/EvilBit-Labs/opnDossier/commits?author=bercedev" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
 
 <!-- markdownlint-restore -->
-
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
