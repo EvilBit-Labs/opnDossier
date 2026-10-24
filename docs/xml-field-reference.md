@@ -77,22 +77,22 @@ OPNsense keeps a second set of firewall rules under `<OPNsense><Firewall><Filter
 
 The rule body differs from the one under `<filter>`. The values are reported in the spelling the legacy rule uses:
 
-| Element                           | In the report                                                                                             |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `enabled`                         | `disabled` is its opposite; a rule without the element is enabled                                         |
-| `action`                          | `type`                                                                                                    |
-| `description`                     | `description`                                                                                             |
-| `sequence`                        | decides the rule's place in the list; not reported itself                                                 |
-| `interface`                       | one name, or several; none means every interface; several, none, or `interfacenot` make the rule floating |
-| `protocol`                        | lower case; `any` is reported as no protocol                                                              |
-| `statetype`                       | `keep` is `keep state`, and likewise `sloppy`, `modulate` and `synproxy`                                  |
-| `source_net`, `destination_net`   | an alias, an interface name, an address or `any`, or a list of them                                       |
-| `interfacenot`                    | the rule applies on every interface but the one named; the others are listed                              |
-| `source_not`, `destination_not`   | `negated`                                                                                                 |
-| `source_port`, `destination_port` | a number, a range or a port alias; a service name such as `https` becomes its number                      |
-| `icmp6type`                       | type numbers become the names the legacy rule uses                                                        |
+| Element                           | In the report                                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`                         | `disabled` is its opposite; a rule without the element is enabled                                                                                |
+| `action`                          | `type`                                                                                                                                           |
+| `description`                     | `description`                                                                                                                                    |
+| `sequence`                        | decides the rule's place in the list; not reported itself                                                                                        |
+| `interface`                       | one name, or several; none means every interface; several, none, or `interfacenot` make the rule floating                                        |
+| `protocol`                        | lower case; `any` is reported as no protocol                                                                                                     |
+| `statetype`                       | `keep` is `keep state`, and likewise `sloppy`, `modulate` and `synproxy`                                                                         |
+| `source_net`, `destination_net`   | an alias, an interface name, an address or `any`, or a list of them                                                                              |
+| `interfacenot`                    | the rule applies on every interface but the one named; the others are listed, or none when it names the only one, which reads as every interface |
+| `source_not`, `destination_not`   | `negated`                                                                                                                                        |
+| `source_port`, `destination_port` | a number, a range or a port alias; a service name such as `https` becomes its number                                                             |
+| `icmp6type`                       | type numbers become the names the legacy rule uses                                                                                               |
 
-An element a rule leaves out takes OPNsense's default: enabled, quick, `pass`, `in`, `inet`, `keep state`, any source and any destination.
+An element a rule leaves out takes OPNsense's default: enabled, quick, `pass`, `in`, `inet`, `keep state`, any source and any destination. A rule under `<filter>` that leaves out `<direction>`, `<statetype>` or `<quick>` takes the same default (quick unless floating), so a rule reads alike in both stores.
 
 The source NAT, NPT and one-to-one NAT rules of the same model (`<snatrules>`, `<npt>`, `<onetoone>`) are not read.
 

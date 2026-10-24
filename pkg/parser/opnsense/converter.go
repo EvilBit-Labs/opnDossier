@@ -375,6 +375,12 @@ func (c *converter) ruleFamily(i int, stored string) common.IPProtocol {
 // AliasAddress (not EffectiveAddress) so an interface/network macro (e.g.
 // "lan") or the "any" wildcard is never mistaken for an alias reference,
 // even when an alias happens to share that name.
+//
+// An absent <direction>, <statetype> or <quick> takes the firewall's default
+// (FilterRule.php: in, keep state, and quick unless floating), which is what the
+// filter model writes out, so a rule reads alike in both stores and a diff across
+// a migration is quiet on them. <floating> is tested for presence, as the firewall
+// does (filter.lib.inc isset) and as legacyRulePriority ranks it.
 func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.FirewallRule {
 	c.warnOnIncompleteFirewallRule(i, rule)
 
@@ -383,12 +389,14 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		Type:        c.ruleType(i, rule.Type),
 		Description: rule.Descr,
 		Interfaces:  []string(rule.Interface),
-		Direction:   c.ruleDirection(i, rule.Direction),
+		Direction:   c.ruleDirection(i, cmp.Or(rule.Direction, string(common.DirectionIn))),
 		IPProtocol:  c.ruleFamily(i, rule.IPProtocol),
-		StateType:   rule.StateType,
-		Floating:    rule.Floating == xmlBoolYes,
-		Quick:       bool(rule.Quick),
-		Protocol:    rule.Protocol,
+		StateType:   legacyStateType(rule.StateType),
+		Floating:    rule.Floating != "",
+		// shortcut: Quick is a BoolFlag, so <quick>0</quick> on an interface rule reads as
+		// absent and the rule as quick; make it a *string if a release ever writes that.
+		Quick:    bool(rule.Quick) || rule.Floating == "",
+		Protocol: rule.Protocol,
 		Source: common.RuleEndpoint{
 			Address:     rule.Source.EffectiveAddress(),
 			AddressRef:  c.namedObjects.Ref(rule.Source.AliasAddress()),

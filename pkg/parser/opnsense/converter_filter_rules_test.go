@@ -246,15 +246,19 @@ func TestConverter_FilterRules_FactoryDefault(t *testing.T) {
 func TestConverter_FilterRules_MigratedRuleReadsAsItsLegacyTwin(t *testing.T) {
 	t.Parallel()
 
-	legacy, legacyWarnings := parseFilterRules(t, `<rule uuid="f9ca1f04-a1c9-45a8-a0a1-fe4366ffdf17">
+	tests := []struct {
+		name, legacy, model string
+	}{
+		{
+			"with its values spelled out",
+			`<rule uuid="f9ca1f04-a1c9-45a8-a0a1-fe4366ffdf17">
   <type>pass</type><interface>wan</interface><ipprotocol>inet</ipprotocol>
   <statetype>keep state</statetype><descr>Allow HTTPS on WAN Address</descr>
   <direction>in</direction><log>1</log><quick>1</quick><protocol>tcp</protocol>
   <source><any>1</any></source>
   <destination><network>wanip</network><port>443</port></destination>
-</rule>`, "")
-
-	migrated, migratedWarnings := parseFilterRules(t, "", `<rule uuid="f9ca1f04-a1c9-45a8-a0a1-fe4366ffdf17">
+</rule>`,
+			`<rule uuid="f9ca1f04-a1c9-45a8-a0a1-fe4366ffdf17">
   <enabled>1</enabled><statetype>keep</statetype><state-policy/><sequence>11</sequence>
   <action>pass</action><quick>1</quick><interfacenot>0</interfacenot><interface>wan</interface>
   <direction>in</direction><ipprotocol>inet</ipprotocol><protocol>TCP</protocol>
@@ -262,12 +266,40 @@ func TestConverter_FilterRules_MigratedRuleReadsAsItsLegacyTwin(t *testing.T) {
   <destination_net>wanip</destination_net><destination_not>0</destination_not>
   <destination_port>443</destination_port><log>1</log>
   <description>Allow HTTPS on WAN Address</description>
-</rule>`)
+</rule>`,
+		},
+		{
+			// A legacy rule the GUI saved without direction, statetype or quick,
+			// as the older sample configs hold, beside the model's copy of it.
+			"with its defaults left out",
+			`<rule uuid="f9ca1f04-a1c9-45a8-a0a1-fe4366ffdf17">
+  <type>pass</type><interface>wan</interface><ipprotocol>inet</ipprotocol>
+  <descr>Allow HTTPS on WAN Address</descr><protocol>tcp</protocol>
+  <source><any>1</any></source>
+  <destination><network>wanip</network><port>443</port></destination>
+</rule>`,
+			`<rule uuid="f9ca1f04-a1c9-45a8-a0a1-fe4366ffdf17">
+  <sequence>11</sequence><interface>wan</interface><protocol>TCP</protocol>
+  <source_net>any</source_net><destination_net>wanip</destination_net>
+  <destination_port>443</destination_port>
+  <description>Allow HTTPS on WAN Address</description>
+</rule>`,
+		},
+	}
 
-	assert.Empty(t, legacyWarnings)
-	assert.Empty(t, migratedWarnings)
-	require.Len(t, legacy.FirewallRules, 1)
-	assert.Equal(t, legacy.FirewallRules, migrated.FirewallRules)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			legacy, legacyWarnings := parseFilterRules(t, tt.legacy, "")
+			migrated, migratedWarnings := parseFilterRules(t, "", tt.model)
+
+			assert.Empty(t, legacyWarnings)
+			assert.Empty(t, migratedWarnings)
+			require.Len(t, legacy.FirewallRules, 1)
+			assert.Equal(t, legacy.FirewallRules, migrated.FirewallRules)
+		})
+	}
 }
 
 // TestConverter_FilterRules_Defaults covers what a rule means when it leaves an
@@ -320,7 +352,7 @@ func TestConverter_FilterRules_Defaults(t *testing.T) {
 		assert.False(t, convert(t, `<quick>0</quick>`).Quick)
 		assert.False(t, convert(t, `<quick/>`).Quick)
 		assert.True(t, convert(t, `<quick>off</quick>`).Quick)
-		assert.True(t, convert(t, `<interface>lan,wan</interface>`).Quick, "floating rules are quick too")
+		assert.True(t, convert(t, `<interface>lan,wan</interface>`).Quick, "a floating rule takes the same default")
 	})
 
 	t.Run("address family", func(t *testing.T) {
@@ -560,7 +592,8 @@ func TestConverter_FilterRules_ExcludesEveryInterface(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, device.FirewallRules, 1)
 	assert.Empty(t, device.FirewallRules[0].Interfaces)
-	assert.True(t, device.FirewallRules[0].Disabled)
+	assert.True(t, device.FirewallRules[0].Floating)
+	assert.False(t, device.FirewallRules[0].Disabled)
 
 	require.Len(t, warnings, 1)
 	assert.Equal(t, "FirewallRules[0].Interface", warnings[0].Field)
@@ -1033,16 +1066,16 @@ func TestConverter_FilterRules_ModelVersion(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		version string
-		rules   bool
-		warns   bool
+		name     string
+		version  string
+		rules    bool
+		severity common.Severity
 	}{
-		{"no version, as the factory default writes", "", true, false},
-		{"one checked", "1.0.4", true, false},
-		{"the latest checked", "1.0.6", true, false},
-		{"one not checked", "1.0.9", true, true},
-		{"one not checked, without rules", "1.0.9", false, false},
+		{"no version, as the factory default writes", "", true, ""},
+		{"one checked", "1.0.4", true, ""},
+		{"the latest checked", "1.0.6", true, ""},
+		{"one not checked", "1.0.9", true, common.SeverityMedium},
+		{"one not checked, without rules, which may mean a renamed element", "1.0.9", false, common.SeverityLow},
 	}
 
 	for _, tt := range tests {
@@ -1059,7 +1092,7 @@ func TestConverter_FilterRules_ModelVersion(t *testing.T) {
 			_, warnings, err := opnsense.ConvertDocument(doc)
 			require.NoError(t, err)
 
-			if !tt.warns {
+			if tt.severity == "" {
 				assert.Empty(t, warnings)
 
 				return
@@ -1068,7 +1101,7 @@ func TestConverter_FilterRules_ModelVersion(t *testing.T) {
 			require.Len(t, warnings, 1)
 			assert.Equal(t, "OPNsense.Firewall.Filter.Version", warnings[0].Field)
 			assert.Equal(t, tt.version, warnings[0].Value)
-			assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
+			assert.Equal(t, tt.severity, warnings[0].Severity)
 		})
 	}
 }
