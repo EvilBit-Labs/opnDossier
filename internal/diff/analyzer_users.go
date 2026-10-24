@@ -71,6 +71,7 @@ func (a *Analyzer) CompareUsers(old, newCfg []common.User) []Change {
 				Path:           fmt.Sprintf("system.user[%s]", name),
 				Description:    "Modified user: " + name,
 				SecurityImpact: "low",
+				summarized:     true,
 			})
 		}
 	}

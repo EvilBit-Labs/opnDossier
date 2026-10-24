@@ -63,13 +63,13 @@ func (e *Engine) Compare(ctx context.Context) (*Result, error) {
 
 		changes := e.compareSection(section)
 		for i := range changes {
-			// Normalize displayed values if requested; skip changes where
-			// normalized values are equal (cosmetic-only differences)
+			// Normalize displayed values if requested, and skip a change that
+			// formattingOnly reports as differing only in formatting.
 			if e.opts.Normalize {
 				normOld := e.normalizeValue(changes[i].OldValue)
 				normNew := e.normalizeValue(changes[i].NewValue)
-				if changes[i].Type == ChangeModified && normOld == normNew {
-					continue // Normalization removed any meaningful difference
+				if formattingOnly(changes[i], normOld, normNew) {
+					continue
 				}
 				changes[i].OldValue = normOld
 				changes[i].NewValue = normNew
@@ -160,6 +160,18 @@ func (e *Engine) compareSection(section Section) []Change {
 		}
 		return nil
 	}
+}
+
+// formattingOnly reports whether normalization removed the only difference a
+// modified entry had, given its normalized values.
+//
+// The values must be all that was compared. A summarized entry is never
+// formatting only: its values leave fields out, so equal text after
+// normalization says nothing about them. Values that were already equal are
+// not either, since the entry was reported for something they do not show.
+func formattingOnly(c Change, normOld, normNew string) bool {
+	return c.Type == ChangeModified && !c.summarized &&
+		c.OldValue != c.NewValue && normOld == normNew
 }
 
 // normalizeValue applies normalization heuristics to a change value string.
