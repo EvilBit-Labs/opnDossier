@@ -320,7 +320,9 @@ func formatRule(rule common.FirewallRule) string {
 }
 
 // formatEndpoint returns a string representation of a rule endpoint in the form
-// [!]address[:port], using "unknown" when the address is empty.
+// [!]address[:port], using "unknown" when the address is empty. Unlike
+// ruleAddress, it keeps the marker on any, so that ticking Invert on an any
+// endpoint still shows as a change in the old and new values.
 func formatEndpoint(ep common.RuleEndpoint) string {
 	var prefix string
 	if ep.Negated {
