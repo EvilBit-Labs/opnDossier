@@ -84,6 +84,23 @@ func rootSiteUnusedCases() []unusedObjectCase {
 			wantUnused: nil,
 		},
 		{
+			name: "does not flag aliases named in a list on a rule endpoint",
+			cfg: &common.CommonDevice{
+				NamedObjects: common.NamedObjects{
+					"web":    hostAlias("10.0.0.1"),
+					"db":     hostAlias("10.0.0.2"),
+					"orphan": hostAlias("10.0.0.3"),
+				},
+				FirewallRules: []common.FirewallRule{{
+					Source: common.RuleEndpoint{
+						Address:     "web,lan,db",
+						AddressRefs: []common.ObjectRef{{Name: "web"}, {Name: "db"}},
+					},
+				}},
+			},
+			wantUnused: []string{"orphan"},
+		},
+		{
 			name: "does not flag alias referenced only by NAT redirect target",
 			cfg: &common.CommonDevice{
 				NamedObjects: common.NamedObjects{"backend": hostAlias("10.0.0.9")},

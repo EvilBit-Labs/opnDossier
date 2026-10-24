@@ -10,6 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// filterModelDocument returns a document whose firewall filter model holds rule
+// and whose only interface is wan.
+func filterModelDocument(rule schema.FirewallFilterRule) *schema.OpnSenseDocument {
+	doc := &schema.OpnSenseDocument{}
+	doc.Interfaces.Items = map[string]schema.Interface{"wan": {}}
+	doc.OPNsense.Firewall = schema.NewFirewall()
+	doc.OPNsense.Firewall.Filter.Rules = []schema.FirewallFilterRule{rule}
+
+	return doc
+}
+
 // TestConverter_EnumCast_EmitsWarning locks in the GOTCHAS §5.2 invariant:
 // every XML string that is cast to a typed enum is guarded by IsValid(), and
 // an unrecognized non-empty value produces exactly one ConversionWarning on
@@ -74,6 +85,27 @@ func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 					}},
 				},
 			},
+			wantField:    "FirewallRules[0].IPProtocol",
+			wantValue:    "inet42",
+			wantSeverity: common.SeverityLow,
+		},
+		{
+			name:         "filter model rule action",
+			doc:          filterModelDocument(schema.FirewallFilterRule{Action: "match", Interface: "wan"}),
+			wantField:    "FirewallRules[0].Type",
+			wantValue:    "match",
+			wantSeverity: common.SeverityLow,
+		},
+		{
+			name:         "filter model rule direction",
+			doc:          filterModelDocument(schema.FirewallFilterRule{Direction: "sideways", Interface: "wan"}),
+			wantField:    "FirewallRules[0].Direction",
+			wantValue:    "sideways",
+			wantSeverity: common.SeverityLow,
+		},
+		{
+			name:         "filter model rule ip protocol",
+			doc:          filterModelDocument(schema.FirewallFilterRule{IPProtocol: new("inet42"), Interface: "wan"}),
 			wantField:    "FirewallRules[0].IPProtocol",
 			wantValue:    "inet42",
 			wantSeverity: common.SeverityLow,

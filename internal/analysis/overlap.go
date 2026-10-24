@@ -128,7 +128,7 @@ func combineDimensions(dims ...Coverage) Coverage {
 
 // familiesCompatible implements the R11 family gate: an empty/unset
 // IPProtocol is a wildcard matching both address families (the common case
-// for untyped rules), and inet46 (pfSense dual-stack) covers both families
+// for untyped rules), and inet46 (dual-stack) covers both families
 // too. Only two explicit, differing families (inet vs inet6) are
 // incompatible.
 func familiesCompatible(a, b common.IPProtocol) bool {

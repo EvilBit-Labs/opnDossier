@@ -259,7 +259,8 @@ func (o *OpnSenseDocument) InterfaceByName(name string) *Interface {
 	return nil
 }
 
-// FilterRules returns a slice of all firewall filter rules configured in the system.
+// FilterRules returns the firewall rules under <filter>. Rules of the firewall
+// filter model are in OPNsense.Firewall.Filter.Rules.
 func (o *OpnSenseDocument) FilterRules() []Rule {
 	return o.Filter.Rule
 }
