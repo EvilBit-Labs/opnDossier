@@ -277,6 +277,72 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 	}
 }
 
+func TestBuildFirewallRulesTableSet_NegatedEndpoints(t *testing.T) {
+	t.Parallel()
+
+	const sourceCol, destCol = 5, 6
+
+	tests := []struct {
+		name     string
+		source   common.RuleEndpoint
+		dest     common.RuleEndpoint
+		wantSrc  string
+		wantDest string
+	}{
+		{
+			name:     "negated source",
+			source:   common.RuleEndpoint{Address: "lan", Negated: true},
+			dest:     common.RuleEndpoint{Address: "any"},
+			wantSrc:  "!lan",
+			wantDest: "any",
+		},
+		{
+			name:     "negated destination",
+			source:   common.RuleEndpoint{Address: "10.0.0.0/8"},
+			dest:     common.RuleEndpoint{Address: "RFC1918", Negated: true},
+			wantSrc:  "10.0.0.0/8",
+			wantDest: "!RFC1918",
+		},
+		{
+			name:     "negation on any is not marked",
+			source:   common.RuleEndpoint{Address: "any", Negated: true},
+			dest:     common.RuleEndpoint{Negated: true},
+			wantSrc:  "any",
+			wantDest: "any",
+		},
+		{
+			name:     "negated wildcard network is marked",
+			source:   common.RuleEndpoint{Address: "0.0.0.0/0", Negated: true},
+			dest:     common.RuleEndpoint{Address: "ANY", Negated: true},
+			wantSrc:  "!0.0.0.0/0",
+			wantDest: "ANY",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tableSet := BuildFirewallRulesTableSet([]common.FirewallRule{{
+				Type:        common.RuleTypePass,
+				Source:      tt.source,
+				Destination: tt.dest,
+			}})
+			if len(tableSet.Rows) != 1 {
+				t.Fatalf("got %d rows, want 1", len(tableSet.Rows))
+			}
+
+			row := tableSet.Rows[0]
+			if row[sourceCol] != tt.wantSrc {
+				t.Errorf("Source = %q, want %q", row[sourceCol], tt.wantSrc)
+			}
+			if row[destCol] != tt.wantDest {
+				t.Errorf("Destination = %q, want %q", row[destCol], tt.wantDest)
+			}
+		})
+	}
+}
+
 func TestBuildOutboundNATTableSet(t *testing.T) {
 	t.Parallel()
 

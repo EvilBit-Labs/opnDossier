@@ -3,6 +3,7 @@ package builder
 import (
 	"bytes"
 	"strconv"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -222,15 +223,8 @@ func BuildFirewallRulesTableSet(rules []common.FirewallRule) *markdown.TableSet 
 
 	rows := make([][]string, 0, len(rules))
 	for i, rule := range rules {
-		source := rule.Source.Address
-		if source == "" {
-			source = destinationAny
-		}
-
-		dest := rule.Destination.Address
-		if dest == "" {
-			dest = destinationAny
-		}
+		source := endpointAddress(rule.Source)
+		dest := endpointAddress(rule.Destination)
 
 		interfaceLinks := formatters.FormatInterfacesAsLinks(rule.Interfaces)
 
@@ -254,4 +248,21 @@ func BuildFirewallRulesTableSet(rules []common.FirewallRule) *markdown.TableSet 
 		Header: headers,
 		Rows:   rows,
 	}
+}
+
+// endpointAddress returns the address shown for a rule endpoint, "any" when it
+// has none, prefixed with "!" when the endpoint is negated as OPNsense lists it.
+// Both firewalls ignore negation on any, so a negated any is shown as any; a
+// network such as 0.0.0.0/0 keeps the marker, because they do negate it.
+func endpointAddress(ep common.RuleEndpoint) string {
+	address := ep.Address
+	if address == "" {
+		address = destinationAny
+	}
+
+	if ep.Negated && !strings.EqualFold(address, destinationAny) {
+		return "!" + address
+	}
+
+	return address
 }
