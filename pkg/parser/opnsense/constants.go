@@ -12,4 +12,8 @@ const (
 
 	// packageTypePlugin identifies firmware plugin packages parsed from config.xml.
 	packageTypePlugin = "plugin"
+
+	// interfaceTypeGroup is the <type> of an interface group's entry under
+	// <interfaces>.
+	interfaceTypeGroup = "group"
 )

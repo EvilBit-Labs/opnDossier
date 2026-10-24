@@ -120,6 +120,9 @@ func collectRoots(cfg *common.CommonDevice) []string {
 	addEndpoint := func(ep common.RuleEndpoint) {
 		addRef(ep.AddressRef)
 		addRef(ep.PortRef)
+		for i := range ep.AddressRefs {
+			addRef(&ep.AddressRefs[i])
+		}
 	}
 
 	for _, rule := range cfg.FirewallRules {

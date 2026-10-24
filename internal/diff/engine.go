@@ -3,6 +3,8 @@ package diff
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -185,8 +187,10 @@ func (e *Engine) addReorderChanges(result *Result) {
 	}
 
 	for i := range reorderChanges {
-		// Skip reorder if this rule also has a content change
-		if contentChangedUUIDs[reorderChanges[i].Path] {
+		// Skip reorder if this rule also has a content change. The copies of
+		// a rule share the path of a content change, so a change to one of
+		// them skips the moves of all of them.
+		if contentChangedUUIDs[withoutCopy(reorderChanges[i].Path)] {
 			continue
 		}
 
@@ -209,8 +213,8 @@ func (e *Engine) addReorderChanges(result *Result) {
 
 // detectFirewallReorders uses the order detector to find reordered firewall rules.
 func (e *Engine) detectFirewallReorders() []Change {
-	oldIDs := extractRuleIdentities(e.oldConfig.FirewallRules)
-	newIDs := extractRuleIdentities(e.newConfig.FirewallRules)
+	oldIDs := ruleIdentities(e.oldConfig.FirewallRules)
+	newIDs := pairedRuleIdentities(e.oldConfig.FirewallRules, e.newConfig.FirewallRules)
 
 	reorders := e.orderDetector.DetectReorders(oldIDs, newIDs)
 	changes := make([]Change, 0, len(reorders))
@@ -243,21 +247,105 @@ func ruleIdentity(rule common.FirewallRule) (string, bool) {
 	return "", false
 }
 
-// extractRuleIdentities returns the ordered identifiers of the rules that have
-// one.
+// ruleIdentities returns the ordered identifiers of the rules that have one.
+// Rules that share one, as a rule and the copy OPNsense's migration assistant
+// makes of it do, are told apart by a count in list order: the second is
+// "<id>,copy=1". One identifier for both would keep only the last place.
 //
 // This previously read UUIDs only, so it returned an empty list for any config
 // whose rules carry no <uuid> -- which is every pfSense config and every older
 // OPNsense one. DetectReorders then had nothing to compare and --detect-order
 // was a documented flag that silently did nothing for most real inputs.
-func extractRuleIdentities(rules []common.FirewallRule) []string {
-	ids := make([]string, 0, len(rules))
+func ruleIdentities(rules []common.FirewallRule) []string {
+	ids := make([]string, len(rules))
 
-	for _, r := range rules {
-		if id, ok := ruleIdentity(r); ok {
-			ids = append(ids, id)
+	for id, positions := range groupByIdentity(rules) {
+		for n, i := range positions {
+			ids[i] = copyIdentity(id, n)
 		}
 	}
 
-	return ids
+	return slices.DeleteFunc(ids, unidentified)
+}
+
+// pairedRuleIdentities returns the identifiers of the rules of newRules as
+// ruleIdentities does, except that a rule sharing its identifier takes the count
+// of the rule of old that sameUUIDPairer pairs it with, the pairing
+// CompareFirewallRules gives rules that share a uuid. A copy therefore keeps its
+// identifier when the copies swap places, where a count in list order would hand
+// each copy's name to the other. A rule without a partner counts on from the old
+// side's copies.
+func pairedRuleIdentities(old, newRules []common.FirewallRule) []string {
+	oldGroups := groupByIdentity(old)
+	ids := make([]string, len(newRules))
+
+	for id, positions := range groupByIdentity(newRules) {
+		oldCopies := rulesAt(old, oldGroups[id])
+		partner := make([]int, len(positions))
+
+		res := sameUUIDPairer.pair(oldCopies, rulesAt(newRules, positions), func(oi, ni int) { partner[ni] = oi })
+
+		next := len(oldCopies)
+		for n, i := range positions {
+			if res.newPaired[n] {
+				ids[i] = copyIdentity(id, partner[n])
+			} else {
+				ids[i] = copyIdentity(id, next)
+				next++
+			}
+		}
+	}
+
+	return slices.DeleteFunc(ids, unidentified)
+}
+
+// unidentified reports whether a slot of ruleIdentities holds no identifier.
+func unidentified(id string) bool {
+	return id == ""
+}
+
+// groupByIdentity returns the positions of the rules that have an identifier,
+// by identifier, in list order.
+func groupByIdentity(rules []common.FirewallRule) map[string][]int {
+	groups := make(map[string][]int, len(rules))
+
+	for i, rule := range rules {
+		if id, ok := ruleIdentity(rule); ok {
+			groups[id] = append(groups[id], i)
+		}
+	}
+
+	return groups
+}
+
+// rulesAt returns the rules at the given positions.
+func rulesAt(rules []common.FirewallRule, positions []int) []common.FirewallRule {
+	picked := make([]common.FirewallRule, 0, len(positions))
+	for _, i := range positions {
+		picked = append(picked, rules[i])
+	}
+
+	return picked
+}
+
+// copyIdentity returns the identifier of the nth rule that shares id.
+func copyIdentity(id string, n int) string {
+	if n == 0 {
+		return id
+	}
+
+	return fmt.Sprintf("%s%s%d", id, copySuffix, n)
+}
+
+// copySuffix marks the count ruleIdentities adds to a shared identifier.
+const copySuffix = ",copy="
+
+// withoutCopy returns the path of a reordered rule without the count that tells
+// it from the other rules sharing its identifier.
+func withoutCopy(path string) string {
+	if i := strings.LastIndex(path, copySuffix); i >= 0 {
+		return path[:i] + "]"
+	}
+
+	return path
 }

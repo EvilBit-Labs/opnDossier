@@ -42,6 +42,60 @@ Firewall rule source and destination support multiple addressing modes. The fiel
 
 **Field priority:** Network > Address > Any (per OPNsense semantics)
 
+## Rules in the Firewall Filter Model
+
+OPNsense keeps a second set of firewall rules under `<OPNsense><Firewall><Filter><rules>`. The "Rules [new]" page of 26.1 and the rules page of 26.7 write them, and the 26.7 default config ships its LAN rules there. opnDossier reads them together with the rules under `<filter>` and reports both in the order the firewall evaluates them: floating rules first, then rules on an interface group by the group's sequence, then rules on one interface, with the filter model's rules ahead of the legacy ones within each. A config the os-firewall plugin saved, at filter model version 1.0.0 to 1.0.2, is ordered as that plugin ordered it, with every rule of the model ahead of the legacy ones.
+
+```xml
+<OPNsense>
+  <Firewall>
+    <Filter version="1.0.6">
+      <rules>
+        <rule uuid="c3c3c3c3-0000-4000-8000-000000000002">
+          <enabled>1</enabled>
+          <statetype>keep</statetype>
+          <sequence>200</sequence>
+          <action>pass</action>
+          <quick>1</quick>
+          <interface>lan</interface>
+          <direction>in</direction>
+          <ipprotocol>inet</ipprotocol>
+          <protocol>TCP/UDP</protocol>
+          <source_net>lan,MGMT_NETS</source_net>
+          <source_not>0</source_not>
+          <destination_net>WEB_HOSTS,DB_HOSTS</destination_net>
+          <destination_not>0</destination_not>
+          <destination_port>https</destination_port>
+          <log>0</log>
+          <description>Inside to the servers</description>
+        </rule>
+      </rules>
+    </Filter>
+  </Firewall>
+</OPNsense>
+```
+
+The rule body differs from the one under `<filter>`. The values are reported in the spelling the legacy rule uses:
+
+| Element                           | In the report                                                                                             |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `enabled`                         | `disabled` is its opposite; a rule without the element is enabled                                         |
+| `action`                          | `type`                                                                                                    |
+| `description`                     | `description`                                                                                             |
+| `sequence`                        | decides the rule's place in the list; not reported itself                                                 |
+| `interface`                       | one name, or several; none means every interface; several, none, or `interfacenot` make the rule floating |
+| `protocol`                        | lower case; `any` is reported as no protocol                                                              |
+| `statetype`                       | `keep` is `keep state`, and likewise `sloppy`, `modulate` and `synproxy`                                  |
+| `source_net`, `destination_net`   | an alias, an interface name, an address or `any`, or a list of them                                       |
+| `interfacenot`                    | the rule applies on every interface but the one named; the others are listed                              |
+| `source_not`, `destination_not`   | `negated`                                                                                                 |
+| `source_port`, `destination_port` | a number, a range or a port alias; a service name such as `https` becomes its number                      |
+| `icmp6type`                       | type numbers become the names the legacy rule uses                                                        |
+
+An element a rule leaves out takes OPNsense's default: enabled, quick, `pass`, `in`, `inet`, `keep state`, any source and any destination.
+
+The source NAT, NPT and one-to-one NAT rules of the same model (`<snatrules>`, `<npt>`, `<onetoone>`) are not read.
+
 ## Advanced Rule Fields
 
 **Floating rules (interface-independent):**

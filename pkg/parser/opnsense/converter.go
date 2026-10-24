@@ -81,7 +81,7 @@ func (c *converter) ToCommonDevice(
 		VirtualIPs:       c.convertVirtualIPs(doc),
 		InterfaceGroups:  c.convertInterfaceGroups(doc),
 		NamedObjects:     namedObjects,
-		FirewallRules:    c.convertFirewallRules(doc, namedObjects),
+		FirewallRules:    c.convertFirewallRules(doc),
 		NAT:              c.convertNAT(doc),
 		DHCP:             append(c.convertDHCP(doc), c.convertKeaDHCPScopes(doc)...),
 		DNS:              c.convertDNS(doc),
@@ -297,111 +297,143 @@ func (c *converter) convertVLANs(doc *schema.OpnSenseDocument) []common.VLAN {
 	return result
 }
 
-// convertFirewallRules maps doc.Filter.Rule to []common.FirewallRule.
-// namedObjects is consulted so that an endpoint whose Address or Port equals
-// a known alias name gets AddressRef/PortRef set (ADR-0002); the resolved
-// inline Address/Port value is kept regardless, so existing consumers keep
-// working unmodified. AddressRef is derived from Source/Destination's
-// AliasAddress (not EffectiveAddress) so an interface/network macro (e.g.
-// "lan") or the "any" wildcard is never mistaken for an alias reference,
-// even when an alias happens to share that name.
-func (c *converter) convertFirewallRules(
-	doc *schema.OpnSenseDocument,
-	namedObjects common.NamedObjects,
-) []common.FirewallRule {
-	if len(doc.Filter.Rule) == 0 {
+// convertFirewallRules maps the rules of both stores, <filter> and the firewall
+// filter model, to []common.FirewallRule in the order the firewall evaluates
+// them (see filterRulesInOrder). The index of a rule in the result addresses
+// its warnings.
+func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.FirewallRule {
+	sources := c.filterRulesInOrder(doc)
+	if len(sources) == 0 {
 		return nil
 	}
 
-	result := make([]common.FirewallRule, 0, len(doc.Filter.Rule))
-	for i, rule := range doc.Filter.Rule {
-		c.warnOnIncompleteFirewallRule(i, rule)
-
-		ruleType := common.FirewallRuleType(rule.Type)
-		if rule.Type != "" && !ruleType.IsValid() {
-			c.addWarning(
-				fmt.Sprintf("FirewallRules[%d].Type", i),
-				rule.Type,
-				"unrecognized firewall rule type",
-				common.SeverityLow,
-			)
+	result := make([]common.FirewallRule, 0, len(sources))
+	for i, source := range sources {
+		if source.model != nil {
+			result = append(result, c.convertFilterModelRule(i, *source.model, doc))
+		} else {
+			result = append(result, c.convertLegacyFirewallRule(i, *source.legacy))
 		}
-		direction := common.FirewallDirection(rule.Direction)
-		if rule.Direction != "" && !direction.IsValid() {
-			c.addWarning(
-				fmt.Sprintf("FirewallRules[%d].Direction", i),
-				rule.Direction,
-				"unrecognized firewall direction",
-				common.SeverityLow,
-			)
-		}
-		ipProto := common.IPProtocol(rule.IPProtocol)
-		if rule.IPProtocol != "" && !ipProto.IsValid() {
-			c.addWarning(
-				fmt.Sprintf("FirewallRules[%d].IPProtocol", i),
-				rule.IPProtocol,
-				"unrecognized IP protocol family",
-				common.SeverityLow,
-			)
-		}
-
-		result = append(result, common.FirewallRule{
-			UUID:        rule.UUID,
-			Type:        ruleType,
-			Description: rule.Descr,
-			Interfaces:  []string(rule.Interface),
-			IPProtocol:  ipProto,
-			StateType:   rule.StateType,
-			Direction:   direction,
-			Floating:    rule.Floating == xmlBoolYes,
-			Quick:       bool(rule.Quick),
-			Protocol:    rule.Protocol,
-			Source: common.RuleEndpoint{
-				Address:    rule.Source.EffectiveAddress(),
-				AddressRef: namedObjects.Ref(rule.Source.AliasAddress()),
-				Port:       rule.Source.Port,
-				PortRef:    namedObjects.Ref(rule.Source.Port),
-				Negated:    bool(rule.Source.Not),
-			},
-			Destination: common.RuleEndpoint{
-				Address:    rule.Destination.EffectiveAddress(),
-				AddressRef: namedObjects.Ref(rule.Destination.AliasAddress()),
-				Port:       rule.Destination.Port,
-				PortRef:    namedObjects.Ref(rule.Destination.Port),
-				Negated:    bool(rule.Destination.Not),
-			},
-			Target:          rule.Target,
-			TargetRef:       namedObjects.Ref(rule.Target),
-			Gateway:         rule.Gateway,
-			Log:             bool(rule.Log),
-			Disabled:        bool(rule.Disabled),
-			Tracker:         rule.Tracker,
-			MaxSrcNodes:     rule.MaxSrcNodes,
-			MaxSrcConn:      rule.MaxSrcConn,
-			MaxSrcConnRate:  rule.MaxSrcConnRate,
-			MaxSrcConnRates: rule.MaxSrcConnRates,
-			TCPFlags1:       rule.TCPFlags1,
-			TCPFlags2:       rule.TCPFlags2,
-			TCPFlagsAny:     bool(rule.TCPFlagsAny),
-			ICMPType:        rule.ICMPType,
-			ICMP6Type:       rule.ICMP6Type,
-			StateTimeout:    rule.StateTimeout,
-			AllowOpts:       bool(rule.AllowOpts),
-			DisableReplyTo:  bool(rule.DisableReplyTo),
-			NoPfSync:        bool(rule.NoPfSync),
-			NoSync:          bool(rule.NoSync),
-			Tag:             rule.Tag,
-			Tagged:          rule.Tagged,
-			// Set on the pass rule a port forward stores for itself.
-			AssociatedRuleID: rule.AssociatedRuleID,
-		})
 	}
 
 	return result
 }
 
+// ruleType casts a stored rule action and warns about one it does not know.
+func (c *converter) ruleType(i int, stored string) common.FirewallRuleType {
+	ruleType := common.FirewallRuleType(stored)
+	if stored != "" && !ruleType.IsValid() {
+		c.addWarning(
+			fmt.Sprintf("FirewallRules[%d].Type", i),
+			stored,
+			"unrecognized firewall rule type",
+			common.SeverityLow,
+		)
+	}
+
+	return ruleType
+}
+
+// ruleDirection casts a stored direction and warns about one it does not know.
+func (c *converter) ruleDirection(i int, stored string) common.FirewallDirection {
+	direction := common.FirewallDirection(stored)
+	if stored != "" && !direction.IsValid() {
+		c.addWarning(
+			fmt.Sprintf("FirewallRules[%d].Direction", i),
+			stored,
+			"unrecognized firewall direction",
+			common.SeverityLow,
+		)
+	}
+
+	return direction
+}
+
+// ruleFamily casts a stored address family and warns about one it does not
+// know.
+func (c *converter) ruleFamily(i int, stored string) common.IPProtocol {
+	family := common.IPProtocol(stored)
+	if stored != "" && !family.IsValid() {
+		c.addWarning(
+			fmt.Sprintf("FirewallRules[%d].IPProtocol", i),
+			stored,
+			"unrecognized IP protocol family",
+			common.SeverityLow,
+		)
+	}
+
+	return family
+}
+
+// convertLegacyFirewallRule maps a rule under <filter> to the common rule. i is
+// its index in the rule list.
+//
+// The alias registry is consulted so that an endpoint whose Address or Port
+// equals a known alias name gets AddressRef/PortRef set (ADR-0002); the
+// resolved inline Address/Port value is kept regardless, so existing consumers
+// keep working unmodified. AddressRef is derived from Source/Destination's
+// AliasAddress (not EffectiveAddress) so an interface/network macro (e.g.
+// "lan") or the "any" wildcard is never mistaken for an alias reference,
+// even when an alias happens to share that name.
+func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.FirewallRule {
+	c.warnOnIncompleteFirewallRule(i, rule)
+
+	return common.FirewallRule{
+		UUID:        rule.UUID,
+		Type:        c.ruleType(i, rule.Type),
+		Description: rule.Descr,
+		Interfaces:  []string(rule.Interface),
+		Direction:   c.ruleDirection(i, rule.Direction),
+		IPProtocol:  c.ruleFamily(i, rule.IPProtocol),
+		StateType:   rule.StateType,
+		Floating:    rule.Floating == xmlBoolYes,
+		Quick:       bool(rule.Quick),
+		Protocol:    rule.Protocol,
+		Source: common.RuleEndpoint{
+			Address:     rule.Source.EffectiveAddress(),
+			AddressRef:  c.namedObjects.Ref(rule.Source.AliasAddress()),
+			AddressRefs: c.legacyListRefs(rule.Source.AliasAddress()),
+			Port:        rule.Source.Port,
+			PortRef:     c.namedObjects.Ref(rule.Source.Port),
+			Negated:     bool(rule.Source.Not),
+		},
+		Destination: common.RuleEndpoint{
+			Address:     rule.Destination.EffectiveAddress(),
+			AddressRef:  c.namedObjects.Ref(rule.Destination.AliasAddress()),
+			AddressRefs: c.legacyListRefs(rule.Destination.AliasAddress()),
+			Port:        rule.Destination.Port,
+			PortRef:     c.namedObjects.Ref(rule.Destination.Port),
+			Negated:     bool(rule.Destination.Not),
+		},
+		Target:          rule.Target,
+		TargetRef:       c.namedObjects.Ref(rule.Target),
+		Gateway:         rule.Gateway,
+		Log:             bool(rule.Log),
+		Disabled:        bool(rule.Disabled),
+		Tracker:         rule.Tracker,
+		MaxSrcNodes:     rule.MaxSrcNodes,
+		MaxSrcConn:      rule.MaxSrcConn,
+		MaxSrcConnRate:  rule.MaxSrcConnRate,
+		MaxSrcConnRates: rule.MaxSrcConnRates,
+		TCPFlags1:       rule.TCPFlags1,
+		TCPFlags2:       rule.TCPFlags2,
+		TCPFlagsAny:     bool(rule.TCPFlagsAny),
+		ICMPType:        rule.ICMPType,
+		ICMP6Type:       rule.ICMP6Type,
+		StateTimeout:    rule.StateTimeout,
+		AllowOpts:       bool(rule.AllowOpts),
+		DisableReplyTo:  bool(rule.DisableReplyTo),
+		NoPfSync:        bool(rule.NoPfSync),
+		NoSync:          bool(rule.NoSync),
+		Tag:             rule.Tag,
+		Tagged:          rule.Tagged,
+		// Set on the pass rule a port forward stores for itself.
+		AssociatedRuleID: rule.AssociatedRuleID,
+	}
+}
+
 // warnOnIncompleteFirewallRule records a conversion warning for each
-// required field rule leaves empty. Split out of convertFirewallRules to
+// required field rule leaves empty. Split out of convertLegacyFirewallRule to
 // keep that function inside the length limit; i is the rule index used to
 // address the warning.
 func (c *converter) warnOnIncompleteFirewallRule(i int, rule schema.Rule) {
@@ -639,7 +671,8 @@ func (c *converter) convertInboundNATRules(rules []schema.InboundRule) []common.
 // sequenceStep is the gap OPNsense leaves between the sequences it assigns.
 const sequenceStep = 100
 
-// sortKeyWidth is the width OPNsense right-aligns a numeric sort field to.
+// sortKeyWidth is the width OPNsense pads a sort field to, on the left when it
+// is a number and on the right otherwise.
 const sortKeyWidth = 30
 
 // portForwardPassValues are the values <pass> takes from 26.1 on: empty for a
