@@ -95,6 +95,7 @@ type Outbound struct {
 }
 
 // Filter represents the legacy firewall filter configuration containing an ordered list of firewall rules.
+// Rules of the firewall filter model are in [Firewall], see [FirewallFilterRule].
 type Filter struct {
 	Rule []Rule `xml:"rule"`
 }
@@ -465,6 +466,95 @@ type AliasList struct {
 	Alias []Alias `xml:"alias,omitempty" json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
+// FirewallFilterRule is a firewall rule kept in the firewall filter model, under
+// <OPNsense><Firewall><Filter><rules>. OPNsense loads these rules together with
+// the ones under <filter>, and the 26.7 rules page writes only here.
+//
+// The fields follow the 26.7.5 model; earlier releases write fewer of them. An
+// element a rule leaves out takes the model's default, so Enabled, Quick,
+// IPProtocol, SourceNet and DestinationNet are pointers: nil stands for the
+// default (enabled, quick, inet, any, any) and an empty element does not. The
+// model writes its flags as 0 or 1, and the firewall takes anything but an
+// empty element and 0 as set.
+//
+// The type has no XMLName, so IsPlaceholder can compare it with its zero value.
+type FirewallFilterRule struct {
+	Enabled           *string `xml:"enabled"`
+	StateType         string  `xml:"statetype,omitempty"`
+	StatePolicy       string  `xml:"state-policy,omitempty"`
+	Sequence          string  `xml:"sequence,omitempty"`
+	Action            string  `xml:"action,omitempty"`
+	Quick             *string `xml:"quick"`
+	InterfaceNot      string  `xml:"interfacenot,omitempty"`
+	Interface         string  `xml:"interface,omitempty"`
+	ReceivedOnNot     string  `xml:"received-on-not,omitempty"`
+	ReceivedOn        string  `xml:"received-on,omitempty"`
+	Direction         string  `xml:"direction,omitempty"`
+	IPProtocol        *string `xml:"ipprotocol"`
+	Protocol          string  `xml:"protocol,omitempty"`
+	ICMPType          string  `xml:"icmptype,omitempty"`
+	ICMP6Type         string  `xml:"icmp6type,omitempty"`
+	SourceNet         *string `xml:"source_net"`
+	SourceNot         string  `xml:"source_not,omitempty"`
+	SourcePort        string  `xml:"source_port,omitempty"`
+	DestinationNet    *string `xml:"destination_net"`
+	DestinationNot    string  `xml:"destination_not,omitempty"`
+	DestinationPort   string  `xml:"destination_port,omitempty"`
+	DivertTo          string  `xml:"divert-to,omitempty"`
+	Gateway           string  `xml:"gateway,omitempty"`
+	ReplyTo           string  `xml:"replyto,omitempty"`
+	DisableReplyTo    string  `xml:"disablereplyto,omitempty"`
+	Log               string  `xml:"log,omitempty"`
+	AllowOpts         string  `xml:"allowopts,omitempty"`
+	NoSync            string  `xml:"nosync,omitempty"`
+	NoPfSync          string  `xml:"nopfsync,omitempty"`
+	StateTimeout      string  `xml:"statetimeout,omitempty"`
+	UDPFirst          string  `xml:"udp-first,omitempty"`
+	UDPMultiple       string  `xml:"udp-multiple,omitempty"`
+	UDPSingle         string  `xml:"udp-single,omitempty"`
+	MaxSrcNodes       string  `xml:"max-src-nodes,omitempty"`
+	MaxSrcStates      string  `xml:"max-src-states,omitempty"`
+	MaxSrcConn        string  `xml:"max-src-conn,omitempty"`
+	Max               string  `xml:"max,omitempty"`
+	MaxSrcConnRate    string  `xml:"max-src-conn-rate,omitempty"`
+	MaxSrcConnRates   string  `xml:"max-src-conn-rates,omitempty"`
+	MaxPktRateNumber  string  `xml:"max-pkt-rate-number,omitempty"`
+	MaxPktRateSeconds string  `xml:"max-pkt-rate-seconds,omitempty"`
+	Overload          string  `xml:"overload,omitempty"`
+	AdaptiveStart     string  `xml:"adaptivestart,omitempty"`
+	AdaptiveEnd       string  `xml:"adaptiveend,omitempty"`
+	Prio              string  `xml:"prio,omitempty"`
+	SetPrio           string  `xml:"set-prio,omitempty"`
+	SetPrioLow        string  `xml:"set-prio-low,omitempty"`
+	Tag               string  `xml:"tag,omitempty"`
+	Tagged            string  `xml:"tagged,omitempty"`
+	TCPFlags1         string  `xml:"tcpflags1,omitempty"`
+	TCPFlags2         string  `xml:"tcpflags2,omitempty"`
+	TCPFlagsAny       string  `xml:"tcpflags_any,omitempty"`
+	Categories        string  `xml:"categories,omitempty"`
+	Sched             string  `xml:"sched,omitempty"`
+	TOS               string  `xml:"tos,omitempty"`
+	Shaper1           string  `xml:"shaper1,omitempty"`
+	Shaper2           string  `xml:"shaper2,omitempty"`
+	Description       string  `xml:"description,omitempty"`
+	Audit             string  `xml:"audit,omitempty"`
+	UUID              string  `xml:"uuid,attr,omitempty"`
+}
+
+// IsPlaceholder reports whether r is a <rule> element with no content. OPNsense
+// skips an entry without child elements, whatever its attributes, so the uuid
+// is left out of the comparison. A rule read here would otherwise take every
+// default and become an enabled pass rule from any to any on every interface.
+//
+// The test is on content, not on child elements: a rule whose only children
+// are empty elements of string fields, or elements the type does not bind, is
+// taken for a placeholder, although OPNsense loads it. No release writes one.
+func (r FirewallFilterRule) IsPlaceholder() bool {
+	r.UUID = ""
+
+	return r == FirewallFilterRule{}
+}
+
 // Firewall represents the OPNsense MVC-based firewall configuration, including
 // live templates, alias definitions, category groupings, and filter/SNAT rules.
 type Firewall struct {
@@ -490,12 +580,16 @@ type Firewall struct {
 		Categories string `xml:"categories"`
 	} `xml:"Category"   json:"category"`
 	Filter struct {
-		Text      string `xml:",chardata" json:"text,omitempty"`
-		Version   string `xml:"version,attr" json:"version,omitempty"`
-		Rules     string `xml:"rules"`
-		Snatrules string `xml:"snatrules"`
-		Npt       string `xml:"npt"`
-		Onetoone  string `xml:"onetoone"`
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Version string `xml:"version,attr" json:"version,omitempty"`
+		// General is written empty from 26.1.11 on.
+		General string `xml:"general,omitempty"`
+		// Rules are the firewall rules of the filter model. The three NAT
+		// containers beside them are bound but not read.
+		Rules     []FirewallFilterRule `xml:"rules>rule"`
+		Snatrules string               `xml:"snatrules"`
+		Npt       string               `xml:"npt"`
+		Onetoone  string               `xml:"onetoone"`
 	} `xml:"Filter"     json:"filter"`
 }
 

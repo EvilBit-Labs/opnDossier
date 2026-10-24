@@ -502,4 +502,7 @@ type IfGroupEntry struct {
 	XMLName xml.Name `xml:"ifgroupentry"`
 	IfName  string   `xml:"ifname,omitempty"`
 	Members string   `xml:"members,omitempty"`
+	// Sequence orders the firewall rules on the group against those on other
+	// groups. It defaults to 0.
+	Sequence string `xml:"sequence,omitempty"`
 }

@@ -13,83 +13,102 @@ import (
 
 // CompareFirewallRules compares firewall rules between two configs.
 func (a *Analyzer) CompareFirewallRules(old, newCfg []common.FirewallRule) []Change {
-	var changes []Change
-
-	// Build maps by UUID for matching
-	oldByUUID := make(map[string]common.FirewallRule, len(old))
-	newByUUID := make(map[string]common.FirewallRule, len(newCfg))
-
-	for _, rule := range old {
-		if rule.UUID != "" {
-			oldByUUID[rule.UUID] = rule
-		}
-	}
-	for _, rule := range newCfg {
-		if rule.UUID != "" {
-			newByUUID[rule.UUID] = rule
-		}
-	}
+	oldByUUID := rulesByUUID(old)
+	newByUUID := rulesByUUID(newCfg)
 
 	// Sort keys for deterministic output
-	oldUUIDs := slices.Sorted(maps.Keys(oldByUUID))
-	newUUIDs := slices.Sorted(maps.Keys(newByUUID))
-
-	// Find removed rules
-	for _, uuid := range oldUUIDs {
-		if _, exists := newByUUID[uuid]; !exists {
-			oldRule := oldByUUID[uuid]
-			changes = append(changes, Change{
-				Type:           ChangeRemoved,
-				Section:        SectionFirewall,
-				Path:           fmt.Sprintf("filter.rule[uuid=%s]", uuid),
-				Description:    "Removed rule: " + ruleDescription(oldRule),
-				OldValue:       formatRule(oldRule),
-				SecurityImpact: "medium",
-			})
+	uuids := slices.Sorted(maps.Keys(oldByUUID))
+	for uuid := range newByUUID {
+		if _, ok := oldByUUID[uuid]; !ok {
+			uuids = append(uuids, uuid)
 		}
 	}
 
-	// Find added rules and modified rules
-	for _, uuid := range newUUIDs {
-		newRule := newByUUID[uuid]
-		oldRule, exists := oldByUUID[uuid]
-		if !exists {
-			impact := ""
-			if isPermissiveRule(newRule) {
-				impact = "high"
+	slices.Sort(uuids)
+
+	var removed, changed []Change
+
+	for _, uuid := range uuids {
+		path := fmt.Sprintf("filter.rule[uuid=%s]", uuid)
+		oldRules, newRules := oldByUUID[uuid], newByUUID[uuid]
+		partner := make([]int, len(newRules))
+
+		res := sameUUIDPairer.pair(oldRules, newRules, func(oi, ni int) { partner[ni] = oi })
+
+		for oi, oldRule := range oldRules {
+			if !res.oldPaired[oi] {
+				removed = append(removed, Change{
+					Type:           ChangeRemoved,
+					Section:        SectionFirewall,
+					Path:           path,
+					Description:    "Removed rule: " + ruleDescription(oldRule),
+					OldValue:       formatRule(oldRule),
+					SecurityImpact: "medium",
+				})
 			}
-			changes = append(changes, Change{
-				Type:           ChangeAdded,
-				Section:        SectionFirewall,
-				Path:           fmt.Sprintf("filter.rule[uuid=%s]", uuid),
-				Description:    "Added rule: " + ruleDescription(newRule),
-				NewValue:       formatRule(newRule),
-				SecurityImpact: impact,
-			})
-		} else if !rulesEqual(oldRule, newRule) {
-			// Flag cases where the modified rule becomes permissive while the old rule was not
-			impact := ""
-			if isPermissiveRule(newRule) && !isPermissiveRule(oldRule) {
-				impact = "high"
+		}
+
+		for ni, newRule := range newRules {
+			switch {
+			case !res.newPaired[ni]:
+				impact := ""
+				if isPermissiveRule(newRule) {
+					impact = "high"
+				}
+				changed = append(changed, Change{
+					Type:           ChangeAdded,
+					Section:        SectionFirewall,
+					Path:           path,
+					Description:    "Added rule: " + ruleDescription(newRule),
+					NewValue:       formatRule(newRule),
+					SecurityImpact: impact,
+				})
+			case !rulesEqual(oldRules[partner[ni]], newRule):
+				oldRule := oldRules[partner[ni]]
+				// Flag cases where the modified rule becomes permissive while the old rule was not
+				impact := ""
+				if isPermissiveRule(newRule) && !isPermissiveRule(oldRule) {
+					impact = "high"
+				}
+				changed = append(changed, Change{
+					Type:           ChangeModified,
+					Section:        SectionFirewall,
+					Path:           path,
+					Description:    "Modified rule: " + ruleDescription(newRule),
+					OldValue:       formatRule(oldRule),
+					NewValue:       formatRule(newRule),
+					SecurityImpact: impact,
+					summarized:     true,
+				})
 			}
-			changes = append(changes, Change{
-				Type:           ChangeModified,
-				Section:        SectionFirewall,
-				Path:           fmt.Sprintf("filter.rule[uuid=%s]", uuid),
-				Description:    "Modified rule: " + ruleDescription(newRule),
-				OldValue:       formatRule(oldRule),
-				NewValue:       formatRule(newRule),
-				SecurityImpact: impact,
-				summarized:     true,
-			})
 		}
 	}
 
 	// Rules without a UUID are compared separately; see compareRulesWithoutUUID.
-	changes = append(changes, a.compareRulesWithoutUUID(old, newCfg)...)
-
-	return changes
+	return slices.Concat(removed, changed, a.compareRulesWithoutUUID(old, newCfg))
 }
+
+// rulesByUUID groups the rules that carry a uuid by it, in list order. More
+// than one rule can carry the same one: OPNsense's migration assistant copies a
+// rule into the filter model under its uuid and leaves the original in place
+// until the operator removes it, and both are loaded.
+func rulesByUUID(rules []common.FirewallRule) map[string][]common.FirewallRule {
+	byUUID := make(map[string][]common.FirewallRule, len(rules))
+
+	for _, rule := range rules {
+		if rule.UUID != "" {
+			byUUID[rule.UUID] = append(byUUID[rule.UUID], rule)
+		}
+	}
+
+	return byUUID
+}
+
+// sameUUIDPairer pairs the rules that share a uuid across a diff: an unchanged
+// copy with its counterpart first, then the rest in list order. Pairing by list
+// order alone would match a new copy with the original it was made from, and
+// report that original as edited into the copy and added again.
+var sameUUIDPairer = itemPairer[common.FirewallRule]{equal: rulesEqual}
 
 // Similarity weights for pairing leftover rules. A rule's description is the
 // operator's own name for it and survives most edits, so it counts for more
@@ -364,16 +383,17 @@ func rulesOptionsEqual(a, b common.FirewallRule) bool {
 		a.Tagged == b.Tagged
 }
 
-// endpointsEqual compares two rule endpoints by value. RuleEndpoint holds its
-// alias references as pointers, so == compares the pointers: two parses of the
-// same rule then differ whenever an endpoint names an alias, and an unchanged
-// rule is reported as modified.
+// endpointsEqual compares two rule endpoints by value. Comparing the alias
+// references as pointers made two parses of the same rule differ whenever an
+// endpoint named an alias, so an unchanged rule was reported as modified.
+// RuleEndpoint holds a slice and cannot be compared with ==.
 func endpointsEqual(a, b common.RuleEndpoint) bool {
 	return a.Address == b.Address &&
 		a.Port == b.Port &&
 		a.Negated == b.Negated &&
 		objectRefsEqual(a.AddressRef, b.AddressRef) &&
-		objectRefsEqual(a.PortRef, b.PortRef)
+		objectRefsEqual(a.PortRef, b.PortRef) &&
+		slices.Equal(a.AddressRefs, b.AddressRefs)
 }
 
 // objectRefsEqual compares two optional named-object references by value, so a

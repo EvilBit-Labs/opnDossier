@@ -26,10 +26,9 @@ const (
 
 // IPProtocol is the shared firewall-rule IP-protocol enum across device types.
 //
-// Consumers writing switch statements on IPProtocol for OPNsense-only contexts
-// should be aware that IPProtocolInet46 is pfSense-specific (a single rule that
-// matches both IPv4 and IPv6). OPNsense does not emit this value — if it appears
-// on an OPNsense device, it is a bug upstream in the parser or converter.
+// IPProtocolInet46 is a single rule that matches both IPv4 and IPv6. pfSense
+// writes it, and so does OPNsense, in rules under <filter> and in the firewall
+// filter model.
 //
 // Recommended switch pattern for consumers that need to handle every value:
 //
@@ -39,7 +38,7 @@ const (
 //	case model.IPProtocolInet6:
 //	    // IPv6
 //	case model.IPProtocolInet46:
-//	    // pfSense dual-stack rule (IPv4 + IPv6)
+//	    // dual-stack rule (IPv4 + IPv6)
 //	default:
 //	    // unknown / unset
 //	}
@@ -50,12 +49,8 @@ const (
 	IPProtocolInet IPProtocol = "inet"
 	// IPProtocolInet6 represents the IPv6 address family.
 	IPProtocolInet6 IPProtocol = "inet6"
-	// IPProtocolInet46 is pfSense-specific: a single firewall rule that matches
-	// both IPv4 and IPv6 traffic (dual-stack). OPNsense does not emit this value;
-	// seeing it on an OPNsense device indicates an upstream parser or converter
-	// bug. Consumers writing OPNsense-only switch statements can safely treat
-	// this case as unreachable, but should still handle it defensively (e.g., log
-	// and fall through to a default) rather than panic.
+	// IPProtocolInet46 is a single firewall rule that matches both IPv4 and
+	// IPv6 traffic (dual-stack).
 	IPProtocolInet46 IPProtocol = "inet46"
 )
 
@@ -116,8 +111,18 @@ func (m NATOutboundMode) IsValid() bool {
 // RuleEndpoint represents a normalized source or destination in a firewall
 // or NAT rule. The Address field contains the already-resolved effective
 // address ("any", a CIDR, hostname, or empty string).
+//
+// An OPNsense filter rule can name several addresses on one side. Address then
+// holds them as the firewall stores them, separated by commas, and the rule
+// matches each of them. Negated on a list does not mean none of them: the
+// firewall negates each entry on its own, so the rule matches every address
+// outside their overlap, which is every address when they do not overlap.
+//
+// RuleEndpoint holds a slice, so two endpoints cannot be compared with == and
+// an endpoint cannot be a map key.
 type RuleEndpoint struct {
-	// Address is the resolved effective address (e.g., "any", a CIDR, or hostname).
+	// Address is the resolved effective address (e.g., "any", a CIDR, or
+	// hostname), or a comma-separated list of them.
 	Address string `json:"address,omitempty" yaml:"address,omitempty"`
 	// Port is the port or port range specification.
 	Port string `json:"port,omitempty" yaml:"port,omitempty"`
@@ -125,8 +130,16 @@ type RuleEndpoint struct {
 	Negated bool `json:"negated,omitempty" yaml:"negated,omitempty"`
 	// AddressRef identifies the named object (alias) Address was resolved
 	// from, when the endpoint's address was expressed as an alias rather
-	// than a literal. Nil when Address is a literal value.
+	// than a literal. Nil when Address is a literal value or a list.
 	AddressRef *ObjectRef `json:"addressRef,omitempty" yaml:"addressRef,omitempty"`
+	// AddressRefs identifies each named object (alias) in the address list of
+	// an OPNsense firewall rule, in list order. An entry that is not an alias
+	// has none. A list of the filter model that holds any, an empty entry or,
+	// without negation, a network of every address is reported as "any" and
+	// keeps them; a list in a legacy <address> is kept as written. Empty when
+	// Address is a single value, as pfSense addresses always are, and on NAT
+	// rules, whose lists are not resolved.
+	AddressRefs []ObjectRef `json:"addressRefs,omitempty" yaml:"addressRefs,omitempty"`
 	// PortRef identifies the named object (alias) Port was resolved from,
 	// when the endpoint's port was expressed as an alias rather than a
 	// literal. Nil when Port is a literal value.
@@ -143,7 +156,7 @@ type FirewallRule struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Interfaces lists the interface names this rule applies to.
 	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	// IPProtocol is the IP address family (inet or inet6).
+	// IPProtocol is the IP address family (inet, inet6, or inet46 for both).
 	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
 	// StateType is the state tracking type (e.g., "keep state", "sloppy state").
 	StateType string `json:"stateType,omitempty" yaml:"stateType,omitempty"`

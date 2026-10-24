@@ -325,6 +325,106 @@ func TestEngine_Compare_DetectOrder_ExcludesContentChanges(t *testing.T) {
 	}
 }
 
+// TestEngine_Compare_DetectOrder_SharedUUID covers rules that share a uuid, as
+// a rule and the copy OPNsense's migration assistant makes of it do until the
+// operator removes the original. A reorder of the copies is reported; one
+// identifier for both kept only the last place of each, so it was not.
+func TestEngine_Compare_DetectOrder_SharedUUID(t *testing.T) {
+	rule := func(uuid, description string) common.FirewallRule {
+		return common.FirewallRule{UUID: uuid, Type: common.RuleTypePass, Description: description}
+	}
+
+	old := &common.CommonDevice{FirewallRules: []common.FirewallRule{
+		rule("u1", "SSH"), rule("u2", "HTTP"), rule("u1", "SSH"), rule("u2", "HTTP"),
+	}}
+	newCfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{
+		rule("u2", "HTTP"), rule("u1", "SSH"), rule("u1", "SSH"), rule("u2", "HTTP"),
+	}}
+
+	result, err := NewEngine(old, newCfg, Options{DetectOrder: true}, nil).Compare(context.Background())
+	require.NoError(t, err)
+
+	var moved []string
+
+	for _, c := range result.Changes {
+		require.Equal(t, ChangeReordered, c.Type)
+		moved = append(moved, c.Path)
+	}
+
+	assert.Equal(t, []string{"filter.rule[uuid=u1]", "filter.rule[uuid=u2]"}, moved)
+
+	changesByPath := func(t *testing.T, oldRules, newRules []common.FirewallRule) map[string][]ChangeType {
+		t.Helper()
+
+		result, err := NewEngine(
+			&common.CommonDevice{FirewallRules: oldRules},
+			&common.CommonDevice{FirewallRules: newRules},
+			Options{DetectOrder: true}, nil,
+		).Compare(context.Background())
+		require.NoError(t, err)
+
+		got := make(map[string][]ChangeType)
+		for _, c := range result.Changes {
+			got[c.Path] = append(got[c.Path], c.Type)
+		}
+
+		return got
+	}
+
+	t.Run("a content change to one copy hides the moves of all of them", func(t *testing.T) {
+		// Both u2 copies move, and the one edited is the second.
+		got := changesByPath(t, old.FirewallRules, []common.FirewallRule{
+			rule("u2", "HTTPS"), rule("u1", "SSH"), rule("u2", "HTTP"), rule("u1", "SSH"),
+		})
+
+		assert.Equal(t, map[string][]ChangeType{
+			"filter.rule[uuid=u1]":        {ChangeReordered},
+			"filter.rule[uuid=u1,copy=1]": {ChangeReordered},
+			"filter.rule[uuid=u2]":        {ChangeModified},
+		}, got)
+	})
+
+	t.Run("a second copy that moved is named by its count", func(t *testing.T) {
+		got := changesByPath(t, old.FirewallRules, []common.FirewallRule{
+			rule("u1", "SSH"), rule("u2", "HTTP"), rule("u2", "HTTPS"), rule("u1", "SSH"),
+		})
+
+		assert.Equal(t, map[string][]ChangeType{
+			"filter.rule[uuid=u1,copy=1]": {ChangeReordered},
+			"filter.rule[uuid=u2]":        {ChangeModified},
+		}, got)
+	})
+
+	t.Run("copies that differ keep their names when they swap places", func(t *testing.T) {
+		// The content diff pairs each copy with itself, so the swap shows only
+		// here. Numbering the copies by place would give both sides the same
+		// names and report nothing.
+		got := changesByPath(t,
+			[]common.FirewallRule{rule("u1", "SSH"), rule("u2", "HTTP"), rule("u1", "SSH, migrated")},
+			[]common.FirewallRule{rule("u1", "SSH, migrated"), rule("u2", "HTTP"), rule("u1", "SSH")},
+		)
+
+		assert.Equal(t, map[string][]ChangeType{
+			"filter.rule[uuid=u1]":        {ChangeReordered},
+			"filter.rule[uuid=u1,copy=1]": {ChangeReordered},
+		}, got)
+	})
+
+	t.Run("a copy added beside its original is reported as added", func(t *testing.T) {
+		// The new copy has no partner on the old side and takes the next
+		// count, so the original keeps its name and only the other rule moves.
+		got := changesByPath(t,
+			[]common.FirewallRule{rule("u1", "SSH"), rule("u2", "HTTP")},
+			[]common.FirewallRule{rule("u2", "HTTP"), rule("u1", "SSH, migrated"), rule("u1", "SSH")},
+		)
+
+		assert.Equal(t, map[string][]ChangeType{
+			"filter.rule[uuid=u1]": {ChangeAdded},
+			"filter.rule[uuid=u2]": {ChangeReordered},
+		}, got)
+	})
+}
+
 func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
 	old := &common.CommonDevice{
 		Interfaces: []common.Interface{

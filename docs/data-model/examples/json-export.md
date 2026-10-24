@@ -112,7 +112,7 @@ jq '.firewallRules | length' config.json
 jq '.firewallRules[] | select(.disabled | not)' config.json
 
 # Rules by interface
-jq '[.firewallRules[] | .interfaces[]] | group_by(.) | map({
+jq '[.firewallRules[] | .interfaces[]?] | group_by(.) | map({
   interface: .[0],
   count: length
 })' config.json
