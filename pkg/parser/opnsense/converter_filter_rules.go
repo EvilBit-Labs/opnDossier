@@ -194,10 +194,24 @@ func (c *converter) filterRulesInOrder(doc *schema.OpnSenseDocument) []filterRul
 	return rules
 }
 
-// checkFilterModelVersion warns when the filter model holds rules under a
-// version this converter has not been checked against.
+// checkFilterModelVersion warns when the filter model carries a version this
+// converter has not been checked against. With rules decoded the mapping may be
+// stale. With none it may be worse: a version that renames <rules> or <rule>
+// decodes to no rules at all (§18.1), which the rules cannot show, so that case
+// warns too, at Low, since a model with no rules is also the common one.
 func (c *converter) checkFilterModelVersion(version string, rules int) {
-	if _, known := knownFilterModelVersions[version]; known || rules == 0 {
+	if _, known := knownFilterModelVersions[version]; known {
+		return
+	}
+
+	if rules == 0 {
+		c.addWarning(
+			filterModelVersionPath,
+			version,
+			"unrecognized OPNsense firewall filter model version and no rules decoded; the rule element may have been renamed",
+			common.SeverityLow,
+		)
+
 		return
 	}
 
@@ -306,9 +320,16 @@ func (c *converter) modelRulesInSequence(rules []schema.FirewallFilterRule) []sc
 		switch {
 		case rule.IsPlaceholder():
 		case rule.UUID != "" && lastWithUUID[rule.UUID] != i:
-			c.addWarning(filterModelRulesPath, rule.UUID,
-				"a later rule has the same uuid and replaces this one on the firewall, so it is left out",
-				common.SeverityMedium)
+			c.addWarning(
+				filterModelRulesPath,
+				rule.UUID,
+				fmt.Sprintf(
+					"a later rule has the same uuid and replaces this one on the firewall, so it is left out (sequence %q, description %q)",
+					rule.Sequence,
+					rule.Description,
+				),
+				common.SeverityMedium,
+			)
 		default:
 			kept = append(kept, rule)
 		}
@@ -509,9 +530,7 @@ func (c *converter) modelRuleInterfaces(
 		return nil, true
 	}
 
-	rest := c.interfacesExcept(path, keys[0], doc)
-
-	return rest, len(rest) > 0
+	return c.interfacesExcept(path, keys[0], doc), true
 }
 
 // interfacesExcept returns every interface of the document other than excluded.
@@ -522,8 +541,9 @@ func (c *converter) modelRuleInterfaces(
 // excluded member is left out too, since the rule does not apply on all of it;
 // its other members are listed on their own. The members of the built-in groups
 // are not in the config, so those groups stay in the list. A rule that excludes
-// every interface the config defines is left with none; its caller reports it
-// as disabled, because no interface would mean all of them.
+// every interface the config defines is left with none, which reads as every
+// interface: the firewall applies the rule on each interface it does not name,
+// lo0 and the tunnels among them, so that is the nearer reading.
 func (c *converter) interfacesExcept(path, excluded string, doc *schema.OpnSenseDocument) []string {
 	members, listed := groupMembers(doc, excluded)
 	skip := append([]string{excluded}, members...)
@@ -548,7 +568,7 @@ func (c *converter) interfacesExcept(path, excluded string, doc *schema.OpnSense
 	switch {
 	case len(rest) == 0:
 		c.addWarning(path+".Interface", excluded,
-			"the rule excludes every interface the config defines, so it is reported as disabled",
+			"the rule excludes every interface the config defines, so it is reported on every interface",
 			common.SeverityMedium)
 	case doc.Interfaces.Items[excluded].Type == interfaceTypeGroup && !listed:
 		c.addWarning(path+".Interface", excluded,
