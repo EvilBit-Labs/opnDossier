@@ -80,7 +80,7 @@ func TestScorer_Score_PatternMatching(t *testing.T) {
 			change: ChangeInput{
 				Type:    "modified",
 				Section: "interfaces",
-				Path:    "interfaces.lan.enable",
+				Path:    "interfaces.lan.enabled",
 			},
 			expected: "medium",
 		},
