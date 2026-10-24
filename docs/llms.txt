@@ -25,7 +25,7 @@ opnDossier is built in Go, ships as a single static binary for Linux / macOS / W
 
 ## Data Model & Integration
 
-- [Model Reference](https://opndossier.com/data-model/model-reference/): Auto-generated reference for the `pkg/model.CommonDevice` schema (the JSON/YAML output shape)
+- [Model Reference](https://opndossier.com/data-model/model-reference/): Hand-maintained reference for the `pkg/model.CommonDevice` schema (the JSON/YAML output shape)
 - [JSON Export Examples](https://opndossier.com/data-model/examples/json-export/): Real `CommonDevice` JSON outputs for common workflows
 - [YAML Processing Examples](https://opndossier.com/data-model/examples/yaml-processing/): Consuming YAML exports in automation pipelines
 - [API Reference](https://opndossier.com/development/api/): Full internal API documentation for library consumers
