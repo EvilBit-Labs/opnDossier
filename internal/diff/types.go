@@ -153,6 +153,10 @@ type Change struct {
 	OldValue       string     `json:"old_value,omitempty"`
 	NewValue       string     `json:"new_value,omitempty"`
 	SecurityImpact string     `json:"security_impact,omitempty"`
+
+	// summarized marks an entry whose values are a summary of what was
+	// compared, or absent. Normalize never skips one.
+	summarized bool
 }
 
 // Summary contains aggregate statistics about the diff.

@@ -394,6 +394,7 @@ func compareOutboundNATRules(old, newCfg []common.NATRule) []Change {
 			Description: "Modified outbound NAT rule: " + natRuleDescription(newCfg[ni]),
 			OldValue:    formatNATRule(old[oi]),
 			NewValue:    formatNATRule(newCfg[ni]),
+			summarized:  true,
 		})
 	})
 
@@ -453,6 +454,7 @@ func compareInboundNATRules(old, newCfg []common.InboundNATRule) []Change {
 			Description: "Modified port forward: " + inboundNATRuleDescription(newCfg[ni]),
 			OldValue:    formatInboundNATRule(old[oi]),
 			NewValue:    formatInboundNATRule(newCfg[ni]),
+			summarized:  true,
 		})
 	})
 
