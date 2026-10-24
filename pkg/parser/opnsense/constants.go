@@ -7,9 +7,6 @@ const (
 	// xmlBoolTrue is the OPNsense XML value for enabled/true in value-based boolean fields.
 	xmlBoolTrue = "1"
 
-	// xmlBoolYes is the OPNsense XML value for affirmative options (e.g., floating="yes").
-	xmlBoolYes = "yes"
-
 	// packageTypePlugin identifies firmware plugin packages parsed from config.xml.
 	packageTypePlugin = "plugin"
 
