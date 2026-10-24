@@ -187,7 +187,7 @@ Firewall rules are normalized with clean boolean types and resolved endpoint add
 | `Type`        | `string`       | `firewallRules[].type`        | Action: "pass", "block", "reject"   |
 | `Description` | `string`       | `firewallRules[].description` | Human-readable description          |
 | `Interfaces`  | `[]string`     | `firewallRules[].interfaces`  | Applied interface names             |
-| `IPProtocol`  | `string`       | `firewallRules[].ipProtocol`  | Address family (inet/inet6)         |
+| `IPProtocol`  | `string`       | `firewallRules[].ipProtocol`  | Address family (inet/inet6/inet46)  |
 | `Protocol`    | `string`       | `firewallRules[].protocol`    | Layer-4 protocol (tcp, udp, icmp)   |
 | `Source`      | `RuleEndpoint` | `firewallRules[].source`      | Source endpoint                     |
 | `Destination` | `RuleEndpoint` | `firewallRules[].destination` | Destination endpoint                |
@@ -204,17 +204,18 @@ Firewall rules are normalized with clean boolean types and resolved endpoint add
 
 Used for both `source` and `destination` in firewall and NAT rules.
 
-| Field        | Type         | JSON Key     | Description                                                                                 |
-| ------------ | ------------ | ------------ | ------------------------------------------------------------------------------------------- |
-| `Address`    | `string`     | `address`    | Resolved address ("any", CIDR, hostname)                                                    |
-| `Port`       | `string`     | `port`       | Port or port range                                                                          |
-| `Negated`    | `bool`       | `negated`    | Inverted match (NOT logic)                                                                  |
-| `AddressRef` | `*ObjectRef` | `addressRef` | Present when `Address` was expressed as a firewall alias; names the entry in `namedObjects` |
-| `PortRef`    | `*ObjectRef` | `portRef`    | Present when `Port` was expressed as a firewall alias; names the entry in `namedObjects`    |
+| Field         | Type          | JSON Key      | Description                                                                                                                                                                                                                          |
+| ------------- | ------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Address`     | `string`      | `address`     | Resolved address ("any", CIDR, hostname), or a comma-separated list of them                                                                                                                                                          |
+| `Port`        | `string`      | `port`        | Port or port range                                                                                                                                                                                                                   |
+| `Negated`     | `bool`        | `negated`     | Inverted match (NOT logic)                                                                                                                                                                                                           |
+| `AddressRef`  | `*ObjectRef`  | `addressRef`  | Present when `Address` was expressed as a firewall alias; names the entry in `namedObjects`                                                                                                                                          |
+| `PortRef`     | `*ObjectRef`  | `portRef`     | Present when `Port` was expressed as a firewall alias; names the entry in `namedObjects`                                                                                                                                             |
+| `AddressRefs` | `[]ObjectRef` | `addressRefs` | Present when the `Address` of an OPNsense firewall rule is a list, or a list reported as `any` because it matches every address: one entry for each alias in it, in list order; `AddressRef` is then absent. Not filled on NAT rules |
 
 ### NamedObject and ObjectRef (firewall aliases)
 
-OPNsense and pfSense firewall aliases (host, network, port, and dynamic url/geoip/external tables) are exposed via the device-level `namedObjects` registry rather than a separate per-vendor table. A rule endpoint keeps its already-resolved inline `Address`/`Port` value and additionally carries an `AddressRef`/`PortRef` when that value originated from an alias, so existing consumers that only read the inline value are unaffected.
+OPNsense and pfSense firewall aliases (host, network, port, and dynamic url/geoip/external tables) are exposed via the device-level `namedObjects` registry rather than a separate per-vendor table. A rule endpoint keeps its already-resolved inline `Address`/`Port` value and additionally carries an `AddressRef`/`PortRef` when that value originated from an alias (`AddressRefs` for an address list), so existing consumers that only read the inline value are unaffected.
 
 | Field         | Type       | JSON Key                          | Description                                                                                  |
 | ------------- | ---------- | --------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -223,7 +224,7 @@ OPNsense and pfSense firewall aliases (host, network, port, and dynamic url/geoi
 | `Members`     | `[]string` | `namedObjects.<name>.members`     | Raw member values (literal addresses/ports, or nested alias names); opaque for dynamic types |
 | `Description` | `string`   | `namedObjects.<name>.description` | Human-readable alias description, when present                                               |
 
-`ObjectRef` (used by `AddressRef`/`PortRef` above) is a single-field pointer keyed into `namedObjects`:
+`ObjectRef` (used by `AddressRef`/`PortRef` above, and as the entries of `AddressRefs`) is a single-field pointer keyed into `namedObjects`:
 
 | Field  | Type     | JSON Key | Description                                              |
 | ------ | -------- | -------- | -------------------------------------------------------- |
@@ -233,7 +234,7 @@ Dynamic object types (`url`, `geoip`, `external`) are never expanded — their `
 
 #### Alias references beyond rule endpoints
 
-`AddressRef`/`PortRef` on rule endpoints are not the only alias references. Every field on which a pf-family alias can legitimately appear carries an `*ObjectRef` so downstream referential-integrity analysis (unused-object detection) sees a complete reference set:
+`AddressRef`/`PortRef` on rule endpoints are not the only alias references. Every field on which a pf-family alias can legitimately appear carries an `*ObjectRef` (or, for an address list, `[]ObjectRef`) so downstream referential-integrity analysis (unused-object detection) sees a complete reference set:
 
 - **NAT translation targets** — `NATRule` carries `targetRef`/`sourcePortRef`/`natPortRef`; `InboundNATRule` carries `internalIpRef`/`internalPortRef`/`externalPortRef`/`localPortRef`.
 - **Firewall redirect target** — `FirewallRule.targetRef`.

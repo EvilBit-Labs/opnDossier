@@ -40,7 +40,7 @@ jq '[.interfaces[].name]' config.json
 jq '.firewallRules[] | select(.disabled | not)' config.json
 
 # Count rules by interface
-jq '[.firewallRules[] | .interfaces[]] | group_by(.) | map({interface: .[0], count: length})' config.json
+jq '[.firewallRules[] | .interfaces[]?] | group_by(.) | map({interface: .[0], count: length})' config.json
 ```
 
 ### Query Data with yq
