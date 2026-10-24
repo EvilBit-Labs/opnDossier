@@ -73,6 +73,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "bercedev",
+      "name": "berce",
+      "avatar_url": "https://avatars.githubusercontent.com/u/75228263?v=4",
+      "profile": "https://github.com/bercedev",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
