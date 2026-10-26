@@ -348,7 +348,7 @@ func (c *converter) modelRulesInSequence(rules []schema.FirewallFilterRule) []sc
 func modelRuleSortKey(rule schema.FirewallFilterRule) string {
 	sequence := cmp.Or(rule.Sequence, defaultRuleSequence)
 	if isNumericString(sequence) {
-		return fmt.Sprintf("%*s,%s", sortKeyWidth, sequence, rule.UUID)
+		return sequenceSortKey(sequence, rule.UUID)
 	}
 
 	return fmt.Sprintf("%-*s,%s", sortKeyWidth, sequence, rule.UUID)

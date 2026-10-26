@@ -300,43 +300,47 @@ func TestConverter_PortForwards_NoRDRHasNoTarget(t *testing.T) {
 	}
 }
 
+// portForwardRule builds one <rule> with the given description and <sequence>
+// element, which may be empty.
+func portForwardRule(descr, sequence string) string {
+	return `<rule><descr>` + descr + `</descr>` + sequence +
+		`<interface>wan</interface><target>192.168.1.50</target></rule>`
+}
+
+// portForwardDescriptions lists the converted port forwards' descriptions in
+// their reported order.
+func portForwardDescriptions(device *common.CommonDevice) []string {
+	out := make([]string, 0, len(device.NAT.InboundRules))
+	for _, r := range device.NAT.InboundRules {
+		out = append(out, r.Description)
+	}
+
+	return out
+}
+
 // TestConverter_PortForwards_Order covers when <sequence> decides the order and
 // when the document does.
 func TestConverter_PortForwards_Order(t *testing.T) {
 	t.Parallel()
-
-	rule := func(descr, sequence string) string {
-		return `<rule><descr>` + descr + `</descr>` + sequence +
-			`<interface>wan</interface><target>192.168.1.50</target></rule>`
-	}
-
-	descriptions := func(device *common.CommonDevice) []string {
-		out := make([]string, 0, len(device.NAT.InboundRules))
-		for _, r := range device.NAT.InboundRules {
-			out = append(out, r.Description)
-		}
-
-		return out
-	}
 
 	t.Run("every rule sequenced sorts numerically", func(t *testing.T) {
 		t.Parallel()
 
 		device, warnings := parsePortForwards(
 			t,
-			rule(
+			portForwardRule(
 				"c",
 				`<sequence>1000</sequence>`,
-			)+rule(
+			)+portForwardRule(
 				"b",
 				`<sequence>200</sequence>`,
-			)+rule(
+			)+portForwardRule(
 				"a",
 				`<sequence>30</sequence>`,
 			),
 		)
 		assert.Empty(t, warnings)
-		assert.Equal(t, []string{"a", "b", "c"}, descriptions(device))
+		assert.Equal(t, []string{"a", "b", "c"}, portForwardDescriptions(device))
 	})
 
 	t.Run("equal sequences are ordered by uuid", func(t *testing.T) {
@@ -345,51 +349,67 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 		// A byte comparison puts "10..." first; the firewall's natural sort
 		// compares 9 with 10 as numbers.
 		withUUID := func(descr, uuid string) string {
-			return strings.Replace(rule(descr, `<sequence>100</sequence>`), `<rule>`, `<rule uuid="`+uuid+`">`, 1)
+			return strings.Replace(
+				portForwardRule(descr, `<sequence>100</sequence>`),
+				`<rule>`,
+				`<rule uuid="`+uuid+`">`,
+				1,
+			)
 		}
 		device, warnings := parsePortForwards(t,
 			withUUID("ten", "10aaaaaa-0000-4000-8000-000000000000")+
 				withUUID("nine", "9aaaaaaa-0000-4000-8000-000000000000"))
 		assert.Empty(t, warnings)
-		assert.Equal(t, []string{"nine", "ten"}, descriptions(device))
+		assert.Equal(t, []string{"nine", "ten"}, portForwardDescriptions(device))
 	})
 
 	t.Run("equal sequences without a uuid keep document order", func(t *testing.T) {
 		t.Parallel()
 
 		device, _ := parsePortForwards(t,
-			rule("first", `<sequence>100</sequence>`)+
-				rule("second", `<sequence>100</sequence>`)+
-				rule("third", `<sequence>100</sequence>`))
-		assert.Equal(t, []string{"first", "second", "third"}, descriptions(device))
+			portForwardRule("first", `<sequence>100</sequence>`)+
+				portForwardRule("second", `<sequence>100</sequence>`)+
+				portForwardRule("third", `<sequence>100</sequence>`))
+		assert.Equal(t, []string{"first", "second", "third"}, portForwardDescriptions(device))
 	})
 
 	t.Run("a padded sequence is still a number", func(t *testing.T) {
 		t.Parallel()
 
 		device, warnings := parsePortForwards(t,
-			rule("b", `<sequence> 200 </sequence>`)+rule("a", `<sequence>100</sequence>`))
+			portForwardRule("b", `<sequence> 200 </sequence>`)+portForwardRule("a", `<sequence>100</sequence>`))
 		assert.Empty(t, warnings)
-		assert.Equal(t, []string{"a", "b"}, descriptions(device))
+		assert.Equal(t, []string{"a", "b"}, portForwardDescriptions(device))
 		assert.Equal(t, 200, device.NAT.InboundRules[1].Priority)
 	})
 
 	t.Run("legacy rules keep document order", func(t *testing.T) {
 		t.Parallel()
 
-		device, warnings := parsePortForwards(t, rule("z", "")+rule("y", ""))
+		device, warnings := parsePortForwards(t, portForwardRule("z", "")+portForwardRule("y", ""))
 		assert.Empty(t, warnings)
-		assert.Equal(t, []string{"z", "y"}, descriptions(device))
+		assert.Equal(t, []string{"z", "y"}, portForwardDescriptions(device))
 		assert.Zero(t, device.NAT.InboundRules[0].Priority)
 	})
 
 	t.Run("a rule without a sequence goes after the sequenced ones", func(t *testing.T) {
 		t.Parallel()
 
-		device, warnings := parsePortForwards(t,
-			rule("unsequenced", "")+rule("b", `<sequence>200</sequence>`)+rule("a", `<sequence>100</sequence>`))
+		device, warnings := parsePortForwards(
+			t,
+			portForwardRule(
+				"unsequenced",
+				"",
+			)+portForwardRule(
+				"b",
+				`<sequence>200</sequence>`,
+			)+portForwardRule(
+				"a",
+				`<sequence>100</sequence>`,
+			),
+		)
 		assert.Empty(t, warnings)
-		assert.Equal(t, []string{"a", "b", "unsequenced"}, descriptions(device))
+		assert.Equal(t, []string{"a", "b", "unsequenced"}, portForwardDescriptions(device))
 		assert.Zero(t, device.NAT.InboundRules[2].Priority, "an assigned place is not reported as a sequence")
 	})
 
@@ -397,9 +417,9 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 		t.Parallel()
 
 		device, warnings := parsePortForwards(t,
-			`<rule/>`+rule("b", `<sequence>200</sequence>`)+rule("a", `<sequence>100</sequence>`))
+			`<rule/>`+portForwardRule("b", `<sequence>200</sequence>`)+portForwardRule("a", `<sequence>100</sequence>`))
 		assert.Empty(t, warnings)
-		assert.Equal(t, []string{"a", "b"}, descriptions(device))
+		assert.Equal(t, []string{"a", "b"}, portForwardDescriptions(device))
 	})
 
 	for _, bad := range []string{"first", "1.5", "99999999999999999999"} {
@@ -408,10 +428,10 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 
 			// The rejected rule sits between two numbered rules that are out
 			// of order, so no sort by sequence gives z, y, a.
-			rules := rule("z", `<sequence>200</sequence>`) +
-				rule("y", `<sequence>`+bad+`</sequence>`) + rule("a", `<sequence>100</sequence>`)
+			rules := portForwardRule("z", `<sequence>200</sequence>`) +
+				portForwardRule("y", `<sequence>`+bad+`</sequence>`) + portForwardRule("a", `<sequence>100</sequence>`)
 			device, warnings := parsePortForwards(t, rules)
-			require.Equal(t, []string{"z", "y", "a"}, descriptions(device))
+			require.Equal(t, []string{"z", "y", "a"}, portForwardDescriptions(device))
 			assert.Zero(t, device.NAT.InboundRules[1].Priority, "a rejected sequence is not reported")
 			require.Len(t, warnings, 1)
 			assert.Equal(t, "NAT.InboundRules[1].Priority", warnings[0].Field)
@@ -420,6 +440,37 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 			assert.Contains(t, warnings[0].Message, "document order")
 		})
 	}
+}
+
+// TestConverter_PortForwards_Order_SortedByKey covers the sequences whose
+// firewall order differs from the integer order: the firewall sorts the stored
+// text, not the number it parses to.
+func TestConverter_PortForwards_Order_SortedByKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("a signed sequence sorts ahead of every unsigned one", func(t *testing.T) {
+		t.Parallel()
+
+		device, warnings := parsePortForwards(t,
+			portForwardRule("a", `<sequence>100</sequence>`)+portForwardRule("b", `<sequence>+300</sequence>`))
+		assert.Empty(t, warnings)
+		assert.Equal(t, []string{"b", "a"}, portForwardDescriptions(device))
+		assert.Equal(t, 300, device.NAT.InboundRules[0].Priority)
+	})
+
+	t.Run("trailing whitespace on a tie sorts ahead of the uuid", func(t *testing.T) {
+		t.Parallel()
+
+		withUUID := func(descr, uuid, sequence string) string {
+			return strings.Replace(portForwardRule(descr, sequence), `<rule>`, `<rule uuid="`+uuid+`">`, 1)
+		}
+		device, warnings := parsePortForwards(t,
+			withUUID("nine", "9aaaaaaa-0000-4000-8000-000000000000", `<sequence>100</sequence>`)+
+				withUUID("ten", "10aaaaaa-0000-4000-8000-000000000000", `<sequence>100 </sequence>`))
+		assert.Empty(t, warnings)
+		assert.Equal(t, []string{"ten", "nine"}, portForwardDescriptions(device))
+		assert.Equal(t, 100, device.NAT.InboundRules[0].Priority)
+	})
 }
 
 // TestConverter_PortForwards_PassValues covers the three values 26.1 and later
