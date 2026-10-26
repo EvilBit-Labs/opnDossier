@@ -16,8 +16,6 @@ func TestNormalizer_NormalizeIP(t *testing.T) {
 		expected string
 	}{
 		{"standard IPv4", "192.168.1.1", "192.168.1.1"},
-		// A zero-padded octet is read as octal by inet_aton-family parsers,
-		// so it is never formatting; the value is returned as written.
 		{"leading zeros stay unchanged", "192.168.001.001", "192.168.001.001"},
 		{"all zeros stay unchanged", "000.000.000.000", "000.000.000.000"},
 		{"octal-looking stays unchanged", "172.016.000.001", "172.016.000.001"},

@@ -444,8 +444,6 @@ func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, result.HasChanges())
 
-	// A zero-padded octet is octal to inet_aton-family parsers, so the values
-	// are shown as written rather than as their decimal reading.
 	for _, c := range result.Changes {
 		if c.Path == testPathInterfacesWanIP {
 			assert.Equal(t, "010.000.001.001", c.OldValue, "old IP is shown as written")
