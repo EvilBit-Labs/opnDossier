@@ -442,20 +442,15 @@ func TestConverter_PortForwards_Order(t *testing.T) {
 	}
 }
 
-// TestConverter_PortForwards_PassValues covers the three values 26.1 and later
-// write to <pass>, and that anything else is reported rather than stored
-// silently.
 // TestConverter_PortForwards_Order_SortedByKey covers the sequences whose
 // firewall order differs from the integer order: the firewall sorts the stored
-// text, not the number it parses to (#915).
+// text, not the number it parses to.
 func TestConverter_PortForwards_Order_SortedByKey(t *testing.T) {
 	t.Parallel()
 
 	t.Run("a signed sequence sorts ahead of every unsigned one", func(t *testing.T) {
 		t.Parallel()
 
-		// The firewall sorts by the stored text, where + precedes every digit;
-		// only the reported priority reads the number.
 		device, warnings := parsePortForwards(t,
 			portForwardRule("a", `<sequence>100</sequence>`)+portForwardRule("b", `<sequence>+300</sequence>`))
 		assert.Empty(t, warnings)
@@ -466,8 +461,6 @@ func TestConverter_PortForwards_Order_SortedByKey(t *testing.T) {
 	t.Run("trailing whitespace on a tie sorts ahead of the uuid", func(t *testing.T) {
 		t.Parallel()
 
-		// The uuids alone would put "nine" first; the firewall compares the
-		// space after 100 against the comma before the uuid and puts "ten" first.
 		withUUID := func(descr, uuid, sequence string) string {
 			return strings.Replace(portForwardRule(descr, sequence), `<rule>`, `<rule uuid="`+uuid+`">`, 1)
 		}
@@ -480,6 +473,9 @@ func TestConverter_PortForwards_Order_SortedByKey(t *testing.T) {
 	})
 }
 
+// TestConverter_PortForwards_PassValues covers the three values 26.1 and later
+// write to <pass>, and that anything else is reported rather than stored
+// silently.
 func TestConverter_PortForwards_PassValues(t *testing.T) {
 	t.Parallel()
 
