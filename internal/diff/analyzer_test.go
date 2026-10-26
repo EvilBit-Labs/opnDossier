@@ -503,6 +503,33 @@ func TestRuleDescription(t *testing.T) {
 			want: "pass 10.0.0.0/8 → any",
 		},
 		{
+			name: "negated endpoints are marked",
+			rule: common.FirewallRule{
+				Type:        common.RuleTypeBlock,
+				Source:      common.RuleEndpoint{Address: "lan", Negated: true},
+				Destination: common.RuleEndpoint{Address: "RFC1918", Negated: true},
+			},
+			want: "block !lan → !RFC1918",
+		},
+		{
+			name: "negation on any is not marked",
+			rule: common.FirewallRule{
+				Type:        common.RuleTypePass,
+				Source:      common.RuleEndpoint{Address: "any", Negated: true},
+				Destination: common.RuleEndpoint{Negated: true},
+			},
+			want: "pass any → unknown",
+		},
+		{
+			name: "negated wildcard network is marked",
+			rule: common.FirewallRule{
+				Type:        common.RuleTypeBlock,
+				Source:      common.RuleEndpoint{Address: "0.0.0.0/0", Negated: true},
+				Destination: common.RuleEndpoint{Address: "ANY", Negated: true},
+			},
+			want: "block !0.0.0.0/0 → ANY",
+		},
+		{
 			name: "empty addresses fall back to unknown",
 			rule: common.FirewallRule{
 				Type: common.RuleTypeBlock,
