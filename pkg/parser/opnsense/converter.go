@@ -690,8 +690,8 @@ var portForwardPassValues = []string{"", "pass", "rule"}
 
 // sequencedRule pairs a port forward with its place in the ruleset. numbered
 // reports that the document gave the rule a <sequence>, and invalid that it
-// gave one that is not a number. sortKey is the key the firewall sorts a
-// numbered rule by.
+// gave one that is not a number. sortKey is the key the firewall sorts the
+// rule by: the sequence as stored, or as assigned, then the uuid.
 type sequencedRule struct {
 	*schema.InboundRule
 
@@ -707,9 +707,12 @@ type sequencedRule struct {
 // <sequence>, which need not match document order, and a rule without one is
 // numbered after the highest, as the firewall numbers it on load.
 //
-// Rules with equal sequences are ordered by uuid, compared the way the
-// firewall's sortedBy compares its keys. A sequence that is not a number
-// leaves the whole set in document order.
+// Rules are ordered by the key the firewall's sortedBy builds from the stored
+// sequence and the uuid, compared as it compares them. The text is not
+// trimmed or parsed first: a sign sorts ahead of every digit, and trailing
+// whitespace on a tie sorts ahead of the uuid, as on the firewall. Only the
+// reported priority reads the number. A sequence that is not a number leaves
+// the whole set in document order.
 func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
 	var kept []sequencedRule
 
@@ -729,7 +732,7 @@ func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
 				sortable = false
 			} else {
 				entry.sequence, entry.numbered = sequence, true
-				entry.sortKey = fmt.Sprintf("%*s,%s", sortKeyWidth, text, r.UUID)
+				entry.sortKey = sequenceSortKey(r.Sequence, r.UUID)
 				highest = max(highest, sequence)
 			}
 		}
@@ -745,18 +748,21 @@ func portForwardsInOrder(rules []schema.InboundRule) []sequencedRule {
 		if !kept[i].numbered {
 			highest += sequenceStep
 			kept[i].sequence = highest
+			kept[i].sortKey = sequenceSortKey(strconv.Itoa(highest), kept[i].UUID)
 		}
 	}
 
 	slices.SortStableFunc(kept, func(a, b sequencedRule) int {
-		if order := cmp.Compare(a.sequence, b.sequence); order != 0 || !a.numbered || !b.numbered {
-			return order
-		}
-
 		return naturalCompareFold(a.sortKey, b.sortKey)
 	})
 
 	return kept
+}
+
+// sequenceSortKey builds the key the firewall's sortedBy sorts a numeric
+// sequence by: the value as stored, padded on the left, then the uuid.
+func sequenceSortKey(sequence, uuid string) string {
+	return fmt.Sprintf("%*s,%s", sortKeyWidth, sequence, uuid)
 }
 
 // portForwardEndpoint builds one side of a port forward from its effective
