@@ -37,15 +37,8 @@ func BuildOutboundNATTableSet(rules []common.NATRule) *markdown.TableSet {
 		})
 	} else {
 		for i, rule := range rules {
-			source := rule.Source.Address
-			if source == "" {
-				source = destinationAny
-			}
-
-			dest := rule.Destination.Address
-			if dest == "" {
-				dest = destinationAny
-			}
+			source := endpointAddress(rule.Source)
+			dest := endpointAddress(rule.Destination)
 
 			protocol := rule.Protocol
 			if protocol == "" {
