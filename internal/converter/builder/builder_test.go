@@ -289,9 +289,6 @@ func TestBuildFirewallRulesTableSet_NegatedEndpoints(t *testing.T) {
 	})
 }
 
-// negatedEndpointCases are the Source and Destination cells every rules table
-// shows for a negated endpoint: the marker on an address or alias, none on a
-// negated any or an empty endpoint, and the marker kept on a wildcard network.
 var negatedEndpointCases = []struct {
 	name     string
 	source   common.RuleEndpoint
@@ -329,8 +326,6 @@ var negatedEndpointCases = []struct {
 	},
 }
 
-// assertNegatedEndpointCells runs negatedEndpointCases against a one-rule table
-// built by build, reading the Source and Destination cells at the given columns.
 func assertNegatedEndpointCells(
 	t *testing.T,
 	sourceCol, destCol int,

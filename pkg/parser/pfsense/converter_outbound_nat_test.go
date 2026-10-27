@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// parsePfSenseOutboundNAT drives one <nat><outbound><rule> body through the
-// pfSense parser and returns the converted rule.
 func parsePfSenseOutboundNAT(t *testing.T, ruleBody string) common.NATRule {
 	t.Helper()
 
