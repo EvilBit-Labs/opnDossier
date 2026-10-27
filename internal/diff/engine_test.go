@@ -444,16 +444,18 @@ func TestEngine_Compare_Normalize_IPAddresses(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, result.HasChanges())
 
-	// Find the IP change - values should be normalized
 	for _, c := range result.Changes {
 		if c.Path == testPathInterfacesWanIP {
-			assert.Equal(t, "10.0.1.1", c.OldValue, "old IP should be normalized")
-			assert.Equal(t, "10.0.1.2", c.NewValue, "new IP should be normalized")
+			assert.Equal(t, "010.000.001.001", c.OldValue, "old IP is shown as written")
+			assert.Equal(t, "010.000.001.002", c.NewValue, "new IP is shown as written")
 		}
 	}
 }
 
-func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
+// TestEngine_Compare_Normalize_KeepsZeroPaddedAddress pins that a zero-padded
+// octet is not formatting: 010.000.001.001 is 8.0.1.1 to an inet_aton-family
+// parser, so the change is reported with the values as written (#918).
+func TestEngine_Compare_Normalize_KeepsZeroPaddedAddress(t *testing.T) {
 	old := &common.CommonDevice{
 		Interfaces: []common.Interface{
 			{Name: "wan", IPAddress: "010.000.001.001", Subnet: "24", Description: "WAN"},
@@ -462,7 +464,6 @@ func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
 
 	newCfg := &common.CommonDevice{
 		Interfaces: []common.Interface{
-			// Same IP with different leading zeros - normalization makes them equal
 			{Name: "wan", IPAddress: "10.0.1.1", Subnet: "24", Description: "WAN"},
 		},
 	}
@@ -471,13 +472,10 @@ func TestEngine_Compare_Normalize_SkipsCosmeticDiffs(t *testing.T) {
 	result, err := engine.Compare(context.Background())
 
 	require.NoError(t, err)
-
-	// The IP change should be skipped because normalized values are equal
-	for _, c := range result.Changes {
-		if c.Path == testPathInterfacesWanIP {
-			t.Error("cosmetic IP difference should be skipped when normalize is enabled")
-		}
-	}
+	require.Len(t, result.Changes, 1)
+	assert.Equal(t, testPathInterfacesWanIP, result.Changes[0].Path)
+	assert.Equal(t, "010.000.001.001", result.Changes[0].OldValue)
+	assert.Equal(t, "10.0.1.1", result.Changes[0].NewValue)
 }
 
 // summarizedDevice returns one entry of each kind whose displayed values are a
@@ -620,15 +618,15 @@ func TestEngine_Compare_Normalize_SkipsFormattingInEitherDirection(t *testing.T)
 		wantPath string
 	}{
 		{
-			"address loses its leading zeros",
-			common.Interface{IPAddress: "010.000.001.001"},
-			common.Interface{IPAddress: "10.0.1.1"},
+			"address loses its IPv6 long form",
+			common.Interface{IPAddress: "2001:0db8::1"},
+			common.Interface{IPAddress: "2001:db8::1"},
 			testPathInterfacesWanIP,
 		},
 		{
-			"address gains leading zeros",
-			common.Interface{IPAddress: "10.0.1.1"},
-			common.Interface{IPAddress: "010.000.001.001"},
+			"address gains its IPv6 long form",
+			common.Interface{IPAddress: "2001:db8::1"},
+			common.Interface{IPAddress: "2001:0db8::1"},
 			testPathInterfacesWanIP,
 		},
 		{
@@ -666,7 +664,7 @@ func TestEngine_Compare_Normalize_SkipsFormattingInEitherDirection(t *testing.T)
 }
 
 // TestEngine_Compare_Normalize_DropsOnlyTheFormattingChange mixes the kinds: an
-// address rewritten without its leading zeros, a real change to the same
+// IPv6 address rewritten in its short form, a real change to the same
 // interface after it, and a rule that loses its logging.
 func TestEngine_Compare_Normalize_DropsOnlyTheFormattingChange(t *testing.T) {
 	t.Parallel()
@@ -682,7 +680,7 @@ func TestEngine_Compare_Normalize_DropsOnlyTheFormattingChange(t *testing.T) {
 		}
 	}
 
-	oldDevice, newDevice := device("010.000.001.001", "WAN", true), device("10.0.1.1", "Uplink", false)
+	oldDevice, newDevice := device("2001:0db8::1", "WAN", true), device("2001:db8::1", "Uplink", false)
 
 	tests := []struct {
 		opts      Options
@@ -763,7 +761,7 @@ func TestEngine_Compare_Normalize_ShippedConfig_KeepsRedirectedPortForward(t *te
 func TestFormattingOnly(t *testing.T) {
 	t.Parallel()
 
-	const zeros, plain = "010.000.001.001", "10.0.1.1"
+	const spaced, plain = "a  b", "a b"
 
 	modified := func(oldValue, newValue string) Change {
 		return Change{Type: ChangeModified, OldValue: oldValue, NewValue: newValue}
@@ -777,10 +775,10 @@ func TestFormattingOnly(t *testing.T) {
 		normOld, normNew string
 		want             bool
 	}{
-		{"old value rewritten", modified(zeros, plain), plain, plain, true},
-		{"new value rewritten", modified(plain, zeros), plain, plain, true},
-		{"both values rewritten", modified("010.0.1.1", "10.00.1.1"), plain, plain, true},
-		{"values differ after normalization", modified(zeros, "10.0.1.2"), plain, "10.0.1.2", false},
+		{"old value rewritten", modified(spaced, plain), plain, plain, true},
+		{"new value rewritten", modified(plain, spaced), plain, plain, true},
+		{"both values rewritten", modified("a   b", " a b"), plain, plain, true},
+		{"values differ after normalization", modified(spaced, "a c"), plain, "a c", false},
 		{"values already equal", modified(plain, plain), plain, plain, false},
 		{"equal values that normalization rewrites", modified("a  b", "a  b"), "a b", "a b", false},
 		{"no values", modified("", ""), "", "", false},

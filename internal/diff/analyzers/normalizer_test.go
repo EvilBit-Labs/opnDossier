@@ -16,10 +16,12 @@ func TestNormalizer_NormalizeIP(t *testing.T) {
 		expected string
 	}{
 		{"standard IPv4", "192.168.1.1", "192.168.1.1"},
-		{"leading zeros", "192.168.001.001", "192.168.1.1"},
-		{"all zeros", "000.000.000.000", "0.0.0.0"},
+		{"leading zeros stay unchanged", "192.168.001.001", "192.168.001.001"},
+		{"all zeros stay unchanged", "000.000.000.000", "000.000.000.000"},
+		{"octal-looking stays unchanged", "172.016.000.001", "172.016.000.001"},
 		{"CIDR notation", "192.168.1.0/24", "192.168.1.0/24"},
-		{"CIDR with leading zeros", "010.000.000.000/8", "10.0.0.0/8"},
+		{"CIDR with leading zeros stays unchanged", "010.000.000.000/8", "010.000.000.000/8"},
+		{"CIDR prefix leading zero", "192.168.1.0/024", "192.168.1.0/24"},
 		{"IPv6 loopback", "::1", "::1"},
 		{"full IPv6", "2001:0db8:0000:0000:0000:0000:0000:0001", "2001:db8::1"},
 		{"IPv6 CIDR", "2001:db8::/32", "2001:db8::/32"},

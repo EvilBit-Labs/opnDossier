@@ -8,9 +8,6 @@ import (
 	"strings"
 )
 
-// ipv4OctetCount is the number of octets in an IPv4 address.
-const ipv4OctetCount = 4
-
 // rangeParts is the expected number of parts when splitting a range string.
 const rangeParts = 2
 
@@ -23,34 +20,19 @@ func NewNormalizer() *Normalizer {
 	return &Normalizer{}
 }
 
-// NormalizeIP normalizes an IP address string by stripping leading zeros from each octet.
-// For example, "192.168.001.001" becomes "192.168.1.1".
-// CIDR notation is also supported: "010.000.000.000/8" becomes "10.0.0.0/8".
-// Returns the original string unchanged if it's not a valid IPv4/IPv6 address.
+// NormalizeIP returns the canonical form of an IP address or CIDR: IPv6 is
+// shortened ("2001:0db8::1" becomes "2001:db8::1") and a CIDR prefix length
+// loses leading zeros ("/024" becomes "/24"). Anything the standard library
+// rejects is returned unchanged. That includes an IPv4 address with a
+// zero-padded octet such as "172.016.000.001": inet_aton-family parsers read
+// a leading zero as octal and the validator rejects the form, so it is never
+// treated as formatting.
 func (n *Normalizer) NormalizeIP(s string) string {
 	if s == "" {
 		return s
 	}
 
-	// Split off CIDR prefix length if present
-	addr, prefix, hasCIDR := strings.Cut(s, "/")
-
-	// Try IPv4 normalization (strip leading zeros then parse)
-	if strings.Contains(addr, ".") {
-		normalized := n.normalizeIPv4Octets(addr)
-		ip := net.ParseIP(normalized)
-		if ip == nil {
-			return s
-		}
-		result := ip.String()
-		if hasCIDR {
-			result += "/" + prefix
-		}
-		return result
-	}
-
-	// IPv6: use stdlib directly
-	if hasCIDR {
+	if strings.Contains(s, "/") {
 		ip, ipNet, err := net.ParseCIDR(s)
 		if err != nil {
 			return s
@@ -64,18 +46,6 @@ func (n *Normalizer) NormalizeIP(s string) string {
 		return s
 	}
 	return ip.String()
-}
-
-// normalizeIPv4Octets strips leading zeros from each octet of an IPv4 address string.
-func (n *Normalizer) normalizeIPv4Octets(s string) string {
-	octets := strings.Split(s, ".")
-	if len(octets) != ipv4OctetCount {
-		return s
-	}
-	for i, octet := range octets {
-		octets[i] = cmp.Or(strings.TrimLeft(octet, "0"), "0")
-	}
-	return strings.Join(octets, ".")
 }
 
 // NormalizeWhitespace collapses consecutive whitespace into single spaces
