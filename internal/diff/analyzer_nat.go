@@ -271,7 +271,7 @@ func natRuleDescription(rule common.NATRule) string {
 		return rule.Description
 	}
 
-	return cmp.Or(rule.Source.Address, addressUnknown) + " -> " + cmp.Or(rule.Target, addressUnknown)
+	return ruleAddress(rule.Source) + " -> " + cmp.Or(rule.Target, addressUnknown)
 }
 
 // inboundNATRuleDescription is natRuleDescription for port forwards.
