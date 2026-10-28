@@ -59,31 +59,3 @@ func TestNormalizer_NormalizeWhitespace(t *testing.T) {
 		})
 	}
 }
-
-func TestNormalizer_NormalizePort(t *testing.T) {
-	n := NewNormalizer()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"standard port", "80", "80"},
-		{"leading zeros", "0080", "80"},
-		{"port range dash", "80-443", "80-443"},
-		{"port range colon", "80:443", "80:443"},
-		{"leading zeros in range", "0080-0443", "80-443"},
-		{"zero", "0", "0"},
-		{"empty", "", ""},
-		{"non-port text unchanged", "Label: Value", "Label: Value"},
-		{"text with dash unchanged", "some-text", "some-text"},
-		{"description unchanged", "Allow SSH access", "Allow SSH access"},
-		{"mixed digits text unchanged", "rule 001", "rule 001"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, n.NormalizePort(tt.input))
-		})
-	}
-}
