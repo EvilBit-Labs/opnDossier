@@ -313,7 +313,7 @@ func TestXMLParser_ValidateInvalidEnumValues(t *testing.T) {
 			},
 			expectedErrors: 2,
 			expectedFields: []string{"opnsense.filter.rule[0].ipprotocol", "opnsense.filter.rule[0].interface"},
-			description:    "IP protocol must be inet or inet6",
+			description:    "IP protocol must be inet, inet6, or inet46",
 		},
 		{
 			name: "invalid interface name",

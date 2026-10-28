@@ -387,7 +387,13 @@ func validateOPNsenseConfig(t *testing.T, config *schema.OpnSenseDocument, _ str
 			assert.Contains(t, []string{"pass", "block", "reject"}, rule.Type, "Rule %d type should be valid", i)
 
 			if rule.IPProtocol != "" {
-				assert.Contains(t, []string{"inet", "inet6"}, rule.IPProtocol, "Rule %d IP protocol should be valid", i)
+				assert.Contains(
+					t,
+					[]string{"inet", "inet6", "inet46"},
+					rule.IPProtocol,
+					"Rule %d IP protocol should be valid",
+					i,
+				)
 			}
 
 			if !rule.Interface.IsEmpty() {

@@ -89,9 +89,9 @@ func validateAddressField(address, fieldPath string) []ValidationError {
 // package scope so each helper does not reallocate them per rule.
 var (
 	validOPNRuleTypes      = []string{"pass", "block", "reject"}
-	validOPNIPProtocols    = []string{"inet", "inet6"}
+	validOPNIPProtocols    = []string{"inet", "inet6", "inet46"}
 	validOPNDirections     = []string{"in", "out", "any"}
-	validOPNRuleStateTypes = []string{"keep state", "sloppy state", "synproxy state", "none"}
+	validOPNRuleStateTypes = []string{"keep state", "sloppy state", "modulate state", "synproxy state", "none"}
 )
 
 // validateFilter checks each firewall filter rule for valid types, protocols, interface references, and network specifications.
