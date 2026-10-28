@@ -130,7 +130,7 @@ Floating rules require a `direction` field (`in`, `out`, or `any`).
 </rule>
 ```
 
-Valid state types: `keep state`, `sloppy state`, `synproxy state`, `none`
+Valid state types: `keep state`, `sloppy state`, `modulate state`, `synproxy state`, `none`
 
 ## Rate-Limiting and DoS Protection
 

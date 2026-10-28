@@ -468,6 +468,19 @@ func TestValidateFilter_RuleValidation(t *testing.T) {
 			expectedErrors: 1,
 		},
 		{
+			name: "valid inet46 IP protocol",
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{
+						Type:       "pass",
+						IPProtocol: "inet46",
+						Interface:  schema.InterfaceList{"lan"},
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
 			name: "invalid IP protocol",
 			filter: schema.Filter{
 				Rule: []schema.Rule{
@@ -1330,8 +1343,6 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 }
 
 // TestValidateFilter_StateTypeValidation tests state type validation.
-//
-//nolint:dupl // table-driven test structure intentionally similar to MaxSrcConnRateFormat
 func TestValidateFilter_StateTypeValidation(t *testing.T) {
 	interfaces := &schema.Interfaces{
 		Items: map[string]schema.Interface{
@@ -1358,6 +1369,15 @@ func TestValidateFilter_StateTypeValidation(t *testing.T) {
 			filter: schema.Filter{
 				Rule: []schema.Rule{
 					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "sloppy state"},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "valid modulate state",
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"lan"}, StateType: "modulate state"},
 				},
 			},
 			expectedErrors: 0,
@@ -1409,8 +1429,6 @@ func TestValidateFilter_StateTypeValidation(t *testing.T) {
 }
 
 // TestValidateFilter_MaxSrcConnRateFormat tests rate-limiting field format validation.
-//
-//nolint:dupl // table-driven test structure intentionally similar to StateTypeValidation
 func TestValidateFilter_MaxSrcConnRateFormat(t *testing.T) {
 	interfaces := &schema.Interfaces{
 		Items: map[string]schema.Interface{
