@@ -74,7 +74,7 @@ func init() {
 
 	// Analysis flags
 	diffCmd.Flags().
-		BoolVar(&diffNormalize, "normalize", false, "Normalize displayed values (whitespace, IPs, ports)")
+		BoolVar(&diffNormalize, "normalize", false, "Normalize displayed values (whitespace, IPs)")
 	diffCmd.Flags().
 		BoolVar(&diffDetectOrder, "detect-order", false, "Detect rule reordering without content changes")
 
@@ -167,7 +167,7 @@ SECTION FILTERING (--section/-s):
 
 ANALYSIS OPTIONS:
   --security       Show only security-relevant changes
-  --normalize      Normalize displayed values (whitespace, IPs, ports)
+  --normalize      Normalize displayed values (whitespace, IPs)
   --detect-order   Detect rule reordering without content changes
 
 SECURITY IMPACT SCORING:
