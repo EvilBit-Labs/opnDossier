@@ -65,6 +65,9 @@ func TestCompareNAT_DetectsContentChanges(t *testing.T) {
 		{"outbound disabled", func(c *common.NATConfig) {
 			c.OutboundRules[0].Disabled = true
 		}, "outbound NAT rule"},
+		{"outbound source negated", func(c *common.NATConfig) {
+			c.OutboundRules[0].Source.Negated = true
+		}, "outbound NAT rule"},
 		{"port forward retargeted to another host", func(c *common.NATConfig) {
 			c.InboundRules[0].InternalIP = "192.168.1.66"
 		}, "port forward"},
@@ -209,4 +212,55 @@ func deepCopyNAT(c common.NATConfig) common.NATConfig {
 		out.InboundRules[i].Interfaces = append([]string(nil), c.InboundRules[i].Interfaces...)
 	}
 	return out
+}
+
+// TestNatRuleDescription covers the heading for an outbound NAT rule. A rule
+// with no description is named by its source and target, and a negated source
+// carries the marker as the firewall-rule heading does (#930). The heading has
+// no any-fallback: an empty source reads as unknown whether or not it is
+// negated.
+func TestNatRuleDescription(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rule common.NATRule
+		want string
+	}{
+		{
+			name: "description wins",
+			rule: common.NATRule{
+				Description: "NAT MGMT to WAN1",
+				Source:      common.RuleEndpoint{Address: "lan", Negated: true},
+			},
+			want: "NAT MGMT to WAN1",
+		},
+		{
+			name: "negated source",
+			rule: common.NATRule{Source: common.RuleEndpoint{Address: "lan", Negated: true}, Target: "11.22.33.44"},
+			want: "!lan -> 11.22.33.44",
+		},
+		{
+			name: "negated any stays any",
+			rule: common.NATRule{Source: common.RuleEndpoint{Address: "any", Negated: true}, Target: "11.22.33.44"},
+			want: "any -> 11.22.33.44",
+		},
+		{
+			name: "empty source",
+			rule: common.NATRule{Target: "11.22.33.44"},
+			want: "unknown -> 11.22.33.44",
+		},
+		{
+			name: "negated empty source",
+			rule: common.NATRule{Source: common.RuleEndpoint{Negated: true}, Target: "11.22.33.44"},
+			want: "unknown -> 11.22.33.44",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, natRuleDescription(tt.rule))
+		})
+	}
 }

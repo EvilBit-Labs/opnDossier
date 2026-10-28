@@ -280,54 +280,64 @@ func TestBuildFirewallRulesTableSet(t *testing.T) {
 func TestBuildFirewallRulesTableSet_NegatedEndpoints(t *testing.T) {
 	t.Parallel()
 
-	const sourceCol, destCol = 5, 6
+	assertNegatedEndpointCells(t, 5, 6, func(source, dest common.RuleEndpoint) *markdown.TableSet {
+		return BuildFirewallRulesTableSet([]common.FirewallRule{{
+			Type:        common.RuleTypePass,
+			Source:      source,
+			Destination: dest,
+		}})
+	})
+}
 
-	tests := []struct {
-		name     string
-		source   common.RuleEndpoint
-		dest     common.RuleEndpoint
-		wantSrc  string
-		wantDest string
-	}{
-		{
-			name:     "negated source",
-			source:   common.RuleEndpoint{Address: "lan", Negated: true},
-			dest:     common.RuleEndpoint{Address: "any"},
-			wantSrc:  "!lan",
-			wantDest: "any",
-		},
-		{
-			name:     "negated destination",
-			source:   common.RuleEndpoint{Address: "10.0.0.0/8"},
-			dest:     common.RuleEndpoint{Address: "RFC1918", Negated: true},
-			wantSrc:  "10.0.0.0/8",
-			wantDest: "!RFC1918",
-		},
-		{
-			name:     "negation on any is not marked",
-			source:   common.RuleEndpoint{Address: "any", Negated: true},
-			dest:     common.RuleEndpoint{Negated: true},
-			wantSrc:  "any",
-			wantDest: "any",
-		},
-		{
-			name:     "negated wildcard network is marked",
-			source:   common.RuleEndpoint{Address: "0.0.0.0/0", Negated: true},
-			dest:     common.RuleEndpoint{Address: "ANY", Negated: true},
-			wantSrc:  "!0.0.0.0/0",
-			wantDest: "ANY",
-		},
-	}
+var negatedEndpointCases = []struct {
+	name     string
+	source   common.RuleEndpoint
+	dest     common.RuleEndpoint
+	wantSrc  string
+	wantDest string
+}{
+	{
+		name:     "negated source",
+		source:   common.RuleEndpoint{Address: "lan", Negated: true},
+		dest:     common.RuleEndpoint{Address: "any"},
+		wantSrc:  "!lan",
+		wantDest: "any",
+	},
+	{
+		name:     "negated destination",
+		source:   common.RuleEndpoint{Address: "10.0.0.0/8"},
+		dest:     common.RuleEndpoint{Address: "RFC1918", Negated: true},
+		wantSrc:  "10.0.0.0/8",
+		wantDest: "!RFC1918",
+	},
+	{
+		name:     "negation on any is not marked",
+		source:   common.RuleEndpoint{Address: "any", Negated: true},
+		dest:     common.RuleEndpoint{Negated: true},
+		wantSrc:  "any",
+		wantDest: "any",
+	},
+	{
+		name:     "negated wildcard network is marked",
+		source:   common.RuleEndpoint{Address: "0.0.0.0/0", Negated: true},
+		dest:     common.RuleEndpoint{Address: "ANY", Negated: true},
+		wantSrc:  "!0.0.0.0/0",
+		wantDest: "ANY",
+	},
+}
 
-	for _, tt := range tests {
+func assertNegatedEndpointCells(
+	t *testing.T,
+	sourceCol, destCol int,
+	build func(source, dest common.RuleEndpoint) *markdown.TableSet,
+) {
+	t.Helper()
+
+	for _, tt := range negatedEndpointCases {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			tableSet := BuildFirewallRulesTableSet([]common.FirewallRule{{
-				Type:        common.RuleTypePass,
-				Source:      tt.source,
-				Destination: tt.dest,
-			}})
+			tableSet := build(tt.source, tt.dest)
 			if len(tableSet.Rows) != 1 {
 				t.Fatalf("got %d rows, want 1", len(tableSet.Rows))
 			}
@@ -341,6 +351,22 @@ func TestBuildFirewallRulesTableSet_NegatedEndpoints(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestBuildOutboundNATTableSet_NegatedEndpoints covers the Source and
+// Destination cells for a negated outbound NAT endpoint (#930), with the same
+// convention as the firewall rules table.
+func TestBuildOutboundNATTableSet_NegatedEndpoints(t *testing.T) {
+	t.Parallel()
+
+	assertNegatedEndpointCells(t, 3, 4, func(source, dest common.RuleEndpoint) *markdown.TableSet {
+		return BuildOutboundNATTableSet([]common.NATRule{{
+			Interfaces:  []string{"wan"},
+			Source:      source,
+			Destination: dest,
+			Target:      "203.0.113.1",
+		}})
+	})
 }
 
 func TestBuildOutboundNATTableSet(t *testing.T) {
