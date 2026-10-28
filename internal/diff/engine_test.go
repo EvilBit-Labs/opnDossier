@@ -478,6 +478,69 @@ func TestEngine_Compare_Normalize_KeepsZeroPaddedAddress(t *testing.T) {
 	assert.Equal(t, "10.0.1.1", result.Changes[0].NewValue)
 }
 
+// TestEngine_Compare_Normalize_KeepsHostnameOfDigits pins that a leading zero
+// in a digits-only value is not formatting: a hostname of 007 and one of 7 are
+// different DNS names, so the change is reported under --normalize (#882).
+func TestEngine_Compare_Normalize_KeepsHostnameOfDigits(t *testing.T) {
+	t.Parallel()
+
+	old := &common.CommonDevice{System: common.System{Hostname: "007"}}
+	newCfg := &common.CommonDevice{System: common.System{Hostname: "7"}}
+
+	engine := NewEngine(old, newCfg, Options{Normalize: true}, nil)
+	result, err := engine.Compare(context.Background())
+
+	require.NoError(t, err)
+	require.Len(t, result.Changes, 1)
+	assert.Equal(t, "system.hostname", result.Changes[0].Path)
+	assert.Equal(t, "007", result.Changes[0].OldValue)
+	assert.Equal(t, "7", result.Changes[0].NewValue)
+}
+
+// TestEngine_Compare_Normalize_KeepsDigitsOnlyValue pins the same for a value
+// shaped like a range or a bare prefix length: 10-05 and 10-5, or a subnet of
+// 024 and 24, differ in more than formatting, so the change is reported under
+// --normalize (#882). A bare prefix length is not a CIDR, so NormalizeIP leaves
+// it alone.
+func TestEngine_Compare_Normalize_KeepsDigitsOnlyValue(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		old      common.Interface
+		newIface common.Interface
+		wantPath string
+	}{
+		{
+			"description shaped like a range",
+			common.Interface{Description: "10-05"},
+			common.Interface{Description: "10-5"},
+			"interfaces.wan.description",
+		},
+		{
+			"subnet loses its leading zero",
+			common.Interface{Subnet: "024"},
+			common.Interface{Subnet: "24"},
+			"interfaces.wan.subnet",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.old.Name, tt.newIface.Name = "wan", "wan"
+			oldDevice := &common.CommonDevice{Interfaces: []common.Interface{tt.old}}
+			newDevice := &common.CommonDevice{Interfaces: []common.Interface{tt.newIface}}
+
+			result, err := NewEngine(oldDevice, newDevice, Options{Normalize: true}, nil).Compare(context.Background())
+			require.NoError(t, err)
+			require.Len(t, result.Changes, 1)
+			assert.Equal(t, tt.wantPath, result.Changes[0].Path)
+		})
+	}
+}
+
 // summarizedDevice returns one entry of each kind whose displayed values are a
 // summary, or absent.
 func summarizedDevice() *common.CommonDevice {
@@ -628,12 +691,6 @@ func TestEngine_Compare_Normalize_SkipsFormattingInEitherDirection(t *testing.T)
 			common.Interface{IPAddress: "2001:db8::1"},
 			common.Interface{IPAddress: "2001:0db8::1"},
 			testPathInterfacesWanIP,
-		},
-		{
-			"subnet loses its leading zero",
-			common.Interface{Subnet: "024"},
-			common.Interface{Subnet: "24"},
-			"interfaces.wan.subnet",
 		},
 		{
 			"description loses a doubled space",
