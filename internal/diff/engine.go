@@ -174,8 +174,8 @@ func formattingOnly(c Change, normOld, normNew string) bool {
 		c.OldValue != c.NewValue && normOld == normNew
 }
 
-// normalizeValue collapses whitespace and canonicalizes an address in a change
-// value. Nothing else is normalized: a digits-only value such as a hostname of
+// normalizeValue collapses whitespace and canonicalizes an address or a CIDR in
+// a change value. Nothing else is normalized: a digits-only value such as a hostname of
 // 007 is not a port, and a leading zero in it is a real change (#882).
 func (e *Engine) normalizeValue(s string) string {
 	if s == "" {

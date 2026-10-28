@@ -498,30 +498,44 @@ func TestEngine_Compare_Normalize_KeepsHostnameOfDigits(t *testing.T) {
 }
 
 // TestEngine_Compare_Normalize_KeepsDigitsOnlyValue pins the same for a value
-// shaped like a range or a bare prefix length: 10-05 and 10-5, or a subnet of
-// 024 and 24, differ in more than formatting, so the change is reported under
-// --normalize (#882). A bare prefix length is not a CIDR, so NormalizeIP leaves
-// it alone.
+// shaped like a range, a bare prefix length or a VLAN tag: 10-05 and 10-5, a
+// subnet of 024 and 24, or a tag of 010 and 10, differ in more than
+// formatting, so the change is reported under --normalize with the values as
+// written (#882). A bare prefix length is not a CIDR, so NormalizeIP leaves it
+// alone.
 func TestEngine_Compare_Normalize_KeepsDigitsOnlyValue(t *testing.T) {
 	t.Parallel()
 
+	iface := func(i common.Interface) *common.CommonDevice {
+		i.Name = "wan"
+		return &common.CommonDevice{Interfaces: []common.Interface{i}}
+	}
+	vlan := func(tag string) *common.CommonDevice {
+		return &common.CommonDevice{VLANs: []common.VLAN{{VLANIf: "igb0_vlan10", Tag: tag}}}
+	}
+
 	tests := []struct {
-		name     string
-		old      common.Interface
-		newIface common.Interface
-		wantPath string
+		name          string
+		old, newCfg   *common.CommonDevice
+		wantPath      string
+		wantOld, want string
 	}{
 		{
 			"description shaped like a range",
-			common.Interface{Description: "10-05"},
-			common.Interface{Description: "10-5"},
-			"interfaces.wan.description",
+			iface(common.Interface{Description: "10-05"}),
+			iface(common.Interface{Description: "10-5"}),
+			"interfaces.wan.description", "10-05", "10-5",
 		},
 		{
 			"subnet loses its leading zero",
-			common.Interface{Subnet: "024"},
-			common.Interface{Subnet: "24"},
-			"interfaces.wan.subnet",
+			iface(common.Interface{Subnet: "024"}),
+			iface(common.Interface{Subnet: "24"}),
+			"interfaces.wan.subnet", "024", "24",
+		},
+		{
+			"vlan tag loses its leading zero",
+			vlan("010"), vlan("10"),
+			"vlans.vlan[igb0_vlan10].tag", "010", "10",
 		},
 	}
 
@@ -529,14 +543,12 @@ func TestEngine_Compare_Normalize_KeepsDigitsOnlyValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			tt.old.Name, tt.newIface.Name = "wan", "wan"
-			oldDevice := &common.CommonDevice{Interfaces: []common.Interface{tt.old}}
-			newDevice := &common.CommonDevice{Interfaces: []common.Interface{tt.newIface}}
-
-			result, err := NewEngine(oldDevice, newDevice, Options{Normalize: true}, nil).Compare(context.Background())
+			result, err := NewEngine(tt.old, tt.newCfg, Options{Normalize: true}, nil).Compare(context.Background())
 			require.NoError(t, err)
 			require.Len(t, result.Changes, 1)
 			assert.Equal(t, tt.wantPath, result.Changes[0].Path)
+			assert.Equal(t, tt.wantOld, result.Changes[0].OldValue)
+			assert.Equal(t, tt.want, result.Changes[0].NewValue)
 		})
 	}
 }
