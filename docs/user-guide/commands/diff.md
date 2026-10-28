@@ -66,15 +66,14 @@ opndossier diff --security old-config.xml new-config.xml
 
 ## Normalization
 
-OPNsense configurations can contain cosmetic differences that are not meaningful -- extra whitespace, an IPv6 address written in its long form, or inconsistent port notation. The `--normalize` flag normalizes the values the diff displays and leaves out a change whose two values differ only in that formatting.
+OPNsense configurations can contain cosmetic differences that are not meaningful -- extra whitespace or an IPv6 address written in its long form. The `--normalize` flag normalizes the values the diff displays and leaves out a change whose two values differ only in that formatting.
 
 When normalization is enabled:
 
 - Whitespace is standardized
-- IPv6 addresses are shortened to their canonical form, and a CIDR prefix length loses leading zeros
-- Port numbers and ranges are normalized
+- IPv6 addresses are shortened to their canonical form, an IPv4-mapped IPv6 address such as `::ffff:10.0.0.1` is shown as its IPv4 form, and a CIDR prefix length loses leading zeros
 
-Normalization is applied after the comparison, to the displayed values. Whitespace is collapsed in every value, rule summaries included. Addresses and ports are normalized only in a value that is an address or a port by itself; a DHCP range or a list of several DNS servers is not, so leading zeros inside one are reported as a change. A change whose value is displayed by itself, such as an interface address, a hostname or an interface description, is skipped when its two values are identical after normalization. A zero-padded IPv4 octet, such as `172.016.000.001`, is never treated as formatting: parsers in the `inet_aton` family read a leading zero as octal, and `validate` rejects the form, so the change is reported with the value as written.
+Normalization is applied after the comparison, to the displayed values. Whitespace is collapsed in every value, rule summaries included. Addresses are normalized only in a value that is an address or a CIDR by itself; a DHCP range or a list of several DNS servers is not, so leading zeros inside one are reported as a change. A change whose value is displayed by itself, such as an interface address or an interface description, is skipped when its two values are identical after normalization. A digits-only value such as a hostname or a VLAN tag is never treated as formatting: `007` and `7` are different names, so that change is reported. The same holds for a value shaped like a numeric range or a date, such as a description of `2024-01` and `2024-1`. A zero-padded IPv4 octet, such as `172.016.000.001`, is never treated as formatting: parsers in the `inet_aton` family read a leading zero as octal, and `validate` rejects the form, so the change is reported with the value as written.
 
 A change to a firewall rule, an outbound NAT rule, a port forward or a user is never skipped by `--normalize`, including one that only reformats a field. Rules and port forwards are displayed as a one-line summary of a few fields, and a modified user has no displayed value, so a rule that loses its logging appears with the same text on both sides, and a user that gains an API key appears with no old or new value.
 
