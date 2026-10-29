@@ -8,7 +8,7 @@ Shadow detection (issue #202) must decide whether a rule is overridden by a high
 
 ## Decision
 
-The analysis engine derives rule precedence from pf evaluation semantics, not raw list order: quick rules are first-match, non-quick rules are last-match, unscoped floating rules evaluate device-wide before interface rules, and coverage is scoped by (interface, direction). Precedence is computed from the modeled `Quick`, `Floating`, and `Direction` fields.
+The analysis engine derives rule precedence from pf evaluation semantics, not raw list order: quick rules are first-match, non-quick rules are last-match, floating rules evaluate before interface rules (device-wide when unscoped), and coverage is scoped by (interface, direction). Precedence is computed from the modeled `Quick`, `Floating`, and `Direction` fields.
 
 ## Alternatives Considered
 

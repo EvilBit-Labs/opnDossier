@@ -55,9 +55,9 @@ type PrecedencePair struct {
 }
 
 // ResolvePrecedence groups cfg's firewall rules into pf evaluation-order
-// groups — by (interface, direction), with unscoped floating rules
-// (Floating && len(Interfaces)==0) joining every interface group ahead of
-// interface-bound rules — and resolves every overlapping pair within each
+// groups — by (interface, direction), with floating rules joining the groups
+// they apply to (every group when unscoped) ahead of interface-bound rules —
+// and resolves every overlapping pair within each
 // group into its effective PrecedencePair per pf quick (first-match) /
 // non-quick (last-match) semantics (ADR-0005, KTD-5). Overlap candidacy is
 // decided by the U4 coverage predicate; pairs whose coverage is CoverNone or
@@ -92,8 +92,8 @@ type precedenceGroupKey struct {
 
 // buildPrecedenceGroups partitions rules into their pf evaluation-order
 // groups: for every interface any rule is bound to, and for each direction
-// bucket a rule is compatible with, unscoped floating rules are placed
-// ahead of interface-bound rules, each subset preserving the rules'
+// bucket a rule is compatible with, floating rules are placed ahead of
+// interface-bound rules, each subset preserving the rules'
 // original relative list order. Groups with fewer than two rules are
 // dropped — there is nothing to resolve a pair from.
 //
@@ -147,20 +147,24 @@ func buildPrecedenceGroups(
 }
 
 // orderedGroupRules builds the pf evaluation order for one (iface, bucket)
-// group: every unscoped floating rule compatible with bucket, in original
-// list order, followed by every rule bound to iface compatible with bucket,
-// in original list order.
+// group: every floating rule that is unscoped or bound to iface, then every
+// other rule bound to iface, each in original list order and compatible with
+// bucket. Both vendors compile floating rules ahead of interface rules
+// wherever they sit in config.xml (pfSense filter.inc, OPNsense
+// filter.lib.inc priority 200000), so a scoped floating rule listed after an
+// interface rule still evaluates first.
 func orderedGroupRules(rules []common.FirewallRule, iface string, bucket common.FirewallDirection) []IndexedRule {
 	var ordered []IndexedRule
 
 	for i, r := range rules {
-		if isUnscopedFloating(r) && ruleInBucket(r.Direction, bucket) {
+		if r.Floating && (len(r.Interfaces) == 0 || slices.Contains(r.Interfaces, iface)) &&
+			ruleInBucket(r.Direction, bucket) {
 			ordered = append(ordered, IndexedRule{Index: i, Rule: r})
 		}
 	}
 
 	for i, r := range rules {
-		if !isUnscopedFloating(r) && slices.Contains(r.Interfaces, iface) && ruleInBucket(r.Direction, bucket) {
+		if !r.Floating && slices.Contains(r.Interfaces, iface) && ruleInBucket(r.Direction, bucket) {
 			ordered = append(ordered, IndexedRule{Index: i, Rule: r})
 		}
 	}
@@ -169,8 +173,7 @@ func orderedGroupRules(rules []common.FirewallRule, iface string, bucket common.
 }
 
 // isUnscopedFloating reports whether r is a floating rule with no specific
-// interface binding — the class that joins every interface group ahead of
-// interface-bound rules.
+// interface binding — the class that joins every interface group.
 func isUnscopedFloating(r common.FirewallRule) bool {
 	return r.Floating && len(r.Interfaces) == 0
 }

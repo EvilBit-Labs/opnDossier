@@ -522,7 +522,7 @@ The `analysis` enrichment field (`Analysis`, `*Analysis`) is populated during ex
 
 ### ShadowedRuleFinding
 
-Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pfSense rule-evaluation semantics directly (quick rules first-match, non-quick rules last-match, unscoped floating rules evaluated device-wide before interface rules).
+Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pfSense rule-evaluation semantics directly (quick rules first-match, non-quick rules last-match, floating rules evaluated before interface rules, device-wide when unscoped).
 
 | Field             | Type     | JSON Key                                   | Description                                                                                                                                             |
 | ----------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

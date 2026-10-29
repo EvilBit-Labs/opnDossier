@@ -152,6 +152,47 @@ func TestResolvePrecedence_FloatingRulesJoinInterfaceGroupsAheadOfInterfaceBound
 		assert.Equal(t, 0, pairs[0].Loser.Index, "interface rule is shadowed")
 		assert.Equal(t, CoverFull, pairs[0].Extent)
 	})
+
+	t.Run("quick floating bound to the interface wins over an earlier quick interface rule", func(t *testing.T) {
+		t.Parallel()
+
+		// pfSense and OPNsense compile every floating rule ahead of interface
+		// rules, scoped or not, so list order between the two does not count.
+		interfaceRule := precedenceRule("wan", common.DirectionIn)
+		interfaceRule.Quick = true
+		interfaceRule.Destination.Address = "10.1.0.0/16" // narrow
+
+		floating := floatingRule()
+		floating.Interfaces = []string{"wan"}
+		floating.Quick = true
+		floating.Destination.Address = "10.0.0.0/8" // broad, covers interfaceRule fully
+
+		cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{interfaceRule, floating}}
+
+		pairs := ResolvePrecedence(cfg)
+
+		require.Len(t, pairs, 1)
+		assert.Equal(t, 1, pairs[0].Winner.Index, "scoped quick floating rule (grouped ahead) wins")
+		assert.Equal(t, 0, pairs[0].Loser.Index, "interface rule is shadowed")
+		assert.Equal(t, CoverFull, pairs[0].Extent)
+	})
+
+	t.Run("floating rule bound to another interface stays out of the group", func(t *testing.T) {
+		t.Parallel()
+
+		interfaceRule := precedenceRule("wan", common.DirectionIn)
+		interfaceRule.Quick = true
+		interfaceRule.Destination.Address = "10.1.0.0/16"
+
+		floating := floatingRule()
+		floating.Interfaces = []string{"lan"}
+		floating.Quick = true
+		floating.Destination.Address = "10.0.0.0/8"
+
+		cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{interfaceRule, floating}}
+
+		assert.Empty(t, ResolvePrecedence(cfg))
+	})
 }
 
 func TestResolvePrecedence_DirectionScoping(t *testing.T) {
