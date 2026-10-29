@@ -22,6 +22,18 @@ var knownUnboundPlusVersions = map[string]struct{}{
 	"1.0.2": {},
 }
 
+// routesModelVersion is the Routes model version up to OPNsense 26.1.9.
+const routesModelVersion = "1.0.0"
+
+// knownRoutesModelVersions lists the <staticroutes version="..."> values this
+// converter has been checked against. 1.0.1 (26.1.10) replaced each route's
+// <disabled> with <enabled>.
+var knownRoutesModelVersions = map[string]struct{}{
+	"":                 {},
+	routesModelVersion: {},
+	"1.0.1":            {},
+}
+
 // convertDHCP maps doc.Dhcpd.Items to []common.DHCPScope.
 func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	items := doc.Dhcpd.Items
@@ -541,7 +553,7 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 	return common.Routing{
 		Gateways:      c.convertGateways(doc.Gateways.Gateway),
 		GatewayGroups: c.convertGatewayGroups(doc.Gateways.Groups),
-		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes.Route),
+		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes),
 	}
 }
 
@@ -608,16 +620,17 @@ func (c *converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.
 	return result
 }
 
-// convertStaticRoutes maps []schema.StaticRoute to []common.StaticRoute.
+// convertStaticRoutes maps the routes in <staticroutes> to []common.StaticRoute
+// and warns on a model version it has not been checked against.
 //
 // Empty <route/> placeholders are skipped so they neither surface as blank
 // routes in exported output nor flip CommonDevice.HasRoutes to true for a
 // device with no routing configuration. The result is grown on demand rather
 // than preallocated because the loop may skip entries.
-func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.StaticRoute {
+func (c *converter) convertStaticRoutes(routes schema.StaticRoutes) []common.StaticRoute {
 	var result []common.StaticRoute
 
-	for _, r := range routes {
+	for _, r := range routes.Route {
 		if r.IsPlaceholder() {
 			continue
 		}
@@ -627,13 +640,30 @@ func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.St
 			NetworkRef:  c.namedObjects.Ref(r.Network),
 			Gateway:     r.Gateway,
 			Description: r.Descr,
-			Disabled:    bool(r.Disabled),
+			Disabled:    staticRouteDisabled(r),
 			Created:     r.Created,
 			Updated:     r.Updated,
 		})
 	}
 
+	if _, known := knownRoutesModelVersions[routes.Version]; !known {
+		c.addWarning("StaticRoutes.Version", routes.Version,
+			"unrecognized OPNsense static routes model version; element mapping may be stale",
+			common.SeverityMedium)
+	}
+
 	return result
+}
+
+// staticRouteDisabled reads a route as get_staticroutes (util.inc) does: a
+// present <enabled> wins, and the route is disabled when it is empty or 0 (PHP
+// empty()); without one, <disabled> decides.
+func staticRouteDisabled(r schema.StaticRoute) bool {
+	if r.Enabled != nil {
+		return *r.Enabled == "" || *r.Enabled == "0"
+	}
+
+	return bool(r.Disabled)
 }
 
 // convertHA maps doc.HighAvailabilitySync to common.HighAvailability.
