@@ -3,6 +3,7 @@ package audit
 import (
 	"cmp"
 	"fmt"
+	"net/netip"
 	"slices"
 	"strconv"
 	"strings"
@@ -167,7 +168,8 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 			continue
 		}
 
-		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable {
+		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable ||
+			forwardsToAnotherHost(rule, device) {
 			continue
 		}
 
@@ -177,6 +179,38 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	}
 
 	return false
+}
+
+// forwardsToAnotherHost reports whether rule is the filter rule a port forward
+// stores for itself and passes traffic to a host other than the firewall. pf
+// matches it after rdr has rewritten the destination to the forward's target,
+// so it never admits traffic to the firewall's own services. Only a literal
+// address that is not loopback, an interface address or a virtual IP counts as
+// another host; an alias, a macro or a network keeps the rule, the over-report
+// direction.
+func forwardsToAnotherHost(rule common.FirewallRule, device *common.CommonDevice) bool {
+	if rule.AssociatedRuleID == "" || rule.Destination.Negated {
+		return false
+	}
+
+	target, err := netip.ParseAddr(rule.Destination.Address)
+	if err != nil || target.IsLoopback() {
+		return false
+	}
+
+	own := make([]string, 0, 2*len(device.Interfaces)+len(device.VirtualIPs))
+	for _, iface := range device.Interfaces {
+		own = append(own, iface.IPAddress, iface.IPv6Address)
+	}
+
+	for _, vip := range device.VirtualIPs {
+		own = append(own, vip.Subnet)
+	}
+
+	return !slices.ContainsFunc(own, func(a string) bool {
+		addr, err := netip.ParseAddr(a)
+		return err == nil && addr == target
+	})
 }
 
 // rulePortPermits reports whether a rule's destination/external port permits

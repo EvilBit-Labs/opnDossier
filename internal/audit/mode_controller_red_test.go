@@ -1073,3 +1073,69 @@ func TestReport_AddComplianceAnalysis_CompletionFlag(t *testing.T) {
 		}
 	})
 }
+
+// TestRedMode_PortForwardCompanionRule_ExposesOnlyTheFirewallTarget covers the
+// filter rule a port forward stores for itself. pf matches it after rdr, so a
+// rule passing WAN traffic to another host on 443 does not expose the
+// firewall's own web GUI; one whose target is the firewall, or cannot be told
+// apart from it, still does.
+func TestRedMode_PortForwardCompanionRule_ExposesOnlyTheFirewallTarget(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		destination common.RuleEndpoint
+		linked      bool
+		wantExposed bool
+	}{
+		{"companion to another host", common.RuleEndpoint{Address: "10.0.2.2", Port: "443"}, true, false},
+		{"companion to another IPv6 host", common.RuleEndpoint{Address: "2001:db8::50", Port: "443"}, true, false},
+		{"companion to loopback", common.RuleEndpoint{Address: "127.0.0.1", Port: "443"}, true, true},
+		{"companion to the LAN address", common.RuleEndpoint{Address: "192.168.1.1", Port: "443"}, true, true},
+		{"companion to the WAN IPv6 address", common.RuleEndpoint{Address: "2001:db8::2", Port: "443"}, true, true},
+		{"companion to an alias", common.RuleEndpoint{Address: "WEB_HOSTS", Port: "443"}, true, true},
+		{"companion to a CARP address", common.RuleEndpoint{Address: "192.168.1.254", Port: "443"}, true, true},
+		{
+			"companion to a negated host",
+			common.RuleEndpoint{Address: "10.0.2.2", Port: "443", Negated: true},
+			true,
+			true,
+		},
+		{"rule of its own to another host", common.RuleEndpoint{Address: "10.0.2.2", Port: "443"}, false, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rule := common.FirewallRule{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Destination: tc.destination,
+			}
+			if tc.linked {
+				rule.AssociatedRuleID = "nat_5e7bb3f7a503d5.68828728"
+			}
+
+			device := &common.CommonDevice{
+				System: common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS}},
+				Interfaces: []common.Interface{
+					{Name: "wan", Enabled: true, IPAddress: "203.0.113.2", IPv6Address: "2001:db8::2"},
+					{Name: "lan", Enabled: true, IPAddress: "192.168.1.1"},
+				},
+				VirtualIPs: []common.VirtualIP{
+					{Mode: common.VIPModeCarp, Interface: "lan", Subnet: "192.168.1.254"},
+				},
+				FirewallRules: []common.FirewallRule{rule},
+			}
+
+			report := newRedReport(device)
+			runRedAnalysis(report)
+
+			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: Web Administration")
+			if exposed != tc.wantExposed {
+				t.Errorf("web GUI exposed = %v, want %v: %+v", exposed, tc.wantExposed, report.Findings)
+			}
+		})
+	}
+}
