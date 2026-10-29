@@ -72,9 +72,11 @@ func TestConverter_IDS_Mode(t *testing.T) {
 func TestConverter_IDS_UnknownModelVersion(t *testing.T) {
 	t.Parallel()
 
-	_, warnings := parseIDs(t, "1.1.3", `<mode>netmap</mode>`)
+	device, warnings := parseIDs(t, "1.1.3", `<mode>netmap</mode>`)
 	require.Len(t, warnings, 1)
 	assert.Equal(t, "IDS.Version", warnings[0].Field)
 	assert.Equal(t, "1.1.3", warnings[0].Value)
 	assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
+	assert.NotEmpty(t, warnings[0].Message)
+	assert.True(t, device.IDS.IPSMode)
 }
