@@ -607,9 +607,12 @@ type IDS struct {
 	Files            string   `xml:"files"`
 	FileTags         string   `xml:"fileTags"`
 	General          struct {
-		Text              string `xml:",chardata" json:"text,omitempty"`
-		Enabled           string `xml:"enabled"`
-		Ips               string `xml:"ips"`
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Enabled string `xml:"enabled"`
+		Ips     string `xml:"ips"`
+		// Mode replaced Ips in model 1.1.2 (OPNsense 26.1): pcap is IDS,
+		// netmap and divert run Suricata inline as an IPS.
+		Mode              string `xml:"mode"`
 		Promisc           string `xml:"promisc"`
 		Interfaces        string `xml:"interfaces"`
 		Homenet           string `xml:"homenet"`
@@ -733,8 +736,20 @@ func (ids *IDS) IsEnabled() bool {
 }
 
 // IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention) mode.
+// A config without <mode> predates model 1.1.2 and is read from <ips>.
 func (ids *IDS) IsIPSMode() bool {
-	return ids != nil && ids.General.Ips == "1"
+	if ids == nil {
+		return false
+	}
+
+	switch ids.General.Mode {
+	case "netmap", "divert":
+		return true
+	case "":
+		return ids.General.Ips == "1"
+	default:
+		return false
+	}
 }
 
 // GetMonitoredInterfaces parses the comma-separated interfaces string and returns a slice.
@@ -775,7 +790,7 @@ func (ids *IDS) GetDetectionMode() string {
 	if ids == nil {
 		return "Disabled"
 	}
-	if ids.General.Ips == "1" {
+	if ids.IsIPSMode() {
 		return "IPS (Prevention)"
 	}
 	return "IDS (Detection Only)"

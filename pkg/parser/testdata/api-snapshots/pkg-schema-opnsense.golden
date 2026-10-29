@@ -757,9 +757,12 @@ type IDS struct {
 	Files            string   `xml:"files"`
 	FileTags         string   `xml:"fileTags"`
 	General          struct {
-		Text              string `xml:",chardata" json:"text,omitempty"`
-		Enabled           string `xml:"enabled"`
-		Ips               string `xml:"ips"`
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Enabled string `xml:"enabled"`
+		Ips     string `xml:"ips"`
+		// Mode replaced Ips in model 1.1.2 (OPNsense 26.1): pcap is IDS,
+		// netmap and divert run Suricata inline as an IPS.
+		Mode              string `xml:"mode"`
 		Promisc           string `xml:"promisc"`
 		Interfaces        string `xml:"interfaces"`
 		Homenet           string `xml:"homenet"`
@@ -820,7 +823,7 @@ func (ids *IDS) IsEnabled() bool
 
 func (ids *IDS) IsIPSMode() bool
     IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention)
-    mode.
+    mode. A config without <mode> predates model 1.1.2 and is read from <ips>.
 
 func (ids *IDS) IsPromiscuousMode() bool
     IsPromiscuousMode returns true if promiscuous mode is enabled.

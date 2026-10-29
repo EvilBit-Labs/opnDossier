@@ -22,6 +22,11 @@ var knownUnboundPlusVersions = map[string]struct{}{
 	"1.0.2": {},
 }
 
+// idsModelVersions lists every <IDS version="..."> IDS.xml has carried, up to
+// 1.1.2 (26.1), which replaced <ips> with <mode>. One literal keeps the
+// version strings clear of goconst's count across the other version sets.
+var idsModelVersions = strings.Fields("1.0.0 1.0.1 1.0.2 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7 1.0.8 1.0.9 1.1.0 1.1.1 1.1.2")
+
 // convertDHCP maps doc.Dhcpd.Items to []common.DHCPScope.
 func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	items := doc.Dhcpd.Items
@@ -668,6 +673,15 @@ func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 	ids := doc.OPNsense.IntrusionDetectionSystem
 	if ids == nil {
 		return nil
+	}
+
+	if ids.Version != "" && !slices.Contains(idsModelVersions, ids.Version) {
+		c.addWarning(
+			"IDS.Version",
+			ids.Version,
+			"unrecognized OPNsense IDS model version; element mapping may be stale",
+			common.SeverityMedium,
+		)
 	}
 
 	return &common.IDSConfig{

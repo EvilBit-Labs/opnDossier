@@ -347,6 +347,34 @@ func TestIDS_IsIPSMode(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "netmap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "netmap" }),
+			want: true,
+		},
+		{
+			name: "divert mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "divert" }),
+			want: true,
+		},
+		{
+			name: "pcap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "pcap" }),
+			want: false,
+		},
+		{
+			name: "unrecognized mode runs pcap",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "NETMAP" }),
+			want: false,
+		},
+		{
+			name: "mode wins over a leftover ips",
+			ids: newTestIDs(func(ids *IDS) {
+				ids.General.Mode = "pcap"
+				ids.General.Ips = "1"
+			}),
+			want: false,
+		},
+		{
 			name: "empty",
 			ids:  &IDS{},
 			want: false,
@@ -524,6 +552,16 @@ func TestIDS_GetDetectionMode(t *testing.T) {
 		{
 			name: "IDS mode",
 			ids:  newTestIDs(func(ids *IDS) { ids.General.Ips = "0" }),
+			want: "IDS (Detection Only)",
+		},
+		{
+			name: "netmap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "netmap" }),
+			want: "IPS (Prevention)",
+		},
+		{
+			name: "pcap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "pcap" }),
 			want: "IDS (Detection Only)",
 		},
 		{
