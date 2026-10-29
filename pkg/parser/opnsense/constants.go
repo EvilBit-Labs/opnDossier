@@ -13,4 +13,8 @@ const (
 	// interfaceTypeGroup is the <type> of an interface group's entry under
 	// <interfaces>.
 	interfaceTypeGroup = "group"
+
+	// gatewayDynamic is the legacy <gateway> value for a gateway whose
+	// address comes from the interface (DHCP, PPPoE and similar).
+	gatewayDynamic = "dynamic"
 )

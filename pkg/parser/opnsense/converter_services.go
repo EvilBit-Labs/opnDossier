@@ -536,13 +536,75 @@ func (c *converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfi
 	return cfg
 }
 
-// convertRouting maps doc.Gateways and doc.StaticRoutes to common.Routing.
+// gatewayModelVersion is the <OPNsense><Gateways> model version OPNsense
+// writes from 24.1 through 26.7.
+const gatewayModelVersion = "1.0.0"
+
+// knownGatewayModelVersions lists the <OPNsense><Gateways version="...">
+// values this converter has been checked against. 23.7 wrote an empty model at
+// 0.0.1 with the same gateway_item element.
+var knownGatewayModelVersions = map[string]struct{}{
+	"":                  {},
+	"0.0.1":             {},
+	gatewayModelVersion: {},
+}
+
+// convertRouting maps the gateways, doc.Gateways.Groups and doc.StaticRoutes
+// to common.Routing.
 func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing {
 	return common.Routing{
-		Gateways:      c.convertGateways(doc.Gateways.Gateway),
+		Gateways:      c.convertGatewayItems(doc),
 		GatewayGroups: c.convertGatewayGroups(doc.Gateways.Groups),
 		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes.Route),
 	}
+}
+
+// convertGatewayItems reads the gateways from the <OPNsense><Gateways> model
+// when it holds any, and from <gateways> otherwise, as the vendor's
+// gatewayIterator does. OPNsense 24.1 migration M1_0_0 moves every
+// <gateways><gateway_item> into the model and deletes the original.
+func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.Gateway {
+	model := doc.OPNsense.Gateways
+	c.checkGatewayModelVersion(model.Version, len(model.Items))
+	if len(model.Items) == 0 {
+		return c.convertGateways(doc.Gateways.Gateway)
+	}
+
+	// The migration rewrites "dynamic" to an empty address, and the model
+	// reads both as a gateway that takes its address from the interface.
+	items := slices.Clone(model.Items)
+	for i := range items {
+		if items[i].Gateway == "" {
+			items[i].Gateway = gatewayDynamic
+		}
+	}
+
+	return c.convertGateways(items)
+}
+
+// checkGatewayModelVersion warns when the gateway model carries a version this
+// converter has not been checked against, as checkFilterModelVersion does. With
+// no gateways decoded the item element may have been renamed (§18.1), and the
+// legacy fallback is then empty because the migration deleted it.
+func (c *converter) checkGatewayModelVersion(version string, items int) {
+	if _, known := knownGatewayModelVersions[version]; known {
+		return
+	}
+
+	if items == 0 {
+		c.addWarning(
+			"OPNsense.Gateways.Version",
+			version,
+			"unrecognized OPNsense gateway model version and no gateways decoded; the gateway element may have been renamed",
+			common.SeverityLow,
+		)
+
+		return
+	}
+
+	c.addWarning("OPNsense.Gateways.Version", version,
+		"unrecognized OPNsense gateway model version; element mapping may be stale",
+		common.SeverityMedium)
 }
 
 // convertGateways maps []schema.Gateway to []common.Gateway.
