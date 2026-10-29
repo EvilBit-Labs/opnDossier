@@ -360,7 +360,7 @@ vip.Mode = common.VIPModeCarp
 
 - `FirewallRuleType`: `RuleTypePass`, `RuleTypeBlock`, `RuleTypeReject`
 - `FirewallDirection`: `DirectionIn`, `DirectionOut`, `DirectionAny`
-- `IPProtocol`: `IPProtocolInet`, `IPProtocolInet6`
+- `IPProtocol`: `IPProtocolInet`, `IPProtocolInet6`, `IPProtocolInet46`
 - `NATOutboundMode`: `OutboundAutomatic`, `OutboundHybrid`, `OutboundAdvanced`, `OutboundDisabled`
 - `VIPMode`: `VIPModeCarp`, `VIPModeIPAlias`, `VIPModeProxyARP`
 - `LAGGProtocol`: `LAGGProtocolLACP`, `LAGGProtocolFailover`, `LAGGProtocolLoadBalance`, `LAGGProtocolRoundRobin`

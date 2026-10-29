@@ -398,6 +398,7 @@ opnDossier uses typed string enums in `pkg/model` for firewall rules, NAT config
 
   - `common.IPProtocolInet` — IPv4
   - `common.IPProtocolInet6` — IPv6
+  - `common.IPProtocolInet46` — IPv4 and IPv6 in one rule
 
 - **`NATOutboundMode`** (NAT configuration):
 
@@ -425,8 +426,9 @@ if device.NAT.OutboundMode == common.OutboundAutomatic {
 
 // Check IP protocol for IPv6 support
 for _, rule := range device.FirewallRules {
-    if rule.IPProtocol == common.IPProtocolInet6 {
-        // Found an IPv6 rule
+    if rule.IPProtocol == common.IPProtocolInet6 ||
+        rule.IPProtocol == common.IPProtocolInet46 {
+        // Found a rule that matches IPv6 traffic
     }
 }
 ```
