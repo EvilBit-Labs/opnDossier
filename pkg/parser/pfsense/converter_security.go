@@ -30,7 +30,10 @@ func (c *converter) convertFirewallRules(
 	for i, rule := range doc.Filter.Rule {
 		c.warnOnIncompleteFirewallRule(i, rule)
 
-		ruleType := common.FirewallRuleType(rule.Type)
+		// pfSense compiles a rule with no type as pass (filter.inc
+		// filter_generate_user_rule), and the port forward page writes its
+		// companion rule without one.
+		ruleType := common.FirewallRuleType(cmp.Or(rule.Type, string(common.RuleTypePass)))
 		if rule.Type != "" && !ruleType.IsValid() {
 			c.addWarning(
 				fmt.Sprintf("FirewallRules[%d].Type", i),
@@ -118,14 +121,6 @@ func (c *converter) convertFirewallRules(
 // keep that function inside the length limit; i is the rule index used to
 // address the warning.
 func (c *converter) warnOnIncompleteFirewallRule(i int, rule pfsense.FilterRule) {
-	if rule.Type == "" && rule.AssociatedRuleID == "" {
-		c.addWarning(
-			fmt.Sprintf("FirewallRules[%d].Type", i),
-			rule.UUID,
-			"firewall rule has empty type",
-			common.SeverityHigh,
-		)
-	}
 	if rule.Source.EffectiveAddress() == "" {
 		c.addWarning(
 			fmt.Sprintf("FirewallRules[%d].Source", i),

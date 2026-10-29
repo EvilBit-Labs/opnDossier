@@ -1249,7 +1249,7 @@ func TestConverter_FilterRules_WarningIndex(t *testing.T) {
 
 	device, warnings := parseFilterRules(t,
 		`<rule><interface>lan</interface><descr>legacy</descr>`+
-			`<source><any>1</any></source><destination><any>1</any></destination></rule>`,
+			`<destination><any>1</any></destination></rule>`,
 		modelRuleXML("last", "30", "u3", `<interface>opt9</interface>`+
 			`<destination_net>WEB_HOST,DB_HOST</destination_net><destination_not>1</destination_not>`)+
 			modelRuleXML("second", "20", "u2", `<interface>lan</interface><action>match</action>`)+
@@ -1271,7 +1271,7 @@ func TestConverter_FilterRules_WarningIndex(t *testing.T) {
 		{"FirewallRules[0].Interface", "wan"},
 		{"FirewallRules[0].Source", "lan,any"},
 		{"FirewallRules[1].Type", "match"},
-		{"FirewallRules[2].Type", ""},
+		{"FirewallRules[2].Source", ""},
 		{"FirewallRules[3].Interface", "opt9"},
 		{"FirewallRules[3].Destination", "WEB_HOST,DB_HOST"},
 	}, got)

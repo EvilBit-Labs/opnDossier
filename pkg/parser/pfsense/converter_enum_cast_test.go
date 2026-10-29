@@ -152,12 +152,7 @@ func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 
 // TestConverter_EnumCast_EmptyStringDoesNotWarn protects the empty-string
 // exemption for every pfSense enum-cast field path.
-//
-// Note: this test intentionally sets Type: "pass" rather than leaving Type
-// empty, because pfSense's convertFirewallRules emits a distinct
-// "firewall rule has empty type" warning when both Type and
-// AssociatedRuleID are empty. That warning is not an enum-cast concern, so
-// the test uses a valid Type to isolate the enum-cast invariant.
+
 func TestConverter_EnumCast_EmptyStringDoesNotWarn(t *testing.T) {
 	t.Parallel()
 

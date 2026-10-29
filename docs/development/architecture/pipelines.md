@@ -802,7 +802,6 @@ Warnings are generated for configuration elements with missing or incomplete dat
 
 #### Firewall Rules
 
-- **Empty rule type**: High severity warning when firewall rule has no type specified
 - **Missing source address**: Medium severity warning for rules without source address
 - **Missing destination address**: Medium severity warning for rules without destination address
 - **No interface assigned**: Medium severity warning when interface field is empty

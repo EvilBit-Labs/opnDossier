@@ -202,12 +202,8 @@ func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 // elements are a legitimate way to omit a value and must not produce an
 // enum-cast warning on any of the enum field paths.
 //
-// Note: this test sets Type: "pass" on the firewall rule because the
-// converter emits a separate SeverityHigh "firewall rule has empty type"
-// warning when Type is empty — that warning is not an enum-cast concern
-// and would obscure the invariant under test. Direction, IPProtocol, and
-// the NAT / LAGG / VIP enum fields are left empty to exercise the
-// enum-cast branch specifically.
+// Direction, IPProtocol, and the NAT / LAGG / VIP enum fields are left
+// empty to exercise the enum-cast branch specifically.
 func TestConverter_EnumCast_EmptyStringDoesNotWarn(t *testing.T) {
 	t.Parallel()
 
