@@ -177,6 +177,29 @@ func TestResolvePrecedence_FloatingRulesJoinInterfaceGroupsAheadOfInterfaceBound
 		assert.Equal(t, CoverFull, pairs[0].Extent)
 	})
 
+	t.Run("quick floating bound to several interfaces joins each of their groups", func(t *testing.T) {
+		t.Parallel()
+
+		interfaceRule := precedenceRule("lan", common.DirectionIn)
+		interfaceRule.Quick = true
+		interfaceRule.Destination.Address = "10.1.0.0/16" // narrow
+
+		floating := floatingRule()
+		floating.Interfaces = []string{"wan", "lan"}
+		floating.Quick = true
+		floating.Destination.Address = "10.0.0.0/8" // broad, covers interfaceRule fully
+
+		cfg := &common.CommonDevice{FirewallRules: []common.FirewallRule{interfaceRule, floating}}
+
+		pairs := ResolvePrecedence(cfg)
+
+		require.Len(t, pairs, 1)
+		assert.Equal(t, "lan", pairs[0].Interface)
+		assert.Equal(t, 1, pairs[0].Winner.Index, "floating rule wins on its second interface too")
+		assert.Equal(t, 0, pairs[0].Loser.Index, "interface rule is shadowed")
+		assert.Equal(t, CoverFull, pairs[0].Extent)
+	})
+
 	t.Run("floating rule bound to another interface stays out of the group", func(t *testing.T) {
 		t.Parallel()
 
