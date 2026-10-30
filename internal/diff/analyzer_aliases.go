@@ -223,11 +223,12 @@ func formatAlias(obj common.NamedObject) string {
 }
 
 // formatMembers joins alias members for display. The parsers keep a comma or a
-// double quote inside a member, so when one holds either, every member is
-// quoted; otherwise []string{"a, b"} and []string{"a", "b"} would both read
-// "a, b", and []string{`"a`, `b"`} would read like the first one quoted.
+// double quote inside a member, so when one holds either, or is empty, every
+// member is quoted; otherwise []string{"a, b"} and []string{"a", "b"} would both
+// read "a, b", []string{`"a`, `b"`} would read like the first one quoted, and
+// []string{""} would read like no members at all.
 func formatMembers(members []string) string {
-	if !slices.ContainsFunc(members, func(m string) bool { return strings.ContainsAny(m, `,"`) }) {
+	if !slices.ContainsFunc(members, func(m string) bool { return m == "" || strings.ContainsAny(m, `,"`) }) {
 		return strings.Join(members, ", ")
 	}
 

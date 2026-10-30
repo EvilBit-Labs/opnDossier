@@ -150,6 +150,22 @@ func compareAliasesFieldCases() []compareAliasesCase {
 			}},
 		},
 		{
+			// Unquoted, an empty member would read the same as no members.
+			name: "empty member added to an empty list",
+			mutate: func(o, n *common.CommonDevice) {
+				o.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{},
+				}
+				n.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{""},
+				}
+			},
+			want: []Change{{
+				Type: ChangeModified, Path: "aliases.alias[SPARE].members",
+				OldValue: "", NewValue: `""`, SecurityImpact: "low",
+			}},
+		},
+		{
 			// Unquoted, the new members would read `"a, b"`, the same as the
 			// old member quoted.
 			name: "members holding double quotes",
