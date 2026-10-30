@@ -2,6 +2,8 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -452,6 +454,140 @@ func TestIDS_PredatesModeOption(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.ids.PredatesModeOption(); got != tt.want {
 				t.Errorf("IDS.PredatesModeOption() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// idsFixtureElement returns the <IDS> element of a config OPNsense wrote, with
+// the given model version and with element in the place of <ips>. No fixture
+// carries model 1.1.2, so that shape is this one rewritten the way the vendor's
+// M1_1_2 migration writes it: the version goes up and <mode> sits where <ips>
+// was (GOTCHAS 3.7).
+func idsFixtureElement(t *testing.T, version, element string) string {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join(testdataDir(), "sample.config.5.xml"))
+	if err != nil {
+		t.Fatalf("os.ReadFile() error = %v", err)
+	}
+
+	const shippedRoot = `<IDS version="1.1.0">`
+	config := string(data)
+	start, end := strings.Index(config, shippedRoot), strings.Index(config, "</IDS>")
+	if start < 0 || end < start {
+		t.Fatalf("fixture has no %s element", shippedRoot)
+	}
+
+	return strings.NewReplacer(
+		shippedRoot, `<IDS version="`+version+`">`,
+		"<ips>0</ips>", element,
+	).Replace(config[start : end+len("</IDS>")])
+}
+
+// TestIDS_ModeElements_XMLRoundTrip pins what IsIPSMode reads (standards.md
+// "Adding New XML Fields" step 3): the version attribute, <ips> and <mode>. The
+// XML starts from a fixture rather than a populated struct, because a struct
+// marshaled and read back under a wrong tag still comes back equal. A string
+// field cannot tell absent from empty (GOTCHAS 3.2), so neither <mode/> nor the
+// empty element a marshal writes for a missing one changes the answer.
+func TestIDS_ModeElements_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		version     string
+		element     string
+		wantIps     string
+		wantMode    string
+		wantElement string
+		wantIPSMode bool
+	}{
+		{
+			name:        "model 1.1.0 as shipped",
+			version:     "1.1.0",
+			element:     "<ips>0</ips>",
+			wantIps:     "0",
+			wantElement: "<ips>0</ips>",
+		},
+		{
+			name:        "ips on the last model that reads it",
+			version:     "1.1.1",
+			element:     "<ips>1</ips>",
+			wantIps:     "1",
+			wantElement: "<ips>1</ips>",
+			wantIPSMode: true,
+		},
+		{
+			name:        "migrated with ips off",
+			version:     "1.1.2",
+			element:     "<mode>pcap</mode>",
+			wantMode:    "pcap",
+			wantElement: "<mode>pcap</mode>",
+		},
+		{
+			name:        "migrated with ips on",
+			version:     "1.1.2",
+			element:     "<mode>netmap</mode>",
+			wantMode:    "netmap",
+			wantElement: "<mode>netmap</mode>",
+			wantIPSMode: true,
+		},
+		{
+			name:        "divert selected on model 1.1.2",
+			version:     "1.1.2",
+			element:     "<mode>divert</mode>",
+			wantMode:    "divert",
+			wantElement: "<mode>divert</mode>",
+			wantIPSMode: true,
+		},
+		{
+			name:        "empty mode runs pcap",
+			version:     "1.1.2",
+			element:     "<mode/>",
+			wantElement: "<mode></mode>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got IDS
+			if err := xml.Unmarshal([]byte(idsFixtureElement(t, tt.version, tt.element)), &got); err != nil {
+				t.Fatalf("xml.Unmarshal() error = %v", err)
+			}
+			if got.Version != tt.version {
+				t.Errorf("Version = %q, want %q", got.Version, tt.version)
+			}
+			if got.General.Ips != tt.wantIps {
+				t.Errorf("General.Ips = %q, want %q", got.General.Ips, tt.wantIps)
+			}
+			if got.General.Mode != tt.wantMode {
+				t.Errorf("General.Mode = %q, want %q", got.General.Mode, tt.wantMode)
+			}
+
+			marshaled, err := xml.Marshal(&got)
+			if err != nil {
+				t.Fatalf("xml.Marshal() error = %v", err)
+			}
+			marshaledStr := string(marshaled)
+
+			for _, elem := range []string{`<IDS version="` + tt.version + `">`, tt.wantElement} {
+				if !strings.Contains(marshaledStr, elem) {
+					t.Errorf("marshaled XML %q does not contain expected element %q", marshaledStr, elem)
+				}
+			}
+
+			var roundTripped IDS
+			if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
+				t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
+			}
+			if roundTripped != got {
+				t.Errorf("round-trip result = %+v, want %+v", roundTripped, got)
+			}
+			if result := roundTripped.IsIPSMode(); result != tt.wantIPSMode {
+				t.Errorf("round-tripped IsIPSMode() = %v, want %v", result, tt.wantIPSMode)
 			}
 		})
 	}
