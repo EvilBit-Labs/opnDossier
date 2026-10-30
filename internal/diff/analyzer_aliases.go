@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -222,13 +223,14 @@ func formatAlias(obj common.NamedObject) string {
 	return fmt.Sprintf("%s: %s", obj.Type, formatMembers(obj.Members))
 }
 
-// formatMembers joins alias members for display. The parsers keep a comma or a
-// double quote inside a member, so when one holds either, or is empty, every
-// member is quoted; otherwise []string{"a, b"} and []string{"a", "b"} would both
-// read "a, b", []string{`"a`, `b"`} would read like the first one quoted, and
-// []string{""} would read like no members at all.
+// formatMembers joins alias members for display. The parsers keep a comma, a
+// double quote or a control character inside a member, so when one holds any of
+// these, or is empty, every member is quoted; otherwise []string{"a, b"} and
+// []string{"a", "b"} would both read "a, b", []string{`"a`, `b"`} would read like
+// the first one quoted, []string{""} would read like no members at all, and a
+// carriage return would overwrite the terminal line.
 func formatMembers(members []string) string {
-	if !slices.ContainsFunc(members, func(m string) bool { return m == "" || strings.ContainsAny(m, `,"`) }) {
+	if !slices.ContainsFunc(members, memberNeedsQuoting) {
 		return strings.Join(members, ", ")
 	}
 
@@ -238,4 +240,9 @@ func formatMembers(members []string) string {
 	}
 
 	return strings.Join(quoted, ", ")
+}
+
+// memberNeedsQuoting reports whether a member cannot be shown as it stands.
+func memberNeedsQuoting(m string) bool {
+	return m == "" || strings.ContainsAny(m, `,"`) || strings.ContainsFunc(m, unicode.IsControl)
 }

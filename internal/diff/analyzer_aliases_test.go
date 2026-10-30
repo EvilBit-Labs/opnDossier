@@ -150,6 +150,19 @@ func compareAliasesFieldCases() []compareAliasesCase {
 			}},
 		},
 		{
+			// Unquoted, the carriage return would overwrite the terminal line.
+			name: "member holding a carriage return",
+			mutate: func(_, n *common.CommonDevice) {
+				n.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{"10.0.0.9\r"},
+				}
+			},
+			want: []Change{{
+				Type: ChangeModified, Path: "aliases.alias[SPARE].members",
+				OldValue: "10.0.0.9", NewValue: `"10.0.0.9\r"`, SecurityImpact: "low",
+			}},
+		},
+		{
 			// Unquoted, an empty member would read the same as no members.
 			name: "empty member added to an empty list",
 			mutate: func(o, n *common.CommonDevice) {
