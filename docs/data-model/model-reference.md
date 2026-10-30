@@ -522,7 +522,7 @@ The `analysis` enrichment field (`Analysis`, `*Analysis`) is populated during ex
 
 ### ShadowedRuleFinding
 
-Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pfSense rule-evaluation semantics directly (quick rules first-match, non-quick rules last-match, floating rules evaluated before interface rules, device-wide when unscoped).
+Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pfSense rule-evaluation semantics directly (quick rules first-match, non-quick rules last-match, floating rules evaluated in list order before interface rules, device-wide when unscoped). An OPNsense rule list is already in evaluation order and is read as it stands. A disabled rule never appears as the covering rule, because both firewalls skip it, but it can be reported as the shadowed rule. A rule with no type counts as a pass rule, because both firewalls load it as one.
 
 | Field             | Type     | JSON Key                                   | Description                                                                                                                                             |
 | ----------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -172,6 +172,7 @@ func TestValidatePfSenseSystem(t *testing.T) {
 	}
 }
 
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestValidatePfSenseFilter(t *testing.T) {
 	t.Parallel()
 
@@ -228,11 +229,27 @@ func TestValidatePfSenseFilter(t *testing.T) {
 		{
 			name: "floating rule without direction",
 			mutate: func(r *pfsense.FilterRule) {
-				r.Floating = "yes"
+				r.Floating = new("yes")
 				r.Direction = ""
 			},
 			wantCount: 1,
 			wantMsg:   "direction is required",
+		},
+		{
+			name: "empty floating element without direction",
+			mutate: func(r *pfsense.FilterRule) {
+				r.Floating = new("")
+				r.Direction = ""
+			},
+			wantCount: 0,
+		},
+		{
+			name: "floating element with another value and no direction",
+			mutate: func(r *pfsense.FilterRule) {
+				r.Floating = new("1")
+				r.Direction = ""
+			},
+			wantCount: 0,
 		},
 		{
 			name: "invalid direction",

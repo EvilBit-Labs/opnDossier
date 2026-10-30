@@ -66,10 +66,12 @@ func (c *converter) convertFirewallRules(
 			IPProtocol:  ipProto,
 			StateType:   rule.StateType,
 			Direction:   direction,
-			Floating:    rule.Floating == xmlBoolYes,
-			// pfSense writes <quick> only on floating rules and makes every
-			// other rule quick (filter.inc: !isset($rule['floating'])).
-			Quick:    bool(rule.Quick) || rule.Floating == "",
+			// pfSense decides whether a rule is floating, and whether it is
+			// quick, with isset(), whatever <floating> holds, and makes every
+			// rule that is not floating quick (filter.inc L3387, L4295). Only
+			// its direction check also requires "yes" (L3376).
+			Floating: rule.Floating != nil,
+			Quick:    bool(rule.Quick) || rule.Floating == nil,
 			Protocol: rule.Protocol,
 			Source: common.RuleEndpoint{
 				Address:    rule.Source.EffectiveAddress(),

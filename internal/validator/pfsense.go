@@ -359,7 +359,7 @@ func countPfSenseEndpointFields(isAny bool, network, address string) int {
 
 func validatePfSenseRuleDirection(prefix string, rule pfsense.FilterRule) []ValidationError {
 	var errors []ValidationError
-	if rule.Floating == floatingYes && rule.Direction == "" {
+	if rule.Floating != nil && *rule.Floating == floatingYes && rule.Direction == "" {
 		errors = append(errors, ValidationError{
 			Field:   prefix + ".direction",
 			Message: "direction is required for floating rules",

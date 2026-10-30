@@ -334,7 +334,7 @@ func TestConverter_FirewallRules(t *testing.T) {
 			IPProtocol: "inet",
 			StateType:  "keep state",
 			Direction:  "in",
-			Floating:   "yes",
+			Floating:   new("yes"),
 			Quick:      true,
 			Protocol:   "tcp",
 			Source: opnsense.Source{

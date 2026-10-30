@@ -294,7 +294,7 @@ type FilterRule struct {
 	IPProtocol  string                 `xml:"ipprotocol,omitempty" json:"ipProtocol,omitempty"  yaml:"ipProtocol,omitempty"`
 	StateType   string                 `xml:"statetype,omitempty"  json:"stateType,omitempty"   yaml:"stateType,omitempty"`
 	Direction   string                 `xml:"direction,omitempty"  json:"direction,omitempty"   yaml:"direction,omitempty"`
-	Floating    string                 `xml:"floating,omitempty"   json:"floating,omitempty"    yaml:"floating,omitempty"`
+	Floating    *string                `xml:"floating,omitempty"   json:"floating,omitempty"    yaml:"floating,omitempty"`
 	Quick       opnsense.BoolFlag      `xml:"quick,omitempty"      json:"quick"                 yaml:"quick,omitempty"`
 	Protocol    string                 `xml:"protocol,omitempty"   json:"protocol,omitempty"    yaml:"protocol,omitempty"`
 	Source      opnsense.Source        `xml:"source"               json:"source"                yaml:"source"`

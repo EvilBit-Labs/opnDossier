@@ -215,6 +215,101 @@ func TestDetectDeadRules_DisabledNotEquivalent(t *testing.T) {
 	assert.Empty(t, findings, "disabled rule must not duplicate enabled rule")
 }
 
+// TestDetectDeadRules_DisabledRuleKeepsLegacyOutput pins the legacy view against
+// the shadow core, which does not let a disabled rule win. This view's output is
+// a byte-for-byte contract, and a disabled rule has always owned findings in it.
+func TestDetectDeadRules_DisabledRuleKeepsLegacyOutput(t *testing.T) {
+	t.Parallel()
+
+	rule := common.FirewallRule{
+		Type:        common.RuleTypeBlock,
+		Interfaces:  []string{"lan"},
+		Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+		Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+		Disabled:    true,
+	}
+
+	t.Run("disabled block-all owns an unreachable finding", func(t *testing.T) {
+		t.Parallel()
+
+		pass := rule
+		pass.Type = common.RuleTypePass
+		pass.Disabled = false
+
+		findings := analysis.DetectDeadRules(&common.CommonDevice{FirewallRules: []common.FirewallRule{rule, pass}})
+
+		require.Len(t, findings, 1)
+		assert.Equal(t, common.DeadRuleKindUnreachable, findings[0].Kind)
+		assert.Equal(t, 0, findings[0].RuleIndex)
+	})
+
+	t.Run("disabled pass rules are duplicates of each other", func(t *testing.T) {
+		t.Parallel()
+
+		pass := rule
+		pass.Type = common.RuleTypePass
+
+		findings := analysis.DetectDeadRules(&common.CommonDevice{FirewallRules: []common.FirewallRule{pass, pass}})
+
+		require.Len(t, findings, 1)
+		assert.Equal(t, common.DeadRuleKindDuplicate, findings[0].Kind)
+		assert.Equal(t, 1, findings[0].RuleIndex)
+	})
+}
+
+// TestDetectDeadRules_EmptyTypeKeepsLegacyOutput pins the legacy view against the
+// shadow core's classification, which reads a rule with no type as pass. This
+// view compares the raw types, so such a rule is no duplicate of a pass rule, and
+// its output is a byte-for-byte contract.
+func TestDetectDeadRules_EmptyTypeKeepsLegacyOutput(t *testing.T) {
+	t.Parallel()
+
+	rule := func(ruleType common.FirewallRuleType) common.FirewallRule {
+		return common.FirewallRule{
+			Type:        ruleType,
+			Interfaces:  []string{"lan"},
+			Source:      common.RuleEndpoint{Address: constants.NetworkAny},
+			Destination: common.RuleEndpoint{Address: constants.NetworkAny},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		rules    []common.FirewallRule
+		wantKind string
+	}{
+		{name: "no duplicate of a pass below it", rules: []common.FirewallRule{rule(common.RuleTypePass), rule("")}},
+		{name: "no duplicate of a pass above it", rules: []common.FirewallRule{rule(""), rule(common.RuleTypePass)}},
+		{
+			name:     "two rules with no type are duplicates",
+			rules:    []common.FirewallRule{rule(""), rule("")},
+			wantKind: common.DeadRuleKindDuplicate,
+		},
+		{
+			name:     "block-all above a rule with no type owns the finding",
+			rules:    []common.FirewallRule{rule(common.RuleTypeBlock), rule("")},
+			wantKind: common.DeadRuleKindUnreachable,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			findings := analysis.DetectDeadRules(&common.CommonDevice{FirewallRules: tt.rules})
+
+			if tt.wantKind == "" {
+				assert.Empty(t, findings)
+
+				return
+			}
+
+			require.Len(t, findings, 1)
+			assert.Equal(t, tt.wantKind, findings[0].Kind)
+		})
+	}
+}
+
 // TestDetectDeadRules_CrossInterfaceDuplicates ensures that two identical
 // multi-interface rules produce one duplicate finding per shared interface.
 // Guards the per-interface bucket reset — if buckets ever leak across

@@ -246,9 +246,8 @@ func modelRulePriority(rule schema.FirewallFilterRule, doc *schema.OpnSenseDocum
 
 // pluginRulePriority returns the priority the os-firewall plugin gave a rule of
 // the filter model: a list of interfaces first, then a group, then the rest,
-// which includes a rule on no interface. The rule list follows it, but the
-// shadow analysis still takes a floating rule with no interface, of either
-// store, ahead of every other rule (GOTCHAS 3.8).
+// which includes a rule on no interface. The rule list follows it, and the
+// shadow analysis follows the rule list (GOTCHAS 3.8).
 func pluginRulePriority(rule schema.FirewallFilterRule, doc *schema.OpnSenseDocument) int {
 	switch {
 	case strings.Contains(rule.Interface, listSeparator):
