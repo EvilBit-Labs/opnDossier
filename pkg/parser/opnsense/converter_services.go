@@ -27,6 +27,11 @@ var knownUnboundPlusVersions = map[string]struct{}{
 // version strings clear of goconst's count across the other version sets.
 var idsModelVersions = strings.Fields("1.0.0 1.0.1 1.0.2 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7 1.0.8 1.0.9 1.1.0 1.1.1 1.1.2")
 
+// idsModes lists the <mode> options of IDS model 1.1.2. OPNsense runs any other
+// value as pcap, so it reads as IDS, and convertIDs warns on it (GOTCHAS 5.2),
+// except on an older model, where nothing reads <mode>.
+var idsModes = strings.Fields("pcap netmap divert")
+
 // convertDHCP maps doc.Dhcpd.Items to []common.DHCPScope.
 func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	items := doc.Dhcpd.Items
@@ -680,6 +685,15 @@ func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 			"IDS.Version",
 			ids.Version,
 			"unrecognized OPNsense IDS model version; element mapping may be stale",
+			common.SeverityMedium,
+		)
+	}
+
+	if mode := ids.General.Mode; mode != "" && !ids.PredatesModeOption() && !slices.Contains(idsModes, mode) {
+		c.addWarning(
+			"IDS.General.Mode",
+			mode,
+			"unrecognized OPNsense IDS mode; reported as IDS, as OPNsense 26.1 runs it",
 			common.SeverityMedium,
 		)
 	}

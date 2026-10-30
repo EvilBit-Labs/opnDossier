@@ -390,6 +390,73 @@ func TestIDS_IsIPSMode(t *testing.T) {
 	}
 }
 
+// TestIDS_IsIPSMode_ModelVersion pins which of <ips> and <mode> the firewall
+// reads at each model version: <ips> up to 1.1.1, <mode> from 1.1.2.
+func TestIDS_IsIPSMode_ModelVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		mode    string
+		ips     string
+		want    bool
+	}{
+		{name: "ips on the last model that reads it", version: "1.1.1", ips: "1", want: true},
+		{name: "ips ignored from model 1.1.2", version: "1.1.2", ips: "1", want: false},
+		{name: "model versions compare as numbers", version: "1.1.10", ips: "1", want: false},
+		{name: "ips ignored on a version that does not parse", version: "1.1.x", ips: "1", want: false},
+		{name: "netmap ignored on a model that predates mode", version: "1.1.1", mode: "netmap", ips: "0", want: false},
+		{name: "divert ignored on a model that predates mode", version: "1.0.0", mode: "divert", want: false},
+		{
+			name:    "ips wins over pcap on a model that predates mode",
+			version: "1.1.1",
+			mode:    "pcap",
+			ips:     "1",
+			want:    true,
+		},
+		{name: "mode wins over ips from model 1.1.2", version: "1.1.2", mode: "pcap", ips: "1", want: false},
+		{name: "netmap read from model 1.1.2", version: "1.1.2", mode: "netmap", want: true},
+		{name: "netmap read on a version that does not parse", version: "1.1.x", mode: "netmap", want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ids := newTestIDs(func(ids *IDS) {
+				ids.Version = tt.version
+				ids.General.Mode = tt.mode
+				ids.General.Ips = tt.ips
+			})
+			if got := ids.IsIPSMode(); got != tt.want {
+				t.Errorf("IDS.IsIPSMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIDS_PredatesModeOption(t *testing.T) {
+	tests := []struct {
+		name string
+		ids  *IDS
+		want bool
+	}{
+		{name: "nil IDS", ids: nil, want: false},
+		{name: "no version", ids: &IDS{}, want: false},
+		{name: "first model", ids: &IDS{Version: "1.0.0"}, want: true},
+		{name: "last model without mode", ids: &IDS{Version: "1.1.1"}, want: true},
+		{name: "first model with mode", ids: &IDS{Version: "1.1.2"}, want: false},
+		{name: "later patch compares as a number", ids: &IDS{Version: "1.1.10"}, want: false},
+		{name: "later minor", ids: &IDS{Version: "1.2.0"}, want: false},
+		{name: "version that does not parse", ids: &IDS{Version: "1.1.x"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ids.PredatesModeOption(); got != tt.want {
+				t.Errorf("IDS.PredatesModeOption() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIDS_GetMonitoredInterfaces(t *testing.T) {
 	tests := []struct {
 		name string
@@ -562,6 +629,14 @@ func TestIDS_GetDetectionMode(t *testing.T) {
 		{
 			name: "pcap mode",
 			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "pcap" }),
+			want: "IDS (Detection Only)",
+		},
+		{
+			name: "netmap ignored on a model that predates mode",
+			ids: newTestIDs(func(ids *IDS) {
+				ids.Version = "1.1.1"
+				ids.General.Mode = "netmap"
+			}),
 			want: "IDS (Detection Only)",
 		},
 		{

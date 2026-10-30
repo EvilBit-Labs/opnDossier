@@ -3,6 +3,7 @@ package opnsense
 import (
 	"encoding/xml"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -736,20 +737,61 @@ func (ids *IDS) IsEnabled() bool {
 }
 
 // IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention) mode.
-// A config without <mode> predates model 1.1.2 and is read from <ips>.
+// A model older than 1.1.2 is read from <ips> alone, since OPNsense did not read
+// <mode> then. From 1.1.2 on, OPNsense reads only <mode> and runs pcap without it,
+// so <ips> decides only for a config that has neither <mode> nor a version.
 func (ids *IDS) IsIPSMode() bool {
 	if ids == nil {
 		return false
+	}
+
+	if ids.PredatesModeOption() {
+		return ids.General.Ips == "1"
 	}
 
 	switch ids.General.Mode {
 	case "netmap", "divert":
 		return true
 	case "":
-		return ids.General.Ips == "1"
+		return ids.Version == "" && ids.General.Ips == "1"
 	default:
 		return false
 	}
+}
+
+// idsModeModelVersion is the IDS model version that replaced <ips> with
+// <mode>, shipped with OPNsense 26.1.
+const idsModeModelVersion = "1.1.2"
+
+// PredatesModeOption reports whether the IDS model is older than 1.1.2, so that
+// OPNsense reads <ips> and ignores any <mode>. An empty version or one that does
+// not parse reports false, since neither shows which model wrote the config.
+func (ids *IDS) PredatesModeOption() bool {
+	if ids == nil {
+		return false
+	}
+
+	have, ok := modelVersionNumbers(ids.Version)
+	want, _ := modelVersionNumbers(idsModeModelVersion)
+
+	return ok && slices.Compare(have, want) < 0
+}
+
+// modelVersionNumbers splits a dotted model version such as 1.1.2 into its
+// numbers, so 1.1.10 sorts after 1.1.2. It reports false when a part is not a
+// number.
+func modelVersionNumbers(version string) ([]int, bool) {
+	parts := strings.Split(version, ".")
+	numbers := make([]int, 0, len(parts))
+	for _, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, false
+		}
+		numbers = append(numbers, n)
+	}
+
+	return numbers, true
 }
 
 // GetMonitoredInterfaces parses the comma-separated interfaces string and returns a slice.

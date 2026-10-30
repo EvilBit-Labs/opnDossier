@@ -823,7 +823,10 @@ func (ids *IDS) IsEnabled() bool
 
 func (ids *IDS) IsIPSMode() bool
     IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention)
-    mode. A config without <mode> predates model 1.1.2 and is read from <ips>.
+    mode. A model older than 1.1.2 is read from <ips> alone, since OPNsense did
+    not read <mode> then. From 1.1.2 on, OPNsense reads only <mode> and runs
+    pcap without it, so <ips> decides only for a config that has neither <mode>
+    nor a version.
 
 func (ids *IDS) IsPromiscuousMode() bool
     IsPromiscuousMode returns true if promiscuous mode is enabled.
@@ -833,6 +836,12 @@ func (ids *IDS) IsSyslogEnabled() bool
 
 func (ids *IDS) IsSyslogEveEnabled() bool
     IsSyslogEveEnabled returns true if EVE syslog output is enabled.
+
+func (ids *IDS) PredatesModeOption() bool
+    PredatesModeOption reports whether the IDS model is older than 1.1.2,
+    so that OPNsense reads <ips> and ignores any <mode>. An empty version or one
+    that does not parse reports false, since neither shows which model wrote the
+    config.
 
 type IPsec struct {
 	XMLName xml.Name `xml:"IPsec"`
