@@ -100,7 +100,7 @@ opndossier diff --detect-order old-config.xml new-config.xml
 
 `system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `users`, `routing`, `aliases`
 
-A rule that uses an alias stores only the alias name, so a change to what the alias contains is not a change to the rule. The `aliases` section reports it instead: aliases are paired by name, and a change to an alias's type, members or description is reported on its own. An alias that is added or removed, or whose type or members change, is rated medium when an enabled firewall rule or an enabled port forward uses it, directly or through a group alias, and low otherwise. Rules of every action count: an alias that a block rule uses losing a member lets that member through to the rules below. A description change is not rated, so `--security` leaves it out.
+A rule that uses an alias stores only the alias name, so a change to what the alias contains is not a change to the rule. The `aliases` section reports it instead: aliases are paired by name, and a change to an alias's type, members or description is reported on its own. An alias that is added or removed, or whose type or members change, is rated medium when an enabled firewall rule, outbound NAT rule or port forward uses it, directly or through a group alias, and low otherwise. Rules of every action count: an alias that a block rule uses losing a member lets that member through to the rules below. A description change is not rated, so `--security` leaves it out.
 
 ## Examples
 

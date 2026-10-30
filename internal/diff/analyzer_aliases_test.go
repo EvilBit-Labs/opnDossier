@@ -3,6 +3,8 @@ package diff
 import (
 	"context"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -131,6 +133,40 @@ func compareAliasesFieldCases() []compareAliasesCase {
 			}},
 		},
 		{
+			// The parsers keep a comma inside a member, so joining alone would
+			// show both sides as "a, b".
+			name: "member split at its comma",
+			mutate: func(o, n *common.CommonDevice) {
+				o.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{"a, b"},
+				}
+				n.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{"a", "b"},
+				}
+			},
+			want: []Change{{
+				Type: ChangeModified, Path: "aliases.alias[SPARE].members",
+				OldValue: `"a, b"`, NewValue: "a, b", SecurityImpact: "low",
+			}},
+		},
+		{
+			// Unquoted, the new members would read `"a, b"`, the same as the
+			// old member quoted.
+			name: "members holding double quotes",
+			mutate: func(o, n *common.CommonDevice) {
+				o.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{"a, b"},
+				}
+				n.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{`"a`, `b"`},
+				}
+			},
+			want: []Change{{
+				Type: ChangeModified, Path: "aliases.alias[SPARE].members",
+				OldValue: `"a, b"`, NewValue: `"\"a", "b\""`, SecurityImpact: "low",
+			}},
+		},
+		{
 			name: "description changed",
 			mutate: func(_, n *common.CommonDevice) {
 				spare := n.NamedObjects["SPARE"]
@@ -163,6 +199,19 @@ func compareAliasesPresenceCases() []compareAliasesCase {
 			want: []Change{{
 				Type: ChangeAdded, Path: "aliases.alias[SPARE]",
 				NewValue: "host: 10.0.0.9", SecurityImpact: "low",
+			}},
+		},
+		{
+			name: "alias added with a member holding a comma",
+			mutate: func(o, n *common.CommonDevice) {
+				delete(o.NamedObjects, "SPARE")
+				n.NamedObjects["SPARE"] = common.NamedObject{
+					Name: "SPARE", Type: common.NamedObjectTypeHost, Members: []string{"a, b"},
+				}
+			},
+			want: []Change{{
+				Type: ChangeAdded, Path: "aliases.alias[SPARE]",
+				NewValue: `host: "a, b"`, SecurityImpact: "low",
 			}},
 		},
 		{
@@ -223,8 +272,8 @@ func compareAliasesPresenceCases() []compareAliasesCase {
 }
 
 // TestCompareAliases_Impact pins which references make an alias change medium:
-// an enabled firewall rule of any action or an enabled port forward that names
-// it, directly or through a group that has it as a member.
+// an enabled firewall rule of any action, outbound NAT rule or port forward that
+// names it, directly or through a group that has it as a member.
 func TestCompareAliases_Impact(t *testing.T) {
 	t.Parallel()
 
@@ -267,6 +316,18 @@ func TestCompareAliases_Impact(t *testing.T) {
 				Type: common.RuleTypeBlock, Source: common.RuleEndpoint{AddressRef: ref("T")},
 			}}
 		}, "medium"},
+		{"redirect target of a firewall rule", func(d *common.CommonDevice) {
+			d.FirewallRules = []common.FirewallRule{{Type: common.RuleTypePass, TargetRef: ref("T")}}
+		}, "medium"},
+		{"translation target of an outbound NAT rule", func(d *common.CommonDevice) {
+			d.NAT.OutboundRules = []common.NATRule{{TargetRef: ref("T")}}
+		}, "medium"},
+		{"source of an outbound NAT rule", func(d *common.CommonDevice) {
+			d.NAT.OutboundRules = []common.NATRule{{Source: common.RuleEndpoint{AddressRef: ref("T")}}}
+		}, "medium"},
+		{"disabled outbound NAT rule", func(d *common.CommonDevice) {
+			d.NAT.OutboundRules = []common.NATRule{{Disabled: true, TargetRef: ref("T")}}
+		}, "low"},
 		{"redirect target of a port forward", func(d *common.CommonDevice) {
 			d.NAT.InboundRules = []common.InboundNATRule{{InternalIPRef: ref("T")}}
 		}, "medium"},
@@ -300,6 +361,145 @@ func TestCompareAliases_Impact(t *testing.T) {
 			assert.Equal(t, tt.want, got[0].SecurityImpact)
 		})
 	}
+}
+
+// TestActiveAliases_EveryRuleReferenceCounts sets each alias reference that a
+// firewall rule, an outbound NAT rule and a port forward can hold, one at a
+// time, and requires activeAliases to count it. A reference field added to the
+// model without a line in activeAliases fails here, rather than rating changes
+// to the aliases it names low.
+func TestActiveAliases_EveryRuleReferenceCounts(t *testing.T) {
+	t.Parallel()
+
+	// ruleList returns the slice of d that holds rules of the named type.
+	ruleList := func(d *common.CommonDevice, typeName string) reflect.Value {
+		return map[string]reflect.Value{
+			"FirewallRule":   reflect.ValueOf(&d.FirewallRules).Elem(),
+			"NATRule":        reflect.ValueOf(&d.NAT.OutboundRules).Elem(),
+			"InboundNATRule": reflect.ValueOf(&d.NAT.InboundRules).Elem(),
+		}[typeName]
+	}
+	ruleTypes := []reflect.Type{
+		reflect.TypeFor[common.FirewallRule](),
+		reflect.TypeFor[common.NATRule](),
+		reflect.TypeFor[common.InboundNATRule](),
+	}
+
+	for _, rt := range ruleTypes {
+		for _, path := range aliasRefPaths(t, rt) {
+			t.Run(rt.Name()+"."+strings.Join(path, "."), func(t *testing.T) {
+				t.Parallel()
+
+				rule := reflect.New(rt).Elem()
+				setAliasRef(rule, path, "T")
+				d := &common.CommonDevice{NamedObjects: common.NamedObjects{
+					"T": {Name: "T", Type: common.NamedObjectTypeHost, Members: []string{"10.0.0.1"}},
+				}}
+				list := ruleList(d, rt.Name())
+				list.Set(reflect.Append(list, rule))
+
+				assert.True(t, activeAliases(d)["T"], "a reference in %s.%s is not counted",
+					rt.Name(), strings.Join(path, "."))
+			})
+		}
+	}
+}
+
+var (
+	objectRefType      = reflect.TypeFor[common.ObjectRef]()
+	objectRefPtrType   = reflect.TypeFor[*common.ObjectRef]()
+	objectRefSliceType = reflect.TypeFor[[]common.ObjectRef]()
+)
+
+// aliasRefPaths returns the field paths of every alias reference in rt: a
+// *ObjectRef or []ObjectRef field, found in rt or in any struct it holds,
+// directly or through a pointer, slice or array, embedded or not. A field that
+// holds an ObjectRef in any other way, a map or a bare ObjectRef, fails the
+// test, so a new shape of reference cannot be skipped silently.
+func aliasRefPaths(t *testing.T, rt reflect.Type) [][]string {
+	t.Helper()
+
+	var paths [][]string
+	for f := range rt.Fields() {
+		elem := f.Type
+		for elem.Kind() == reflect.Pointer || elem.Kind() == reflect.Slice || elem.Kind() == reflect.Array {
+			elem = elem.Elem()
+		}
+
+		switch {
+		case f.Type == objectRefPtrType || f.Type == objectRefSliceType:
+			paths = append(paths, []string{f.Name})
+		case !holdsObjectRef(f.Type, map[reflect.Type]bool{}):
+		case elem.Kind() == reflect.Struct && elem != objectRefType:
+			for _, sub := range aliasRefPaths(t, elem) {
+				paths = append(paths, append([]string{f.Name}, sub...))
+			}
+		default:
+			t.Fatalf("%s.%s has type %s, which this test cannot set; extend it", rt.Name(), f.Name, f.Type)
+		}
+	}
+
+	return paths
+}
+
+// holdsObjectRef reports whether a value of type rt can hold an ObjectRef.
+func holdsObjectRef(rt reflect.Type, seen map[reflect.Type]bool) bool {
+	if rt == objectRefType {
+		return true
+	}
+	if seen[rt] {
+		return false
+	}
+	seen[rt] = true
+
+	switch rt.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Array:
+		return holdsObjectRef(rt.Elem(), seen)
+	case reflect.Map:
+		return holdsObjectRef(rt.Key(), seen) || holdsObjectRef(rt.Elem(), seen)
+	case reflect.Struct:
+		for f := range rt.Fields() {
+			if holdsObjectRef(f.Type, seen) {
+				return true
+			}
+		}
+
+		return false
+	default:
+		return false
+	}
+}
+
+// setAliasRef sets the reference at path in v to name, allocating any pointer
+// on the way. A list, whether of references or of structs holding one, gets
+// the reference in its second entry, so a reader of the first entry alone
+// does not pass.
+func setAliasRef(v reflect.Value, path []string, name string) {
+	f := v.FieldByName(path[0])
+	if len(path) == 1 {
+		if f.Type() == objectRefSliceType {
+			f.Set(reflect.ValueOf([]common.ObjectRef{{Name: "OTHER"}, {Name: name}}))
+
+			return
+		}
+		f.Set(reflect.ValueOf(&common.ObjectRef{Name: name}))
+
+		return
+	}
+
+	for f.Kind() != reflect.Struct {
+		switch f.Kind() {
+		case reflect.Pointer:
+			f.Set(reflect.New(f.Type().Elem()))
+			f = f.Elem()
+		case reflect.Slice:
+			f.Set(reflect.MakeSlice(f.Type(), 2, 2))
+			f = f.Index(1)
+		default:
+			f = f.Index(f.Len() - 1)
+		}
+	}
+	setAliasRef(f, path[1:], name)
 }
 
 // TestEngine_Compare_Aliases_ParsedFixture runs the case #953 reported through

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -106,8 +107,8 @@ func compareAlias(name string, old, newObj common.NamedObject, impact string) []
 			Section:        SectionAliases,
 			Path:           aliasPath(name) + ".members",
 			Description:    "Members changed for alias " + name,
-			OldValue:       strings.Join(old.Members, ", "),
-			NewValue:       strings.Join(newObj.Members, ", "),
+			OldValue:       formatMembers(old.Members),
+			NewValue:       formatMembers(newObj.Members),
 			SecurityImpact: impact,
 			summarized:     true,
 		})
@@ -127,8 +128,11 @@ func compareAlias(name string, old, newObj common.NamedObject, impact string) []
 	return changes
 }
 
-// activeAliases returns the aliases that an enabled firewall rule or an enabled
-// port forward names, directly or through an alias that has it as a member.
+// activeAliases returns the aliases that an enabled firewall rule, outbound NAT
+// rule or port forward names, directly or through an alias that has it as a
+// member. Every alias reference on those rules counts;
+// TestActiveAliases_EveryRuleReferenceCounts fails when one is added to the
+// model and not here.
 //
 // Rules of every action count, not only pass rules: an alias that a block rule
 // names losing a member lets that member through to the rules below it, and an
@@ -158,6 +162,18 @@ func activeAliases(cfg *common.CommonDevice) map[string]bool {
 		}
 		addEndpoint(rule.Source)
 		addEndpoint(rule.Destination)
+		addRef(rule.TargetRef)
+	}
+
+	for _, rule := range cfg.NAT.OutboundRules {
+		if rule.Disabled {
+			continue
+		}
+		addEndpoint(rule.Source)
+		addEndpoint(rule.Destination)
+		addRef(rule.TargetRef)
+		addRef(rule.SourcePortRef)
+		addRef(rule.NatPortRef)
 	}
 
 	for _, rule := range cfg.NAT.InboundRules {
@@ -203,5 +219,22 @@ func aliasDescription(name string, obj common.NamedObject) string {
 
 // formatAlias summarizes an alias as its type and members.
 func formatAlias(obj common.NamedObject) string {
-	return fmt.Sprintf("%s: %s", obj.Type, strings.Join(obj.Members, ", "))
+	return fmt.Sprintf("%s: %s", obj.Type, formatMembers(obj.Members))
+}
+
+// formatMembers joins alias members for display. The parsers keep a comma or a
+// double quote inside a member, so when one holds either, every member is
+// quoted; otherwise []string{"a, b"} and []string{"a", "b"} would both read
+// "a, b", and []string{`"a`, `b"`} would read like the first one quoted.
+func formatMembers(members []string) string {
+	if !slices.ContainsFunc(members, func(m string) bool { return strings.ContainsAny(m, `,"`) }) {
+		return strings.Join(members, ", ")
+	}
+
+	quoted := make([]string, 0, len(members))
+	for _, m := range members {
+		quoted = append(quoted, strconv.Quote(m))
+	}
+
+	return strings.Join(quoted, ", ")
 }

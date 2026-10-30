@@ -724,6 +724,8 @@ Relatedly, the finding's `Recommendation` intentionally hedges ("confirm before 
 
 The "no false positive" guarantee holds exactly as far as the typed-`ObjectRef` root sites in `collectRoots` cover every `CommonDevice` field on which a pf-family alias can appear. When a new device parser or a new `CommonDevice` address/port field lands, it must be audited: an alias-capable field needs both an `*ObjectRef` model field, or `[]ObjectRef` for an address list (populated by the converter), and a `collectRoots` entry. Traffic-shaper and captive-portal config are modeled as opaque identifier strings (not addresses) and are correctly excluded; DNS/NTP/monitor/LB fields are literal IPs, not firewall aliases. A silently-untracked alias-capable field reintroduces the false-positive class.
 
+The diff's alias rating keeps a second list of the rule references: `activeAliases` in `internal/diff/analyzer_aliases.go` decides which alias changes are rated medium, and it reads only enabled rules. A reference field on a firewall rule, outbound NAT rule or port forward needs a line there too; `TestActiveAliases_EveryRuleReferenceCounts` sets each one in turn and fails until it has one; without it, a change to an alias used only through that field is rated low.
+
 ## 24. GitHub Action
 
 ### 24.1 The Action Must Run As the Workspace Owner
