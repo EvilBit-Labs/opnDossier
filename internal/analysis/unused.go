@@ -29,7 +29,7 @@ func DetectUnusedObjects(cfg *common.CommonDevice) []common.UnusedObjectFinding 
 		return nil
 	}
 
-	reachable := reachableObjects(cfg)
+	reachable := ReachableObjects(cfg.NamedObjects, collectRoots(cfg))
 
 	findings := make([]common.UnusedObjectFinding, 0, len(cfg.NamedObjects))
 
@@ -59,8 +59,8 @@ func DetectUnusedObjects(cfg *common.CommonDevice) []common.UnusedObjectFinding 
 	return findings
 }
 
-// reachableObjects returns the set of NamedObjects names reachable from any
-// policy root via member→object edges.
+// ReachableObjects returns the names in objects reachable from roots via
+// member→object edges. A root that names no object contributes nothing.
 //
 // The edge predicate is deliberately NOT resolveNode's member walk (KTD-2):
 // resolveNode early-returns for isDynamic types (everything but host/network/
@@ -71,9 +71,9 @@ func DetectUnusedObjects(cfg *common.CommonDevice) []common.UnusedObjectFinding 
 // still correct for genuinely opaque types (url/geoip/external): their members
 // are URLs and country codes, which do not key into the registry and so
 // contribute no edges without needing a type check.
-func reachableObjects(cfg *common.CommonDevice) map[string]bool {
-	reachable := make(map[string]bool, len(cfg.NamedObjects))
-	queue := collectRoots(cfg)
+func ReachableObjects(objects common.NamedObjects, roots []string) map[string]bool {
+	reachable := make(map[string]bool, len(objects))
+	queue := slices.Clone(roots)
 
 	for len(queue) > 0 {
 		name := queue[len(queue)-1]
@@ -83,7 +83,7 @@ func reachableObjects(cfg *common.CommonDevice) map[string]bool {
 			continue
 		}
 
-		obj, ok := cfg.NamedObjects[name]
+		obj, ok := objects[name]
 		if !ok {
 			// A root ref (or a member) may name an object not in the registry;
 			// it contributes no edges. The visited guard above already bounds a
@@ -94,7 +94,7 @@ func reachableObjects(cfg *common.CommonDevice) map[string]bool {
 		reachable[name] = true
 
 		for _, member := range obj.Members {
-			if _, isRef := cfg.NamedObjects[member]; isRef && !reachable[member] {
+			if _, isRef := objects[member]; isRef && !reachable[member] {
 				queue = append(queue, member)
 			}
 		}

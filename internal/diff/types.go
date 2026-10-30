@@ -82,6 +82,8 @@ const (
 	SectionRouting Section = "routing"
 	// SectionCertificates represents certificate configuration.
 	SectionCertificates Section = "certificates"
+	// SectionAliases represents named objects (aliases).
+	SectionAliases Section = "aliases"
 )
 
 // String returns the string representation of the section.
@@ -100,6 +102,7 @@ func ImplementedSections() []Section {
 		SectionDHCP,
 		SectionUsers,
 		SectionRouting,
+		SectionAliases,
 	}
 }
 
@@ -108,7 +111,7 @@ func (s Section) IsValid() bool {
 	switch s {
 	case SectionSystem, SectionFirewall, SectionNAT, SectionInterfaces,
 		SectionVLANs, SectionDHCP, SectionDNS, SectionVPN,
-		SectionUsers, SectionRouting, SectionCertificates:
+		SectionUsers, SectionRouting, SectionCertificates, SectionAliases:
 		return true
 	default:
 		return false
@@ -119,7 +122,7 @@ func (s Section) IsValid() bool {
 func (s Section) IsImplemented() bool {
 	switch s {
 	case SectionSystem, SectionFirewall, SectionNAT, SectionInterfaces,
-		SectionVLANs, SectionDHCP, SectionUsers, SectionRouting:
+		SectionVLANs, SectionDHCP, SectionUsers, SectionRouting, SectionAliases:
 		return true
 	default:
 		return false

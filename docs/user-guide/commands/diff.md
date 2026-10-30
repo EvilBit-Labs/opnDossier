@@ -58,11 +58,11 @@ opndossier diff --security old-config.xml new-config.xml
 
 ### Security Impact Levels
 
-| Level      | Examples                                                                                                                                         |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **HIGH**   | Permissive any-to-any firewall rules, overly broad access                                                                                        |
-| **MEDIUM** | Firewall rule removals, user account changes, NAT mode changes, port forwarding modifications, WebGUI protocol changes, interface enable/disable |
-| **LOW**    | New firewall rules, DNS server changes, user modifications                                                                                       |
+| Level      | Examples                                                                                                                                                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **HIGH**   | Permissive any-to-any firewall rules, overly broad access                                                                                                                                                                                                  |
+| **MEDIUM** | Firewall rule removals, user account changes, NAT mode changes, port forwarding modifications, WebGUI protocol changes, interface enable/disable, an alias added, removed or given new members or a new type while an enabled rule or port forward uses it |
+| **LOW**    | New firewall rules, DNS server changes, user modifications, the same alias changes when no enabled rule or port forward uses the alias                                                                                                                     |
 
 ## Normalization
 
@@ -75,7 +75,7 @@ When normalization is enabled:
 
 Normalization is applied after the comparison, to the displayed values. Whitespace is collapsed in every value, rule summaries included. Addresses are normalized only in a value that is an address or a CIDR by itself; a DHCP range or a list of several DNS servers is not, so leading zeros inside one are reported as a change. A change whose value is displayed by itself, such as an interface address or an interface description, is skipped when its two values are identical after normalization. A digits-only value such as a hostname or a VLAN tag is never treated as formatting: `007` and `7` are different names, so that change is reported. The same holds for a value shaped like a numeric range or a date, such as a description of `2024-01` and `2024-1`. A zero-padded IPv4 octet, such as `172.016.000.001`, is never treated as formatting: parsers in the `inet_aton` family read a leading zero as octal, and `validate` rejects the form, so the change is reported with the value as written.
 
-A change to a firewall rule, an outbound NAT rule, a port forward or a user is never skipped by `--normalize`, including one that only reformats a field. Rules and port forwards are displayed as a one-line summary of a few fields, and a modified user has no displayed value, so a rule that loses its logging appears with the same text on both sides, and a user that gains an API key appears with no old or new value.
+A change to a firewall rule, an outbound NAT rule, a port forward, a user or an alias's members is never skipped by `--normalize`, including one that only reformats a field. Rules and port forwards are displayed as a one-line summary of a few fields, and a modified user has no displayed value, so a rule that loses its logging appears with the same text on both sides, and a user that gains an API key appears with no old or new value.
 
 ```bash
 # Skip cosmetic differences
@@ -98,7 +98,9 @@ opndossier diff --detect-order old-config.xml new-config.xml
 
 ## Available Sections
 
-`system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `users`, `routing`
+`system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `users`, `routing`, `aliases`
+
+A rule that uses an alias stores only the alias name, so a change to what the alias contains is not a change to the rule. The `aliases` section reports it instead: aliases are paired by name, and a change to an alias's type, members or description is reported on its own. An alias that is added or removed, or whose type or members change, is rated medium when an enabled firewall rule or an enabled port forward uses it, directly or through a group alias, and low otherwise. Rules of every action count: an alias that a block rule uses losing a member lets that member through to the rules below. A description change is not rated, so `--security` leaves it out.
 
 ## Examples
 
