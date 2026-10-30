@@ -136,9 +136,9 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 // permits that port, otherwise LAN-only. A configured management service is
 // never Local.
 //
-// Deliberately does NOT consult device.NAT.InboundRules: an inbound NAT rule
-// forwards WAN traffic to InboundNATRule.InternalIP — by construction a
-// different host than the firewall itself — so a NAT rule sharing the same
+// Deliberately never counts device.NAT.InboundRules as exposure: an inbound NAT
+// rule forwards WAN traffic to InboundNATRule.InternalIP, by construction a
+// different host than the firewall itself, so a NAT rule sharing the same
 // external port as a management service is never evidence that the
 // firewall's OWN service is WAN-reachable. Correlating NAT rules against
 // firewall-local ports produced a false positive: a NAT rule forwarding WAN
@@ -181,35 +181,126 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	return false
 }
 
-// forwardsToAnotherHost reports whether rule is the filter rule a port forward
-// stores for itself and passes traffic to a host other than the firewall. pf
-// matches it after rdr has rewritten the destination to the forward's target,
-// so it never admits traffic to the firewall's own services. Only a literal
-// address that is not loopback, an interface address or a virtual IP counts as
-// another host; an alias, a macro or a network keeps the rule, the over-report
-// direction.
+// forwardsToAnotherHost reports whether rule passes a port forward's traffic to
+// a host other than the firewall. pf matches a filter rule after rdr has
+// rewritten the destination to the forward's target, so such a rule never
+// admits traffic to the firewall's own services. That covers the rule a forward
+// stores for itself and any rule whose destination is a forward's target, which
+// is how the "unassociated" option of the OPNsense port forward page, up to
+// 25.7, writes the same rule with no link. Another host is a literal address or
+// network that holds no loopback address, interface address or virtual IP, or an
+// alias a forward targets (forwardsToAlias). A network that holds one of those
+// keeps the rule, since traffic to that address passes it as well, and so does a
+// macro or a name the config does not define: the over-report direction. So does
+// a rule of its own to an address or network no forward targets, which may hold
+// an address the firewall has and the config does not record, such as a DHCP
+// lease.
 func forwardsToAnotherHost(rule common.FirewallRule, device *common.CommonDevice) bool {
-	if rule.AssociatedRuleID == "" || rule.Destination.Negated {
+	if rule.Destination.Negated {
 		return false
 	}
 
-	target, err := netip.ParseAddr(rule.Destination.Address)
-	if err != nil || target.IsLoopback() {
+	own := firewallAddresses(device)
+
+	if ref := rule.Destination.AddressRef; ref != nil {
+		return forwardsToAlias(ref.Name, device, own)
+	}
+
+	target, ok := literalNetwork(rule.Destination.Address)
+	if !ok || holdsFirewallAddress(rule.Destination.Address, own) {
 		return false
 	}
 
-	own := make([]string, 0, 2*len(device.Interfaces)+len(device.VirtualIPs))
+	return rule.AssociatedRuleID != "" ||
+		slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
+			forwardTarget, ok := literalNetwork(nat.InternalIP)
+			return ok && forwardTarget == target
+		})
+}
+
+// literalNetwork reads a literal address as the network of that one host and a
+// CIDR as its network with the host bits cleared, so that two spellings of one
+// target compare equal.
+func literalNetwork(entry string) (netip.Prefix, bool) {
+	if addr, err := netip.ParseAddr(entry); err == nil {
+		return netip.PrefixFrom(addr, addr.BitLen()), true
+	}
+
+	prefix, err := netip.ParsePrefix(entry)
+
+	return prefix.Masked(), err == nil
+}
+
+// forwardsToAlias reports whether the alias name is a port forward's target and
+// holds no address of the firewall. Both vendors copy an alias target onto the
+// forward's rule as it stands, so the name is what ties the two together. An
+// alias Resolve cannot expand, such as a URL table, has no member to test and
+// counts as the forward's rule. What a nesting loop leaves partly expanded is
+// still tested, since a member found there is in the alias.
+func forwardsToAlias(name string, device *common.CommonDevice, own []netip.Addr) bool {
+	isTarget := slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
+		return nat.InternalIP == name
+	})
+	if !isTarget {
+		return false
+	}
+
+	members, _ := device.NamedObjects.Resolve(name)
+
+	return !slices.ContainsFunc(members, func(member string) bool {
+		return holdsFirewallAddress(member, own)
+	})
+}
+
+// firewallAddresses returns the loopback addresses and the interface addresses
+// and virtual IPs the config records for the firewall. An interface configured
+// by DHCP records none. The loopback addresses are what makes a network as wide
+// as 0.0.0.0/0 hold one on a firewall that records no other.
+func firewallAddresses(device *common.CommonDevice) []netip.Addr {
+	entries := make([]string, 0, 2+2*len(device.Interfaces)+len(device.VirtualIPs))
+	entries = append(entries, "127.0.0.1", "::1")
+
 	for _, iface := range device.Interfaces {
-		own = append(own, iface.IPAddress, iface.IPv6Address)
+		entries = append(entries, iface.IPAddress, iface.IPv6Address)
 	}
 
 	for _, vip := range device.VirtualIPs {
-		own = append(own, vip.Subnet)
+		entries = append(entries, vip.Subnet)
 	}
 
-	return !slices.ContainsFunc(own, func(a string) bool {
-		addr, err := netip.ParseAddr(a)
-		return err == nil && addr == target
+	var own []netip.Addr
+
+	for _, entry := range entries {
+		if addr, err := netip.ParseAddr(entry); err == nil {
+			own = append(own, addr)
+		}
+	}
+
+	return own
+}
+
+// holdsFirewallAddress reports whether entry is, or spans, a loopback address or
+// an address in own. It reads a literal address, a CIDR, and the first-last
+// range an OPNsense host alias can hold. Any other form, such as a hostname,
+// tells nothing and does not count.
+func holdsFirewallAddress(entry string, own []netip.Addr) bool {
+	if addr, err := netip.ParseAddr(entry); err == nil {
+		return addr.IsLoopback() || slices.Contains(own, addr)
+	}
+
+	if prefix, err := netip.ParsePrefix(entry); err == nil {
+		return prefix.Addr().IsLoopback() || slices.ContainsFunc(own, prefix.Contains)
+	}
+
+	from, to, _ := strings.Cut(entry, "-")
+	first, errFirst := netip.ParseAddr(from)
+	last, errLast := netip.ParseAddr(to)
+	if errFirst != nil || errLast != nil {
+		return false
+	}
+
+	return first.IsLoopback() || slices.ContainsFunc(own, func(addr netip.Addr) bool {
+		return !addr.Less(first) && !last.Less(addr)
 	})
 }
 

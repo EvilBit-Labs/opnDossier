@@ -122,6 +122,53 @@ func TestFirewallFilterRule_BindsEveryFixtureElement(t *testing.T) {
 	assert.Len(t, bound, 59, "the type binds the 59 elements of the 26.7.5 model")
 }
 
+// TestRule_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder is the Rule
+// counterpart to
+// TestStaticRoute_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder.
+func TestRule_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	for _, element := range []string{`<rule/>`, `<rule></rule>`, "<rule>\n  </rule>"} {
+		var filter Filter
+		require.NoError(t, xml.Unmarshal([]byte(`<filter>`+element+`</filter>`), &filter))
+		require.Len(t, filter.Rule, 1)
+
+		assert.Equal(t, "rule", filter.Rule[0].XMLName.Local,
+			"the decoder sets XMLName, which is why the predicate compares fields by name")
+		assert.Truef(t, filter.Rule[0].IsPlaceholder(), "%s is a placeholder", element)
+	}
+}
+
+// TestRule_IsPlaceholder_RetainsRulesWithData covers the entries whose only
+// content decodes through a custom type, and a rule with no type, which is what
+// the rule a port forward stored for itself looks like up to 24.7.
+func TestRule_IsPlaceholder_RetainsRulesWithData(t *testing.T) {
+	t.Parallel()
+
+	for _, body := range []string{
+		`<disabled>1</disabled>`,
+		`<quick/>`,
+		`<source><any>1</any></source>`,
+		`<destination><address>10.0.0.5</address></destination>`,
+		`<interface>wan</interface>`,
+		`<descr>placeholder for later</descr>`,
+		`<associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>`,
+	} {
+		var filter Filter
+		require.NoError(t, xml.Unmarshal([]byte(`<filter><rule>`+body+`</rule></filter>`), &filter))
+		require.Len(t, filter.Rule, 1)
+		assert.Falsef(t, filter.Rule[0].IsPlaceholder(), "a rule holding only %s must be kept", body)
+	}
+
+	var uuidOnly Filter
+	require.NoError(
+		t,
+		xml.Unmarshal([]byte(`<filter><rule uuid="b2b2b2b2-0000-4000-8000-000000000009"/></filter>`), &uuidOnly),
+	)
+	require.Len(t, uuidOnly.Rule, 1)
+	assert.False(t, uuidOnly.Rule[0].IsPlaceholder(), "a rule holding only a uuid must be kept")
+}
+
 // TestFirewallFilterRule_IsPlaceholder covers the entries OPNsense skips: a
 // <rule> with no child element, whatever its attributes. Absent elements take
 // defaults that add up to an enabled pass rule from any to any, so an entry

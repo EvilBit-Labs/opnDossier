@@ -1445,12 +1445,13 @@ func TestParser_ConfigPfSense_YAMLOutput(t *testing.T) {
 }
 
 // TestParser_ConfigPfSense_Warnings verifies conversion warnings have valid structure when present.
-// The standard pfSense fixture produces no warnings; its port-forward rules have no
-// type and read as pass.
+// The standard pfSense fixture produces only the known-gap warnings; its port-forward
+// rules have no type and read as pass.
 func TestParser_ConfigPfSense_Warnings(t *testing.T) {
 	t.Parallel()
 
 	_, warnings := parseConfigPfSenseFixture(t)
+	assert.Empty(t, nonGapWarnings(warnings))
 
 	// Verify any warnings that are emitted have valid structure.
 	for _, w := range warnings {

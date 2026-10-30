@@ -18,6 +18,15 @@ import (
 // AliasAddress (not EffectiveAddress) so an interface/network macro (e.g.
 // "lan") or the "any" wildcard is never mistaken for an alias reference,
 // even when an alias happens to share that name.
+//
+// There is no IsPlaceholder guard here (GOTCHAS 3.4), although an empty <rule/>
+// would read as an enabled pass rule from any to any, because pfSense's own
+// writer never produces one under <filter>. firewall_rules.php (RELENG_2_7_2,
+// lines 142-183) deletes a rule from the list init_config_arr made, and rule is
+// a list tag in xmlparse.inc (dump_xml_config_sub, unchanged on master), so a
+// list left empty emits nothing and the box writes <filter></filter>. See
+// convertInboundNATRules for the same reading of <nat>. Because the loop never
+// skips an append, the preallocation below is correct.
 func (c *converter) convertFirewallRules(
 	doc *pfsense.Document,
 	namedObjects common.NamedObjects,
@@ -30,18 +39,7 @@ func (c *converter) convertFirewallRules(
 	for i, rule := range doc.Filter.Rule {
 		c.warnOnIncompleteFirewallRule(i, rule)
 
-		// pfSense compiles a rule with no type as pass (filter.inc
-		// filter_generate_user_rule), and the port forward page writes its
-		// companion rule without one.
-		ruleType := common.FirewallRuleType(cmp.Or(rule.Type, string(common.RuleTypePass)))
-		if rule.Type != "" && !ruleType.IsValid() {
-			c.addWarning(
-				fmt.Sprintf("FirewallRules[%d].Type", i),
-				rule.Type,
-				"unrecognized firewall rule type",
-				common.SeverityLow,
-			)
-		}
+		ruleType := c.ruleType(i, rule.Type)
 		direction := common.FirewallDirection(rule.Direction)
 		if rule.Direction != "" && !direction.IsValid() {
 			c.addWarning(
@@ -114,6 +112,33 @@ func (c *converter) convertFirewallRules(
 	}
 
 	return result
+}
+
+// ruleType reads a stored type as filter_generate_user_rule in filter.inc does:
+// pass, block, reject and match stand, and pfSense compiles anything else as
+// pass. That covers the empty type of the companion rule the port forward page
+// writes, which needs no warning, and a value no pfSense page writes, which is
+// reported as pass with one. The common model has no type for match, so it stays
+// as stored with a Low warning.
+func (c *converter) ruleType(i int, stored string) common.FirewallRuleType {
+	ruleType := common.FirewallRuleType(stored)
+	if stored == "" || ruleType.IsValid() {
+		return cmp.Or(ruleType, common.RuleTypePass)
+	}
+
+	field := fmt.Sprintf("FirewallRules[%d].Type", i)
+	if stored == ruleTypeMatch {
+		c.addWarning(field, stored, "unrecognized firewall rule type", common.SeverityLow)
+
+		return ruleType
+	}
+
+	c.addWarning(field, stored,
+		"unrecognized firewall rule type, which pfSense compiles as pass; it is reported as pass",
+		common.SeverityMedium,
+	)
+
+	return common.RuleTypePass
 }
 
 // warnOnIncompleteFirewallRule records a conversion warning for each

@@ -288,6 +288,75 @@ type Rule struct {
 	AssociatedRuleID string `xml:"associated-rule-id,omitempty"`
 }
 
+// IsPlaceholder reports whether r is an empty <rule/> marker rather than a
+// configured firewall rule. From 18.7.10 to 26.1 OPNsense leaves one under
+// <filter> once the last legacy rule is deleted, since the rules page empties
+// the list and Config::fromArray writes an empty list as one childless element.
+// A config upgraded to 26.7 can still carry it. The firewall loads no rule from
+// it; read as a rule it would take every default and become an enabled pass rule
+// from any to any.
+//
+// An entry is dropped only when every field is zero; see
+// [StaticRoute.IsPlaceholder] for why the check is conservative and why the
+// fields are compared by name. No <type> is not enough, since the rule a port
+// forward stored for itself up to 24.7 has none. The test is on content, so a
+// rule whose only children are empty elements of string fields, or elements the
+// type does not bind, is dropped too, although OPNsense loads it. No release
+// writes one.
+func (r Rule) IsPlaceholder() bool {
+	return r.matchIsUnset() && r.handlingIsUnset() && r.bookkeepingIsUnset()
+}
+
+// matchIsUnset reports whether r names no traffic to match.
+func (r Rule) matchIsUnset() bool {
+	return r.Type == "" &&
+		r.Interface.IsEmpty() &&
+		r.IPProtocol == "" &&
+		r.Direction == "" &&
+		r.Floating == "" &&
+		!bool(r.Quick) &&
+		r.Protocol == "" &&
+		r.Source == (Source{}) &&
+		r.Destination == (Destination{}) &&
+		r.SourcePort == "" &&
+		r.TCPFlags1 == "" &&
+		r.TCPFlags2 == "" &&
+		!bool(r.TCPFlagsAny) &&
+		r.ICMPType == "" &&
+		r.ICMP6Type == "" &&
+		r.Tagged == ""
+}
+
+// handlingIsUnset reports whether r says nothing about what happens to the
+// traffic it matches.
+func (r Rule) handlingIsUnset() bool {
+	return r.Target == "" &&
+		r.Gateway == "" &&
+		r.StateType == "" &&
+		!bool(r.Log) &&
+		!bool(r.Disabled) &&
+		r.MaxSrcNodes == "" &&
+		r.MaxSrcConn == "" &&
+		r.MaxSrcConnRate == "" &&
+		r.MaxSrcConnRates == "" &&
+		r.StateTimeout == "" &&
+		!bool(r.AllowOpts) &&
+		!bool(r.DisableReplyTo) &&
+		!bool(r.NoPfSync) &&
+		!bool(r.NoSync) &&
+		r.Tag == ""
+}
+
+// bookkeepingIsUnset reports whether r carries no label or record of its origin.
+func (r Rule) bookkeepingIsUnset() bool {
+	return r.Descr == "" &&
+		r.Tracker == "" &&
+		r.AssociatedRuleID == "" &&
+		r.Updated == nil &&
+		r.Created == nil &&
+		r.UUID == ""
+}
+
 // Source represents a firewall rule source.
 // Any is a pointer to distinguish XML element presence (<any/> → non-nil "")
 // from absence (nil), since Go's encoding/xml produces "" for both self-closing

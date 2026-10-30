@@ -28,6 +28,8 @@ func findPfSenseWarning(warnings []common.ConversionWarning, field, value string
 // documented severity. Each pfSense enum callsite is covered: firewall rule
 // Type/Direction/IPProtocol, NAT OutboundMode, NAT OutboundRules[*].IPProtocol,
 // and NAT InboundRules[*].IPProtocol.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 	t.Parallel()
 
@@ -51,6 +53,21 @@ func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 			},
 			wantField:    "FirewallRules[0].Type",
 			wantValue:    "definitely-not-a-real-type",
+			wantSeverity: common.SeverityMedium,
+		},
+		{
+			name: "firewall rule type the model does not have",
+			doc: &pfsenseSchema.Document{
+				Filter: pfsenseSchema.Filter{
+					Rule: []pfsenseSchema.FilterRule{{
+						Type:      "match",
+						Interface: opnsenseSchema.InterfaceList{"wan"},
+						UUID:      "11111111-1111-1111-1111-111111111112",
+					}},
+				},
+			},
+			wantField:    "FirewallRules[0].Type",
+			wantValue:    "match",
 			wantSeverity: common.SeverityLow,
 		},
 		{
@@ -152,14 +169,13 @@ func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 
 // TestConverter_EnumCast_EmptyStringDoesNotWarn protects the empty-string
 // exemption for every pfSense enum-cast field path.
-
 func TestConverter_EnumCast_EmptyStringDoesNotWarn(t *testing.T) {
 	t.Parallel()
 
 	doc := &pfsenseSchema.Document{
 		Filter: pfsenseSchema.Filter{
 			Rule: []pfsenseSchema.FilterRule{{
-				Type:      "pass",
+				Type:      "",
 				Interface: opnsenseSchema.InterfaceList{"wan"},
 				UUID:      "00000000-0000-0000-0000-000000000000",
 				Source: opnsenseSchema.Source{
@@ -192,6 +208,7 @@ func TestConverter_EnumCast_EmptyStringDoesNotWarn(t *testing.T) {
 	require.NoError(t, err)
 
 	unexpectedFields := []string{
+		"FirewallRules[0].Type",
 		"FirewallRules[0].Direction",
 		"FirewallRules[0].IPProtocol",
 		"NAT.OutboundMode",

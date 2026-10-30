@@ -56,6 +56,7 @@ func TestIsPlaceholder_EveryFieldDefeatsPlaceholder_NoFieldIsSilentlyUncovered(t
 		// InboundRule is the first enrolled type with fields that are not
 		// strings or bools, which is what populateField is for.
 		{name: "InboundRule", zero: InboundRule{}},
+		{name: "Rule", zero: Rule{}},
 	}
 
 	for _, tt := range types {

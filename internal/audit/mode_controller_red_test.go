@@ -2,13 +2,19 @@ package audit
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
+	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense" // self-registers OPNsense parser via init()
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/pfsense"  // self-registers pfSense parser via init()
 )
 
 // TestReport_RedAnalysisMethods exercises the five red-mode analysis methods
@@ -1075,10 +1081,15 @@ func TestReport_AddComplianceAnalysis_CompletionFlag(t *testing.T) {
 }
 
 // TestRedMode_PortForwardCompanionRule_ExposesOnlyTheFirewallTarget covers the
-// filter rule a port forward stores for itself. pf matches it after rdr, so a
-// rule passing WAN traffic to another host on 443 does not expose the
-// firewall's own web GUI; one whose target is the firewall, or cannot be told
-// apart from it, still does.
+// filter rule a port forward stores for itself, and the same rule with no link.
+// pf matches either after rdr, so a rule passing WAN traffic to another host on
+// 443 does not expose the firewall's own web GUI; one whose target is the
+// firewall, or cannot be told apart from it, still does. A rule of its own to
+// an address no forward targets stays counted: nothing says the firewall does
+// not hold that address. Only the address is compared, so a forward that is
+// disabled or on another interface still accounts for its rule: the OPNsense
+// list page toggles only linked rules, and disabling a forward leaves an
+// unassociated rule enabled.
 func TestRedMode_PortForwardCompanionRule_ExposesOnlyTheFirewallTarget(t *testing.T) {
 	t.Parallel()
 
@@ -1091,14 +1102,45 @@ func TestRedMode_PortForwardCompanionRule_ExposesOnlyTheFirewallTarget(t *testin
 		{"companion to another host", common.RuleEndpoint{Address: "10.0.2.2", Port: "443"}, true, false},
 		{"companion to another IPv6 host", common.RuleEndpoint{Address: "2001:db8::50", Port: "443"}, true, false},
 		{"companion to loopback", common.RuleEndpoint{Address: "127.0.0.1", Port: "443"}, true, true},
+		{"companion to another loopback address", common.RuleEndpoint{Address: "127.0.0.2", Port: "443"}, true, true},
 		{"companion to the LAN address", common.RuleEndpoint{Address: "192.168.1.1", Port: "443"}, true, true},
 		{"companion to the WAN IPv6 address", common.RuleEndpoint{Address: "2001:db8::2", Port: "443"}, true, true},
-		{"companion to an alias", common.RuleEndpoint{Address: "WEB_HOSTS", Port: "443"}, true, true},
+		{"companion to a name no alias defines", common.RuleEndpoint{Address: "UNDEFINED", Port: "443"}, true, true},
 		{"companion to a CARP address", common.RuleEndpoint{Address: "192.168.1.254", Port: "443"}, true, true},
 		{
 			"companion to a negated host",
 			common.RuleEndpoint{Address: "10.0.2.2", Port: "443", Negated: true},
 			true,
+			true,
+		},
+		{"no link, a forward's target", common.RuleEndpoint{Address: "10.0.3.3", Port: "443"}, false, false},
+		{"no link, a forward's port range", common.RuleEndpoint{Address: "10.0.3.3", Port: "443-453"}, false, false},
+		{"no link, a forward to the LAN", common.RuleEndpoint{Address: "192.168.1.1", Port: "443"}, false, true},
+		{
+			"no link, a forward to a name no alias defines",
+			common.RuleEndpoint{Address: "UNDEFINED", Port: "443"},
+			false,
+			true,
+		},
+		{"no link, a disabled forward's target", common.RuleEndpoint{Address: "10.0.3.4", Port: "443"}, false, false},
+		{
+			"no link, a target on another interface",
+			common.RuleEndpoint{Address: "10.0.3.5", Port: "443"},
+			false,
+			false,
+		},
+		{
+			"no link, a target spelled another way",
+			common.RuleEndpoint{Address: "2001:0db8:0:0::60", Port: "443"},
+			false,
+			false,
+		},
+		{"no link, a disabled forward's alias", aliasEndpoint("WEB_OFF"), false, false},
+		{"no link, an alias on another interface", aliasEndpoint("WEB_LAN"), false, false},
+		{
+			"no link, a negated forward's target",
+			common.RuleEndpoint{Address: "10.0.3.3", Port: "443", Negated: true},
+			false,
 			true,
 		},
 		{"rule of its own to another host", common.RuleEndpoint{Address: "10.0.2.2", Port: "443"}, false, true},
@@ -1117,25 +1159,525 @@ func TestRedMode_PortForwardCompanionRule_ExposesOnlyTheFirewallTarget(t *testin
 				rule.AssociatedRuleID = "nat_5e7bb3f7a503d5.68828728"
 			}
 
-			device := &common.CommonDevice{
-				System: common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS}},
-				Interfaces: []common.Interface{
-					{Name: "wan", Enabled: true, IPAddress: "203.0.113.2", IPv6Address: "2001:db8::2"},
-					{Name: "lan", Enabled: true, IPAddress: "192.168.1.1"},
-				},
-				VirtualIPs: []common.VirtualIP{
-					{Mode: common.VIPModeCarp, Interface: "lan", Subnet: "192.168.1.254"},
-				},
-				FirewallRules: []common.FirewallRule{rule},
+			device := portForwardDevice(rule)
+			device.NAT.InboundRules = []common.InboundNATRule{
+				{Interfaces: []string{"wan"}, InternalIP: "10.0.3.3", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "192.168.1.1", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "UNDEFINED", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "10.0.3.4", LocalPort: "443", Disabled: true},
+				{Interfaces: []string{"lan"}, InternalIP: "10.0.3.5", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "2001:db8::60", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "WEB_OFF", LocalPort: "443", Disabled: true},
+				{Interfaces: []string{"lan"}, InternalIP: "WEB_LAN", LocalPort: "443"},
+			}
+			device.NamedObjects = common.NamedObjects{
+				"WEB_OFF": {Type: common.NamedObjectTypeHost, Members: []string{"10.0.3.6"}},
+				"WEB_LAN": {Type: common.NamedObjectTypeHost, Members: []string{"10.0.3.7"}},
 			}
 
-			report := newRedReport(device)
-			runRedAnalysis(report)
+			assertWebGUIExposed(t, device, tc.wantExposed)
+		})
+	}
+}
 
-			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: Web Administration")
-			if exposed != tc.wantExposed {
-				t.Errorf("web GUI exposed = %v, want %v: %+v", exposed, tc.wantExposed, report.Findings)
+// TestRedMode_PortForwardToNetwork_ExposesOnlyTheFirewallTarget covers a forward
+// whose target is a literal network, which the OPNsense page accepts and copies
+// onto the forward's rule as it stands. The rule, linked or not, does not expose
+// the web GUI unless the network holds an address of the firewall, since traffic
+// to that address passes the rule too. A network no forward targets stays
+// counted, as a host does: nothing says the firewall has no address there.
+func TestRedMode_PortForwardToNetwork_ExposesOnlyTheFirewallTarget(t *testing.T) {
+	t.Parallel()
+
+	to := func(address string) common.RuleEndpoint {
+		return common.RuleEndpoint{Address: address, Port: "443"}
+	}
+
+	negated := to("10.0.4.0/24")
+	negated.Negated = true
+
+	tests := []struct {
+		name        string
+		destination common.RuleEndpoint
+		linked      bool
+		wantExposed bool
+	}{
+		{"companion to another network", to("10.0.4.0/24"), true, false},
+		{"companion to another IPv6 network", to("2001:db8:4::/64"), true, false},
+		{"companion to the LAN network", to("192.168.1.0/24"), true, true},
+		{"companion to the CARP address's network", to("192.168.1.128/25"), true, true},
+		{"companion to the WAN IPv6 network", to("2001:db8::/64"), true, true},
+		{"companion to the loopback network", to("127.0.0.0/8"), true, true},
+		{"companion to part of the loopback network", to("127.1.0.0/16"), true, true},
+		{"companion to a negated network", negated, true, true},
+		{"no link, a forward's network", to("10.0.4.0/24"), false, false},
+		{"no link, a forward's IPv6 network", to("2001:db8:4::/64"), false, false},
+		{"no link, a forward's network with host bits", to("10.0.5.0/24"), false, false},
+		{"no link, a network with host bits", to("10.0.4.9/24"), false, false},
+		{"no link, a forward's host as a network", to("10.0.3.3/32"), false, false},
+		{"no link, a forward to the LAN network", to("192.168.1.0/24"), false, true},
+		{"no link, part of a forward's network", to("10.0.4.0/25"), false, true},
+		{"no link, a host in a forward's network", to("10.0.4.9"), false, true},
+		{"no link, a network around a forward's host", to("10.0.3.0/24"), false, true},
+		{"no link, a negated forward's network", negated, false, true},
+		{"rule of its own to another network", to("10.0.6.0/24"), false, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rule := common.FirewallRule{
+				Type:        common.RuleTypePass,
+				Interfaces:  []string{"wan"},
+				Destination: tc.destination,
 			}
+			if tc.linked {
+				rule.AssociatedRuleID = "nat_5e7bb3f7a503d5.68828728"
+			}
+
+			device := portForwardDevice(rule)
+			device.NAT.InboundRules = []common.InboundNATRule{
+				{Interfaces: []string{"wan"}, InternalIP: "10.0.3.3", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "10.0.4.0/24", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "2001:db8:4:0::/64", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "10.0.5.7/24", LocalPort: "443"},
+				{Interfaces: []string{"wan"}, InternalIP: "192.168.1.0/24", LocalPort: "443"},
+			}
+
+			assertWebGUIExposed(t, device, tc.wantExposed)
+		})
+	}
+}
+
+// TestRedMode_PortForwardToNetwork_SpanningLoopback covers a firewall that
+// records no address of its own, as with DHCP on every interface. A network wide
+// enough to hold a loopback address still holds the firewall, literal or in an
+// alias, though no recorded address falls inside it.
+func TestRedMode_PortForwardToNetwork_SpanningLoopback(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		network     string
+		wantExposed bool
+	}{
+		{"every IPv4 address", "0.0.0.0/0", true},
+		{"every IPv6 address", "::/0", true},
+		{"the half of IPv4 with loopback", "0.0.0.0/1", true},
+		{"a network around 127.0.0.0/8", "126.0.0.0/7", true},
+		{"the other half of IPv4", "128.0.0.0/1", false},
+		{"another network", "10.0.4.0/24", false},
+	}
+
+	for _, tc := range tests {
+		destinations := map[string]common.RuleEndpoint{
+			"literal": {Address: tc.network, Port: "443"},
+			"alias":   aliasEndpoint("TARGET"),
+		}
+
+		for label, destination := range destinations {
+			t.Run(tc.name+", "+label, func(t *testing.T) {
+				t.Parallel()
+
+				device := portForwardDevice(common.FirewallRule{
+					Type:             common.RuleTypePass,
+					Interfaces:       []string{"wan"},
+					AssociatedRuleID: "nat_5e7bb3f7a503d5.68828728",
+					Destination:      destination,
+				})
+				device.Interfaces = []common.Interface{{Name: "wan", Enabled: true}, {Name: "lan", Enabled: true}}
+				device.VirtualIPs = nil
+				device.NamedObjects = common.NamedObjects{
+					"TARGET": {Type: common.NamedObjectTypeNetwork, Members: []string{tc.network}},
+				}
+				device.NAT.InboundRules = []common.InboundNATRule{
+					{Interfaces: []string{"wan"}, InternalIP: "TARGET", LocalPort: "443"},
+				}
+
+				assertWebGUIExposed(t, device, tc.wantExposed)
+			})
+		}
+	}
+}
+
+// TestRedMode_PortForwardToAlias_ExposesOnlyTheFirewallTarget covers a forward
+// whose target is an alias. Both vendors copy the alias name onto the forward's
+// rule, linked or not, so a WAN pass rule naming it is that forward's rule and
+// does not expose the web GUI, unless the alias holds an address of the firewall.
+// An alias that cannot be expanded has no member to test and counts as the
+// forward's rule too.
+func TestRedMode_PortForwardToAlias_ExposesOnlyTheFirewallTarget(t *testing.T) {
+	t.Parallel()
+
+	host := func(members ...string) common.NamedObject {
+		return common.NamedObject{Type: common.NamedObjectTypeHost, Members: members}
+	}
+	network := func(members ...string) common.NamedObject {
+		return common.NamedObject{Type: common.NamedObjectTypeNetwork, Members: members}
+	}
+
+	tests := []struct {
+		name        string
+		alias       common.NamedObject
+		wantExposed bool
+	}{
+		{"other hosts", host("10.0.3.3", "10.0.3.4"), false},
+		{"another network", network("10.0.3.0/24"), false},
+		{"a range of other hosts", host("10.0.3.3-10.0.3.9"), false},
+		{"a range next to the LAN address", host("192.168.1.2-192.168.1.9"), false},
+		{"a hostname", host("web.example.com"), false},
+		{"nothing", host(), false},
+		{"a URL table", common.NamedObject{Type: "urltable", Members: []string{"https://example.com/l"}}, false},
+		{"a GeoIP table", common.NamedObject{Type: common.NamedObjectTypeGeoIP, Members: []string{"US"}}, false},
+		{"the LAN address among others", host("10.0.3.3", "192.168.1.1"), true},
+		{"the WAN IPv6 address", host("2001:db8::2"), true},
+		{"a CARP address", host("192.168.1.254"), true},
+		{"a loopback address", host("127.0.0.1"), true},
+		{"another loopback address", host("127.0.0.2"), true},
+		{"the network of the LAN address", network("192.168.1.0/24"), true},
+		{"a loopback network", network("127.0.0.0/8"), true},
+		{"part of the loopback network", network("127.1.0.0/16"), true},
+		{"a range over the LAN address", host("192.168.1.1-192.168.1.9"), true},
+		{"a loopback range", host("127.0.0.1-127.0.0.9"), true},
+		{"a range of other loopback addresses", host("127.0.0.2-127.0.0.9"), true},
+		{"the LAN address in a nested alias", host("10.0.3.3", "NESTED_LAN"), true},
+		{"the LAN address behind a nesting loop", host("LOOP"), true},
+	}
+
+	for _, tc := range tests {
+		for label, link := range map[string]string{"no link": "", "linked": "nat_5e7bb3f7a503d5.68828728"} {
+			t.Run(tc.name+", "+label, func(t *testing.T) {
+				t.Parallel()
+
+				device := portForwardDevice(common.FirewallRule{
+					Type:             common.RuleTypePass,
+					Interfaces:       []string{"wan"},
+					AssociatedRuleID: link,
+					Destination:      aliasEndpoint("TARGET"),
+				})
+				device.NamedObjects = common.NamedObjects{
+					"TARGET":     tc.alias,
+					"NESTED_LAN": host("192.168.1.1"),
+					"LOOP":       host("TARGET", "192.168.1.1"),
+				}
+				device.NAT.InboundRules = []common.InboundNATRule{
+					{Interfaces: []string{"wan"}, InternalIP: "TARGET", LocalPort: "443"},
+				}
+
+				assertWebGUIExposed(t, device, tc.wantExposed)
+			})
+		}
+	}
+}
+
+// TestRedMode_RuleToAlias_NotAForwardsRule covers the rules a forward to an
+// alias does not account for: one naming an alias no forward targets, linked or
+// not, and one negating the alias a forward targets, which matches everything
+// else. Both stay counted, the over-report direction.
+func TestRedMode_RuleToAlias_NotAForwardsRule(t *testing.T) {
+	t.Parallel()
+
+	negated := aliasEndpoint("TARGET")
+	negated.Negated = true
+
+	tests := []struct {
+		name        string
+		destination common.RuleEndpoint
+		link        string
+	}{
+		{"an alias no forward targets", aliasEndpoint("OTHER"), ""},
+		{"a linked rule to an alias no forward targets", aliasEndpoint("OTHER"), "nat_5e7bb3f7a503d5.68828728"},
+		{"the target negated", negated, ""},
+		{"the target negated on a linked rule", negated, "nat_5e7bb3f7a503d5.68828728"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := portForwardDevice(common.FirewallRule{
+				Type:             common.RuleTypePass,
+				Interfaces:       []string{"wan"},
+				AssociatedRuleID: tc.link,
+				Destination:      tc.destination,
+			})
+			device.NamedObjects = common.NamedObjects{
+				"TARGET": {Type: common.NamedObjectTypeHost, Members: []string{"10.0.3.3"}},
+				"OTHER":  {Type: common.NamedObjectTypeHost, Members: []string{"10.0.3.4"}},
+			}
+			device.NAT.InboundRules = []common.InboundNATRule{
+				{Interfaces: []string{"wan"}, InternalIP: "TARGET", LocalPort: "443"},
+			}
+
+			assertWebGUIExposed(t, device, true)
+		})
+	}
+}
+
+// aliasEndpoint returns the destination a rule to the named alias converts to,
+// on port 443.
+func aliasEndpoint(name string) common.RuleEndpoint {
+	return common.RuleEndpoint{Address: name, AddressRef: &common.ObjectRef{Name: name}, Port: "443"}
+}
+
+// portForwardDevice returns a firewall with an HTTPS web GUI on 443, an interface
+// address on either family, a CARP address, and rule as its only filter rule.
+func portForwardDevice(rule common.FirewallRule) *common.CommonDevice {
+	return &common.CommonDevice{
+		System: common.System{WebGUI: common.WebGUI{Protocol: constants.ProtocolHTTPS}},
+		Interfaces: []common.Interface{
+			{Name: "wan", Enabled: true, IPAddress: "203.0.113.2", IPv6Address: "2001:db8::2"},
+			{Name: "lan", Enabled: true, IPAddress: "192.168.1.1"},
+		},
+		VirtualIPs: []common.VirtualIP{
+			{Mode: common.VIPModeCarp, Interface: "lan", Subnet: "192.168.1.254"},
+		},
+		FirewallRules: []common.FirewallRule{rule},
+	}
+}
+
+// assertWebGUIExposed runs the red analysis and checks whether it reports the
+// firewall's web GUI as WAN-exposed.
+func assertWebGUIExposed(t *testing.T, device *common.CommonDevice, want bool) {
+	t.Helper()
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: Web Administration")
+	if exposed != want {
+		t.Errorf("web GUI exposed = %v, want %v: %+v", exposed, want, report.Findings)
+	}
+}
+
+// readFixture returns a config from testdata.
+func readFixture(t *testing.T, name string) string {
+	t.Helper()
+
+	raw, err := os.ReadFile(filepath.Join("..", "..", "testdata", filepath.FromSlash(name)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return string(raw)
+}
+
+// parseConfig converts config, leaving its vendor to the factory to detect.
+func parseConfig(t *testing.T, config string) *common.CommonDevice {
+	t.Helper()
+
+	device, _, err := parser.NewFactory(cfgparser.NewXMLParser()).CreateDevice(
+		context.Background(), strings.NewReader(config), common.DeviceTypeUnknown, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return device
+}
+
+// TestRedMode_PortForwardToAlias_EndToEnd rewrites each vendor's port forward
+// fixture to a forward whose target is an alias, with the rule the port forward
+// page stores for it: the alias on <address>, no <type> on pfSense and on
+// OPNsense up to 24.7, and no link for "Add unassociated filter rule".
+func TestRedMode_PortForwardToAlias_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	const (
+		pfSenseConfig  = "pfsense/config-pfSense.xml"
+		opnSenseConfig = "opnsense-legacy-port-forwards.xml"
+		pfSenseLink80  = "<associated-rule-id>nat_5e7bb3b731ebf3.20248323</associated-rule-id>"
+		pfSenseLink443 = "<associated-rule-id>nat_5e7bb3f7a503d5.68828728</associated-rule-id>"
+		opnSenseLink   = "<associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>"
+		noLink         = "<associated-rule-id></associated-rule-id>"
+		aliasOpen      = "<aliases><alias><name>WEB_HOST</name><type>host</type><address>"
+		aliasClose     = "</address></alias></aliases>"
+	)
+
+	pfSenseAlias := func(unlink bool, members string) *strings.Replacer {
+		pairs := []string{
+			"<target>10.0.2.2</target>", "<target>WEB_HOST</target>",
+			"<address>10.0.2.2</address>", "<address>WEB_HOST</address>",
+			"<aliases></aliases>", aliasOpen + members + aliasClose,
+		}
+		if unlink {
+			pairs = append(pairs, pfSenseLink80, noLink, pfSenseLink443, noLink)
+		}
+
+		return strings.NewReplacer(pairs...)
+	}
+	opnSenseAlias := func(typed, unlink bool, member string) *strings.Replacer {
+		const typeElement = "<type>pass</type>\n      "
+
+		link := opnSenseLink
+		if unlink {
+			link = noLink
+		}
+
+		companion := link
+		if typed {
+			companion = typeElement + link
+		}
+
+		return strings.NewReplacer(
+			typeElement+opnSenseLink, companion,
+			opnSenseLink, link,
+			"<target>192.168.10.50</target>", "<target>MAIL_HOST</target>",
+			"<address>192.168.10.50</address>", "<address>MAIL_HOST</address>",
+			"<content>192.168.20.25</content>", "<content>"+member+"</content>",
+			"<local-port>8443</local-port>", "<local-port>443</local-port>",
+			"<port>8443</port>", "<port>443</port>",
+		)
+	}
+
+	tests := []struct {
+		name        string
+		fixture     string
+		replacer    *strings.Replacer
+		wantExposed bool
+	}{
+		{"pfSense, linked", pfSenseConfig, pfSenseAlias(false, "10.0.2.2"), false},
+		{"pfSense, no link", pfSenseConfig, pfSenseAlias(true, "10.0.2.2"), false},
+		{"pfSense, a network", pfSenseConfig, pfSenseAlias(false, "10.0.2.2/31"), false},
+		{"pfSense, the network of an interface", pfSenseConfig, pfSenseAlias(false, "10.0.2.0/24"), true},
+		{"pfSense, holding the LAN address", pfSenseConfig, pfSenseAlias(false, "10.0.2.2 192.168.1.1"), true},
+		{"pfSense, no link, holding the LAN address", pfSenseConfig, pfSenseAlias(true, "192.168.1.1"), true},
+		{"OPNsense, no type", opnSenseConfig, opnSenseAlias(false, false, "192.168.20.25"), false},
+		{"OPNsense, no type, no link", opnSenseConfig, opnSenseAlias(false, true, "192.168.20.25"), false},
+		{"OPNsense, type pass, no link", opnSenseConfig, opnSenseAlias(true, true, "192.168.20.25"), false},
+		{"OPNsense, holding the DMZ address", opnSenseConfig, opnSenseAlias(false, false, "192.168.20.1"), true},
+		{"OPNsense, no link, with the DMZ address", opnSenseConfig, opnSenseAlias(false, true, "192.168.20.1"), true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := parseConfig(t, tc.replacer.Replace(readFixture(t, tc.fixture)))
+			if !slices.ContainsFunc(device.FirewallRules, func(rule common.FirewallRule) bool {
+				return rule.Destination.AddressRef != nil
+			}) {
+				t.Fatal("the rewritten fixture has no rule to an alias")
+			}
+
+			assertWebGUIExposed(t, device, tc.wantExposed)
+		})
+	}
+}
+
+// TestRedMode_PortForwardToNetwork_EndToEnd rewrites the legacy port forward
+// fixture to a forward whose target is a literal network. firewall_nat_edit.php
+// accepts one (is_subnet) and copies it onto the forward's rule as it stands.
+// The web GUI reads as exposed only when the network holds an address of the
+// firewall, as the LAN and DMZ networks of this fixture do.
+func TestRedMode_PortForwardToNetwork_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	const (
+		link  = "<associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>"
+		typed = "<type>pass</type>\n      " + link
+	)
+
+	raw := readFixture(t, "opnsense-legacy-port-forwards.xml")
+
+	rewrite := func(network string, typeless, unlink bool) string {
+		config := raw
+		if typeless {
+			config = strings.Replace(config, typed, link, 1)
+		}
+
+		if unlink {
+			config = strings.ReplaceAll(config, link, "<associated-rule-id/>")
+		}
+
+		return strings.NewReplacer(
+			"<target>192.168.10.50</target>", "<target>"+network+"</target>",
+			"<address>192.168.10.50</address>", "<address>"+network+"</address>",
+			"<local-port>8443</local-port>", "<local-port>443</local-port>",
+			"<port>8443</port>", "<port>443</port>",
+		).Replace(config)
+	}
+
+	tests := []struct {
+		name        string
+		network     string
+		typeless    bool
+		unlink      bool
+		wantExposed bool
+	}{
+		{"no type, linked", "192.168.30.0/24", true, false, false},
+		{"no type, no link", "192.168.30.0/24", true, true, false},
+		{"type pass, linked", "192.168.30.0/24", false, false, false},
+		{"type pass, no link", "192.168.30.0/24", false, true, false},
+		{"the DMZ network, no type, linked", "192.168.20.0/24", true, false, true},
+		{"the DMZ network, no type, no link", "192.168.20.0/24", true, true, true},
+		{"the LAN network, type pass, linked", "192.168.10.0/24", false, false, true},
+		{"the LAN network, type pass, no link", "192.168.10.0/24", false, true, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := parseConfig(t, rewrite(tc.network, tc.typeless, tc.unlink))
+			if !slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
+				return nat.InternalIP == tc.network
+			}) {
+				t.Fatal("the rewritten fixture has no forward to the network")
+			}
+
+			assertWebGUIExposed(t, device, tc.wantExposed)
+		})
+	}
+}
+
+// TestRedMode_UnassociatedPortForwardRule_EndToEnd rewrites the legacy port
+// forward fixture to what "Add unassociated filter rule" leaves in config.xml
+// (firewall_nat_edit.php): the forward's rule with no link on either side, with
+// no <type> up to 24.7 and with one from 25.1. The forward lands on 443, so the
+// rule's port is the web GUI's, and the GUI must not read as WAN-exposed. Moving
+// the forward to another host leaves the rule as one of its own, which counts.
+func TestRedMode_UnassociatedPortForwardRule_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	raw := readFixture(t, "opnsense-legacy-port-forwards.xml")
+
+	const (
+		link   = "<associated-rule-id>nat_68dd1c2a4b5c61.23456789</associated-rule-id>"
+		typed  = "<type>pass</type>\n      " + link
+		target = "<target>192.168.10.50</target>"
+	)
+
+	for _, want := range []string{typed, target} {
+		if strings.Count(raw, want) != 1 {
+			t.Fatalf("fixture no longer holds %q exactly once", want)
+		}
+	}
+
+	unassociated := strings.NewReplacer(
+		link, "<associated-rule-id/>",
+		"<local-port>8443</local-port>", "<local-port>443</local-port>",
+		"<port>8443</port>", "<port>443</port>",
+	)
+	typedConfig := unassociated.Replace(raw)
+	typelessConfig := unassociated.Replace(strings.Replace(raw, typed, link, 1))
+	movedConfig := strings.Replace(typelessConfig, target, "<target>192.168.10.51</target>", 1)
+
+	tests := []struct {
+		name        string
+		config      string
+		wantExposed bool
+	}{
+		{"up to 24.7, no type", typelessConfig, false},
+		{"25.1 to 25.7, type pass", typedConfig, false},
+		{"forward moved to another host", movedConfig, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assertWebGUIExposed(t, parseConfig(t, tc.config), tc.wantExposed)
 		})
 	}
 }

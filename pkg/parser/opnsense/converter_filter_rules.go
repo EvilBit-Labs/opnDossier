@@ -184,6 +184,10 @@ func (c *converter) filterRulesInOrder(doc *schema.OpnSenseDocument) []filterRul
 
 	for i := range doc.Filter.Rule {
 		rule := &doc.Filter.Rule[i]
+		if rule.IsPlaceholder() {
+			continue
+		}
+
 		rules = append(rules, filterRuleSource{legacy: rule, priority: legacyRulePriority(rule, groups)})
 	}
 

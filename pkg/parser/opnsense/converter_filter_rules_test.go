@@ -1241,6 +1241,77 @@ func TestConverter_FilterRules_RepeatedUUID(t *testing.T) {
 	assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
 }
 
+// TestConverter_FilterRules_EndToEnd_PlaceholderNotCounted covers the empty
+// <rule/> OPNsense leaves under <filter> when the last legacy rule is deleted.
+// Kept, it would take every default and read as an enabled pass rule from any to
+// any. A rule with no type is not one: the rule a port forward stored for itself
+// up to 24.7 has none, and it has to stay a pass rule.
+func TestConverter_FilterRules_EndToEnd_PlaceholderNotCounted(t *testing.T) {
+	t.Parallel()
+
+	const typeless = `<rule><interface>wan</interface><descr>typeless</descr>` +
+		`<source><any>1</any></source><destination><address>192.168.1.50</address></destination></rule>`
+
+	populated := legacyRuleXML("real", "")
+	model := modelRuleXML("model", "10", "u1", `<interface>lan</interface>`)
+
+	tests := []struct {
+		name         string
+		legacy       string
+		model        string
+		want         []string
+		wantWarnings int
+	}{
+		{name: "empty rule placeholder reports no rule", legacy: `<rule/>`},
+		{name: "expanded empty rule reports no rule", legacy: `<rule></rule>`},
+		{name: "a populated rule is counted", legacy: populated, want: []string{"real"}},
+		{name: "placeholder beside a real rule yields it", legacy: `<rule/>` + populated, want: []string{"real"}},
+		{name: "placeholder beside a model rule yields it", legacy: `<rule/>`, model: model, want: []string{"model"}},
+		{name: "a rule with no type is kept", legacy: typeless, want: []string{"typeless"}},
+		{
+			name:         "a rule holding only a disabled flag is kept",
+			legacy:       `<rule><disabled>1</disabled></rule>`,
+			want:         []string{""},
+			wantWarnings: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := parseFilterRules(t, tt.legacy, tt.model)
+
+			assert.Len(t, warnings, tt.wantWarnings, "a placeholder must not draw a warning")
+
+			if tt.want == nil {
+				assert.Nil(t, device.FirewallRules)
+				return
+			}
+
+			assert.Equal(t, tt.want, descriptions(device.FirewallRules))
+
+			for _, rule := range device.FirewallRules {
+				assert.Equal(t, common.RuleTypePass, rule.Type)
+			}
+		})
+	}
+}
+
+// TestConverter_FilterRules_PlaceholderLeavesNoGapInWarnings pins the index in a
+// warning's field: a placeholder is not a rule, so the rule after it is rule 0.
+func TestConverter_FilterRules_PlaceholderLeavesNoGapInWarnings(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseFilterRules(t,
+		`<rule/><rule><interface>lan</interface><descr>real</descr>`+
+			`<destination><any>1</any></destination></rule>`, "")
+
+	require.Equal(t, []string{"real"}, descriptions(device.FirewallRules))
+	require.Len(t, warnings, 1)
+	assert.Equal(t, "FirewallRules[0].Source", warnings[0].Field)
+}
+
 // TestConverter_FilterRules_WarningIndex pins the index in a warning's field to
 // the rule's place in the rule list, which is not its place in either store,
 // and the value to what the rule stores.

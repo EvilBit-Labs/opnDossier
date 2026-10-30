@@ -65,3 +65,64 @@ func TestConverter_FirewallRules_TypelessRuleIsPass(t *testing.T) {
 	require.Len(t, device.FirewallRules, 1)
 	assert.Equal(t, common.RuleTypePass, device.FirewallRules[0].Type)
 }
+
+// TestConverter_FirewallRules_TypeReadsAsFilterIncCompilesIt follows the type
+// test in filter_generate_user_rule: the comparison is exact, and any value that
+// is not pass, block, reject or match compiles as pass, including one that names
+// a different action in another case.
+func TestConverter_FirewallRules_TypeReadsAsFilterIncCompilesIt(t *testing.T) {
+	t.Parallel()
+
+	const (
+		keptAsStored = "unrecognized firewall rule type"
+		readAsPass   = "unrecognized firewall rule type, which pfSense compiles as pass; it is reported as pass"
+	)
+
+	tests := []struct {
+		stored       string
+		want         common.FirewallRuleType
+		wantSeverity common.Severity
+		wantMessage  string
+	}{
+		{"pass", common.RuleTypePass, "", ""},
+		{"block", common.RuleTypeBlock, "", ""},
+		{"reject", common.RuleTypeReject, "", ""},
+		{"", common.RuleTypePass, "", ""},
+		{"match", "match", common.SeverityLow, keptAsStored},
+		{"Pass", common.RuleTypePass, common.SeverityMedium, readAsPass},
+		{"allow", common.RuleTypePass, common.SeverityMedium, readAsPass},
+		{"Block", common.RuleTypePass, common.SeverityMedium, readAsPass},
+		{"Match", common.RuleTypePass, common.SeverityMedium, readAsPass},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.stored, func(t *testing.T) {
+			t.Parallel()
+
+			doc := pfsenseSchema.NewDocument()
+			doc.Filter.Rule = []pfsenseSchema.FilterRule{{
+				Type:        tc.stored,
+				Interface:   opnsense.InterfaceList{"wan"},
+				Source:      opnsense.Source{Any: new(string)},
+				Destination: opnsense.Destination{Any: new(string)},
+			}}
+
+			device, warnings, err := pfsense.ConvertDocument(doc)
+			require.NoError(t, err)
+			require.Len(t, device.FirewallRules, 1)
+			assert.Equal(t, tc.want, device.FirewallRules[0].Type)
+
+			warnings = nonGapWarnings(warnings)
+			if tc.wantSeverity == "" {
+				assert.Empty(t, warnings)
+				return
+			}
+
+			require.Len(t, warnings, 1)
+			assert.Equal(t, "FirewallRules[0].Type", warnings[0].Field)
+			assert.Equal(t, tc.stored, warnings[0].Value)
+			assert.Equal(t, tc.wantSeverity, warnings[0].Severity)
+			assert.Equal(t, tc.wantMessage, warnings[0].Message)
+		})
+	}
+}
