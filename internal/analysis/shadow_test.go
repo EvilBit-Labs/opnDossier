@@ -589,6 +589,39 @@ func TestDetectShadowedRules_DisabledRuleAndTerminalDefaultDeny(t *testing.T) {
 	})
 }
 
+// isTerminalDefaultDeny gives up when its walk leaves the group without meeting
+// the loser. DetectShadowedRules cannot get there: each pair it passes comes
+// from the group orderedGroupRules rebuilds here, so the walk stops at the loser
+// or at an enabled rule below it. Only a hand-built pair gets that far, and it
+// must not read as terminal, because a true answer drops the finding.
+func TestIsTerminalDefaultDeny_LoserOutsideGroup(t *testing.T) {
+	deny := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+
+	disabled := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+	disabled.Disabled = true
+
+	tests := []struct {
+		name  string
+		iface string
+	}{
+		{name: "interface with no rules", iface: "lan"},
+		{name: "group of disabled rules", iface: "wan"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules := []common.FirewallRule{disabled, disabled}
+			pair := PrecedencePair{
+				Interface: tt.iface,
+				Direction: common.DirectionIn,
+				Loser:     IndexedRule{Index: len(rules), Rule: deny},
+			}
+
+			assert.False(t, isTerminalDefaultDeny(pair, &common.CommonDevice{FirewallRules: rules}))
+		})
+	}
+}
+
 // R8 silence: the same aliasBlocked shape (unresolvable port alias) in a
 // Hygiene or Troubleshooting overlap produces no finding at all.
 func TestDetectShadowedRules_R8_SilentOnNonSecurityAliasBlocked(t *testing.T) {
