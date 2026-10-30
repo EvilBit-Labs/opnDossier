@@ -252,7 +252,7 @@ type NATRule struct {
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	// Interfaces lists the interface names this rule applies to.
 	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	// IPProtocol is the IP address family (inet or inet6).
+	// IPProtocol is the IP address family (inet, inet6 or inet46).
 	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
 	// Protocol is the layer-4 protocol (e.g., "tcp", "udp").
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
@@ -306,7 +306,7 @@ type InboundNATRule struct {
 	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	// Interfaces lists the interface names this rule applies to.
 	Interfaces []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	// IPProtocol is the IP address family (inet or inet6).
+	// IPProtocol is the IP address family (inet, inet6 or inet46).
 	IPProtocol IPProtocol `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
 	// Protocol is the layer-4 protocol (e.g., "tcp", "udp").
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`

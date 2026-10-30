@@ -427,7 +427,8 @@ if device.NAT.OutboundMode == common.OutboundAutomatic {
 // Check IP protocol for IPv6 support
 for _, rule := range device.FirewallRules {
     if rule.IPProtocol == common.IPProtocolInet6 ||
-        rule.IPProtocol == common.IPProtocolInet46 {
+        rule.IPProtocol == common.IPProtocolInet46 ||
+        rule.IPProtocol == "" { // an OPNsense rule with no family matches both
         // Found a rule that matches IPv6 traffic
     }
 }
