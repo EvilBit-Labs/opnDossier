@@ -62,7 +62,9 @@ func routesDisabled(device *common.CommonDevice) []bool {
 // the OPNsense 26.1.10 change: Routes model 1.0.1 replaced <disabled> with
 // <enabled>, and its migration deletes <disabled>. get_staticroutes (util.inc)
 // reads <enabled> when present, disabled when empty or 0, and falls back to
-// <disabled> only without it.
+// <disabled> only without it. That fallback keeps the BoolFlag reading, which
+// agrees with the !empty() the firewall has used since 18.1 on the 0 and 1 the
+// model writes, but not on every other value.
 func TestConverter_StaticRoutes_Enabled(t *testing.T) {
 	t.Parallel()
 
@@ -93,6 +95,15 @@ func TestConverter_StaticRoutes_Enabled(t *testing.T) {
 			want:    []bool{false, true, false},
 		},
 		{
+			// Since 18.1 the firewall reads these three the other way, with
+			// !empty(). The Routes model writes only 0 and 1 here, so the BoolFlag
+			// reading is kept; this row makes changing it a decision.
+			name:    "model 1.0.0 keeps the BoolFlag reading of values the model does not write",
+			version: "1.0.0",
+			routes:  []string{`<disabled/>`, `<disabled>no</disabled>`, `<disabled>false</disabled>`},
+			want:    []bool{true, false, false},
+		},
+		{
 			name:    "enabled wins over a leftover disabled",
 			version: "1.0.1",
 			routes: []string{
@@ -116,7 +127,9 @@ func TestConverter_StaticRoutes_Enabled(t *testing.T) {
 
 // TestConverter_StaticRoutes_UnknownModelVersion warns when <staticroutes>
 // carries a Routes model version the converter has not been checked against,
-// since a new version can rename or drop the fields read here (GOTCHAS 3.7).
+// since a new version can rename or drop the fields read here (GOTCHAS 3.7). A
+// renamed <route> decodes to no routes, and the warning is then the only sign
+// of it (GOTCHAS 18.1).
 func TestConverter_StaticRoutes_UnknownModelVersion(t *testing.T) {
 	t.Parallel()
 
@@ -131,4 +144,9 @@ func TestConverter_StaticRoutes_UnknownModelVersion(t *testing.T) {
 	assert.Equal(t, "1.0.2", warnings[0].Value)
 	assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
 	assert.Equal(t, []bool{true}, routesDisabled(device))
+
+	device, warnings = parseStaticRoutes(t, "1.0.2")
+	require.Len(t, warnings, 1)
+	assert.Equal(t, "StaticRoutes.Version", warnings[0].Field)
+	assert.Empty(t, device.Routing.StaticRoutes)
 }

@@ -22,7 +22,7 @@ var knownUnboundPlusVersions = map[string]struct{}{
 	"1.0.2": {},
 }
 
-// routesModelVersion is the Routes model version up to OPNsense 26.1.9.
+// routesModelVersion is the Routes model version from OPNsense 18.1 to 26.1.9.
 const routesModelVersion = "1.0.0"
 
 // knownRoutesModelVersions lists the <staticroutes version="..."> values this
@@ -655,9 +655,16 @@ func (c *converter) convertStaticRoutes(routes schema.StaticRoutes) []common.Sta
 	return result
 }
 
-// staticRouteDisabled reads a route as get_staticroutes (util.inc) does: a
-// present <enabled> wins, and the route is disabled when it is empty or 0 (PHP
-// empty()); without one, <disabled> decides.
+// staticRouteDisabled reads <enabled> as get_staticroutes (util.inc) does: when
+// present it wins, and the route is disabled when it is empty or 0 (PHP
+// empty()). Without one, <disabled> keeps its BoolFlag reading. The firewall
+// has tested that element with !empty() since 18.1; the two agree on the 0 and
+// 1 the Routes model writes, and differ on values it does not write, such as
+// <disabled/> (disabled here, installed there) or <disabled>no</disabled> (the
+// reverse). OPNsense 15.1 wrote <disabled/> itself, and the isset() of releases
+// through 17.7 read it as BoolFlag does. Following !empty() would need the
+// element's raw body, which the BoolFlag the pfSense converter also reads does
+// not keep.
 func staticRouteDisabled(r schema.StaticRoute) bool {
 	if r.Enabled != nil {
 		return *r.Enabled == "" || *r.Enabled == "0"
