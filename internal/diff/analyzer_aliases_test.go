@@ -78,6 +78,23 @@ func TestCompareAliases(t *testing.T) {
 	}
 }
 
+// TestCompareAliases_DescriptionNamesTheAlias pins the entry text of an alias
+// with a description, which the removal and the addition share.
+func TestCompareAliases_DescriptionNamesTheAlias(t *testing.T) {
+	t.Parallel()
+
+	old, newCfg := aliasDiffDevice(), aliasDiffDevice()
+	spare := newCfg.NamedObjects["SPARE"]
+	spare.Description = "spare hosts"
+	newCfg.NamedObjects["SPARE"] = spare
+	delete(old.NamedObjects, "SPARE")
+
+	got := NewAnalyzer().CompareAliases(old, newCfg)
+
+	require.Len(t, got, 1, "%+v", got)
+	assert.Equal(t, "Added alias: SPARE (spare hosts)", got[0].Description)
+}
+
 func compareAliasesCases() []compareAliasesCase {
 	return append(compareAliasesFieldCases(), compareAliasesPresenceCases()...)
 }
