@@ -561,25 +561,52 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 
 // convertGatewayItems reads the gateways from the <OPNsense><Gateways> model
 // when it holds any, and from <gateways> otherwise, as the vendor's
-// gatewayIterator does. OPNsense 24.1 migration M1_0_0 moves every
-// <gateways><gateway_item> into the model and deletes the original.
+// gatewayIterator does. An empty <gateway_item/> does not count in either
+// store. OPNsense 24.1 migration M1_0_0 copies the <gateways><gateway_item>
+// entries into the model and, once one is stored, deletes all of them.
 func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.Gateway {
 	model := doc.OPNsense.Gateways
-	c.checkGatewayModelVersion(model.Version, len(model.Items))
-	if len(model.Items) == 0 {
-		return c.convertGateways(doc.Gateways.Gateway)
+	items := configuredGateways(model.Items)
+	c.checkGatewayModelVersion(model.Version, len(items))
+	if len(items) == 0 {
+		return c.convertGateways(configuredGateways(doc.Gateways.Gateway))
 	}
 
-	// The migration rewrites "dynamic" to an empty address, and the model
-	// reads both as a gateway that takes its address from the interface.
-	items := slices.Clone(model.Items)
 	for i := range items {
+		// The migration rewrites "dynamic" to an empty address, and the model
+		// reads both as a gateway that takes its address from the interface.
 		if items[i].Gateway == "" {
 			items[i].Gateway = gatewayDynamic
+		}
+
+		// An item that omits the element takes the model's default, which
+		// turns monitoring off. The vendor fills in 0 for a legacy gateway.
+		if items[i].MonitorDisable == nil {
+			items[i].MonitorDisable = new(xmlBoolTrue)
 		}
 	}
 
 	return c.convertGateways(items)
+}
+
+// configuredGateways returns a copy of gws without the empty <gateway_item/>
+// elements. It is a copy because convertGatewayItems rewrites the model items,
+// and ConvertDocument takes a document the caller owns.
+func configuredGateways(gws []schema.Gateway) []schema.Gateway {
+	return slices.DeleteFunc(slices.Clone(gws), schema.Gateway.IsPlaceholder)
+}
+
+// gatewayFlag returns a gateway flag the common model keeps as text: 1 when the
+// firewall reads it as set, and empty otherwise. From 24.1 the firewall reads
+// both flags with !empty() in either store. The model writes 0 where the 23.7
+// page left the element out, and a consumer testing the export for presence
+// would read that 0 as set.
+func gatewayFlag(value string) string {
+	if modelFlagSet(value) {
+		return xmlBoolTrue
+	}
+
+	return ""
 }
 
 // checkGatewayModelVersion warns when the gateway model carries a version this
@@ -642,8 +669,8 @@ func (c *converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 			Description:    gw.Descr,
 			Monitor:        gw.Monitor,
 			Disabled:       bool(gw.Disabled),
-			DefaultGW:      gw.DefaultGW,
-			MonitorDisable: gw.MonitorDisable,
+			DefaultGW:      gatewayFlag(gw.DefaultGW),
+			MonitorDisable: gatewayFlag(gw.MonitorDisableValue()),
 			FarGW:          gw.FarGW == xmlBoolTrue,
 		})
 	}

@@ -149,7 +149,7 @@ func (c *converter) convertGateways(doc *pfsense.Document) []common.Gateway {
 			Monitor:        gw.Monitor,
 			Disabled:       bool(gw.Disabled),
 			DefaultGW:      gw.DefaultGW,
-			MonitorDisable: gw.MonitorDisable,
+			MonitorDisable: gw.MonitorDisableValue(),
 			FarGW:          shared.IsValueTrue(gw.FarGW),
 		})
 	}

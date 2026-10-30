@@ -42,6 +42,69 @@ func TestStaticRoute_IsPlaceholder_ReportsTrueOnlyWhenEveryFieldIsZero(t *testin
 	}
 }
 
+// TestGateway_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder pins, for
+// <gateway_item/>, why the predicate compares named fields, and that the
+// attribute a model item carries does not make it configured.
+func TestGateway_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	for _, element := range []string{`<gateway_item/>`, `<gateway_item uuid="7f3c2a1e"></gateway_item>`} {
+		var got Gateway
+		if err := xml.Unmarshal([]byte(element), &got); err != nil {
+			t.Fatalf("Unmarshal failed: %v", err)
+		}
+
+		if got == (Gateway{}) {
+			t.Fatal("decoded element equals Gateway{}; the XMLName premise for IsPlaceholder no longer holds")
+		}
+
+		if !got.IsPlaceholder() {
+			t.Errorf("decoded %s must be reported as a placeholder", element)
+		}
+	}
+}
+
+// TestGateway_MonitorDisable_KeepsAbsentApartFromEmpty pins the distinction the
+// field is a pointer for, and the text MonitorDisableValue reads from each.
+func TestGateway_MonitorDisable_KeepsAbsentApartFromEmpty(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		element   string
+		wantIsNil bool
+		wantValue string
+	}{
+		{name: "absent", element: `<gateway_item><name>GW</name></gateway_item>`, wantIsNil: true},
+		{name: "self-closing", element: `<gateway_item><monitor_disable/></gateway_item>`},
+		{name: "empty", element: `<gateway_item><monitor_disable></monitor_disable></gateway_item>`},
+		{
+			name:      "set",
+			element:   `<gateway_item><monitor_disable>1</monitor_disable></gateway_item>`,
+			wantValue: "1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got Gateway
+			if err := xml.Unmarshal([]byte(tt.element), &got); err != nil {
+				t.Fatalf("Unmarshal failed: %v", err)
+			}
+
+			if isNil := got.MonitorDisable == nil; isNil != tt.wantIsNil {
+				t.Errorf("MonitorDisable == nil is %v, want %v", isNil, tt.wantIsNil)
+			}
+
+			if value := got.MonitorDisableValue(); value != tt.wantValue {
+				t.Errorf("MonitorDisableValue() = %q, want %q", value, tt.wantValue)
+			}
+		})
+	}
+}
+
 // TestStaticRoute_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder pins the
 // reason the predicate compares named fields instead of the zero value:
 // encoding/xml populates XMLName on unmarshal, so a decoded <route/> is never
