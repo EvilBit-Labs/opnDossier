@@ -37,6 +37,7 @@ func (c *converter) convertFirewallRules(
 
 	result := make([]common.FirewallRule, 0, len(doc.Filter.Rule))
 	for i, rule := range doc.Filter.Rule {
+		rule = withAnyFirst(rule)
 		c.warnOnIncompleteFirewallRule(i, rule)
 
 		ruleType := c.ruleType(i, rule.Type)
@@ -65,7 +66,7 @@ func (c *converter) convertFirewallRules(
 			Description: rule.Descr,
 			Interfaces:  []string(rule.Interface),
 			IPProtocol:  ipProto,
-			StateType:   rule.StateType,
+			StateType:   ruleStateType(ruleType, rule.StateType),
 			Direction:   direction,
 			Floating:    rule.Floating == xmlBoolYes,
 			Quick:       bool(rule.Quick),
@@ -114,20 +115,42 @@ func (c *converter) convertFirewallRules(
 	return result
 }
 
+// withAnyFirst returns rule with the address cleared from an endpoint that holds
+// <any>. filter_generate_address in filter.inc tests isset(any) before network
+// and address, so pf gets any for such an endpoint whatever else it holds, while
+// EffectiveAddress and AliasAddress follow the OPNsense order, which prefers the
+// address. No pfSense page writes both: only a hand edit or a generator does.
+func withAnyFirst(rule pfsense.FilterRule) pfsense.FilterRule {
+	if rule.Source.IsAny() {
+		rule.Source.Network, rule.Source.Address = "", ""
+	}
+
+	if rule.Destination.IsAny() {
+		rule.Destination.Network, rule.Destination.Address = "", ""
+	}
+
+	return rule
+}
+
 // ruleType reads a stored type as filter_generate_user_rule in filter.inc does:
 // pass, block, reject and match stand, and pfSense compiles anything else as
 // pass. That covers the empty type of the companion rule the port forward page
 // writes, which needs no warning, and a value no pfSense page writes, which is
 // reported as pass with one. The common model has no type for match, so it stays
-// as stored with a Low warning.
+// as stored with a Low warning. pfSense's parser trims tab, newline and carriage
+// return from element text (cData in xmlparse.inc) and encoding/xml does not, so
+// the test trims them too. A space survives on the firewall, so " block" really
+// compiles as pass.
 func (c *converter) ruleType(i int, stored string) common.FirewallRuleType {
-	ruleType := common.FirewallRuleType(stored)
-	if stored == "" || ruleType.IsValid() {
+	trimmed := strings.Trim(stored, "\t\n\r")
+
+	ruleType := common.FirewallRuleType(trimmed)
+	if trimmed == "" || ruleType.IsValid() {
 		return cmp.Or(ruleType, common.RuleTypePass)
 	}
 
 	field := fmt.Sprintf("FirewallRules[%d].Type", i)
-	if stored == ruleTypeMatch {
+	if trimmed == ruleTypeMatch {
 		c.addWarning(field, stored, "unrecognized firewall rule type", common.SeverityLow)
 
 		return ruleType
@@ -139,6 +162,19 @@ func (c *converter) ruleType(i int, stored string) common.FirewallRuleType {
 	)
 
 	return common.RuleTypePass
+}
+
+// ruleStateType reads a stored state type as filter_generate_user_rule in
+// filter.inc does: a pass rule that leaves it out keeps state. The port forward
+// page never writes one, so without this every TCP forward's rule would read as
+// stateless. pf applies no state option to any other type, so nothing is filled
+// in there.
+func ruleStateType(ruleType common.FirewallRuleType, stored string) string {
+	if ruleType == common.RuleTypePass {
+		return cmp.Or(stored, stateTypeKeep)
+	}
+
+	return stored
 }
 
 // warnOnIncompleteFirewallRule records a conversion warning for each

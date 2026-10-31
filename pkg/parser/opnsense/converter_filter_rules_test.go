@@ -1245,7 +1245,10 @@ func TestConverter_FilterRules_RepeatedUUID(t *testing.T) {
 // <rule/> OPNsense leaves under <filter> when the last legacy rule is deleted.
 // Kept, it would take every default and read as an enabled pass rule from any to
 // any. A rule with no type is not one: the rule a port forward stored for itself
-// up to 24.7 has none, and it has to stay a pass rule.
+// up to 24.7 has none, and it has to stay a pass rule. A placeholder directly
+// before a real rule is the one shape where the firewall does load something, a
+// pass rule from any to any; only a hand edit writes it, and it is dropped all the
+// same (GOTCHAS 3.4).
 func TestConverter_FilterRules_EndToEnd_PlaceholderNotCounted(t *testing.T) {
 	t.Parallel()
 

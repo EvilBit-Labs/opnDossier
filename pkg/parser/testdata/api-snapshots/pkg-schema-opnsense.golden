@@ -1955,12 +1955,15 @@ func (r Rule) IsPlaceholder() bool
     enabled pass rule from any to any.
 
     An entry is dropped only when every field is zero; see
-    StaticRoute.IsPlaceholder for why the check is conservative and why the
-    fields are compared by name. No <type> is not enough, since the rule a port
-    forward stored for itself up to 24.7 has none. The test is on content,
-    so a rule whose only children are empty elements of string fields, or
-    elements the type does not bind, is dropped too, although OPNsense loads it.
-    No release writes one.
+    StaticRoute.IsPlaceholder for why the check is conservative.
+    It compares with the zero value rather than naming fields, as
+    FirewallFilterRule.IsPlaceholder does, once XMLName, which the decoder
+    always sets, and an empty interface list, which it decodes to a non-nil
+    slice, are cleared. No <type> is not enough, since the rule a port forward
+    stored for itself up to 24.7 has none. The test is on content, so a rule
+    whose only children are empty elements of string fields, or elements the
+    type does not bind, is dropped too, although OPNsense loads it. No release
+    writes one.
 
 type RuleLocation struct {
 	XMLName xml.Name `xml:",omitempty"`
@@ -2061,7 +2064,9 @@ func (s Source) AliasAddress() string
     since <any/> carries no address). Matching EffectiveAddress's precedence is
     deliberate — an endpoint that sets both <address> and <any/> resolves to its
     Address under EffectiveAddress, so its AddressRef must resolve to that same
-    alias rather than being dropped.
+    alias rather than being dropped. That is OPNsense's order. A pfSense filter
+    rule tests <any> first, so the pfSense converter clears the address of such
+    an endpoint before it reads either method.
 
     This exists specifically for named-object (alias) resolution: a macro must
     never be looked up against the alias table, even if an alias happens to

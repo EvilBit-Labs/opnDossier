@@ -387,7 +387,7 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 
 	return common.FirewallRule{
 		UUID:        rule.UUID,
-		Type:        c.ruleType(i, cmp.Or(rule.Type, string(common.RuleTypePass))),
+		Type:        c.ruleType(i, legacyRuleType(rule.Type)),
 		Description: rule.Descr,
 		Interfaces:  []string(rule.Interface),
 		Direction:   c.ruleDirection(i, cmp.Or(rule.Direction, string(common.DirectionIn))),
@@ -439,6 +439,18 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		// Set on the pass rule a port forward stores for itself.
 		AssociatedRuleID: rule.AssociatedRuleID,
 	}
+}
+
+// legacyRuleType returns the type the firewall compiles for a stored legacy
+// <type>. parseType in FilterRule.php tests it with empty(), the same test
+// modelFlagSet makes, so 0 takes the default as an empty element does. Any other
+// value goes to pf as written.
+func legacyRuleType(stored string) string {
+	if modelFlagSet(stored) {
+		return stored
+	}
+
+	return string(common.RuleTypePass)
 }
 
 // warnOnIncompleteFirewallRule records a conversion warning for each

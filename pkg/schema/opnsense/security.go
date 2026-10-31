@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"reflect"
 	"slices"
 	"strings"
 )
@@ -297,64 +298,21 @@ type Rule struct {
 // from any to any.
 //
 // An entry is dropped only when every field is zero; see
-// [StaticRoute.IsPlaceholder] for why the check is conservative and why the
-// fields are compared by name. No <type> is not enough, since the rule a port
-// forward stored for itself up to 24.7 has none. The test is on content, so a
-// rule whose only children are empty elements of string fields, or elements the
-// type does not bind, is dropped too, although OPNsense loads it. No release
-// writes one.
+// [StaticRoute.IsPlaceholder] for why the check is conservative. It compares with
+// the zero value rather than naming fields, as [FirewallFilterRule.IsPlaceholder]
+// does, once XMLName, which the decoder always sets, and an empty interface list,
+// which it decodes to a non-nil slice, are cleared. No <type> is not enough, since
+// the rule a port forward stored for itself up to 24.7 has none. The test is on
+// content, so a rule whose only children are empty elements of string fields, or
+// elements the type does not bind, is dropped too, although OPNsense loads it. No
+// release writes one.
 func (r Rule) IsPlaceholder() bool {
-	return r.matchIsUnset() && r.handlingIsUnset() && r.bookkeepingIsUnset()
-}
+	r.XMLName = xml.Name{}
+	if r.Interface.IsEmpty() {
+		r.Interface = nil
+	}
 
-// matchIsUnset reports whether r names no traffic to match.
-func (r Rule) matchIsUnset() bool {
-	return r.Type == "" &&
-		r.Interface.IsEmpty() &&
-		r.IPProtocol == "" &&
-		r.Direction == "" &&
-		r.Floating == "" &&
-		!bool(r.Quick) &&
-		r.Protocol == "" &&
-		r.Source == (Source{}) &&
-		r.Destination == (Destination{}) &&
-		r.SourcePort == "" &&
-		r.TCPFlags1 == "" &&
-		r.TCPFlags2 == "" &&
-		!bool(r.TCPFlagsAny) &&
-		r.ICMPType == "" &&
-		r.ICMP6Type == "" &&
-		r.Tagged == ""
-}
-
-// handlingIsUnset reports whether r says nothing about what happens to the
-// traffic it matches.
-func (r Rule) handlingIsUnset() bool {
-	return r.Target == "" &&
-		r.Gateway == "" &&
-		r.StateType == "" &&
-		!bool(r.Log) &&
-		!bool(r.Disabled) &&
-		r.MaxSrcNodes == "" &&
-		r.MaxSrcConn == "" &&
-		r.MaxSrcConnRate == "" &&
-		r.MaxSrcConnRates == "" &&
-		r.StateTimeout == "" &&
-		!bool(r.AllowOpts) &&
-		!bool(r.DisableReplyTo) &&
-		!bool(r.NoPfSync) &&
-		!bool(r.NoSync) &&
-		r.Tag == ""
-}
-
-// bookkeepingIsUnset reports whether r carries no label or record of its origin.
-func (r Rule) bookkeepingIsUnset() bool {
-	return r.Descr == "" &&
-		r.Tracker == "" &&
-		r.AssociatedRuleID == "" &&
-		r.Updated == nil &&
-		r.Created == nil &&
-		r.UUID == ""
+	return reflect.DeepEqual(r, Rule{})
 }
 
 // Source represents a firewall rule source.
@@ -400,7 +358,9 @@ func (s Source) EffectiveAddress() string {
 // since <any/> carries no address). Matching EffectiveAddress's precedence
 // is deliberate — an endpoint that sets both <address> and <any/> resolves
 // to its Address under EffectiveAddress, so its AddressRef must resolve to
-// that same alias rather than being dropped.
+// that same alias rather than being dropped. That is OPNsense's order. A pfSense
+// filter rule tests <any> first, so the pfSense converter clears the address of
+// such an endpoint before it reads either method.
 //
 // This exists specifically for named-object (alias) resolution: a macro
 // must never be looked up against the alias table, even if an alias happens

@@ -124,17 +124,26 @@ func TestFirewallFilterRule_BindsEveryFixtureElement(t *testing.T) {
 
 // TestRule_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder is the Rule
 // counterpart to
-// TestStaticRoute_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder.
+// TestStaticRoute_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder. The
+// predicate compares with the zero value, so it holds only for as long as it
+// clears what the decoder sets on an empty rule: XMLName always, and a non-nil
+// InterfaceList for an empty <interface>.
 func TestRule_IsPlaceholder_DecodedEmptyElement_ReportsPlaceholder(t *testing.T) {
 	t.Parallel()
 
-	for _, element := range []string{`<rule/>`, `<rule></rule>`, "<rule>\n  </rule>"} {
+	for _, element := range []string{
+		`<rule/>`,
+		`<rule></rule>`,
+		"<rule>\n  </rule>",
+		`<rule><interface></interface></rule>`,
+		`<rule><interface/></rule>`,
+	} {
 		var filter Filter
 		require.NoError(t, xml.Unmarshal([]byte(`<filter>`+element+`</filter>`), &filter))
 		require.Len(t, filter.Rule, 1)
 
 		assert.Equal(t, "rule", filter.Rule[0].XMLName.Local,
-			"the decoder sets XMLName, which is why the predicate compares fields by name")
+			"the decoder sets XMLName, which is why the predicate clears it before comparing")
 		assert.Truef(t, filter.Rule[0].IsPlaceholder(), "%s is a placeholder", element)
 	}
 }
@@ -147,6 +156,7 @@ func TestRule_IsPlaceholder_RetainsRulesWithData(t *testing.T) {
 
 	for _, body := range []string{
 		`<disabled>1</disabled>`,
+		`<disabled/>`,
 		`<quick/>`,
 		`<source><any>1</any></source>`,
 		`<destination><address>10.0.0.5</address></destination>`,

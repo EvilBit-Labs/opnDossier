@@ -1191,8 +1191,9 @@ func TestConverter_FirewallRules_TypelessRuleIsPass(t *testing.T) {
 }
 
 // TestConverter_FirewallRules_UnrecognizedTypeStaysAsStored pins where OPNsense
-// differs from pfSense: FilterRule.php defaults only an empty type and hands any
-// other value to pf as written, so the converter does not read it as pass.
+// differs from pfSense: FilterRule.php defaults only a type empty() accepts and
+// hands any other value to pf as written, so the converter does not read it as
+// pass.
 func TestConverter_FirewallRules_UnrecognizedTypeStaysAsStored(t *testing.T) {
 	t.Parallel()
 

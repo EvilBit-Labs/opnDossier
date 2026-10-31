@@ -21,11 +21,12 @@ type placeholderReporter interface {
 // under-reporting configured resources is the dangerous direction, so an entry
 // carrying any data at all must be retained.
 //
-// The predicates enumerate their fields by hand, which they must -- encoding/xml
-// populates XMLName on unmarshal, so comparing against the zero value would
-// never match a decoded element. That hand-written list is the weak point: add a
-// field to one of these structs, forget to add it to the predicate, and an entry
-// carrying only that field is silently dropped from an audit report.
+// Most predicates enumerate their fields by hand -- encoding/xml populates
+// XMLName on unmarshal, so comparing against the zero value would never match a
+// decoded element unless the predicate clears it first, as Rule's does. That
+// hand-written list is the weak point: add a field to one of these structs,
+// forget to add it to the predicate, and an entry carrying only that field is
+// silently dropped from an audit report.
 //
 // This test sets each non-XMLName field in isolation and asserts the entry is
 // still retained, so a forgotten field fails here rather than in production. It

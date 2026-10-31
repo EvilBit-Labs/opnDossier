@@ -132,6 +132,8 @@ Floating rules require a `direction` field (`in`, `out`, or `any`).
 
 Valid state types: `keep state`, `sloppy state`, `modulate state`, `synproxy state`, `none`
 
+A pass rule that leaves `<statetype>` out keeps state on both vendors, and is reported as `keep state`. pfSense's port forward page never writes the element.
+
 ## Rate-Limiting and DoS Protection
 
 **Connection limits:**
