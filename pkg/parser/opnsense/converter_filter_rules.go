@@ -383,7 +383,7 @@ func (c *converter) convertFilterModelRule(
 		applies = c.checkUnrepresentedElements(path, rule, doc)
 	}
 
-	return common.FirewallRule{
+	converted := common.FirewallRule{
 		UUID:        rule.UUID,
 		Type:        c.ruleType(i, cmp.Or(rule.Action, string(common.RuleTypePass))),
 		Description: rule.Description,
@@ -421,6 +421,14 @@ func (c *converter) convertFilterModelRule(
 		Tag:             rule.Tag,
 		Tagged:          rule.Tagged,
 	}
+
+	// pf diverts a packet only when the rule passes it, and the model refuses
+	// divert-to on any other action (Filter.php), so only a pass rule feeds Suricata.
+	if !converted.Disabled && converted.Type == common.RuleTypePass && divertsToSuricata(rule, doc) {
+		c.idsDivertRule = true
+	}
+
+	return converted
 }
 
 // checkUnrepresentedElements warns about each element a rule of the filter model

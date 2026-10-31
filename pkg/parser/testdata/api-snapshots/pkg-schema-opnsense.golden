@@ -760,8 +760,9 @@ type IDS struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
 		Enabled string `xml:"enabled"`
 		Ips     string `xml:"ips"`
-		// Mode replaced Ips in model 1.1.2 (OPNsense 26.1): pcap is IDS,
-		// netmap and divert run Suricata inline as an IPS.
+		// Mode replaced Ips in model 1.1.2 (OPNsense 26.1): pcap is IDS, netmap
+		// runs Suricata inline on the selected interfaces, and divert runs it
+		// inline on the traffic firewall rules send it.
 		Mode              string `xml:"mode"`
 		Promisc           string `xml:"promisc"`
 		Interfaces        string `xml:"interfaces"`
@@ -818,15 +819,31 @@ func (ids *IDS) GetMonitoredInterfaces() []string
     GetMonitoredInterfaces parses the comma-separated interfaces string and
     returns a slice.
 
+func (ids *IDS) IsDivertMode() bool
+    IsDivertMode reports whether a model that reads <mode> selects divert.
+    Suricata then captures nothing by itself: it inspects only what a firewall
+    rule sends it with divert-to, and it reads neither the interfaces nor the
+    promiscuous setting. IsIPSMode cannot see the rules, so it reports divert as
+    IPS and leaves the caller to look for such a rule.
+
 func (ids *IDS) IsEnabled() bool
     IsEnabled returns true if the IDS is enabled.
 
 func (ids *IDS) IsIPSMode() bool
-    IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention)
-    mode. A model older than 1.1.2 is read from <ips> alone, since OPNsense did
-    not read <mode> then. From 1.1.2 on, OPNsense reads only <mode> and runs
-    pcap without it, so <ips> decides only for a config that has neither <mode>
-    nor a version.
+    IsIPSMode returns true if the IDS is set to operate in IPS (Intrusion
+    Prevention) mode. A model older than 1.1.2 is read from <ips> alone, as the
+    releases that ship it read it. From 1.1.2 on, OPNsense reads only <mode> and
+    runs pcap without it, so <ips> decides only for a config that has neither
+    <mode> nor a version.
+
+    The answer rests on <IDS> alone. A model writes only its own element,
+    but a save keeps the version it loaded, so the version can disagree with the
+    release that wrote the elements: a failed 26.1 migration followed by a save
+    leaves <mode> under 1.1.1, and a 26.1 config restored onto 25.7 and saved
+    there leaves <ips> under 1.1.2. Each firewall reads the element of its own
+    release, while this follows the version, so the converter warns on those
+    shapes. What decides whether traffic reaches Suricata lies outside <IDS>;
+    see IDS.IsDivertMode.
 
 func (ids *IDS) IsPromiscuousMode() bool
     IsPromiscuousMode returns true if promiscuous mode is enabled.
@@ -839,7 +856,9 @@ func (ids *IDS) IsSyslogEveEnabled() bool
 
 func (ids *IDS) PredatesModeOption() bool
     PredatesModeOption reports whether the IDS model is older than 1.1.2,
-    so that OPNsense reads <ips> and ignores any <mode>. An empty version or one
+    so that a release shipping that model reads <ips> and ignores any <mode>.
+    A later release reads <mode> whatever the version says; a config it runs
+    keeps an older version only if its migration failed. An empty version or one
     that does not parse reports false, since neither shows which model wrote the
     config.
 

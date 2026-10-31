@@ -392,7 +392,7 @@ func TestIDS_IsIPSMode(t *testing.T) {
 	}
 }
 
-// TestIDS_IsIPSMode_ModelVersion pins which of <ips> and <mode> the firewall
+// TestIDS_IsIPSMode_ModelVersion pins which of <ips> and <mode> IsIPSMode
 // reads at each model version: <ips> up to 1.1.1, <mode> from 1.1.2.
 func TestIDS_IsIPSMode_ModelVersion(t *testing.T) {
 	tests := []struct {
@@ -454,6 +454,39 @@ func TestIDS_PredatesModeOption(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.ids.PredatesModeOption(); got != tt.want {
 				t.Errorf("IDS.PredatesModeOption() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIDS_IsDivertMode(t *testing.T) {
+	withMode := func(version, mode string) *IDS {
+		ids := &IDS{Version: version}
+		ids.General.Mode = mode
+
+		return ids
+	}
+
+	tests := []struct {
+		name string
+		ids  *IDS
+		want bool
+	}{
+		{name: "nil IDS", ids: nil, want: false},
+		{name: "first model with mode", ids: withMode("1.1.2", "divert"), want: true},
+		{name: "no version reads mode", ids: withMode("", "divert"), want: true},
+		{name: "version that does not parse reads mode", ids: withMode("1.1.x", "divert"), want: true},
+		{name: "model that predates mode", ids: withMode("1.1.1", "divert"), want: false},
+		{name: "netmap", ids: withMode("1.1.2", "netmap"), want: false},
+		{name: "pcap", ids: withMode("1.1.2", "pcap"), want: false},
+		{name: "no mode", ids: withMode("1.1.2", ""), want: false},
+		{name: "comparison is case-sensitive", ids: withMode("1.1.2", "DIVERT"), want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ids.IsDivertMode(); got != tt.want {
+				t.Errorf("IDS.IsDivertMode() = %v, want %v", got, tt.want)
 			}
 		})
 	}
