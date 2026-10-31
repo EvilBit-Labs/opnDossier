@@ -428,7 +428,8 @@ if device.NAT.OutboundMode == common.OutboundAutomatic {
 for _, rule := range device.FirewallRules {
     if rule.IPProtocol == common.IPProtocolInet6 ||
         rule.IPProtocol == common.IPProtocolInet46 ||
-        rule.IPProtocol == "" { // an OPNsense rule with no family matches both
+        // A rule with no family: OPNsense matches both, pfSense compiles it as inet.
+        (rule.IPProtocol == "" && device.DeviceType != common.DeviceTypePfSense) {
         // Found a rule that matches IPv6 traffic
     }
 }
