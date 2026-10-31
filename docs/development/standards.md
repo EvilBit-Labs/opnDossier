@@ -522,7 +522,7 @@ The config.xml data model is enhanced in phases to ensure backward compatibility
 
 OPNsense and pfSense use two boolean patterns. Choosing the wrong type silently breaks semantics:
 
-- **Presence-based** (`isset()` in PHP): Use `BoolFlag`. Examples: `<disabled/>`, `<log/>`, `<not/>`, `<quick/>`
+- **Presence-based** (`isset()` in PHP): Use `BoolFlag`. Examples: `<log/>`, `<not/>`. A bare `isset()` that must count any body takes `*string`, as `<floating>` and `<quick>` do on a pfSense filter rule, and an element the vendor tests with `!empty()` is not presence-based: `<disabled>` on a filter rule is `*string` for both reasons, one on each vendor
 - **Value-based** (`== "1"` in PHP): Use `string`. Examples: `<enable>1</enable>`, `<blockpriv>1</blockpriv>`
 
 `BoolFlag.UnmarshalXML` treats any present element as true — so `<enabled>0</enabled>` becomes `true`, breaking value-based semantics. See `docs/development/xml-structure-research.md` §1 for the complete field inventory.
@@ -619,7 +619,7 @@ Add `IsAny()` / `Equal()` methods rather than comparing `*string` fields directl
 
 **Type selection for boolean-like XML elements:**
 
-- **Presence-based** (`isset()` in PHP): `<disabled/>`, `<log/>`, `<not/>` → use `BoolFlag`. Absent element means false; `<tag/>` means true. `BoolFlag` also handles `<tag>on</tag>`-style bodies via `shared.IsValueTrue`, so it works for fields where the XML is sometimes empty and sometimes carries a truthy value.
+- **Presence-based** (`isset()` in PHP): `<log/>`, `<not/>` → use `BoolFlag`. Absent element means false; `<tag/>` means true. `BoolFlag` also handles `<tag>on</tag>`-style bodies via `shared.IsValueTrue`, so it works for fields where the XML is sometimes empty and sometimes carries a truthy value. Read the vendor's test first: `isset()` and `!empty()` disagree on an empty element, and `<disabled>` on a filter rule uses one on pfSense and the other on OPNsense (GOTCHAS 15.0).
 - **Value-based, always emitted** (`== "1"` in PHP with the element always present): `<enable>1</enable>` → use `shared.FlexBool` (for bool semantics) or keep as `string` + call `shared.IsValueTrue()` at the converter. Do not use `BoolFlag` here: it marshals `false` as element absence, which drops explicit false values on round-trip.
 - **Presence with value access needed**: `<any/>` in Source/Destination → use `*string`.
 

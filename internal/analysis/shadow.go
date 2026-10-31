@@ -11,7 +11,8 @@ import (
 // DetectShadowedRules reports firewall rules — or subsets of their traffic —
 // that never take effect because a higher-precedence rule under pf
 // evaluation semantics (quick first-match, non-quick last-match, floating
-// device-wide) already covers them (R5-R7, R9, R12-R15).
+// rules ahead of interface rules, device-wide when unscoped) already covers
+// them (R5-R7, R9, R12-R15).
 //
 // DetectShadowedRules is a pure function of cfg: no shared state, mirroring
 // every other Detect* in this package. Returns nil for a nil cfg or fewer
@@ -22,12 +23,12 @@ func DetectShadowedRules(cfg *common.CommonDevice) []common.ShadowedRuleFinding 
 	}
 
 	pairs := ResolvePrecedence(cfg)
-	pairs = append(pairs, detectAliasBlockedSecurityAdvisories(cfg.FirewallRules, cfg.Interfaces, cfg.NamedObjects)...)
+	pairs = append(pairs, detectAliasBlockedSecurityAdvisories(cfg)...)
 
 	var findings []common.ShadowedRuleFinding
 
 	for _, pair := range pairs {
-		if isTerminalDefaultDeny(pair, cfg.FirewallRules) {
+		if isTerminalDefaultDeny(pair, cfg) {
 			continue
 		}
 
@@ -73,20 +74,40 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 // impactClassFor derives R12's impact class from the winner→loser action
 // relationship (not earlier/later — non-quick pf semantics flips which rule
 // is the loser, so the classification must key off which rule actually won
-// the overlap): same action ⇒ Hygiene; winner pass over a differently-typed
-// (block/reject) loser ⇒ Security; any other combination — a block/reject
-// winner over a pass loser, or two differently-typed explicit rules — ⇒
-// Troubleshooting.
+// the overlap): same action ⇒ Hygiene; winner pass over any other action ⇒
+// Security; any other combination, such as a block/reject winner over a pass
+// loser or two differently-typed explicit rules ⇒ Troubleshooting. Both actions
+// go through effectiveRuleType, so a rule with no type counts as the pass rule
+// it is. The loser is not checked for being a deny, so a pass over a match rule
+// or a type the firewall does not know reads as Security (GOTCHAS 3.9).
 func impactClassFor(winnerType, loserType common.FirewallRuleType) common.ImpactClass {
-	if winnerType == loserType {
+	winner, loser := effectiveRuleType(winnerType), effectiveRuleType(loserType)
+
+	if winner == loser {
 		return common.ImpactClassHygiene
 	}
 
-	if winnerType == common.RuleTypePass {
+	if winner == common.RuleTypePass {
 		return common.ImpactClassSecurity
 	}
 
 	return common.ImpactClassTroubleshooting
+}
+
+// effectiveRuleType maps an unspecified rule type to pass, the action both
+// firewalls load it as (filter.inc L3367-L3370; OPNsense FilterRule.php
+// parseType), for how a shadow finding classifies and names the rule. A rule
+// that reaches the analysis with no type reads as pass, whether it was built by
+// hand or came from a parser that leaves the type unset; a converter may fill
+// the type in first. Without this a pass above such a rule reads as a bypassed
+// deny. It does not mutate the model, and RulesEquivalent compares
+// FirewallRule.Type as it stands, so this reading does not reach DetectDeadRules.
+func effectiveRuleType(ruleType common.FirewallRuleType) common.FirewallRuleType {
+	if ruleType == "" {
+		return common.RuleTypePass
+	}
+
+	return ruleType
 }
 
 // shadowKindFor maps a PrecedencePair's coverage Extent to the KTD-8
@@ -172,16 +193,18 @@ func buildShadowDescription(pair PrecedencePair, kind common.ShadowKind, advisor
 		extentWord = "partially"
 	}
 
+	loserType := effectiveRuleType(pair.Loser.Rule.Type)
+
 	desc := fmt.Sprintf(
 		"Rule %d (%s) on interface %s (%s) is %s shadowed by rule %d (%s); the %s rule never takes effect for the overlapping traffic under pf evaluation order.",
 		pair.Loser.Index+1,
-		pair.Loser.Rule.Type,
+		loserType,
 		pair.Interface,
 		pair.Direction,
 		extentWord,
 		pair.Winner.Index+1,
-		pair.Winner.Rule.Type,
-		pair.Loser.Rule.Type,
+		effectiveRuleType(pair.Winner.Rule.Type),
+		loserType,
 	)
 
 	if advisory {
@@ -220,18 +243,25 @@ func recommendationFor(impactClass common.ImpactClass, advisory bool) string {
 // — also recognizes RuleTypeReject: a terminal `reject any->any` below
 // specific passes is exactly as legitimate a default-deny pattern as
 // `block any->any`, and without this a mainstream reject-based default-deny
-// configuration would produce a false-positive Security shadow.
-func isTerminalDefaultDeny(pair PrecedencePair, rules []common.FirewallRule) bool {
+// configuration would produce a false-positive Security shadow. A disabled rule
+// listed below the deny does not count: the firewall skips it, so the deny is
+// still the last rule evaluated.
+func isTerminalDefaultDeny(pair PrecedencePair, cfg *common.CommonDevice) bool {
 	if !isTerminalDenyRule(pair.Loser.Rule) {
 		return false
 	}
 
-	ordered := orderedGroupRules(rules, pair.Interface, pair.Direction)
-	if len(ordered) == 0 {
-		return false
+	for _, r := range slices.Backward(orderedGroupRules(cfg, pair.Interface, pair.Direction)) {
+		if r.Index == pair.Loser.Index {
+			return true
+		}
+
+		if !r.Rule.Disabled {
+			return false
+		}
 	}
 
-	return ordered[len(ordered)-1].Index == pair.Loser.Index
+	return false
 }
 
 // detectAliasBlockedSecurityAdvisories scans every pf evaluation group for
@@ -249,12 +279,8 @@ func isTerminalDefaultDeny(pair PrecedencePair, rules []common.FirewallRule) boo
 // AliasBlocked=true are NOT re-derived here — ResolvePrecedence already
 // returns those, and buildShadowFinding routes them through the same
 // advisory branch via pair.AliasBlocked.
-func detectAliasBlockedSecurityAdvisories(
-	rules []common.FirewallRule,
-	deviceIfaces []common.Interface,
-	no common.NamedObjects,
-) []PrecedencePair {
-	groups := buildPrecedenceGroups(rules, deviceIfaces)
+func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []PrecedencePair {
+	groups := buildPrecedenceGroups(cfg)
 
 	var pairs []PrecedencePair
 
@@ -263,7 +289,7 @@ func detectAliasBlockedSecurityAdvisories(
 
 		for i := range ordered {
 			for j := i + 1; j < len(ordered); j++ {
-				if pair, ok := resolveAliasBlockedAdvisoryPair(key, ordered[i], ordered[j], no); ok {
+				if pair, ok := resolveAliasBlockedAdvisoryPair(key, ordered[i], ordered[j], cfg.NamedObjects); ok {
 					pairs = append(pairs, pair)
 				}
 			}

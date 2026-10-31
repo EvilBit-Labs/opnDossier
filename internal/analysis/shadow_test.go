@@ -422,6 +422,206 @@ func TestDetectShadowedRules_R8_AdvisoryOnUnresolvableAlias_Security(t *testing.
 	assert.Contains(t, f.Description, "(unconfirmed — unresolved alias)")
 }
 
+// The checks beyond ResolvePrecedence read an OPNsense rule list in the same
+// order it does: a floating rule listed last is evaluated last.
+func TestDetectShadowedRules_OPNsenseKeepsListOrder(t *testing.T) {
+	t.Run("floating block-all listed last is the terminal default deny", func(t *testing.T) {
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+		block.Floating = true
+
+		assert.Empty(t, DetectShadowedRules(&common.CommonDevice{
+			DeviceType:    common.DeviceTypeOPNsense,
+			FirewallRules: []common.FirewallRule{pass, block},
+		}))
+	})
+
+	t.Run("floating block listed below a pass on an unresolvable alias draws the advisory", func(t *testing.T) {
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+		pass.Destination.Port = "UNRESOLVABLE"
+		pass.Destination.PortRef = &common.ObjectRef{Name: "UNRESOLVABLE"}
+
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+		block.Floating = true
+		block.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+		block.Destination.Port = "443"
+
+		findings := DetectShadowedRules(&common.CommonDevice{
+			DeviceType:    common.DeviceTypeOPNsense,
+			FirewallRules: []common.FirewallRule{pass, block},
+			NamedObjects:  common.NamedObjects{}, // "UNRESOLVABLE" is not registered
+		})
+
+		require.Len(t, findings, 1)
+		assert.Equal(t, 1, findings[0].RuleIndex)
+		assert.Equal(t, 0, findings[0].ShadowedByIndex)
+		assert.Equal(t, common.ImpactClassSecurity, findings[0].ImpactClass)
+	})
+}
+
+// A pfSense list is document order, so the same checks must read it with the
+// floating rule moved first: a floating rule listed last is evaluated first.
+func TestDetectShadowedRules_PfSenseMovesFloatingRulesFirst(t *testing.T) {
+	t.Run("block-all listed above a floating pass is the terminal default deny", func(t *testing.T) {
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+		pass.Floating = true
+
+		assert.Empty(t, DetectShadowedRules(&common.CommonDevice{
+			DeviceType:    common.DeviceTypePfSense,
+			FirewallRules: []common.FirewallRule{block, pass},
+		}))
+	})
+
+	t.Run("block listed above a floating pass on an unresolvable alias draws the advisory", func(t *testing.T) {
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+		block.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+		block.Destination.Port = "443"
+
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+		pass.Floating = true
+		pass.Destination.Port = "UNRESOLVABLE"
+		pass.Destination.PortRef = &common.ObjectRef{Name: "UNRESOLVABLE"}
+
+		findings := DetectShadowedRules(&common.CommonDevice{
+			DeviceType:    common.DeviceTypePfSense,
+			FirewallRules: []common.FirewallRule{block, pass},
+			NamedObjects:  common.NamedObjects{}, // "UNRESOLVABLE" is not registered
+		})
+
+		require.Len(t, findings, 1)
+		assert.Equal(t, 0, findings[0].RuleIndex)
+		assert.Equal(t, 1, findings[0].ShadowedByIndex)
+		assert.Equal(t, common.ImpactClassSecurity, findings[0].ImpactClass)
+	})
+}
+
+// The firewall does not load a disabled rule, so it must not win on either path
+// that reports a pair.
+func TestDetectShadowedRules_DisabledRuleCannotWin(t *testing.T) {
+	t.Run("disabled pass above a block draws no finding", func(t *testing.T) {
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+		pass.Disabled = true
+
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+		block.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+
+		assert.Empty(t, DetectShadowedRules(&common.CommonDevice{
+			FirewallRules: []common.FirewallRule{pass, block},
+		}))
+	})
+
+	t.Run("disabled pass on an unresolvable alias above a block draws no advisory", func(t *testing.T) {
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+		pass.Disabled = true
+		pass.Destination.Port = "UNRESOLVABLE"
+		pass.Destination.PortRef = &common.ObjectRef{Name: "UNRESOLVABLE"}
+
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+		block.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+		block.Destination.Port = "443"
+
+		assert.Empty(t, DetectShadowedRules(&common.CommonDevice{
+			FirewallRules: []common.FirewallRule{pass, block},
+			NamedObjects:  common.NamedObjects{}, // "UNRESOLVABLE" is not registered
+		}))
+	})
+
+	t.Run("disabled block below a pass is still reported", func(t *testing.T) {
+		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+
+		block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+		block.Disabled = true
+		block.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+
+		findings := DetectShadowedRules(&common.CommonDevice{
+			FirewallRules: []common.FirewallRule{pass, block},
+		})
+
+		require.Len(t, findings, 1)
+		assert.Equal(t, 1, findings[0].RuleIndex)
+		assert.Equal(t, 0, findings[0].ShadowedByIndex)
+		assert.Equal(t, common.ImpactClassSecurity, findings[0].ImpactClass)
+	})
+}
+
+// A disabled rule is skipped, so it decides nothing about which rule is last in
+// the group (R9).
+func TestDetectShadowedRules_DisabledRuleAndTerminalDefaultDeny(t *testing.T) {
+	pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+	pass.Destination.Port = "443"
+
+	block := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+
+	disabled := func(rule common.FirewallRule) common.FirewallRule {
+		rule.Disabled = true
+		return rule
+	}
+
+	t.Run("disabled rule below the deny leaves it terminal", func(t *testing.T) {
+		findings := DetectShadowedRules(&common.CommonDevice{
+			FirewallRules: []common.FirewallRule{pass, block, disabled(pass)},
+		})
+
+		require.NotEmpty(t, findings, "the disabled rule still loses to both rules above it")
+
+		for _, f := range findings {
+			assert.Equal(t, 2, f.RuleIndex, "the deny is exempt")
+		}
+	})
+
+	t.Run("disabled deny listed last stays exempt", func(t *testing.T) {
+		assert.Empty(t, DetectShadowedRules(&common.CommonDevice{
+			FirewallRules: []common.FirewallRule{pass, disabled(block)},
+		}))
+	})
+
+	t.Run("enabled rule below the deny still ends the group", func(t *testing.T) {
+		findings := DetectShadowedRules(&common.CommonDevice{
+			FirewallRules: []common.FirewallRule{pass, block, pass},
+		})
+
+		require.NotEmpty(t, findings)
+		assert.Equal(t, 1, findings[0].RuleIndex, "the deny is not terminal")
+		assert.Equal(t, 0, findings[0].ShadowedByIndex)
+	})
+}
+
+// isTerminalDefaultDeny gives up when its walk leaves the group without meeting
+// the loser. DetectShadowedRules cannot get there: each pair it passes comes
+// from the group orderedGroupRules rebuilds here, so the walk stops at the loser
+// or at an enabled rule below it. Only a hand-built pair gets that far, and it
+// must not read as terminal, because a true answer drops the finding.
+func TestIsTerminalDefaultDeny_LoserOutsideGroup(t *testing.T) {
+	deny := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+
+	disabled := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+	disabled.Disabled = true
+
+	tests := []struct {
+		name  string
+		iface string
+	}{
+		{name: "interface with no rules", iface: "lan"},
+		{name: "group of disabled rules", iface: "wan"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules := []common.FirewallRule{disabled, disabled}
+			pair := PrecedencePair{
+				Interface: tt.iface,
+				Direction: common.DirectionIn,
+				Loser:     IndexedRule{Index: len(rules), Rule: deny},
+			}
+
+			assert.False(t, isTerminalDefaultDeny(pair, &common.CommonDevice{FirewallRules: rules}))
+		})
+	}
+}
+
 // R8 silence: the same aliasBlocked shape (unresolvable port alias) in a
 // Hygiene or Troubleshooting overlap produces no finding at all.
 func TestDetectShadowedRules_R8_SilentOnNonSecurityAliasBlocked(t *testing.T) {
@@ -450,6 +650,220 @@ func TestDetectShadowedRules_R8_SilentOnNonSecurityAliasBlocked(t *testing.T) {
 
 		assert.Empty(t, DetectShadowedRules(cfg))
 	})
+}
+
+// wideShadowRule returns a quick rule on WAN for port 443 from any source.
+func wideShadowRule(ruleType common.FirewallRuleType) common.FirewallRule {
+	rule := baseShadowRule("wan", common.DirectionIn, ruleType)
+	rule.Destination.Port = "443"
+
+	return rule
+}
+
+// narrowShadowRule returns the part of wideShadowRule's traffic from one network.
+func narrowShadowRule(ruleType common.FirewallRuleType) common.FirewallRule {
+	rule := wideShadowRule(ruleType)
+	rule.Source.Address = "10.0.0.0/8"
+
+	return rule
+}
+
+// Both firewalls load a rule with no type as pass, and a pfSense port forward's
+// associated filter rule has none. The class and the text must follow what the
+// two rules do, whichever of them left the type out, and on either side of a
+// quick pair or a non-quick one (R12).
+func TestDetectShadowedRules_EmptyTypeReadsAsPass(t *testing.T) {
+	const typeless common.FirewallRuleType = ""
+
+	nonQuick := func(rule common.FirewallRule) common.FirewallRule {
+		rule.Quick = false
+
+		return rule
+	}
+
+	const (
+		allowOverAllow = "Rule 2 (pass) on interface wan (in) is fully shadowed by rule 1 (pass); the pass rule"
+		allowOverBlock = "Rule 2 (block) on interface wan (in) is fully shadowed by rule 1 (pass); the block rule"
+		lastAllowWins  = "Rule 1 (pass) on interface wan (in) is fully shadowed by rule 2 (pass); the pass rule"
+		lastAllowBlock = "Rule 1 (block) on interface wan (in) is fully shadowed by rule 2 (pass); the block rule"
+	)
+
+	tests := []struct {
+		name         string
+		earlier      common.FirewallRule
+		later        common.FirewallRule
+		wantLoser    int
+		wantClass    common.ImpactClass
+		wantSeverity common.Severity
+		wantText     string
+	}{
+		{
+			name:         "pass above a rule with no type is redundant",
+			earlier:      wideShadowRule(common.RuleTypePass),
+			later:        narrowShadowRule(typeless),
+			wantLoser:    1,
+			wantClass:    common.ImpactClassHygiene,
+			wantSeverity: common.SeverityLow,
+			wantText:     allowOverAllow,
+		},
+		{
+			name:         "rule with no type above a pass is redundant",
+			earlier:      wideShadowRule(typeless),
+			later:        narrowShadowRule(common.RuleTypePass),
+			wantLoser:    1,
+			wantClass:    common.ImpactClassHygiene,
+			wantSeverity: common.SeverityLow,
+			wantText:     allowOverAllow,
+		},
+		{
+			name:         "two rules with no type are redundant",
+			earlier:      wideShadowRule(typeless),
+			later:        narrowShadowRule(typeless),
+			wantLoser:    1,
+			wantClass:    common.ImpactClassHygiene,
+			wantSeverity: common.SeverityLow,
+			wantText:     allowOverAllow,
+		},
+		{
+			name:         "rule with no type above a block bypasses the deny",
+			earlier:      wideShadowRule(typeless),
+			later:        narrowShadowRule(common.RuleTypeBlock),
+			wantLoser:    1,
+			wantClass:    common.ImpactClassSecurity,
+			wantSeverity: common.SeverityCritical,
+			wantText:     allowOverBlock,
+		},
+		{
+			name:         "rule with no type above a reject bypasses the deny",
+			earlier:      wideShadowRule(typeless),
+			later:        narrowShadowRule(common.RuleTypeReject),
+			wantLoser:    1,
+			wantClass:    common.ImpactClassSecurity,
+			wantSeverity: common.SeverityCritical,
+			wantText:     "Rule 2 (reject) on interface wan (in) is fully shadowed by rule 1 (pass); the reject rule",
+		},
+		{
+			name:         "block above a rule with no type stops a pass",
+			earlier:      wideShadowRule(common.RuleTypeBlock),
+			later:        narrowShadowRule(typeless),
+			wantLoser:    1,
+			wantClass:    common.ImpactClassTroubleshooting,
+			wantSeverity: common.SeverityMedium,
+			wantText:     "Rule 2 (pass) on interface wan (in) is fully shadowed by rule 1 (block); the pass rule",
+		},
+		{
+			name:         "non-quick rule with no type below a pass loses as a pass",
+			earlier:      nonQuick(narrowShadowRule(typeless)),
+			later:        wideShadowRule(common.RuleTypePass),
+			wantLoser:    0,
+			wantClass:    common.ImpactClassHygiene,
+			wantSeverity: common.SeverityLow,
+			wantText:     lastAllowWins,
+		},
+		{
+			name:         "non-quick rule with no type wins over a block as a pass",
+			earlier:      nonQuick(narrowShadowRule(common.RuleTypeBlock)),
+			later:        wideShadowRule(typeless),
+			wantLoser:    0,
+			wantClass:    common.ImpactClassSecurity,
+			wantSeverity: common.SeverityCritical,
+			wantText:     lastAllowBlock,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			findings := DetectShadowedRules(&common.CommonDevice{
+				FirewallRules: []common.FirewallRule{tt.earlier, tt.later},
+			})
+
+			require.Len(t, findings, 1)
+
+			f := findings[0]
+			assert.Equal(t, tt.wantLoser, f.RuleIndex)
+			assert.Equal(t, tt.wantClass, f.ImpactClass)
+			assert.Equal(t, tt.wantSeverity, f.Severity)
+			assert.Contains(t, f.Description, tt.wantText)
+		})
+	}
+}
+
+// R8 reports an unresolved alias only for a possible bypass, so whether a pair
+// is reported at all depends on the class. A pair reaches the class through
+// coverage folding to CoverNone (the advisory scan) or, with one alias on both
+// rules, through ResolvePrecedence.
+func TestDetectShadowedRules_EmptyType_AliasBlocked(t *testing.T) {
+	const typeless common.FirewallRuleType = ""
+
+	onAlias := func(ruleType common.FirewallRuleType) common.FirewallRule {
+		rule := baseShadowRule("wan", common.DirectionIn, ruleType)
+		rule.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+		rule.Destination.Port = "UNRESOLVABLE"
+		rule.Destination.PortRef = &common.ObjectRef{Name: "UNRESOLVABLE"}
+
+		return rule
+	}
+
+	onPort := func(ruleType common.FirewallRuleType) common.FirewallRule {
+		rule := baseShadowRule("wan", common.DirectionIn, ruleType)
+		rule.Source.Address = "10.0.0.0/8" // not the R9 terminal-default-deny shape
+		rule.Destination.Port = "443"
+
+		return rule
+	}
+
+	tests := []struct {
+		name         string
+		earlier      common.FirewallRule
+		later        common.FirewallRule
+		wantAdvisory bool
+	}{
+		{
+			name:         "no type above a block, one alias",
+			earlier:      onAlias(typeless),
+			later:        onPort(common.RuleTypeBlock),
+			wantAdvisory: true,
+		},
+		{
+			name:         "no type above a block, shared alias",
+			earlier:      onAlias(typeless),
+			later:        onAlias(common.RuleTypeBlock),
+			wantAdvisory: true,
+		},
+		{name: "pass above no type, one alias", earlier: onAlias(common.RuleTypePass), later: onPort(typeless)},
+		{name: "pass above no type, shared alias", earlier: onAlias(common.RuleTypePass), later: onAlias(typeless)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			findings := DetectShadowedRules(&common.CommonDevice{
+				FirewallRules: []common.FirewallRule{tt.earlier, tt.later},
+				NamedObjects:  common.NamedObjects{}, // "UNRESOLVABLE" is not registered
+			})
+
+			if !tt.wantAdvisory {
+				assert.Empty(t, findings)
+
+				return
+			}
+
+			require.Len(t, findings, 1)
+			assert.Equal(t, common.ImpactClassSecurity, findings[0].ImpactClass)
+			assert.Equal(t, common.ConfidenceLow, findings[0].Confidence)
+			assert.Contains(t, findings[0].Description, "shadowed by rule 1 (pass)")
+		})
+	}
+}
+
+// R9: a port forward's rule above a terminal block-all is the default-deny
+// pattern, whatever the class of the pair would be.
+func TestDetectShadowedRules_EmptyType_TerminalDefaultDeny_NonFinding(t *testing.T) {
+	assert.Empty(t, DetectShadowedRules(&common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			wideShadowRule(""),
+			baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock),
+		},
+	}))
 }
 
 // Same-action partial overlap classifies as Hygiene (partial redundancy),

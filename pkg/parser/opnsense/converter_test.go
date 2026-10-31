@@ -144,7 +144,6 @@ func TestConverter_FirewallRules(t *testing.T) {
 			Floating:   "yes",
 			Quick:      true,
 			Log:        true,
-			Disabled:   false,
 			Source: schema.Source{
 				Any:  &anyStr,
 				Port: "443",

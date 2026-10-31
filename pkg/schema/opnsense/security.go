@@ -258,7 +258,7 @@ type Rule struct {
 	Gateway     string        `xml:"gateway,omitempty"`
 	SourcePort  string        `xml:"sourceport,omitempty"`
 	Log         BoolFlag      `xml:"log,omitempty"`
-	Disabled    BoolFlag      `xml:"disabled,omitempty"`
+	Disabled    *string       `xml:"disabled,omitempty"` // tested with !empty(), not for presence (GOTCHAS 15.0)
 	Tracker     string        `xml:"tracker,omitempty"`
 	// Rate-limiting fields (DoS protection)
 	MaxSrcNodes     string `xml:"max-src-nodes,omitempty"`

@@ -108,7 +108,10 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 		}) {
 			continue
 		}
-		if rule.Direction != "" && rule.Direction != common.DirectionIn {
+		// Only an outbound rule is left out. A rule with direction any matches
+		// inbound traffic too, and an unrecognized direction counts as inbound,
+		// so that the score over-reports rather than misses a rule.
+		if rule.Direction == common.DirectionOut {
 			continue
 		}
 		for _, port := range mgmtPorts {

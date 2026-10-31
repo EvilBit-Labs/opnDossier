@@ -200,6 +200,8 @@ Firewall rules are normalized with clean boolean types and resolved endpoint add
 | `Tracker`     | `string`       | `firewallRules[].tracker`     | Tracking identifier                 |
 | `StateType`   | `string`       | `firewallRules[].stateType`   | State tracking type                 |
 
+On a pfSense rule `Direction` is the direction the rule compiles with, which is not always what `<direction>` holds. It stays empty, which reads as `in`, unless `<floating>` holds `yes`, and a rule that holds `yes` with no `<direction>` reads as `any`.
+
 ### RuleEndpoint
 
 Used for both `source` and `destination` in firewall and NAT rules.
@@ -522,7 +524,7 @@ The `analysis` enrichment field (`Analysis`, `*Analysis`) is populated during ex
 
 ### ShadowedRuleFinding
 
-Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pfSense rule-evaluation semantics directly (quick rules first-match, non-quick rules last-match, unscoped floating rules evaluated device-wide before interface rules).
+Reported by `internal/analysis.DetectShadowedRules`, which models pf/OPNsense/pfSense rule-evaluation semantics directly (quick rules first-match, non-quick rules last-match, floating rules evaluated in list order before interface rules, device-wide when unscoped). An OPNsense rule list is already in evaluation order and is read as it stands. A disabled rule never appears as the covering rule, because the firewall does not load it, but it can be reported as the shadowed rule. pfSense tests `<disabled>` with `isset()` and OPNsense with `!empty()`, so an empty element disables a pfSense rule and leaves an OPNsense rule live, and each converter applies its vendor's test. A rule with no type counts as a pass rule, because both firewalls load it as one.
 
 | Field             | Type     | JSON Key                                   | Description                                                                                                                                             |
 | ----------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
