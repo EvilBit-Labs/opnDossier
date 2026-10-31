@@ -104,14 +104,19 @@ func TestConverter_GatewayGroups_Tiers(t *testing.T) {
 			want:    []string{"WAN_GW|0", "WAN_GW2|2"},
 		},
 		{
+			name:    "legacy tier below 0 is kept and sorts first",
+			members: `<item>WAN_GW2|2</item><item>WAN_GW|-1</item>`,
+			want:    []string{"WAN_GW|-1", "WAN_GW2|2"},
+		},
+		{
 			name:    "legacy tier that is not a number sorts last",
 			members: `<item>WAN_GW9|x</item><item>WAN_GW|2</item>`,
 			want:    []string{"WAN_GW|2", "WAN_GW9|x"},
 		},
 		{
-			name:    "legacy tier that is not a number sorts after tiers above 5",
-			members: `<item>WAN_GW9|x</item><item>WAN_GW6|6</item>`,
-			want:    []string{"WAN_GW6|6", "WAN_GW9|x"},
+			name:    "legacy tier that is not a number sorts after any tier above 5",
+			members: `<item>WAN_GW9|x</item><item>WAN_GW6|999999999</item>`,
+			want:    []string{"WAN_GW6|999999999", "WAN_GW9|x"},
 		},
 		{
 			name:    "tier-less entries in a legacy group read as tier 1",
@@ -132,6 +137,94 @@ func TestConverter_GatewayGroups_Tiers(t *testing.T) {
 			name:    "no members",
 			members: `<item2/><item3/><item4/><item5/><item/>`,
 			want:    nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.want, parseGatewayGroup(t, tc.members).Items)
+		})
+	}
+}
+
+// TestConverter_GatewayGroups_HandEditedEntries pins entries no GUI writes. A
+// comma list in a legacy entry is split as the migration's tier field is, and a
+// nameless entry still empties the tier it names, because <item> loads after
+// <item2> to <item5> and the migration writes its empty value over them.
+func TestConverter_GatewayGroups_HandEditedEntries(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		members string
+		want    []string
+	}{
+		{
+			name:    "nameless entry replaces the tier list it names",
+			members: `<item2>WAN_GW2</item2><item>|2</item><item>WAN_GW|1</item>`,
+			want:    []string{"WAN_GW|1"},
+		},
+		{
+			name:    "nameless entry adds no member",
+			members: `<item>|2</item><item>WAN_GW|1</item>`,
+			want:    []string{"WAN_GW|1"},
+		},
+		{
+			name:    "comma list in a legacy entry with a tier",
+			members: `<item>WAN_GW,WAN_GW3|2</item><item>WAN_GW2|1</item>`,
+			want:    []string{"WAN_GW2|1", "WAN_GW|2", "WAN_GW3|2"},
+		},
+		{
+			name:    "comma list in a tier-less legacy entry",
+			members: `<item>WAN_GW,WAN_GW3</item><item>WAN_GW2|2</item>`,
+			want:    []string{"WAN_GW|1", "WAN_GW3|1", "WAN_GW2|2"},
+		},
+		{
+			name:    "padded legacy entry",
+			members: `<item> WAN_GW|2 </item><item>WAN_GW2|1</item>`,
+			want:    []string{"WAN_GW2|1", "WAN_GW|2"},
+		},
+		{
+			name:    "padded legacy tier still replaces its tier list",
+			members: `<item2>WAN_GW4</item2><item>WAN_GW| 2</item><item>WAN_GW2|1</item>`,
+			want:    []string{"WAN_GW2|1", "WAN_GW|2"},
+		},
+		{
+			name:    "legacy entries padded with newlines",
+			members: "<item>\n  WAN_GW|2\n</item><item>\n  WAN_GW2|1\n</item>",
+			want:    []string{"WAN_GW2|1", "WAN_GW|2"},
+		},
+		{
+			name:    "whitespace-only legacy tier reads as tier 1",
+			members: `<item>WAN_GW2|2</item><item>WAN_GW| </item>`,
+			want:    []string{"WAN_GW|1", "WAN_GW2|2"},
+		},
+		{
+			name:    "name|tier|vip entry replaces the tier list it names",
+			members: `<item2>WAN_GW4</item2><item>WAN_GW2|1|address</item><item>WAN_GW|2|address</item>`,
+			want:    []string{"WAN_GW2|1", "WAN_GW|2"},
+		},
+		{
+			name:    "blank item in a legacy group",
+			members: "<item>\n</item><item>WAN_GW|1</item>",
+			want:    []string{"WAN_GW|1"},
+		},
+		{
+			name:    "blank values in a tier list",
+			members: `<item2>WAN_GW2,,WAN_GW3</item2><item>,WAN_GW,</item>`,
+			want:    []string{"WAN_GW|1", "WAN_GW2|2", "WAN_GW3|2"},
+		},
+		{
+			name:    "padded values in a tier list",
+			members: `<item2> WAN_GW2 , WAN_GW3 </item2><item>WAN_GW</item>`,
+			want:    []string{"WAN_GW|1", "WAN_GW2|2", "WAN_GW3|2"},
+		},
+		{
+			name:    "pipe in a tier element is part of the name",
+			members: `<item2>WAN_GW2|2</item2><item>WAN_GW</item>`,
+			want:    []string{"WAN_GW|1", "WAN_GW2|2|2"},
 		},
 	}
 

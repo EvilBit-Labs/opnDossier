@@ -422,7 +422,9 @@ Several fields pack multiple values into a single element:
 - `<icmptype>3,11,0</icmptype>` (ICMP type list)
 - Space-separated: `<timeservers>0.ntp.org 1.ntp.org</timeservers>`
 
-Our `InterfaceList` custom type correctly handles the comma-separated case.
+Our `InterfaceList` custom type correctly handles the comma-separated `<interface>` case.
+
+Gateway group tiers pack gateways the same way, but `InterfaceList` plays no part in them. OPNsense 26.7 maps `<gateways><gateway_group>` with a legacy mapper, so the element stays where it was and carries no `version` attribute. `<item>` holds the tier 1 gateways as one comma-separated list, and `<item2>` to `<item5>` hold tiers 2 to 5, bound as the strings `GatewayGroup.Item2` to `Item5`. Up to 26.1 `<item>` repeats once per gateway as `name|tier`, or `name|tier|vip` up to 19.1 and on pfSense, which is why `GatewayGroup.Item` stays a slice. `GatewayGroupItemField` rewrites the legacy entries into the five fields when the migrations run at boot. The OPNsense converter's `gatewayGroupItems` reads either form into one `name|tier` entry per gateway. pfSense reuses the type, and its converter exports `Item` as written and does not read the tier fields.
 
 ### 7c. UUID vs Tracker
 

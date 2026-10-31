@@ -74,7 +74,7 @@ vlan, wolentry
 | `load_balancer`            | `document.go` | Yes (full)                    | Deprecated in pfSense 2.8+                                                     |
 | `staticroutes`             | `document.go` | Yes (full)                    | Identical                                                                      |
 | `ppps`                     | `document.go` | Yes (full)                    | Identical base                                                                 |
-| `gateways`                 | `document.go` | Yes (full)                    | Identical base                                                                 |
+| `gateways`                 | `document.go` | Yes (full)                    | Identical base; OPNsense 26.7 Item2 to Item5 unread on pfSense                 |
 | `ca[]` / `cert[]`          | `document.go` | Yes (full)                    | Top-level arrays                                                               |
 | `vlans`                    | `document.go` | Yes (full)                    | Identical                                                                      |
 | `revision`                 | `document.go` | Yes (full)                    | Identical                                                                      |
