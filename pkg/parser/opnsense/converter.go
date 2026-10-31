@@ -376,17 +376,18 @@ func (c *converter) ruleFamily(i int, stored string) common.IPProtocol {
 // "lan") or the "any" wildcard is never mistaken for an alias reference,
 // even when an alias happens to share that name.
 //
-// An absent <direction>, <statetype> or <quick> takes the firewall's default
-// (FilterRule.php: in, keep state, and quick unless floating), which is what the
-// filter model writes out, so a rule reads alike in both stores and a diff across
-// a migration is quiet on them. <floating> is tested for presence, as the firewall
+// An absent <type>, <direction>, <statetype> or <quick> takes the firewall's
+// default (FilterRule.php: pass, in, keep state, and quick unless floating), which
+// is what the filter model writes out, so a rule reads alike in both stores and a
+// diff across a migration is quiet on them. Up to 24.7 the port forward page wrote
+// its companion rule with no <type>. <floating> is tested for presence, as the firewall
 // does (filter.lib.inc isset) and as legacyRulePriority ranks it.
 func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.FirewallRule {
 	c.warnOnIncompleteFirewallRule(i, rule)
 
 	return common.FirewallRule{
 		UUID:        rule.UUID,
-		Type:        c.ruleType(i, rule.Type),
+		Type:        c.ruleType(i, legacyRuleType(rule.Type)),
 		Description: rule.Descr,
 		Interfaces:  []string(rule.Interface),
 		Direction:   c.ruleDirection(i, cmp.Or(rule.Direction, string(common.DirectionIn))),
@@ -440,19 +441,23 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 	}
 }
 
+// legacyRuleType returns the type the firewall compiles for a stored legacy
+// <type>. parseType in FilterRule.php tests it with empty(), the same test
+// modelFlagSet makes, so 0 takes the default as an empty element does. Any other
+// value goes to pf as written.
+func legacyRuleType(stored string) string {
+	if modelFlagSet(stored) {
+		return stored
+	}
+
+	return string(common.RuleTypePass)
+}
+
 // warnOnIncompleteFirewallRule records a conversion warning for each
 // required field rule leaves empty. Split out of convertLegacyFirewallRule to
 // keep that function inside the length limit; i is the rule index used to
 // address the warning.
 func (c *converter) warnOnIncompleteFirewallRule(i int, rule schema.Rule) {
-	if rule.Type == "" {
-		c.addWarning(
-			fmt.Sprintf("FirewallRules[%d].Type", i),
-			rule.UUID,
-			"firewall rule has empty type",
-			common.SeverityHigh,
-		)
-	}
 	if rule.Source.EffectiveAddress() == "" {
 		c.addWarning(
 			fmt.Sprintf("FirewallRules[%d].Source", i),

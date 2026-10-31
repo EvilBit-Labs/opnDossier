@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"reflect"
 	"slices"
 	"strings"
 )
@@ -288,6 +289,32 @@ type Rule struct {
 	AssociatedRuleID string `xml:"associated-rule-id,omitempty"`
 }
 
+// IsPlaceholder reports whether r is an empty <rule/> marker rather than a
+// configured firewall rule. From 18.7.10 to 26.1 OPNsense leaves one under
+// <filter> once the last legacy rule is deleted, since the rules page empties
+// the list and Config::fromArray writes an empty list as one childless element.
+// A config upgraded to 26.7 can still carry it. The firewall loads no rule from
+// it; read as a rule it would take every default and become an enabled pass rule
+// from any to any.
+//
+// An entry is dropped only when every field is zero; see
+// [StaticRoute.IsPlaceholder] for why the check is conservative. It compares with
+// the zero value rather than naming fields, as [FirewallFilterRule.IsPlaceholder]
+// does, once XMLName, which the decoder always sets, and an empty interface list,
+// which it decodes to a non-nil slice, are cleared. No <type> is not enough, since
+// the rule a port forward stored for itself up to 24.7 has none. The test is on
+// content, so a rule whose only children are empty elements of string fields, or
+// elements the type does not bind, is dropped too, although OPNsense loads it. No
+// release writes one.
+func (r Rule) IsPlaceholder() bool {
+	r.XMLName = xml.Name{}
+	if r.Interface.IsEmpty() {
+		r.Interface = nil
+	}
+
+	return reflect.DeepEqual(r, Rule{})
+}
+
 // Source represents a firewall rule source.
 // Any is a pointer to distinguish XML element presence (<any/> → non-nil "")
 // from absence (nil), since Go's encoding/xml produces "" for both self-closing
@@ -331,7 +358,9 @@ func (s Source) EffectiveAddress() string {
 // since <any/> carries no address). Matching EffectiveAddress's precedence
 // is deliberate — an endpoint that sets both <address> and <any/> resolves
 // to its Address under EffectiveAddress, so its AddressRef must resolve to
-// that same alias rather than being dropped.
+// that same alias rather than being dropped. That is OPNsense's order. A pfSense
+// filter rule tests <any> first, so the pfSense converter clears the address of
+// such an endpoint before it reads either method.
 //
 // This exists specifically for named-object (alias) resolution: a macro
 // must never be looked up against the alias table, even if an alias happens

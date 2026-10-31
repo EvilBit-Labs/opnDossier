@@ -3,6 +3,8 @@ package audit
 import (
 	"cmp"
 	"fmt"
+	"net/netip"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,6 +39,14 @@ const maxManagementServices = 3
 
 // findingTypeExposure is the Finding.Type for every red-mode exposure finding.
 const findingTypeExposure = "exposure"
+
+// aliasTypeNetworkGroup is the vendor type of an OPNsense alias whose members are
+// all alias names. The model has no constant for it (GOTCHAS 23.1).
+const aliasTypeNetworkGroup common.NamedObjectType = "networkgroup"
+
+// aliasNamePattern matches the characters both vendors allow in an alias name.
+// No address, URL or hostname with a domain is made of these alone.
+var aliasNamePattern = regexp.MustCompile(`^\w+$`)
 
 // exposedService describes an in-scope management/system service and where it
 // is reachable from. Reachability is computed by correlating the service's
@@ -131,20 +141,22 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 }
 
 // serviceReachability classifies a firewall-local management service (WebGUI,
-// SSH, SNMP) by port: WAN-reachable when a WAN-reachable firewall pass rule
-// permits that port, otherwise LAN-only. A configured management service is
-// never Local.
+// SSH, SNMP) by port: WAN-reachable when wanRulePermitsPort finds a pass rule
+// that admits that port on the firewall, otherwise LAN-only. A configured
+// management service is never Local.
 //
-// Deliberately does NOT consult device.NAT.InboundRules: an inbound NAT rule
-// forwards WAN traffic to InboundNATRule.InternalIP — by construction a
-// different host than the firewall itself — so a NAT rule sharing the same
-// external port as a management service is never evidence that the
-// firewall's OWN service is WAN-reachable. Correlating NAT rules against
-// firewall-local ports produced a false positive: a NAT rule forwarding WAN
-// port 22 to an unrelated internal host's SSH would flag the firewall's own
-// SSH daemon (also on port 22) as exposed even with no pass rule ever
-// targeting the firewall directly. NAT rules are correlated separately, on
-// their own terms, by addWeakNATRules/InboundNATRuleReachability.
+// Deliberately never counts device.NAT.InboundRules as exposure: an inbound NAT
+// rule forwards WAN traffic to InboundNATRule.InternalIP, normally a different
+// host than the firewall itself, so a NAT rule sharing the same external port as
+// a management service is never evidence that the firewall's OWN service is
+// WAN-reachable. A forward can target the firewall, but the evidence is then the
+// filter rule that passes it, never the forward, so a forward that stores no
+// filter rule (the Pass association, which pf gets as rdr pass) reports nothing
+// here. Correlating NAT rules against firewall-local ports produced a false
+// positive: a NAT rule forwarding WAN port 22 to an unrelated internal host's SSH
+// would flag the firewall's own SSH daemon (also on port 22) as exposed even with
+// no pass rule ever targeting the firewall directly. NAT rules are correlated
+// separately, on their own terms, by addWeakNATRules/InboundNATRuleReachability.
 func serviceReachability(device *common.CommonDevice, port int) analysis.Reachability {
 	if wanRulePermitsPort(device, port) {
 		return analysis.WANReachable
@@ -154,20 +166,22 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 }
 
 // wanRulePermitsPort reports whether any WAN-reachable enabled firewall pass
-// rule permits the given port. Port matching biases toward over-reporting
-// exposure (the safe direction for a security tool): an empty or "any" rule
-// port permits every port, a numeric range or comma-list is matched by
-// containment, and an unresolvable port alias is treated as permitting the
-// port rather than silently classifying the service as safely LAN-only. Only
-// a concrete numeric port that does not contain the service port is treated
-// as non-permitting. See rulePortPermits.
+// rule permits the given port on the firewall itself. A rule that passes a port
+// forward's traffic to another host does not count (forwardsToAnotherHost).
+// Port matching biases toward over-reporting exposure (the safe direction for a
+// security tool): an empty or "any" rule port permits every port, a numeric
+// range or comma-list is matched by containment, and an unresolvable port alias
+// is treated as permitting the port rather than silently classifying the service
+// as safely LAN-only. As far as ports go, only a concrete numeric port that does
+// not contain the service port is treated as non-permitting. See rulePortPermits.
 func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	for _, rule := range device.FirewallRules {
 		if rule.Disabled || rule.Type != common.RuleTypePass {
 			continue
 		}
 
-		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable {
+		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable ||
+			forwardsToAnotherHost(rule, device) {
 			continue
 		}
 
@@ -177,6 +191,215 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	}
 
 	return false
+}
+
+// forwardsToAnotherHost reports whether rule passes a port forward's traffic to
+// a host other than the firewall. pf matches a filter rule after rdr has
+// rewritten the destination to the forward's target, so such a rule never
+// admits traffic to the firewall's own services. The rule's destination is what
+// ties it to a forward: both vendors copy the target onto the rule a forward
+// stores for itself, and the "unassociated" option of the OPNsense port forward
+// page, up to 25.7, writes the same rule with no link. The link is not read,
+// because from 26.1 deleting a forward leaves its rule behind with the link, so
+// a link alone says nothing about where traffic goes.
+//
+// Another host is a literal address or network a forward targets that holds no
+// address of the firewall (firewallAddresses), or an alias a forward targets
+// (forwardsToAlias). A network that holds one keeps the rule, since traffic to
+// that address passes it as well, and so does a macro or a name the config does
+// not define: the over-report direction. So does a rule of its own to an address
+// or network no forward targets, which may hold an address the firewall has and
+// the config does not record, such as a DHCP lease.
+func forwardsToAnotherHost(rule common.FirewallRule, device *common.CommonDevice) bool {
+	if rule.Destination.Negated {
+		return false
+	}
+
+	own := firewallAddresses(device)
+
+	if ref := rule.Destination.AddressRef; ref != nil {
+		return forwardsToAlias(ref.Name, device, own)
+	}
+
+	target, ok := literalNetwork(rule.Destination.Address)
+	if !ok || holdsFirewallAddress(rule.Destination.Address, own) {
+		return false
+	}
+
+	return slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
+		forwardTarget, ok := literalNetwork(nat.InternalIP)
+		return ok && forwardTarget == target
+	})
+}
+
+// literalNetwork reads a literal address as the network of that one host and a
+// CIDR as its network with the host bits cleared, so that two spellings of one
+// target compare equal.
+func literalNetwork(entry string) (netip.Prefix, bool) {
+	if addr, err := netip.ParseAddr(entry); err == nil {
+		return netip.PrefixFrom(addr, addr.BitLen()), true
+	}
+
+	prefix, err := netip.ParsePrefix(entry)
+
+	return prefix.Masked(), err == nil
+}
+
+// forwardsToAlias reports whether the alias name is a port forward's target and
+// holds no address of the firewall. Both vendors copy an alias target onto the
+// forward's rule as it stands, so the name is what ties the two together. The
+// members the config holds are the only evidence, so an alias whose members the
+// firewall fetches at runtime, such as a URL table, counts as the forward's rule.
+func forwardsToAlias(name string, device *common.CommonDevice, own []netip.Addr) bool {
+	isTarget := slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
+		return nat.InternalIP == name
+	})
+
+	return isTarget && !aliasHoldsFirewallAddress(device.NamedObjects, name, own)
+}
+
+// aliasHoldsFirewallAddress walks the members of the alias name, and of every
+// alias they name, for an address of the firewall. It reads Members directly:
+// NamedObjects.Resolve stops on any type but host, network and port, and a
+// network group is such a type although its members are alias names (GOTCHAS
+// 23.1). A member no alias defines counts when it can name a table the config
+// does not store (namesUnstoredTable). A URL, a country code or a hostname with a
+// domain names no alias and tells nothing, so a table fetched at runtime reads as
+// holding no address. seen is shared by the whole walk, so a nesting loop ends
+// and an alias named many times is read once.
+func aliasHoldsFirewallAddress(objects common.NamedObjects, name string, own []netip.Addr) bool {
+	seen := map[string]bool{name: true}
+	pending := []string{name}
+
+	for len(pending) > 0 {
+		last := len(pending) - 1
+		object := objects[pending[last]]
+		pending = pending[:last]
+
+		for _, member := range object.Members {
+			_, defined := objects[member]
+
+			switch {
+			case holdsFirewallAddress(member, own), !defined && namesUnstoredTable(object.Type, member):
+				return true
+			case defined && !seen[member]:
+				seen[member] = true
+				pending = append(pending, member)
+			}
+		}
+	}
+
+	return false
+}
+
+// namesUnstoredTable reports whether member of an alias of aliasType, which no
+// alias in the config defines, reads as the name of a table the config does not
+// store. OPNsense generates such tables and accepts them as members of a host,
+// network or network group alias: __<interface>_network, the network of an
+// interface, which holds the firewall's own address there, and static tables such
+// as bogons. Their contents are not in the config, so a bare name keeps the rule,
+// the over-report direction, and that covers a name a deleted alias left behind.
+// A hostname with a domain does not match and tells nothing. One with no domain
+// has the shape of an alias name, cannot be told from one, and keeps the rule.
+func namesUnstoredTable(aliasType common.NamedObjectType, member string) bool {
+	nests := aliasType == common.NamedObjectTypeHost || aliasType == common.NamedObjectTypeNetwork ||
+		aliasType == aliasTypeNetworkGroup
+
+	return nests && aliasNamePattern.MatchString(member)
+}
+
+// firewallAddresses returns the loopback addresses and the addresses the config
+// records for the firewall on an interface: its IPv4 and IPv6 address, the alias
+// address of its DHCP client, and its virtual IPs. An interface configured by
+// DHCP records no address of its own, and an address recorded anywhere else, such
+// as a tunnel's inner address, is not read. The loopback addresses are what makes
+// a network as wide as 0.0.0.0/0 hold one on a firewall that records no other.
+func firewallAddresses(device *common.CommonDevice) []netip.Addr {
+	entries := make([]string, 0, 2+3*len(device.Interfaces)+len(device.VirtualIPs))
+	entries = append(entries, "127.0.0.1", "::1")
+
+	for _, iface := range device.Interfaces {
+		entries = append(entries, iface.IPAddress, iface.IPv6Address)
+		if iface.DHCPAdvancedV4 != nil {
+			entries = append(entries, iface.DHCPAdvancedV4.AliasAddress)
+		}
+	}
+
+	for _, vip := range device.VirtualIPs {
+		entries = append(entries, vip.Subnet)
+	}
+
+	var own []netip.Addr
+
+	for _, entry := range entries {
+		if addr, err := netip.ParseAddr(entry); err == nil {
+			own = append(own, addr)
+		}
+	}
+
+	return own
+}
+
+// holdsFirewallAddress reports whether entry is, or spans, a loopback address or
+// an address in own. It reads a literal address, a CIDR, the wildcard network an
+// OPNsense network alias can hold, and the first-last range an OPNsense host
+// alias can hold. Any other form, such as a hostname or an entry excluded with
+// "!", tells nothing and does not count.
+func holdsFirewallAddress(entry string, own []netip.Addr) bool {
+	if addr, err := netip.ParseAddr(entry); err == nil {
+		return addr.IsLoopback() || slices.Contains(own, addr)
+	}
+
+	if prefix, err := netip.ParsePrefix(entry); err == nil {
+		return prefix.Addr().IsLoopback() || slices.ContainsFunc(own, prefix.Contains)
+	}
+
+	if wildcardHoldsFirewallAddress(entry, own) {
+		return true
+	}
+
+	from, to, _ := strings.Cut(entry, "-")
+	first, errFirst := netip.ParseAddr(from)
+	last, errLast := netip.ParseAddr(to)
+	if errFirst != nil || errLast != nil {
+		return false
+	}
+
+	return first.IsLoopback() || slices.ContainsFunc(own, func(addr netip.Addr) bool {
+		return !addr.Less(first) && !last.Less(addr)
+	})
+}
+
+// wildcardHoldsFirewallAddress reports whether entry is a wildcard network that
+// matches a loopback address or an address in own. Such a network is an address
+// and a mask of one family, and a bit set in the mask matches either value, so
+// 192.168.0.1/0.0.255.0 is 192.168.x.1 (net_wildcard_iterator in OPNsense's
+// alias/base.py).
+func wildcardHoldsFirewallAddress(entry string, own []netip.Addr) bool {
+	from, to, _ := strings.Cut(entry, "/")
+	base, errBase := netip.ParseAddr(from)
+	mask, errMask := netip.ParseAddr(to)
+	if errBase != nil || errMask != nil || base.BitLen() != mask.BitLen() {
+		return false
+	}
+
+	return base.IsLoopback() || slices.ContainsFunc(own, func(addr netip.Addr) bool {
+		return addr.BitLen() == base.BitLen() && differOnlyInMask(addr, base, mask)
+	})
+}
+
+// differOnlyInMask reports whether two addresses of one family differ only in
+// bits set in mask.
+func differOnlyInMask(first, second, mask netip.Addr) bool {
+	firstBytes, secondBytes, maskBytes := first.AsSlice(), second.AsSlice(), mask.AsSlice()
+
+	for i := range maskBytes {
+		if (firstBytes[i]^secondBytes[i])&^maskBytes[i] != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 // rulePortPermits reports whether a rule's destination/external port permits
