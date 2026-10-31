@@ -1983,6 +1983,24 @@ type NamedObject struct {
 	Members []string `json:"members,omitempty" yaml:"members,omitempty"`
 	// Description is the human-readable alias description, when present.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Disabled reports an alias the config turns off. OPNsense then loads it with
+	// no members whatever Members holds, so an endpoint naming it matches nothing
+	// and an inverted endpoint matches every address. The external and internal
+	// types are the exception: OPNsense's alias loader skips them and leaves their
+	// tables as they are. Only OPNsense's alias model has this setting.
+	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
+	// Proto lists the address families a geoip or asn alias loads, comma
+	// separated (IPv4, IPv6); empty loads both. OPNsense only.
+	Proto string `json:"proto,omitempty" yaml:"proto,omitempty"`
+	// Interface is the interface a dynipv6host alias tracks. OPNsense only.
+	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
+	// PathExpression selects the values a urljson alias loads from the document
+	// it fetches. OPNsense only.
+	PathExpression string `json:"pathExpression,omitempty" yaml:"pathExpression,omitempty"`
+	// Expire is the time in seconds after which OPNsense purges an unused address
+	// from an external alias's table; empty purges none. The firewall reads it on
+	// no other type. OPNsense only.
+	Expire string `json:"expire,omitempty" yaml:"expire,omitempty"`
 }
     NamedObject represents a single named object (alias) as it appears in
     a device's firewall configuration: a host, network, port, or dynamic

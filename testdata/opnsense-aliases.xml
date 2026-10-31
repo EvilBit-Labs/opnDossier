@@ -399,34 +399,34 @@
             <type>host</type>
             <content>10.20.30.40
 10.20.30.41</content>
-            <descr>Web server hosts</descr>
+            <description>Web server hosts</description>
           </alias>
           <alias uuid="22222222-2222-2222-2222-222222222222">
             <name>INTERNAL_NET</name>
             <type>network</type>
             <content>10.20.0.0/16</content>
-            <descr>Internal network</descr>
+            <description>Internal network</description>
           </alias>
           <alias uuid="33333333-3333-3333-3333-333333333333">
             <name>WEB_PORTS</name>
             <type>port</type>
             <content>80
 443</content>
-            <descr>Standard web ports</descr>
+            <description>Standard web ports</description>
           </alias>
           <alias uuid="44444444-4444-4444-4444-444444444444">
             <name>ALL_SERVERS</name>
             <type>host</type>
             <content>WEB_SERVERS
 10.20.30.50</content>
-            <descr>Nested alias referencing WEB_SERVERS plus a literal host</descr>
+            <description>Nested alias referencing WEB_SERVERS plus a literal host</description>
           </alias>
           <alias uuid="55555555-5555-5555-5555-555555555555">
             <name>EXTERNAL_HOSTS</name>
             <type>host</type>
             <content>203.0.113.10
 198.51.100.20</content>
-            <descr>External allowed hosts</descr>
+            <description>External allowed hosts</description>
           </alias>
           <alias uuid="66666666-6666-6666-6666-666666666666">
             <name>MIXED_TYPES</name>
@@ -435,7 +435,7 @@
 203.0.113.20
 198.51.100.0/24
 mail.example.org</content>
-            <descr>Mixed private IP, public IP, CIDR, and hostname in one alias</descr>
+            <description>Mixed private IP, public IP, CIDR, and hostname in one alias</description>
           </alias>
         </aliases>
       </Alias>

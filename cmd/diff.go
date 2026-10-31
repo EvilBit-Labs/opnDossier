@@ -127,6 +127,7 @@ func ValidDiffSections(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 		"dhcp\tDHCP servers and static reservations",
 		"users\tUser accounts",
 		"routing\tStatic routes",
+		"aliases\tFirewall aliases (named objects)",
 		"dns\tDNS configuration",
 		"vpn\tVPN configuration",
 		"certificates\tCertificate management",
@@ -162,7 +163,8 @@ DISPLAY MODES (--mode/-m):
   side-by-side  - Two-column comparison (terminal format only)
 
 SECTION FILTERING (--section/-s):
-  Implemented: system, firewall, nat, interfaces, vlans, dhcp, users, routing
+  Implemented: system, firewall, nat, interfaces, vlans, dhcp, users, routing,
+               aliases
   Placeholders (reject with a helpful error): dns, vpn, certificates
 
 ANALYSIS OPTIONS:
@@ -392,6 +394,7 @@ func validateDiffFlags() error {
 		"dhcp",
 		"users",
 		"routing",
+		"aliases",
 	}
 
 	// Sections that are defined but not yet implemented

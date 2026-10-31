@@ -131,38 +131,38 @@
             <type>host</type>
             <content>192.168.20.80
 192.168.20.81</content>
-            <descr>Web servers</descr>
+            <description>Web servers</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000012">
             <name>DB_HOSTS</name>
             <type>host</type>
             <content>192.168.20.90</content>
-            <descr>Database server</descr>
+            <description>Database server</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000013">
             <name>MGMT_NETS</name>
             <type>network</type>
             <content>192.168.10.0/28</content>
-            <descr>Management workstations</descr>
+            <description>Management workstations</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000014">
             <name>WEB_PORTS</name>
             <type>port</type>
             <content>8080
 8443</content>
-            <descr>Web application ports</descr>
+            <description>Web application ports</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000015">
             <name>LEGACY_PEERS</name>
             <type>host</type>
             <content>192.168.10.200</content>
-            <descr>Named only in a legacy rule's address list</descr>
+            <description>Named only in a legacy rule's address list</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000016">
             <name>SPARE_HOST</name>
             <type>host</type>
             <content>192.168.20.99</content>
-            <descr>Referenced by nothing</descr>
+            <description>Referenced by nothing</description>
           </alias>
         </aliases>
       </Alias>

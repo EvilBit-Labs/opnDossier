@@ -503,6 +503,10 @@ func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 }
 
 // convertOutboundNATRules maps []schema.NATRule to []common.NATRule.
+//
+// Unlike a firewall rule, an outbound NAT rule keeps an alias in <network>
+// (firewall_nat_out_edit.php), so the source and destination look it up on
+// EffectiveAddress; see Source.AliasAddress.
 func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NATRule {
 	if len(rules) == 0 {
 		return nil
@@ -537,14 +541,14 @@ func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 			Source: common.RuleEndpoint{
 				Address:    r.Source.EffectiveAddress(),
 				Port:       r.Source.Port,
-				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
+				AddressRef: c.namedObjects.Ref(r.Source.EffectiveAddress()),
 				PortRef:    c.namedObjects.Ref(r.Source.Port),
 				Negated:    bool(r.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
 				Address:    r.Destination.EffectiveAddress(),
 				Port:       r.EffectiveDestinationPort(),
-				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
+				AddressRef: c.namedObjects.Ref(r.Destination.EffectiveAddress()),
 				PortRef:    c.namedObjects.Ref(r.EffectiveDestinationPort()),
 				Negated:    bool(r.Destination.Not),
 			},

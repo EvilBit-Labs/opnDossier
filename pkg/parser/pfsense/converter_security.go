@@ -173,6 +173,11 @@ func (c *converter) convertNAT(doc *pfsense.Document) common.NATConfig {
 }
 
 // convertOutboundNATRules maps []opnsense.NATRule to []common.NATRule.
+//
+// Unlike a firewall rule or a port forward, an outbound NAT rule keeps an alias
+// in <network> (firewall_nat_out.inc), and filter.inc tests that value with
+// is_alias first, so the source and destination look it up on EffectiveAddress;
+// see opnsense.Source.AliasAddress.
 func (c *converter) convertOutboundNATRules(rules []opnsense.NATRule) []common.NATRule {
 	if len(rules) == 0 {
 		return nil
@@ -207,14 +212,14 @@ func (c *converter) convertOutboundNATRules(rules []opnsense.NATRule) []common.N
 			Source: common.RuleEndpoint{
 				Address:    r.Source.EffectiveAddress(),
 				Port:       r.Source.Port,
-				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
+				AddressRef: c.namedObjects.Ref(r.Source.EffectiveAddress()),
 				PortRef:    c.namedObjects.Ref(r.Source.Port),
 				Negated:    bool(r.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
 				Address:    r.Destination.EffectiveAddress(),
 				Port:       r.EffectiveDestinationPort(),
-				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
+				AddressRef: c.namedObjects.Ref(r.Destination.EffectiveAddress()),
 				PortRef:    c.namedObjects.Ref(r.EffectiveDestinationPort()),
 				Negated:    bool(r.Destination.Not),
 			},

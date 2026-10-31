@@ -147,6 +147,8 @@ func (e *Engine) compareSection(section Section) []Change {
 		return e.analyzer.CompareUsers(e.oldConfig.Users, e.newConfig.Users)
 	case SectionRouting:
 		return e.analyzer.CompareRoutes(e.oldConfig.Routing, e.newConfig.Routing)
+	case SectionAliases:
+		return e.analyzer.CompareAliases(e.oldConfig, e.newConfig)
 	case SectionDNS, SectionVPN, SectionCertificates:
 		// These sections are defined but not yet implemented
 		if e.logger != nil {
