@@ -541,7 +541,7 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 	return common.Routing{
 		Gateways:      c.convertGateways(doc.Gateways.Gateway),
 		GatewayGroups: c.convertGatewayGroups(doc.Gateways.Groups),
-		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes.Route),
+		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes),
 	}
 }
 
@@ -608,16 +608,29 @@ func (c *converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.
 	return result
 }
 
-// convertStaticRoutes maps []schema.StaticRoute to []common.StaticRoute.
+// routesModelVersion is the Routes model version from OPNsense 18.1 to 26.1.9.
+const routesModelVersion = "1.0.0"
+
+// knownRoutesModelVersions lists the <staticroutes version="..."> values this
+// converter has been checked against. 1.0.1 (26.1.10) replaced each route's
+// <disabled> with <enabled>.
+var knownRoutesModelVersions = map[string]struct{}{
+	"":                 {},
+	routesModelVersion: {},
+	"1.0.1":            {},
+}
+
+// convertStaticRoutes maps the routes in <staticroutes> to []common.StaticRoute
+// and warns on a model version it has not been checked against.
 //
 // Empty <route/> placeholders are skipped so they neither surface as blank
 // routes in exported output nor flip CommonDevice.HasRoutes to true for a
 // device with no routing configuration. The result is grown on demand rather
 // than preallocated because the loop may skip entries.
-func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.StaticRoute {
+func (c *converter) convertStaticRoutes(routes schema.StaticRoutes) []common.StaticRoute {
 	var result []common.StaticRoute
 
-	for _, r := range routes {
+	for _, r := range routes.Route {
 		if r.IsPlaceholder() {
 			continue
 		}
@@ -627,13 +640,37 @@ func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.St
 			NetworkRef:  c.namedObjects.Ref(r.Network),
 			Gateway:     r.Gateway,
 			Description: r.Descr,
-			Disabled:    bool(r.Disabled),
+			Disabled:    staticRouteDisabled(r),
 			Created:     r.Created,
 			Updated:     r.Updated,
 		})
 	}
 
+	if _, known := knownRoutesModelVersions[routes.Version]; !known {
+		c.addWarning("StaticRoutes.Version", routes.Version,
+			"unrecognized OPNsense static routes model version; element mapping may be stale",
+			common.SeverityMedium)
+	}
+
 	return result
+}
+
+// staticRouteDisabled reads <enabled> as get_staticroutes (util.inc) does: when
+// present it wins, and the route is disabled when it is empty or 0 (PHP
+// empty(), the same test modelFlagSet makes for the filter model). Without one,
+// <disabled> keeps its BoolFlag reading. The firewall has tested that element
+// with !empty() since 18.1; the two agree on the 0 and 1 the Routes model
+// writes, and differ on values it does not write, such as <disabled/> (disabled
+// here, installed there) or <disabled>no</disabled> (the reverse). OPNsense 15.1
+// wrote <disabled/> itself, and the isset() of releases through 17.7 read it as
+// BoolFlag does. Following !empty() would need the element's raw body, which the
+// BoolFlag the pfSense converter also reads does not keep.
+func staticRouteDisabled(r schema.StaticRoute) bool {
+	if r.Enabled != nil {
+		return !modelFlagSet(*r.Enabled)
+	}
+
+	return bool(r.Disabled)
 }
 
 // convertHA maps doc.HighAvailabilitySync to common.HighAvailability.

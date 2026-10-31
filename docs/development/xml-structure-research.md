@@ -350,6 +350,8 @@ pfSense and OPNsense use different boolean semantics for interface and DHCP scop
 
 **Implementation:** The pfSense parser uses an intermediate `decodeDocument` type (`pkg/parser/pfsense/decode_types.go`) that decodes XML with BoolFlag-aware pfsense.Interface and pfsense.DhcpdInterface types, then converts to backward-compatible opnsense.Interfaces/opnsense.Dhcpd with string Enable fields set to `"1"` (enabled) or `""` (disabled).
 
+**Static routes (network.go):** both parsers share `StaticRoute`, and the vendors read it differently. OPNsense 26.1.10 (Routes model 1.0.1) replaced `<disabled>` with `<enabled>`, typed `*string` because `get_staticroutes` (util.inc) separates absent from empty: a present `<enabled>` decides, an empty one or `0` disables the route (PHP `empty()`, `modelFlagSet` in the converter), and only an absent one falls back to `<disabled>`. Neither reader checks the model version, so the element decides at any version. `<disabled>` stays a `BoolFlag` for that fallback. OPNsense tested it with `isset()` through 17.7 and has tested it with `!empty()` since 18.1, where Routes model 1.0.0 writes `0` or `1`. `BoolFlag` agrees with `!empty()` on those two values and not on `<disabled/>` or `<disabled>no</disabled>`, which the model does not write. pfSense has no `<enabled>`, writes `<disabled></disabled>` and tests it with `isset()`, so its converter takes a route's state only from `Disabled`. `StaticRoutes.Version` binds the `version` attribute: `1.0.0` from 18.1 to 26.1.9, `1.0.1` from 26.1.10, and none before 18.1 or on pfSense. The OPNsense converter warns on any other value.
+
 ---
 
 ## 6. NAT Structure Issues

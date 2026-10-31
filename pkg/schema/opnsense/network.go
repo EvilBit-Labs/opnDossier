@@ -62,6 +62,7 @@ type GatewayGroup struct {
 // StaticRoutes represents the <staticroutes> container element holding all static route entries.
 type StaticRoutes struct {
 	XMLName xml.Name      `xml:"staticroutes"`
+	Version string        `xml:"version,attr,omitempty"`
 	Route   []StaticRoute `xml:"route,omitempty"`
 }
 
@@ -72,8 +73,12 @@ type StaticRoute struct {
 	Gateway  string   `xml:"gateway,omitempty"`
 	Descr    string   `xml:"descr,omitempty"`
 	Disabled BoolFlag `xml:"disabled,omitempty"`
-	Created  string   `xml:"created,omitempty"`
-	Updated  string   `xml:"updated,omitempty"`
+	// Enabled replaces Disabled from OPNsense 26.1.10 (Routes model 1.0.1), whose
+	// migration deletes <disabled>. A pointer, because the firewall falls back to
+	// <disabled> only when <enabled> is absent.
+	Enabled *string `xml:"enabled,omitempty"`
+	Created string  `xml:"created,omitempty"`
+	Updated string  `xml:"updated,omitempty"`
 }
 
 // IsPlaceholder reports whether r is an empty <route/> marker rather than a
@@ -94,6 +99,7 @@ func (r StaticRoute) IsPlaceholder() bool {
 		r.Gateway == "" &&
 		r.Descr == "" &&
 		!bool(r.Disabled) &&
+		r.Enabled == nil &&
 		r.Created == "" &&
 		r.Updated == ""
 }
