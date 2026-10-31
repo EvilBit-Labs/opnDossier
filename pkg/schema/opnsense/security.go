@@ -3,6 +3,7 @@ package opnsense
 import (
 	"encoding/xml"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -607,9 +608,13 @@ type IDS struct {
 	Files            string   `xml:"files"`
 	FileTags         string   `xml:"fileTags"`
 	General          struct {
-		Text              string `xml:",chardata" json:"text,omitempty"`
-		Enabled           string `xml:"enabled"`
-		Ips               string `xml:"ips"`
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Enabled string `xml:"enabled"`
+		Ips     string `xml:"ips"`
+		// Mode replaced Ips in model 1.1.2 (OPNsense 26.1): pcap is IDS, netmap
+		// runs Suricata inline on the selected interfaces, and divert runs it
+		// inline on the traffic firewall rules send it.
+		Mode              string `xml:"mode"`
 		Promisc           string `xml:"promisc"`
 		Interfaces        string `xml:"interfaces"`
 		Homenet           string `xml:"homenet"`
@@ -732,9 +737,81 @@ func (ids *IDS) IsEnabled() bool {
 	return ids != nil && ids.General.Enabled == "1"
 }
 
-// IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention) mode.
+// IsIPSMode returns true if the IDS is set to operate in IPS (Intrusion Prevention)
+// mode. A model older than 1.1.2 is read from <ips> alone, as the releases that
+// ship it read it. From 1.1.2 on, OPNsense reads only <mode> and runs pcap without
+// it, so <ips> decides only for a config that has neither <mode> nor a version.
+//
+// The answer rests on <IDS> alone. A model writes only its own element, but a save
+// keeps the version it loaded, so the version can disagree with the release that
+// wrote the elements: a failed 26.1 migration followed by a save leaves <mode> under
+// 1.1.1, and a 26.1 config restored onto 25.7 and saved there leaves <ips> under
+// 1.1.2. Each firewall reads the element of its own release, while this follows the
+// version, so the converter warns on those shapes. What decides whether traffic
+// reaches Suricata lies outside <IDS>; see [IDS.IsDivertMode].
 func (ids *IDS) IsIPSMode() bool {
-	return ids != nil && ids.General.Ips == "1"
+	if ids == nil {
+		return false
+	}
+
+	if ids.PredatesModeOption() {
+		return ids.General.Ips == "1"
+	}
+
+	switch ids.General.Mode {
+	case "netmap", "divert":
+		return true
+	case "":
+		return ids.Version == "" && ids.General.Ips == "1"
+	default:
+		return false
+	}
+}
+
+// idsModeModelVersion is the IDS model version that replaced <ips> with
+// <mode>, shipped with OPNsense 26.1.
+const idsModeModelVersion = "1.1.2"
+
+// IsDivertMode reports whether a model that reads <mode> selects divert. Suricata
+// then captures nothing by itself: it inspects only what a firewall rule sends it
+// with divert-to, and it reads neither the interfaces nor the promiscuous setting.
+// IsIPSMode cannot see the rules, so it reports divert as IPS and leaves the caller
+// to look for such a rule.
+func (ids *IDS) IsDivertMode() bool {
+	return ids != nil && !ids.PredatesModeOption() && ids.General.Mode == "divert"
+}
+
+// PredatesModeOption reports whether the IDS model is older than 1.1.2, so that a
+// release shipping that model reads <ips> and ignores any <mode>. A later release
+// reads <mode> whatever the version says; a config it runs keeps an older version
+// only if its migration failed. An empty version or one that does not parse reports
+// false, since neither shows which model wrote the config.
+func (ids *IDS) PredatesModeOption() bool {
+	if ids == nil {
+		return false
+	}
+
+	have, ok := modelVersionNumbers(ids.Version)
+	want, _ := modelVersionNumbers(idsModeModelVersion)
+
+	return ok && slices.Compare(have, want) < 0
+}
+
+// modelVersionNumbers splits a dotted model version such as 1.1.2 into its
+// numbers, so 1.1.10 sorts after 1.1.2. It reports false when a part is not a
+// number.
+func modelVersionNumbers(version string) ([]int, bool) {
+	parts := strings.Split(version, ".")
+	numbers := make([]int, 0, len(parts))
+	for _, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, false
+		}
+		numbers = append(numbers, n)
+	}
+
+	return numbers, true
 }
 
 // GetMonitoredInterfaces parses the comma-separated interfaces string and returns a slice.
@@ -775,7 +852,7 @@ func (ids *IDS) GetDetectionMode() string {
 	if ids == nil {
 		return "Disabled"
 	}
-	if ids.General.Ips == "1" {
+	if ids.IsIPSMode() {
 		return "IPS (Prevention)"
 	}
 	return "IDS (Detection Only)"

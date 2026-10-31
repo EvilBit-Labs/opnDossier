@@ -25,6 +25,10 @@ type converter struct {
 	// at the top of ToCommonDevice before any sub-converter runs. Sub-converters
 	// read it to populate ObjectRef fields for unused-object detection (#203).
 	namedObjects common.NamedObjects
+	// idsDivertRule records a rule that sends traffic to Suricata (see
+	// divertsToSuricata). convertFilterModelRule sets it and convertIDs reads it,
+	// so the device literal in ToCommonDevice has to convert the rules first.
+	idsDivertRule bool
 }
 
 // newConverter returns a new converter.
@@ -55,6 +59,7 @@ func (c *converter) ToCommonDevice(
 	doc *schema.OpnSenseDocument,
 ) (*common.CommonDevice, []common.ConversionWarning, error) {
 	c.warnings = nil
+	c.idsDivertRule = false
 
 	if doc == nil {
 		return nil, nil, fmt.Errorf("ToCommonDevice: %w", ErrNilDocument)

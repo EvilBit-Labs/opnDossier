@@ -2,6 +2,8 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -347,6 +349,34 @@ func TestIDS_IsIPSMode(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "netmap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "netmap" }),
+			want: true,
+		},
+		{
+			name: "divert mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "divert" }),
+			want: true,
+		},
+		{
+			name: "pcap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "pcap" }),
+			want: false,
+		},
+		{
+			name: "unrecognized mode runs pcap",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "NETMAP" }),
+			want: false,
+		},
+		{
+			name: "mode wins over a leftover ips",
+			ids: newTestIDs(func(ids *IDS) {
+				ids.General.Mode = "pcap"
+				ids.General.Ips = "1"
+			}),
+			want: false,
+		},
+		{
 			name: "empty",
 			ids:  &IDS{},
 			want: false,
@@ -357,6 +387,240 @@ func TestIDS_IsIPSMode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.ids.IsIPSMode(); got != tt.want {
 				t.Errorf("IDS.IsIPSMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestIDS_IsIPSMode_ModelVersion pins which of <ips> and <mode> IsIPSMode
+// reads at each model version: <ips> up to 1.1.1, <mode> from 1.1.2.
+func TestIDS_IsIPSMode_ModelVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		mode    string
+		ips     string
+		want    bool
+	}{
+		{name: "ips on the last model that reads it", version: "1.1.1", ips: "1", want: true},
+		{name: "ips ignored from model 1.1.2", version: "1.1.2", ips: "1", want: false},
+		{name: "model versions compare as numbers", version: "1.1.10", ips: "1", want: false},
+		{name: "ips ignored on a version that does not parse", version: "1.1.x", ips: "1", want: false},
+		{name: "netmap ignored on a model that predates mode", version: "1.1.1", mode: "netmap", ips: "0", want: false},
+		{name: "divert ignored on a model that predates mode", version: "1.0.0", mode: "divert", want: false},
+		{
+			name:    "ips wins over pcap on a model that predates mode",
+			version: "1.1.1",
+			mode:    "pcap",
+			ips:     "1",
+			want:    true,
+		},
+		{name: "mode wins over ips from model 1.1.2", version: "1.1.2", mode: "pcap", ips: "1", want: false},
+		{name: "netmap read from model 1.1.2", version: "1.1.2", mode: "netmap", want: true},
+		{name: "netmap read on a version that does not parse", version: "1.1.x", mode: "netmap", want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ids := newTestIDs(func(ids *IDS) {
+				ids.Version = tt.version
+				ids.General.Mode = tt.mode
+				ids.General.Ips = tt.ips
+			})
+			if got := ids.IsIPSMode(); got != tt.want {
+				t.Errorf("IDS.IsIPSMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIDS_PredatesModeOption(t *testing.T) {
+	tests := []struct {
+		name string
+		ids  *IDS
+		want bool
+	}{
+		{name: "nil IDS", ids: nil, want: false},
+		{name: "no version", ids: &IDS{}, want: false},
+		{name: "first model", ids: &IDS{Version: "1.0.0"}, want: true},
+		{name: "last model without mode", ids: &IDS{Version: "1.1.1"}, want: true},
+		{name: "first model with mode", ids: &IDS{Version: "1.1.2"}, want: false},
+		{name: "later patch compares as a number", ids: &IDS{Version: "1.1.10"}, want: false},
+		{name: "later minor", ids: &IDS{Version: "1.2.0"}, want: false},
+		{name: "version that does not parse", ids: &IDS{Version: "1.1.x"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ids.PredatesModeOption(); got != tt.want {
+				t.Errorf("IDS.PredatesModeOption() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIDS_IsDivertMode(t *testing.T) {
+	withMode := func(version, mode string) *IDS {
+		ids := &IDS{Version: version}
+		ids.General.Mode = mode
+
+		return ids
+	}
+
+	tests := []struct {
+		name string
+		ids  *IDS
+		want bool
+	}{
+		{name: "nil IDS", ids: nil, want: false},
+		{name: "first model with mode", ids: withMode("1.1.2", "divert"), want: true},
+		{name: "no version reads mode", ids: withMode("", "divert"), want: true},
+		{name: "version that does not parse reads mode", ids: withMode("1.1.x", "divert"), want: true},
+		{name: "model that predates mode", ids: withMode("1.1.1", "divert"), want: false},
+		{name: "netmap", ids: withMode("1.1.2", "netmap"), want: false},
+		{name: "pcap", ids: withMode("1.1.2", "pcap"), want: false},
+		{name: "no mode", ids: withMode("1.1.2", ""), want: false},
+		{name: "comparison is case-sensitive", ids: withMode("1.1.2", "DIVERT"), want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ids.IsDivertMode(); got != tt.want {
+				t.Errorf("IDS.IsDivertMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// idsFixtureElement returns the <IDS> element of a config OPNsense wrote, with
+// the given model version and with element in the place of <ips>. No fixture
+// carries model 1.1.2, so that shape is this one rewritten the way the vendor's
+// M1_1_2 migration writes it: the version goes up and <mode> sits where <ips>
+// was (GOTCHAS 3.7).
+func idsFixtureElement(t *testing.T, version, element string) string {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join(testdataDir(), "sample.config.5.xml"))
+	if err != nil {
+		t.Fatalf("os.ReadFile() error = %v", err)
+	}
+
+	const shippedRoot = `<IDS version="1.1.0">`
+	config := string(data)
+	start, end := strings.Index(config, shippedRoot), strings.Index(config, "</IDS>")
+	if start < 0 || end < start {
+		t.Fatalf("fixture has no %s element", shippedRoot)
+	}
+
+	return strings.NewReplacer(
+		shippedRoot, `<IDS version="`+version+`">`,
+		"<ips>0</ips>", element,
+	).Replace(config[start : end+len("</IDS>")])
+}
+
+// TestIDS_ModeElements_XMLRoundTrip pins what IsIPSMode reads (standards.md
+// "Adding New XML Fields" step 3): the version attribute, <ips> and <mode>. The
+// XML starts from a fixture rather than a populated struct, because a struct
+// marshaled and read back under a wrong tag still comes back equal. A string
+// field cannot tell absent from empty (GOTCHAS 3.2), so neither <mode/> nor the
+// empty element a marshal writes for a missing one changes the answer.
+func TestIDS_ModeElements_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		version     string
+		element     string
+		wantIps     string
+		wantMode    string
+		wantElement string
+		wantIPSMode bool
+	}{
+		{
+			name:        "model 1.1.0 as shipped",
+			version:     "1.1.0",
+			element:     "<ips>0</ips>",
+			wantIps:     "0",
+			wantElement: "<ips>0</ips>",
+		},
+		{
+			name:        "ips on the last model that reads it",
+			version:     "1.1.1",
+			element:     "<ips>1</ips>",
+			wantIps:     "1",
+			wantElement: "<ips>1</ips>",
+			wantIPSMode: true,
+		},
+		{
+			name:        "migrated with ips off",
+			version:     "1.1.2",
+			element:     "<mode>pcap</mode>",
+			wantMode:    "pcap",
+			wantElement: "<mode>pcap</mode>",
+		},
+		{
+			name:        "migrated with ips on",
+			version:     "1.1.2",
+			element:     "<mode>netmap</mode>",
+			wantMode:    "netmap",
+			wantElement: "<mode>netmap</mode>",
+			wantIPSMode: true,
+		},
+		{
+			name:        "divert selected on model 1.1.2",
+			version:     "1.1.2",
+			element:     "<mode>divert</mode>",
+			wantMode:    "divert",
+			wantElement: "<mode>divert</mode>",
+			wantIPSMode: true,
+		},
+		{
+			name:        "empty mode runs pcap",
+			version:     "1.1.2",
+			element:     "<mode/>",
+			wantElement: "<mode></mode>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got IDS
+			if err := xml.Unmarshal([]byte(idsFixtureElement(t, tt.version, tt.element)), &got); err != nil {
+				t.Fatalf("xml.Unmarshal() error = %v", err)
+			}
+			if got.Version != tt.version {
+				t.Errorf("Version = %q, want %q", got.Version, tt.version)
+			}
+			if got.General.Ips != tt.wantIps {
+				t.Errorf("General.Ips = %q, want %q", got.General.Ips, tt.wantIps)
+			}
+			if got.General.Mode != tt.wantMode {
+				t.Errorf("General.Mode = %q, want %q", got.General.Mode, tt.wantMode)
+			}
+
+			marshaled, err := xml.Marshal(&got)
+			if err != nil {
+				t.Fatalf("xml.Marshal() error = %v", err)
+			}
+			marshaledStr := string(marshaled)
+
+			for _, elem := range []string{`<IDS version="` + tt.version + `">`, tt.wantElement} {
+				if !strings.Contains(marshaledStr, elem) {
+					t.Errorf("marshaled XML %q does not contain expected element %q", marshaledStr, elem)
+				}
+			}
+
+			var roundTripped IDS
+			if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
+				t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
+			}
+			if roundTripped != got {
+				t.Errorf("round-trip result = %+v, want %+v", roundTripped, got)
+			}
+			if result := roundTripped.IsIPSMode(); result != tt.wantIPSMode {
+				t.Errorf("round-tripped IsIPSMode() = %v, want %v", result, tt.wantIPSMode)
 			}
 		})
 	}
@@ -524,6 +788,24 @@ func TestIDS_GetDetectionMode(t *testing.T) {
 		{
 			name: "IDS mode",
 			ids:  newTestIDs(func(ids *IDS) { ids.General.Ips = "0" }),
+			want: "IDS (Detection Only)",
+		},
+		{
+			name: "netmap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "netmap" }),
+			want: "IPS (Prevention)",
+		},
+		{
+			name: "pcap mode",
+			ids:  newTestIDs(func(ids *IDS) { ids.General.Mode = "pcap" }),
+			want: "IDS (Detection Only)",
+		},
+		{
+			name: "netmap ignored on a model that predates mode",
+			ids: newTestIDs(func(ids *IDS) {
+				ids.Version = "1.1.1"
+				ids.General.Mode = "netmap"
+			}),
 			want: "IDS (Detection Only)",
 		},
 		{
