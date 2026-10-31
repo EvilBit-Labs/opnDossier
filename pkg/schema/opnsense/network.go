@@ -78,8 +78,9 @@ func (g Gateway) MonitorDisableValue() string {
 // one.
 //
 // Fields are compared by name rather than against the zero value: encoding/xml
-// populates XMLName on unmarshal, so a decoded <gateway_item/> never equals
-// Gateway{}.
+// populates XMLName when it decodes a Gateway, so a <gateway_item/> under
+// <gateways> never equals Gateway{}. One in the model does, because the XMLName
+// of an embedded struct stays unset, and comparing named fields reads both alike.
 func (g Gateway) IsPlaceholder() bool {
 	return g.Interface == "" &&
 		g.Gateway == "" &&
@@ -95,6 +96,22 @@ func (g Gateway) IsPlaceholder() bool {
 		g.DefaultGW == "" &&
 		g.MonitorDisable == nil &&
 		g.FarGW == ""
+}
+
+// GatewayModelItem is a <gateway_item> of the gateway model at <OPNsense><Gateways>. The model
+// keeps its items by the uuid attribute, which neither <gateways> nor pfSense reads, so the
+// attribute is bound here and not on the [Gateway] those two share.
+//
+// A uuid does not make an item configured: OPNsense skips an item with no child element whatever
+// its attributes, and the promoted [Gateway.IsPlaceholder] does not look at it.
+//
+// UUID is a pointer to keep an absent attribute apart from an empty one (GOTCHAS 3.2). OPNsense
+// gives an item with no attribute a fresh uuid on every release, while through 25.1.12 it uses an
+// empty one as the key.
+type GatewayModelItem struct {
+	Gateway
+
+	UUID *string `xml:"uuid,attr,omitempty"`
 }
 
 // GatewayGroup represents a group of gateways used for multi-WAN failover or load balancing.

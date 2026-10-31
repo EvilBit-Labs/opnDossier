@@ -132,11 +132,12 @@ type OPNsense struct {
 	// Other system components
 
 	// Gateways is the Routing gateway model, where OPNsense 24.1 and later
-	// store gateways (migration M1_0_0 moves them out of <gateways>).
+	// store gateways. Migration M1_0_0 copies them from <gateways> and, once
+	// one is stored, deletes the originals.
 	Gateways struct {
-		Text    string    `xml:",chardata" json:"text,omitempty"`
-		Version string    `xml:"version,attr" json:"version,omitempty"`
-		Items   []Gateway `xml:"gateway_item" json:"gatewayItem,omitempty"`
+		Text    string             `xml:",chardata" json:"text,omitempty"`
+		Version string             `xml:"version,attr" json:"version,omitempty"`
+		Items   []GatewayModelItem `xml:"gateway_item" json:"gatewayItem,omitempty"`
 	} `xml:"Gateways" json:"gateways_internal"`
 
 	Netflow struct {

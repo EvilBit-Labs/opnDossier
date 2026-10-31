@@ -536,9 +536,15 @@ func (c *converter) convertWireGuard(wg *schema.WireGuard) common.WireGuardConfi
 	return cfg
 }
 
-// gatewayModelVersion is the <OPNsense><Gateways> model version OPNsense
-// writes from 24.1 through 26.7.
-const gatewayModelVersion = "1.0.0"
+const (
+	// gatewayModelVersion is the <OPNsense><Gateways> model version OPNsense
+	// writes from 24.1 through 26.7.
+	gatewayModelVersion = "1.0.0"
+
+	// gatewayModelItemsPath addresses a warning about a <gateway_item> of the
+	// gateway model.
+	gatewayModelItemsPath = "OPNsense.Gateways.Items"
+)
 
 // knownGatewayModelVersions lists the <OPNsense><Gateways version="...">
 // values this converter has been checked against. 23.7 wrote an empty model at
@@ -566,7 +572,7 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 // entries into the model and, once one is stored, deletes all of them.
 func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.Gateway {
 	model := doc.OPNsense.Gateways
-	items := configuredGateways(model.Items)
+	items := c.modelGateways(model.Items)
 	c.checkGatewayModelVersion(model.Version, len(items))
 	if len(items) == 0 {
 		return c.convertGateways(configuredGateways(doc.Gateways.Gateway))
@@ -589,9 +595,82 @@ func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.G
 	return c.convertGateways(items)
 }
 
-// configuredGateways returns a copy of gws without the empty <gateway_item/>
-// elements. It is a copy because convertGatewayItems rewrites the model items,
-// and ConvertDocument takes a document the caller owns.
+// modelGateways returns the gateways OPNsense loads from the model. The result
+// is a new slice, because convertGatewayItems rewrites its items and
+// ConvertDocument takes a document the caller owns.
+//
+// The model keeps its items by uuid, so an item replaces an earlier one with the
+// same uuid and takes its place in the list. An item with no uuid attribute gets
+// a fresh one on every release. An empty uuid or 0 depends on the release: from
+// 25.7 OPNsense gives such an item a fresh uuid, because empty() holds for both,
+// and through 25.1.12 it uses the attribute as it stands, so two such items
+// collide and the firewall holds the later. The model version does not tell the
+// two apart, so both items are kept with a warning, which over-reports on the
+// older releases.
+//
+// An empty <gateway_item/> is skipped before its uuid is read. Only a hand edit
+// or a generator repeats a uuid; OPNsense does not.
+func (c *converter) modelGateways(items []schema.GatewayModelItem) []schema.Gateway {
+	var kept []schema.Gateway
+
+	places := make(map[string]int, len(items))
+
+	for _, item := range items {
+		if item.IsPlaceholder() {
+			continue
+		}
+
+		if item.UUID == nil {
+			kept = append(kept, item.Gateway)
+
+			continue
+		}
+
+		uuid := *item.UUID
+
+		place, repeated := places[uuid]
+
+		// modelFlagSet is !empty(), the test OPNsense applies from 25.7.
+		if repeated && modelFlagSet(uuid) {
+			c.addWarning(
+				gatewayModelItemsPath,
+				uuid,
+				fmt.Sprintf(
+					"a later gateway has the same uuid and replaces this one on the firewall, so it is left out (name %q, description %q)",
+					kept[place].Name,
+					kept[place].Descr,
+				),
+				common.SeverityMedium,
+			)
+
+			kept[place] = item.Gateway
+
+			continue
+		}
+
+		if repeated {
+			c.addWarning(
+				gatewayModelItemsPath,
+				uuid,
+				fmt.Sprintf(
+					"a later gateway has the same empty or 0 uuid: through 25.1.12 it replaces this one on the firewall, from 25.7 both load, and the model version does not tell the two apart, so both are reported (name %q, description %q)",
+					kept[place].Name,
+					kept[place].Descr,
+				),
+				common.SeverityMedium,
+			)
+		}
+
+		places[uuid] = len(kept)
+		kept = append(kept, item.Gateway)
+	}
+
+	return kept
+}
+
+// configuredGateways returns a copy of the legacy gateways without the empty
+// <gateway_item/> elements. It is a copy because slices.DeleteFunc writes into
+// the slice it is given, and ConvertDocument takes a document the caller owns.
 func configuredGateways(gws []schema.Gateway) []schema.Gateway {
 	return slices.DeleteFunc(slices.Clone(gws), schema.Gateway.IsPlaceholder)
 }
@@ -671,7 +750,7 @@ func (c *converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 			Disabled:       bool(gw.Disabled),
 			DefaultGW:      gatewayFlag(gw.DefaultGW),
 			MonitorDisable: gatewayFlag(gw.MonitorDisableValue()),
-			FarGW:          gw.FarGW == xmlBoolTrue,
+			FarGW:          modelFlagSet(gw.FarGW),
 		})
 	}
 
