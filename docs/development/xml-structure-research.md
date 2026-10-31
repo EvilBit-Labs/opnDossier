@@ -24,17 +24,20 @@ OPNsense/pfSense uses two distinct patterns for boolean-like values. Understandi
 
 Element existing = true, absent = false. Content is irrelevant.
 
-**Upstream PHP pattern:** `isset($rule['disabled'])` or `!empty($rule['disabled'])`
+**Upstream PHP pattern:** `isset($rule['log'])`, which counts an empty element, or `!empty($rule['interfacenot'])`, which does not. Check which one the vendor uses: pfSense tests `<disabled>` on a filter rule with `isset()` and OPNsense with `!empty()`, so the same element reads differently on the two.
 
-**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`)
+**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`, and on a pfSense filter rule `<floating>`, `<quick>` and `<disabled>`)
 
 | Element                     | Parent Context              | Upstream Evidence                                       |
 | --------------------------- | --------------------------- | ------------------------------------------------------- |
 | `<any/>`                    | `<source>`, `<destination>` | `isset($this->rule['source']['any'])` in FilterRule.php |
 | `<not/>`                    | `<source>`, `<destination>` | `isset($adr['not'])` in filter.inc                      |
-| `<disabled/>`               | `<rule>` (filter, NAT)      | `isset($rule['disabled'])` in filter.inc                |
+| `<disabled/>`               | `<rule>` (pfSense filter)   | `isset($rule['disabled'])` in filter.inc                |
+| `<floating/>`               | `<rule>` (pfSense filter)   | `isset($rule['floating'])` in filter.inc                |
+| `<quick/>`                  | `<rule>` (pfSense filter)   | `isset($rule['quick'])` in filter.inc                   |
+| `<disabled/>`               | `<rule>` (NAT)              | `isset($rule['disabled'])` in filter.inc                |
 | `<log/>`                    | `<rule>` (filter)           | `isset($rule['log'])` sets `$filterent['log'] = true`   |
-| `<quick/>`                  | `<rule>` (filter)           | `isset($rule['quick'])` in OPNsense                     |
+| `<quick/>`                  | `<rule>` (OPNsense filter)  | `parseBool,quick` (`!empty`) in FilterRule.php          |
 | `<disableconsolemenu/>`     | `<system>`                  | config.xml.sample: self-closing                         |
 | `<enable/>`                 | `<rrd>`                     | config.xml.sample: self-closing                         |
 | `<tcpflags_any/>`           | `<rule>` (filter)           | `isset($rule['tcpflags_any'])`                          |
@@ -53,6 +56,10 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<enable/>`                 | `<dhcpd><lan>`              | DHCP scope enabled (pfSense uses BoolFlag)              |
 
 **pfSense Bug #6893 note:** Prior to pfSense 2.3.3, some code produced `<tag/>` while other code produced `<tag></tag>`. Both forms are valid XML and our `*string` / `BoolFlag` types handle both correctly via Go's `encoding/xml`.
+
+**pfSense filter rule note:** `Floating`, `Quick` and `Disabled` on `FilterRule` are `*string`, so an element counts whatever it holds, including `<disabled>0</disabled>` and `<quick>0</quick>`. The one exception is the direction check at filter.inc L3376, which also requires `<floating>` to hold `yes`; a rule that fails it compiles as `in` whatever `<direction>` holds.
+
+**OPNsense legacy `<disabled>` note:** On a rule under `<filter>` this element is not presence-based. From 17.7 the firewall comments a rule out on `!empty()` (`parseIsComment` in Rule.php), so `<disabled/>` and `<disabled>0</disabled>` are live rules and `<disabled>no</disabled>` is not. Through 17.1 filter.inc tested `isset()`. See section 3a.
 
 **OPNsense 26.1 `ipv6allow` note:** 26.1 replaced `<system><ipv6allow>` with the value-based `<OPNsense><Interfaces><settings><disableipv6>`, which is inverted (see GOTCHAS §3.7). The legacy element is typed `*string`, not `BoolFlag`: `isset()` allows IPv6 for any body, including `0`, which `BoolFlag` reads as false.
 
@@ -165,7 +172,7 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 | Destination | `<destination>` | `Destination`   | Complete  | Phase 1 |
 | Target      | `<target>`      | `string`        | Correct   | Initial |
 | SourcePort  | `<sourceport>`  | `string`        | Correct   | Initial |
-| Disabled    | `<disabled>`    | `BoolFlag`      | Converted | Phase 2 |
+| Disabled    | `<disabled>`    | `*string`       | Converted | Phase 2 |
 | Quick       | `<quick>`       | `BoolFlag`      | Converted | Phase 2 |
 | Log         | `<log>`         | `BoolFlag`      | Added     | Phase 2 |
 | Floating    | `<floating>`    | `string`        | Added     | Phase 2 |
@@ -176,6 +183,8 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 | Updated     | `<updated>`     | `*Updated`      | Correct   | Initial |
 | Created     | `<created>`     | `*Created`      | Correct   | Initial |
 | UUID        | `uuid` attr     | `string`        | Correct   | Initial |
+
+`Disabled` keeps the element's text because the firewall tests it with `!empty()`, not for presence (section 1a). `convertLegacyFirewallRule` applies that test with `modelFlagSet`. This table is the OPNsense `Rule`. On the pfSense `FilterRule`, `Floating`, `Quick` and `Disabled` are `*string` and tested with `isset()`.
 
 ### 3b. Rate-Limiting and Advanced Fields (Added in Phase 3)
 
@@ -268,10 +277,15 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 **Converted to `*string` (presence only, the body is ignored):**
 
 - System: IPv6Allow (system.go, and pfSense system.go)
+- FilterRule: Floating, Quick, Disabled (pfSense security.go). The direction check also reads `Floating`'s body (section 1a)
+
+**Converted to `*string` (the body is tested with `!empty()`):**
+
+- Rule: Disabled (security.go)
 
 **Converted to BoolFlag (presence-based — `isset()` in PHP):**
 
-- Rule: Disabled, Quick, Log (security.go) — Phase 2
+- Rule: Quick, Log (security.go) — Phase 2
 - NATRule: Disabled, Log (security.go) — Phase 2
 - InboundRule: Disabled, Log (security.go) — Phase 2
 - System: DisableConsoleMenu (system.go) — Phase 3

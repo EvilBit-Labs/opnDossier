@@ -498,8 +498,8 @@ func TestDetectShadowedRules_PfSenseMovesFloatingRulesFirst(t *testing.T) {
 	})
 }
 
-// Both firewalls skip a disabled rule, so it must not win on either path that
-// reports a pair.
+// The firewall does not load a disabled rule, so it must not win on either path
+// that reports a pair.
 func TestDetectShadowedRules_DisabledRuleCannotWin(t *testing.T) {
 	t.Run("disabled pass above a block draws no finding", func(t *testing.T) {
 		pass := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)

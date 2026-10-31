@@ -337,8 +337,8 @@ func TestResolvePrecedence_OPNsenseKeepsListOrder(t *testing.T) {
 }
 
 // TestResolvePrecedence_DisabledRuleCannotWin covers a disabled rule on each side
-// of a pair. Both firewalls skip it, so it takes nothing from the other rule, but
-// it can still lose: it would lose the same pair if it were enabled.
+// of a pair. The firewall does not load it, so it takes nothing from the other
+// rule, but it can still lose: it would lose the same pair if it were enabled.
 func TestResolvePrecedence_DisabledRuleCannotWin(t *testing.T) {
 	t.Parallel()
 

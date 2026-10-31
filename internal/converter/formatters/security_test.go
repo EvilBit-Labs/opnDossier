@@ -385,6 +385,32 @@ func TestHasManagementOnWAN(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "rule on WAN with direction any also matches inbound",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionAny,
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with an unrecognized direction counts as inbound",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.FirewallDirection("sideways"),
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
 			name: "rule on WAN with port in destination string",
 			data: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{

@@ -2550,7 +2550,8 @@ type ShadowedRuleFinding struct {
     ShadowedRuleFinding represents one firewall rule — or a traffic subset of
     one — that never takes effect because a higher-precedence rule under pf
     evaluation semantics (quick first-match, non-quick last-match, floating
-    device-wide) already covers it. See internal/analysis.DetectShadowedRules.
+    rules ahead of interface rules, device-wide when unscoped) already covers
+    it. See internal/analysis.DetectShadowedRules.
 
 type StaticRoute struct {
 	// Network is the destination network in CIDR notation.

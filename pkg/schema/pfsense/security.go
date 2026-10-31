@@ -56,6 +56,11 @@ type Filter struct {
 // It extends the base OPNsense Rule fields with rule ID, state limits and OS
 // fingerprinting. The pf tags and the NAT association are on the OPNsense rule
 // as well.
+//
+// Floating, Quick and Disabled are *string because pfSense tests each with
+// isset(), so an element counts whatever it holds, <disabled>0</disabled> and
+// <quick>0</quick> included (GOTCHAS 15.0). OPNsense reads <disabled> another
+// way, so opnsense.Rule cannot stand in for this type on that field.
 type FilterRule struct {
 	XMLName     xml.Name               `xml:"rule"`
 	Type        string                 `xml:"type"                 json:"type"                  yaml:"type"`
@@ -65,7 +70,7 @@ type FilterRule struct {
 	StateType   string                 `xml:"statetype,omitempty"  json:"stateType,omitempty"   yaml:"stateType,omitempty"`
 	Direction   string                 `xml:"direction,omitempty"  json:"direction,omitempty"   yaml:"direction,omitempty"`
 	Floating    *string                `xml:"floating,omitempty"   json:"floating,omitempty"    yaml:"floating,omitempty"`
-	Quick       opnsense.BoolFlag      `xml:"quick,omitempty"      json:"quick"                 yaml:"quick,omitempty"`
+	Quick       *string                `xml:"quick,omitempty"      json:"quick,omitempty"       yaml:"quick,omitempty"`
 	Protocol    string                 `xml:"protocol,omitempty"   json:"protocol,omitempty"    yaml:"protocol,omitempty"`
 	Source      opnsense.Source        `xml:"source"               json:"source"                yaml:"source"`
 	Destination opnsense.Destination   `xml:"destination"          json:"destination"           yaml:"destination"`
@@ -73,7 +78,7 @@ type FilterRule struct {
 	Gateway     string                 `xml:"gateway,omitempty"    json:"gateway,omitempty"     yaml:"gateway,omitempty"`
 	SourcePort  string                 `xml:"sourceport,omitempty" json:"sourcePort,omitempty"  yaml:"sourcePort,omitempty"`
 	Log         opnsense.BoolFlag      `xml:"log,omitempty"        json:"log"                   yaml:"log,omitempty"`
-	Disabled    opnsense.BoolFlag      `xml:"disabled,omitempty"   json:"disabled"              yaml:"disabled,omitempty"`
+	Disabled    *string                `xml:"disabled,omitempty"   json:"disabled,omitempty"    yaml:"disabled,omitempty"`
 	Tracker     string                 `xml:"tracker,omitempty"    json:"tracker,omitempty"     yaml:"tracker,omitempty"`
 	// Rate-limiting fields (DoS protection)
 	MaxSrcNodes     string `xml:"max-src-nodes,omitempty"      json:"maxSrcNodes,omitempty"     yaml:"maxSrcNodes,omitempty"`

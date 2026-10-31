@@ -141,6 +141,8 @@ func TestConverter_FilterRules_ShadowAnalysisSkipsDisabledWinner(t *testing.T) {
 		defaultDeny   = `<rule><type>block</type>` + onLAN + anyAny + `</rule>`
 		passHTTPS     = `<rule><type>pass</type>` + onLAN + toHTTPS + `</rule>`
 		offHTTPS      = `<rule><type>pass</type>` + onLAN + off + toHTTPS + `</rule>`
+		liveBlock     = `<rule><type>block</type>` + onLAN + `<disabled/>` + toNet16 + `</rule>`
+		liveHTTPS     = `<rule><type>pass</type>` + onLAN + `<disabled/>` + toHTTPS + `</rule>`
 
 		shadowedByAllow = "Rule 2 (block) on interface lan (in) is fully shadowed by rule 1 (pass)"
 	)
@@ -166,6 +168,20 @@ func TestConverter_FilterRules_ShadowAnalysisSkipsDisabledWinner(t *testing.T) {
 		},
 		{name: "live pass above a disabled block", legacy: pass + disabledBlock, want: []string{shadowedByAllow}},
 		{name: "live pass above a live block", legacy: pass + block, want: []string{shadowedByAllow}},
+		{
+			name:   "empty disabled element on a block is a live block",
+			legacy: liveBlock + pass,
+			want:   []string{"Rule 2 (pass) on interface lan (in) is partially shadowed by rule 1 (block)"},
+		},
+		{
+			name:   "empty disabled element below the default deny is the last rule",
+			legacy: passHTTPS + defaultDeny + liveHTTPS,
+			want: []string{
+				"Rule 2 (block) on interface lan (in) is partially shadowed by rule 1 (pass)",
+				"Rule 3 (pass) on interface lan (in) is fully shadowed by rule 1 (pass)",
+				"Rule 3 (pass) on interface lan (in) is fully shadowed by rule 2 (block)",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -174,6 +190,127 @@ func TestConverter_FilterRules_ShadowAnalysisSkipsDisabledWinner(t *testing.T) {
 
 			device, _ := parseFilterRulesAt(t, "1.0.4", tt.legacy, tt.model)
 			assert.Equal(t, tt.want, shadowSummaries(device))
+		})
+	}
+}
+
+// TestConverter_FilterRules_LegacyDisabledElement pins how OPNsense reads
+// <disabled> on a legacy rule. It comments the rule out on !empty() (Rule.php
+// parseIsComment), so an empty element and a 0 leave the rule live, where a
+// presence test would drop it from the analysis and lose a real finding, and any
+// other text disables it. The rule under test is the second, with a neighbor
+// that reads the other way, so that it cannot borrow the result.
+func TestConverter_FilterRules_LegacyDisabledElement(t *testing.T) {
+	t.Parallel()
+
+	const (
+		onLAN   = `<interface>lan</interface>`
+		toNet8  = `<source><any>1</any></source><destination><address>10.0.0.0/8</address></destination>`
+		toNet16 = `<source><any>1</any></source><destination><address>10.1.0.0/16</address></destination>`
+		block   = `<rule><type>block</type>` + onLAN + toNet16 + `</rule>`
+
+		shadowedByAllow = "Rule 3 (block) on interface lan (in) is fully shadowed by rule 2 (pass)"
+	)
+
+	tests := []struct {
+		name         string
+		element      string
+		wantDisabled bool
+	}{
+		{name: "absent element"},
+		{name: "self-closing element", element: `<disabled/>`},
+		{name: "empty element", element: `<disabled></disabled>`},
+		{name: "element holding 0", element: `<disabled>0</disabled>`},
+		{name: "element holding 1", element: `<disabled>1</disabled>`, wantDisabled: true},
+		{name: "element holding no", element: `<disabled>no</disabled>`, wantDisabled: true},
+		{name: "element holding false", element: `<disabled>false</disabled>`, wantDisabled: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			neighbor := `<disabled>1</disabled>`
+			if tt.wantDisabled {
+				neighbor = ""
+			}
+
+			device, _ := parseFilterRulesAt(t, "1.0.4",
+				`<rule><type>pass</type><interface>wan</interface>`+neighbor+`</rule>`+
+					`<rule><type>pass</type>`+onLAN+tt.element+toNet8+`</rule>`+block, "")
+
+			require.Len(t, device.FirewallRules, 3)
+			assert.Equal(t, !tt.wantDisabled, device.FirewallRules[0].Disabled, "neighbor")
+			assert.Equal(t, tt.wantDisabled, device.FirewallRules[1].Disabled)
+			assert.False(t, device.FirewallRules[2].Disabled)
+
+			var want []string
+			if !tt.wantDisabled {
+				want = []string{shadowedByAllow}
+			}
+
+			assert.Equal(t, want, shadowSummaries(device))
+		})
+	}
+}
+
+// TestConverter_FilterRules_DeadRulesSeeDisabledReading pins what the reading of
+// <disabled> does to DetectDeadRules. That function hands RulesEquivalent the
+// converted rules, and it does not hold a disabled rule equal to a live one, so a
+// spelling the firewall reads differently from BoolFlag changes what counts as a
+// duplicate. The element OPNsense writes, <disabled>1</disabled>, reads as it did.
+func TestConverter_FilterRules_DeadRulesSeeDisabledReading(t *testing.T) {
+	t.Parallel()
+
+	const match = `<interface>lan</interface><protocol>tcp</protocol><source><any>1</any></source>` +
+		`<destination><any>1</any><port>443</port></destination>`
+
+	rule := func(element string) string {
+		return `<rule><type>pass</type>` + element + match + `</rule>`
+	}
+
+	duplicateOfFirst := []common.DeadRuleFinding{
+		{Kind: common.DeadRuleKindDuplicate, RuleIndex: 1, Interface: "lan"},
+	}
+
+	tests := []struct {
+		name   string
+		legacy string
+		want   []common.DeadRuleFinding
+	}{
+		{name: "empty element above a live rule", legacy: rule(`<disabled/>`) + rule(""), want: duplicateOfFirst},
+		{name: "empty element above a disabled rule", legacy: rule(`<disabled/>`) + rule(`<disabled>1</disabled>`)},
+		{name: "element holding no above a live rule", legacy: rule(`<disabled>no</disabled>`) + rule("")},
+		{
+			name:   "element holding no above a disabled rule",
+			legacy: rule(`<disabled>no</disabled>`) + rule(`<disabled>1</disabled>`),
+			want:   duplicateOfFirst,
+		},
+		{name: "element holding 1 above a live rule", legacy: rule(`<disabled>1</disabled>`) + rule("")},
+		{
+			name:   "element holding 1 above another",
+			legacy: rule(`<disabled>1</disabled>`) + rule(`<disabled>1</disabled>`),
+			want:   duplicateOfFirst,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, _ := parseFilterRulesAt(t, "1.0.4", tt.legacy, "")
+
+			var got []common.DeadRuleFinding
+
+			for _, finding := range analysis.DetectDeadRules(device) {
+				got = append(got, common.DeadRuleFinding{
+					Kind:      finding.Kind,
+					RuleIndex: finding.RuleIndex,
+					Interface: finding.Interface,
+				})
+			}
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

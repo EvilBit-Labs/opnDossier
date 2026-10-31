@@ -48,6 +48,8 @@ func (c *converter) convertFirewallRules(
 				common.SeverityLow,
 			)
 		}
+		// The warning reads the element, and the rule carries what pfSense compiles.
+		direction = compiledDirection(rule)
 		ipProto := common.IPProtocol(rule.IPProtocol)
 		if rule.IPProtocol != "" && !ipProto.IsValid() {
 			c.addWarning(
@@ -67,11 +69,12 @@ func (c *converter) convertFirewallRules(
 			StateType:   rule.StateType,
 			Direction:   direction,
 			// pfSense decides whether a rule is floating, and whether it is
-			// quick, with isset(), whatever <floating> holds, and makes every
-			// rule that is not floating quick (filter.inc L3387, L4295). Only
-			// its direction check also requires "yes" (L3376).
+			// quick, with isset(), whatever <floating> and <quick> hold, and
+			// makes every rule that is not floating quick (filter.inc L3387,
+			// L4295). Only its direction check also requires "yes"
+			// (compiledDirection).
 			Floating: rule.Floating != nil,
-			Quick:    bool(rule.Quick) || rule.Floating == nil,
+			Quick:    rule.Quick != nil || rule.Floating == nil,
 			Protocol: rule.Protocol,
 			Source: common.RuleEndpoint{
 				Address:    rule.Source.EffectiveAddress(),
@@ -91,7 +94,7 @@ func (c *converter) convertFirewallRules(
 			TargetRef:       namedObjects.Ref(rule.Target),
 			Gateway:         rule.Gateway,
 			Log:             bool(rule.Log),
-			Disabled:        bool(rule.Disabled),
+			Disabled:        rule.Disabled != nil,
 			Tracker:         rule.Tracker,
 			MaxSrcNodes:     rule.MaxSrcNodes,
 			MaxSrcConn:      rule.MaxSrcConn,
@@ -154,6 +157,25 @@ func (c *converter) warnOnIncompleteFirewallRule(i int, rule pfsense.FilterRule)
 			common.SeverityMedium,
 		)
 	}
+}
+
+// compiledDirection returns the direction pfSense compiles rule with, which is
+// not always what <direction> holds (filter.inc L3376-L3383, the same since
+// RELENG_2_2). Only a rule whose <floating> holds exactly yes keeps its
+// direction, and with none it gets no direction keyword and matches both ways.
+// Every other rule compiles as in whatever the element holds, so the field stays
+// empty, which reads as in, and a hand-written <direction> on one does not move
+// it to another evaluation group.
+func compiledDirection(rule pfsense.FilterRule) common.FirewallDirection {
+	if rule.Floating == nil || *rule.Floating != xmlBoolYes {
+		return ""
+	}
+
+	if rule.Direction == "" {
+		return common.DirectionAny
+	}
+
+	return common.FirewallDirection(rule.Direction)
 }
 
 // convertNAT maps doc.Nat and system fields to common.NATConfig.

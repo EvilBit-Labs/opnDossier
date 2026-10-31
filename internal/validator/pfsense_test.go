@@ -236,6 +236,14 @@ func TestValidatePfSenseFilter(t *testing.T) {
 			wantMsg:   "direction is required",
 		},
 		{
+			name: "floating rule with direction",
+			mutate: func(r *pfsense.FilterRule) {
+				r.Floating = new("yes")
+				r.Direction = "in"
+			},
+			wantCount: 0,
+		},
+		{
 			name: "empty floating element without direction",
 			mutate: func(r *pfsense.FilterRule) {
 				r.Floating = new("")

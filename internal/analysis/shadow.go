@@ -11,7 +11,8 @@ import (
 // DetectShadowedRules reports firewall rules — or subsets of their traffic —
 // that never take effect because a higher-precedence rule under pf
 // evaluation semantics (quick first-match, non-quick last-match, floating
-// device-wide) already covers them (R5-R7, R9, R12-R15).
+// rules ahead of interface rules, device-wide when unscoped) already covers
+// them (R5-R7, R9, R12-R15).
 //
 // DetectShadowedRules is a pure function of cfg: no shared state, mirroring
 // every other Detect* in this package. Returns nil for a nil cfg or fewer
@@ -73,11 +74,12 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 // impactClassFor derives R12's impact class from the winner→loser action
 // relationship (not earlier/later — non-quick pf semantics flips which rule
 // is the loser, so the classification must key off which rule actually won
-// the overlap): same action ⇒ Hygiene; winner pass over a differently-typed
-// (block/reject) loser ⇒ Security; any other combination — a block/reject
-// winner over a pass loser, or two differently-typed explicit rules — ⇒
-// Troubleshooting. Both actions go through effectiveRuleType, so a rule with
-// no type counts as the pass rule it is.
+// the overlap): same action ⇒ Hygiene; winner pass over any other action ⇒
+// Security; any other combination, such as a block/reject winner over a pass
+// loser or two differently-typed explicit rules ⇒ Troubleshooting. Both actions
+// go through effectiveRuleType, so a rule with no type counts as the pass rule
+// it is. The loser is not checked for being a deny, so a pass over a match rule
+// or a type the firewall does not know reads as Security (GOTCHAS 3.9).
 func impactClassFor(winnerType, loserType common.FirewallRuleType) common.ImpactClass {
 	winner, loser := effectiveRuleType(winnerType), effectiveRuleType(loserType)
 
@@ -94,11 +96,12 @@ func impactClassFor(winnerType, loserType common.FirewallRuleType) common.Impact
 
 // effectiveRuleType maps an unspecified rule type to pass, the action both
 // firewalls load it as (filter.inc L3367-L3370; OPNsense FilterRule.php
-// parseType), for how a shadow finding classifies and names the rule. A pfSense
-// port forward's associated filter rule has no <type>, so without this a pass
-// above one reads as a bypassed deny. It does not mutate the model, and
-// RulesEquivalent keeps comparing the raw types: DetectDeadRules' legacy output
-// depends on that.
+// parseType), for how a shadow finding classifies and names the rule. A rule
+// that reaches the analysis with no type reads as pass, whether it was built by
+// hand or came from a parser that leaves the type unset; a converter may fill
+// the type in first. Without this a pass above such a rule reads as a bypassed
+// deny. It does not mutate the model, and RulesEquivalent compares
+// FirewallRule.Type as it stands, so this reading does not reach DetectDeadRules.
 func effectiveRuleType(ruleType common.FirewallRuleType) common.FirewallRuleType {
 	if ruleType == "" {
 		return common.RuleTypePass

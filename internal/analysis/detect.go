@@ -58,6 +58,11 @@ type deadRuleOwnerKey struct {
 // that legacy shape before calling DetectShadowedRules; the flatten loop
 // below then re-projects the filtered result using the *original* rules'
 // interface bindings and positions so output ordering is unchanged.
+//
+// That contract covers what this function does with the rules it is given.
+// RulesEquivalent compares them as converted, so a converter that changes a field
+// it reads, as the pfSense Quick and Direction readings and each vendor's Disabled
+// reading do, changes what counts as a duplicate (GOTCHAS 23.2).
 func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 	if cfg == nil || len(cfg.FirewallRules) == 0 {
 		return nil

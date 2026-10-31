@@ -381,6 +381,12 @@ func (c *converter) ruleFamily(i int, stored string) common.IPProtocol {
 // filter model writes out, so a rule reads alike in both stores and a diff across
 // a migration is quiet on them. <floating> is tested for presence, as the firewall
 // does (filter.lib.inc isset) and as legacyRulePriority ranks it.
+//
+// <disabled> is not tested for presence. From 17.7 the firewall comments a rule
+// out when the element is not empty in PHP's sense (Rule.php parseIsComment),
+// which is modelFlagSet's test, so an empty element is a live rule. Through 17.1
+// it tested isset(). An empty element is read as the later releases read it, so
+// at worst a rule one of those older releases skipped is reported as live.
 func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.FirewallRule {
 	c.warnOnIncompleteFirewallRule(i, rule)
 
@@ -417,7 +423,7 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		TargetRef:       c.namedObjects.Ref(rule.Target),
 		Gateway:         rule.Gateway,
 		Log:             bool(rule.Log),
-		Disabled:        bool(rule.Disabled),
+		Disabled:        rule.Disabled != nil && modelFlagSet(*rule.Disabled),
 		Tracker:         rule.Tracker,
 		MaxSrcNodes:     rule.MaxSrcNodes,
 		MaxSrcConn:      rule.MaxSrcConn,

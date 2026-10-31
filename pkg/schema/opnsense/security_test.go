@@ -824,7 +824,7 @@ func TestRule_BoolFlagFields_XMLRoundTrip(t *testing.T) {
 	tests := []struct {
 		name         string
 		xml          string
-		wantDisabled BoolFlag
+		wantDisabled bool
 		wantQuick    BoolFlag
 		wantLog      BoolFlag
 	}{
@@ -865,8 +865,8 @@ func TestRule_BoolFlagFields_XMLRoundTrip(t *testing.T) {
 			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
 				t.Fatalf("xml.Unmarshal() error = %v", err)
 			}
-			if got.Disabled != tt.wantDisabled {
-				t.Errorf("Disabled = %v, want %v", got.Disabled, tt.wantDisabled)
+			if (got.Disabled != nil) != tt.wantDisabled {
+				t.Errorf("Disabled element present = %v, want %v", got.Disabled != nil, tt.wantDisabled)
 			}
 			if got.Quick != tt.wantQuick {
 				t.Errorf("Quick = %v, want %v", got.Quick, tt.wantQuick)
@@ -1642,12 +1642,15 @@ func assertRuleFieldsEmpty(t *testing.T, got Rule) {
 		}
 	}
 
+	if got.Disabled != nil {
+		t.Errorf("Disabled = %q, want nil", *got.Disabled)
+	}
+
 	boolFlagFields := []struct {
 		name string
 		got  bool
 	}{
 		{"Log", bool(got.Log)},
-		{"Disabled", bool(got.Disabled)},
 		{"Quick", bool(got.Quick)},
 		{"TCPFlagsAny", bool(got.TCPFlagsAny)},
 		{"AllowOpts", bool(got.AllowOpts)},
@@ -1779,8 +1782,8 @@ func verifyCompleteRuleFields(t *testing.T, got Rule, prefix string) {
 	if got.Log != true {
 		t.Errorf("%s Log = %v, want true", prefix, got.Log)
 	}
-	if got.Disabled {
-		t.Errorf("%s Disabled = %v, want false", prefix, got.Disabled)
+	if got.Disabled != nil {
+		t.Errorf("%s Disabled = %q, want nil", prefix, *got.Disabled)
 	}
 	if got.Tracker != "1234567890" {
 		t.Errorf("%s Tracker = %q, want %q", prefix, got.Tracker, "1234567890")

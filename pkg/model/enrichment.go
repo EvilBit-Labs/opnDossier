@@ -255,8 +255,9 @@ func (c ImpactClass) IsValid() bool {
 
 // ShadowedRuleFinding represents one firewall rule — or a traffic subset of
 // one — that never takes effect because a higher-precedence rule under pf
-// evaluation semantics (quick first-match, non-quick last-match, floating
-// device-wide) already covers it. See internal/analysis.DetectShadowedRules.
+// evaluation semantics (quick first-match, non-quick last-match, floating rules
+// ahead of interface rules, device-wide when unscoped) already covers it. See
+// internal/analysis.DetectShadowedRules.
 type ShadowedRuleFinding struct {
 	// Kind classifies the shadow extent: ShadowKindFull or ShadowKindPartial.
 	Kind ShadowKind `json:"kind,omitempty" yaml:"kind,omitempty"`

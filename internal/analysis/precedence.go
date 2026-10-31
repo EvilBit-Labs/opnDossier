@@ -292,11 +292,13 @@ type pairWinnerLoser struct {
 // earlier rule never stops evaluation, so any later matching rule — quick
 // or not — supersedes it for the overlapping traffic.
 //
-// Both firewalls skip a disabled rule (filter.inc L3256; OPNsense compiles it
-// to a comment, FilterRule.php parseIsComment), so a disabled winner takes
-// nothing from the other rule and the pair resolves to CoverNone with no alias
-// signal. A disabled loser keeps its pair: it is staged, not dead (GOTCHAS
-// 23.2), and it would still lose if it were enabled.
+// Rule.Disabled means the firewall does not load the rule. Each vendor has its
+// own test, which its converter applies: pfSense skips a rule on isset()
+// (filter.inc L3256, L4267), and OPNsense compiles one to a comment on !empty()
+// (Rule.php parseIsComment). A disabled winner therefore takes nothing from the
+// other rule, and the pair resolves to CoverNone with no alias signal. A
+// disabled loser keeps its pair: it is staged, not dead (GOTCHAS 23.2), and it
+// would still lose if it were enabled.
 func derivePairWinnerLoser(
 	earlier, later IndexedRule,
 	no common.NamedObjects,
