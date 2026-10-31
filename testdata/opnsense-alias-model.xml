@@ -1,0 +1,292 @@
+<?xml version="1.0"?>
+<opnsense>
+  <system>
+    <hostname>alias-model-test</hostname>
+    <domain>localdomain</domain>
+  </system>
+  <interfaces>
+    <wan>
+      <enable>1</enable>
+      <if>vtnet0</if>
+      <ipaddr>198.51.100.2</ipaddr>
+      <subnet>24</subnet>
+    </wan>
+    <lan>
+      <enable>1</enable>
+      <if>vtnet1</if>
+      <ipaddr>192.168.10.1</ipaddr>
+      <subnet>24</subnet>
+    </lan>
+  </interfaces>
+  <OPNsense>
+    <Firewall>
+      <Alias version="1.0.1">
+        <geoip>
+          <url/>
+        </geoip>
+        <aliases>
+          <!--
+            Aliases in the shape the 26.1 model writes (Alias.xml, and
+            mvc/tests/app/models/OPNsense/Base/FieldTypes/NetworkAliasFieldTest/config.xml):
+            <enabled>, <description> and not <descr>, and an empty element for
+            each unset field. The schema leaves <counters>, <updatefreq>, the
+            fetch settings and <categories> unbound.
+          -->
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000001">
+            <enabled>1</enabled>
+            <name>BLOCKLIST</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>198.51.100.0/24
+203.0.113.0/24</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Networks dropped at the WAN</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000002">
+            <enabled>0</enabled>
+            <name>PARTNERS</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>192.0.2.0/24</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Staged: loads no members until enabled</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000003">
+            <enabled>1</enabled>
+            <name>GEO_BLOCK</name>
+            <type>geoip</type>
+            <path_expression/>
+            <proto>IPv4</proto>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>NL
+BE</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Countries dropped at the WAN</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000004">
+            <enabled>1</enabled>
+            <name>FEED</name>
+            <type>urljson</type>
+            <path_expression>.allowed[].address</path_expression>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>https://lists.example.org/allowed.json</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Hosts allowed by a published list</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000005">
+            <enabled>1</enabled>
+            <name>TRACKED</name>
+            <type>dynipv6host</type>
+            <path_expression/>
+            <proto/>
+            <interface>lan</interface>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>::1:2:3:4</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Server behind a tracked prefix</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000006">
+            <enabled>1</enabled>
+            <name>NAT_NETS</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>192.168.10.0/24</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Networks translated on the way out</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000007">
+            <enabled>1</enabled>
+            <name>NAT_PEERS</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>203.0.113.128/25</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Destinations translated on the way out</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000008">
+            <enabled>1</enabled>
+            <name>SPARE</name>
+            <type>host</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>192.168.10.99</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>Referenced by nothing</description>
+          </alias>
+          <alias uuid="c1c1c1c1-0000-4000-8000-000000000009">
+            <enabled>1</enabled>
+            <name>EXT_BLOCK</name>
+            <type>external</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content/>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire>2592000</expire>
+            <categories/>
+            <description>Addresses another process adds, purged when unused</description>
+          </alias>
+        </aliases>
+      </Alias>
+    </Firewall>
+  </OPNsense>
+  <filter>
+    <rule>
+      <type>block</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Drop listed networks</descr>
+      <source>
+        <address>BLOCKLIST</address>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+    </rule>
+    <rule>
+      <type>block</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Drop listed countries</descr>
+      <source>
+        <address>GEO_BLOCK</address>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+    </rule>
+    <rule>
+      <type>block</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <descr>Drop what the external process listed</descr>
+      <source>
+        <address>EXT_BLOCK</address>
+      </source>
+      <destination>
+        <any>1</any>
+      </destination>
+    </rule>
+    <rule>
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <protocol>tcp</protocol>
+      <descr>Partners to the web server</descr>
+      <source>
+        <address>PARTNERS</address>
+      </source>
+      <destination>
+        <address>192.168.10.50</address>
+        <port>443</port>
+      </destination>
+    </rule>
+    <rule>
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <protocol>tcp</protocol>
+      <descr>Published list to the web server</descr>
+      <source>
+        <address>FEED</address>
+      </source>
+      <destination>
+        <address>192.168.10.50</address>
+        <port>443</port>
+      </destination>
+    </rule>
+    <rule>
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet6</ipprotocol>
+      <descr>LAN to the tracked server</descr>
+      <source>
+        <network>lan</network>
+      </source>
+      <destination>
+        <address>TRACKED</address>
+      </destination>
+    </rule>
+  </filter>
+  <!--
+    Both GUIs write an outbound NAT alias to <network>
+    (firewall_nat_out_edit.php), and the firewall reads it as an alias there.
+  -->
+  <nat>
+    <outbound>
+      <mode>hybrid</mode>
+      <rule>
+        <interface>wan</interface>
+        <ipprotocol>inet</ipprotocol>
+        <descr>Translate listed networks</descr>
+        <source>
+          <network>NAT_NETS</network>
+        </source>
+        <destination>
+          <network>NAT_PEERS</network>
+        </destination>
+      </rule>
+    </outbound>
+  </nat>
+</opnsense>

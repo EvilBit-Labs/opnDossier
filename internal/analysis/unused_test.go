@@ -214,6 +214,18 @@ func graphUnusedCases() []unusedObjectCase {
 			wantUnused: nil,
 		},
 		{
+			name: "does not flag alias two levels under a used group",
+			cfg: &common.CommonDevice{
+				NamedObjects: common.NamedObjects{
+					"outer_group": hostAlias("inner_group"),
+					"inner_group": hostAlias("web_c"),
+					"web_c":       hostAlias("10.0.0.6"),
+				},
+				FirewallRules: []common.FirewallRule{fwRuleSrc("outer_group")},
+			},
+			wantUnused: nil,
+		},
+		{
 			name: "does not flag alias nested under a used networkgroup-typed group",
 			cfg: &common.CommonDevice{
 				// Vendor "networkgroup" type is classified dynamic by isDynamic;
