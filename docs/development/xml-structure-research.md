@@ -443,6 +443,10 @@ The NAT containers of the same model, `<snatrules>`, `<npt>` and `<onetoone>`, a
 
 Port forwards are the exception to the split: the 26.1 Destination NAT model is a legacy mapper on `<nat><rule>`, so both generations are read from that one path (see 6a).
 
+Gateways use a chosen store, not a merge. OPNsense 24.1 migration `M1_0_0` copies `<gateways><gateway_item>` into `<OPNsense><Gateways>` and, once one is stored, deletes the originals. OPNsense then reads the model when it holds a gateway and `<gateways>` otherwise, and the converter does the same (GOTCHAS §3.7). An empty `<gateway_item/>` does not count in either store (GOTCHAS §3.4). The model keeps its items by the `uuid` attribute, bound on `GatewayModelItem`, so of two items with one uuid it holds the later, at the place of the earlier. An item with no attribute gets a fresh uuid on every release. An empty uuid or `0` gets a fresh one from 25.7 and is the key as it stands through 25.1.12, where two such items collide. The model version does not tell those releases apart, so the converter keeps both items with a warning. `GatewayModelItem.UUID` is a `*string` to keep absent apart from empty. Gateway groups stay under `<gateways>`.
+
+The model writes its flags as `0` or `1` where the 23.7 page wrote `1` or left the element out. From 24.1 `defaultgw` and `monitor_disable` read with `!empty()` in both stores. `monitor_disable` is a `*string` because an absent element means `1` in the model and `0` under `<gateways>`. `fargw` reads with `isset()` up to 24.1.7 and `!empty()` from 24.1.8. `disabled` reads with `!empty()` on the firewall but stays a `BoolFlag`, on a type pfSense shares.
+
 ---
 
 ## 8. Correctly Implemented Patterns

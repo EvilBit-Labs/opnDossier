@@ -32,6 +32,10 @@ type Gateways struct {
 
 // Gateway represents an individual gateway configuration entry, including the bound interface,
 // gateway address, IP protocol version, monitoring settings, and default gateway designation.
+//
+// MonitorDisable is a pointer because the two OPNsense stores read an absent element differently:
+// the gateway model defaults it to 1, and the legacy element to 0. [Gateway.MonitorDisableValue]
+// returns its text.
 type Gateway struct {
 	XMLName        xml.Name `xml:"gateway_item"`
 	Interface      string   `xml:"interface,omitempty"`
@@ -46,8 +50,68 @@ type Gateway struct {
 	Created        string   `xml:"created,omitempty"`
 	Updated        string   `xml:"updated,omitempty"`
 	DefaultGW      string   `xml:"defaultgw,omitempty"`
-	MonitorDisable string   `xml:"monitor_disable,omitempty"`
+	MonitorDisable *string  `xml:"monitor_disable,omitempty"`
 	FarGW          string   `xml:"fargw,omitempty"`
+}
+
+// MonitorDisableValue returns the text of <monitor_disable>, which is empty for
+// an absent element and an empty one alike.
+func (g Gateway) MonitorDisableValue() string {
+	if g.MonitorDisable == nil {
+		return ""
+	}
+
+	return *g.MonitorDisable
+}
+
+// IsPlaceholder reports whether g is an empty <gateway_item/> marker rather than
+// a configured gateway. OPNsense skips that element in both stores: the model
+// loader drops an item with no child element, and gatewayIterator drops a
+// legacy one from 24.1.3. It does not count when choosing the store either, so
+// a model holding nothing else falls back to <gateways>.
+//
+// The check is deliberately conservative: an entry is dropped only when every
+// field is zero. A gateway carrying any data at all -- even just a description
+// -- is retained, because under-reporting configured resources is the more
+// dangerous direction for an auditing tool. An item holding only elements this
+// type does not bind is dropped, although OPNsense loads it; no release writes
+// one.
+//
+// Fields are compared by name rather than against the zero value: encoding/xml
+// populates XMLName when it decodes a Gateway, so a <gateway_item/> under
+// <gateways> never equals Gateway{}. One in the model does, because the XMLName
+// of an embedded struct stays unset, and comparing named fields reads both alike.
+func (g Gateway) IsPlaceholder() bool {
+	return g.Interface == "" &&
+		g.Gateway == "" &&
+		g.Name == "" &&
+		g.Weight == "" &&
+		g.IPProtocol == "" &&
+		g.Interval == "" &&
+		g.Descr == "" &&
+		g.Monitor == "" &&
+		!bool(g.Disabled) &&
+		g.Created == "" &&
+		g.Updated == "" &&
+		g.DefaultGW == "" &&
+		g.MonitorDisable == nil &&
+		g.FarGW == ""
+}
+
+// GatewayModelItem is a <gateway_item> of the gateway model at <OPNsense><Gateways>. The model
+// keeps its items by the uuid attribute, which neither <gateways> nor pfSense reads, so the
+// attribute is bound here and not on the [Gateway] those two share.
+//
+// A uuid does not make an item configured: OPNsense skips an item with no child element whatever
+// its attributes, and the promoted [Gateway.IsPlaceholder] does not look at it.
+//
+// UUID is a pointer to keep an absent attribute apart from an empty one (GOTCHAS 3.2). OPNsense
+// gives an item with no attribute a fresh uuid on every release, while through 25.1.12 it uses an
+// empty one as the key.
+type GatewayModelItem struct {
+	Gateway
+
+	UUID *string `xml:"uuid,attr,omitempty"`
 }
 
 // GatewayGroup represents a group of gateways used for multi-WAN failover or load balancing.

@@ -41,6 +41,7 @@ func TestIsPlaceholder_EveryFieldDefeatsPlaceholder_NoFieldIsSilentlyUncovered(t
 	}{
 		{name: "PPP", zero: PPP{}},
 		{name: "StaticRoute", zero: StaticRoute{}},
+		{name: "Gateway", zero: Gateway{}},
 		{name: "Bridge", zero: Bridge{}},
 		{name: "GIF", zero: GIF{}},
 		{name: "GRE", zero: GRE{}},

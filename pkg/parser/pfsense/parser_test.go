@@ -577,6 +577,27 @@ func TestConverter_Routing(t *testing.T) {
 	assert.True(t, device.Routing.StaticRoutes[0].Disabled)
 }
 
+// TestConverter_Gateways_MonitorDisableText pins that the converter copies the
+// text of <monitor_disable> and reads an absent element as empty.
+func TestConverter_Gateways_MonitorDisableText(t *testing.T) {
+	t.Parallel()
+
+	doc := pfsenseSchema.NewDocument()
+	doc.Gateways = opnsense.Gateways{
+		Gateway: []opnsense.Gateway{
+			{Name: "GW_SET", Gateway: "203.0.113.1", MonitorDisable: new("1")},
+			{Name: "GW_UNSET", Gateway: "203.0.113.2"},
+		},
+	}
+
+	device, _, err := pfsense.ConvertDocument(doc)
+	require.NoError(t, err)
+
+	require.Len(t, device.Routing.Gateways, 2)
+	assert.Equal(t, "1", device.Routing.Gateways[0].MonitorDisable)
+	assert.Empty(t, device.Routing.Gateways[1].MonitorDisable)
+}
+
 func TestConverter_Users(t *testing.T) {
 	t.Parallel()
 

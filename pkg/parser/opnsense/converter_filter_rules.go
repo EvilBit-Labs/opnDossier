@@ -744,11 +744,17 @@ func modelFlag(value *string) bool {
 	return value == nil || modelFlagSet(*value)
 }
 
-// modelFlagSet reads a flag of the filter model the way the firewall does:
-// anything but an empty element and 0 sets it. The model itself writes 0 or 1,
-// so this differs from [shared.IsValueTrue] only for text nothing but a hand
-// edit puts there, and for that text the firewall's reading is the one to
-// report: the other would show a loaded rule as disabled.
+// modelFlagSet reads a flag the way the firewall does where it tests one with
+// !empty(): anything but an empty element and 0 sets it. That is its test for
+// the filter model and, in either store, for the gateway flags defaultgw and
+// monitor_disable from 24.1 and fargw from 24.1.8. Up to 24.1.7 it tested fargw
+// with isset(), which agrees on all text but 0 and an empty element. The gateway
+// flag disabled does not come through here: it is a [schema.BoolFlag] on a type
+// pfSense shares, so anything but 0 or 1 can read differently from the firewall.
+//
+// The models write 0 or 1, so this differs from [shared.IsValueTrue] only for
+// text nothing but a hand edit puts there, and for that text the firewall's
+// reading is the one to report: the other would show a loaded rule as disabled.
 func modelFlagSet(value string) bool {
 	return value != "" && value != "0"
 }

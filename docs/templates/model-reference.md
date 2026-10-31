@@ -234,7 +234,7 @@ Network interface configuration including VLANs and gateways.
 | `Created`        | `string`   | `gateways.item[].created`        | -           |
 | `Updated`        | `string`   | `gateways.item[].updated`        | -           |
 | `DefaultGW`      | `string`   | `gateways.item[].defaultgw`      | -           |
-| `MonitorDisable` | `string`   | `gateways.item[].monitordisable` | -           |
+| `MonitorDisable` | `*string`  | `gateways.item[].monitordisable` | -           |
 | `FarGW`          | `string`   | `gateways.item[].fargw`          | -           |
 
 ---
