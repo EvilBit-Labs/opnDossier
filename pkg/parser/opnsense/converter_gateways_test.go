@@ -687,41 +687,216 @@ func TestConverter_Gateways_EmptyItems(t *testing.T) {
 	})
 }
 
+// TestConverter_Gateways_Disabled covers <disabled> in both stores. In the model
+// the firewall reads it with !empty(), and it makes an item a gateway whatever
+// its text: OPNsense loads any item with a child element, and then reads the
+// model and not <gateways>. Under <gateways> it is the BoolFlag of the type
+// pfSense shares, which reads <disabled/> and <disabled>no</disabled> the
+// reverse of the firewall (GOTCHAS 3.7); the legacy page writes only 1 or leaves
+// the element out.
+func TestConverter_Gateways_Disabled(t *testing.T) {
+	t.Parallel()
+
+	const migratedDisabled = "<disabled>0</disabled>"
+
+	raw := readGatewayConfig(t)
+
+	tests := []struct {
+		name       string
+		element    string
+		want       bool
+		wantLegacy bool
+	}{
+		{name: "absent"},
+		{name: "self-closing", element: "<disabled/>", wantLegacy: true},
+		{name: "zero", element: migratedDisabled},
+		{name: "one", element: "<disabled>1</disabled>", want: true, wantLegacy: true},
+		{name: "no", element: "<disabled>no</disabled>", want: true},
+	}
+
+	t.Run("an item holding only the element is read from the model", func(t *testing.T) {
+		t.Parallel()
+
+		for _, tt := range tests[1:] {
+			item := `      <gateway_item uuid="` + gatewayUUIDThird + `">` + tt.element + "</gateway_item>\n"
+			device, warnings := convertConfig(t, raw.withModel(gatewayVersionAttr, legacyGatewayItem, item))
+			require.Len(t, device.Routing.Gateways, 1, tt.name)
+
+			gw := device.Routing.Gateways[0]
+			assert.Empty(t, gw.Name, tt.name)
+			assert.Equal(t, "dynamic", gw.Address, tt.name)
+			assert.Equal(t, tt.want, gw.Disabled, tt.name)
+
+			got := gatewayWarnings(warnings)
+			require.Len(t, got, 1, tt.name)
+			assert.Equal(t, "gateway has empty name", got[0].Message, tt.name)
+		}
+	})
+
+	t.Run("a migrated gateway reads the element as the firewall does", func(t *testing.T) {
+		t.Parallel()
+
+		require.Contains(t, migratedWANGateway("192.0.2.1"), migratedDisabled)
+
+		for _, tt := range tests {
+			item := strings.Replace(migratedWANGateway("192.0.2.1"), migratedDisabled, tt.element, 1)
+			device, _ := convertConfig(t, raw.withModel(gatewayVersionAttr, "", item))
+			require.Len(t, device.Routing.Gateways, 1, tt.name)
+			assert.Equal(t, "WAN_GW", device.Routing.Gateways[0].Name, tt.name)
+			assert.Equal(t, tt.want, device.Routing.Gateways[0].Disabled, tt.name)
+		}
+	})
+
+	t.Run("a legacy gateway reads the element as a BoolFlag", func(t *testing.T) {
+		t.Parallel()
+
+		const name = "      <name>WAN_GW</name>\n"
+
+		require.Contains(t, legacyGatewayItem, name)
+
+		for _, tt := range tests {
+			item := strings.Replace(legacyGatewayItem, name, "      "+tt.element+"\n"+name, 1)
+			device, _ := convertConfig(t, raw.withLegacy(item))
+			require.Len(t, device.Routing.Gateways, 1, tt.name)
+			assert.Equal(t, "WAN_GW", device.Routing.Gateways[0].Name, tt.name)
+			assert.Equal(t, tt.wantLegacy, device.Routing.Gateways[0].Disabled, tt.name)
+		}
+	})
+}
+
+// TestConverter_Gateways_ReducedItemTakesTheDefaults drives a gateway that
+// leaves <ipprotocol> and <weight> out, or writes them empty, through parse and
+// convert in both stores. The firewall reads inet and 1 for each but one: the
+// model defaults both (Routing/Gateways.xml), OPNsense fills in inet for a
+// legacy gateway, and the gateway groups read an empty weight as 1. The
+// exception is the empty <ipprotocol/> in the model, which the firewall keeps
+// empty; that row pins the converter's reading, since the schema cannot tell it
+// from an absent element, and OPNsense never writes one (GOTCHAS 3.7).
+func TestConverter_Gateways_ReducedItemTakesTheDefaults(t *testing.T) {
+	t.Parallel()
+
+	raw := readGatewayConfig(t)
+	item := namedModelGateway(gatewayUUIDFirst, "GW_REDUCED", "192.0.2.1")
+
+	omitModel := strings.NewReplacer(
+		"        <ipprotocol>inet</ipprotocol>\n", "",
+		"        <weight>1</weight>\n", "",
+	)
+	omitLegacy := strings.NewReplacer(
+		"      <ipprotocol>inet</ipprotocol>\n", "",
+		"      <weight>1</weight>\n", "",
+	)
+	empty := strings.NewReplacer(
+		"<ipprotocol>inet</ipprotocol>", "<ipprotocol/>",
+		"<weight>1</weight>", "<weight/>",
+	)
+
+	// A replacer that matches nothing would leave both elements in place and
+	// the test would pass on the unfixed converter.
+	for _, shape := range []string{
+		omitModel.Replace(item), empty.Replace(item),
+		omitLegacy.Replace(legacyGatewayItem), empty.Replace(legacyGatewayItem),
+	} {
+		require.NotContains(t, shape, "<ipprotocol>inet</ipprotocol>")
+		require.NotContains(t, shape, "<weight>1</weight>")
+	}
+
+	tests := []struct {
+		name string
+		cfg  []byte
+	}{
+		{"model item omits both", raw.withModel(gatewayVersionAttr, "", omitModel.Replace(item))},
+		{"model item empties both", raw.withModel(gatewayVersionAttr, "", empty.Replace(item))},
+		{"legacy item omits both", raw.withLegacy(omitLegacy.Replace(legacyGatewayItem))},
+		{"legacy item empties both", raw.withLegacy(empty.Replace(legacyGatewayItem))},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := convertConfig(t, tc.cfg)
+			require.Len(t, device.Routing.Gateways, 1)
+			assert.Equal(t, "inet", device.Routing.Gateways[0].IPProtocol)
+			assert.Equal(t, "1", device.Routing.Gateways[0].Weight)
+			assert.Empty(t, gatewayWarnings(warnings))
+		})
+	}
+
+	t.Run("a set value is kept", func(t *testing.T) {
+		t.Parallel()
+
+		set := strings.NewReplacer(
+			"<ipprotocol>inet</ipprotocol>", "<ipprotocol>inet6</ipprotocol>",
+			"<weight>1</weight>", "<weight>3</weight>",
+		)
+		device, _ := convertConfig(t, raw.withModel(gatewayVersionAttr, "", set.Replace(item)))
+		require.Len(t, device.Routing.Gateways, 1)
+		assert.Equal(t, "inet6", device.Routing.Gateways[0].IPProtocol)
+		assert.Equal(t, "3", device.Routing.Gateways[0].Weight)
+	})
+}
+
 // TestConvertDocument_GatewaysLeaveTheDocumentUnchanged pins that neither store
 // is filtered or rewritten in place: ConvertDocument takes a document the
 // caller owns. The empty item comes first because slices.DeleteFunc writes
-// nothing into a slice it deletes nothing from.
+// nothing into a slice it deletes nothing from. Each store is built twice, so
+// the expected value shares no pointer with the document: a copy made with
+// slices.Clone would share them, and a write through UUID, MonitorDisable or a
+// model item's Disabled would change both sides alike.
 func TestConvertDocument_GatewaysLeaveTheDocumentUnchanged(t *testing.T) {
 	t.Parallel()
 
-	gateway := schema.Gateway{Name: "WAN_GW", Interface: "wan"}
+	// gateways returns a gateway with no address and no monitor_disable, which
+	// the converter fills in for a model item, and one whose monitor_disable is
+	// 0, which it exports as empty. Every call allocates new pointers.
+	gateways := func() []schema.Gateway {
+		return []schema.Gateway{
+			{Name: "WAN_GW", Interface: "wan"},
+			{Name: "LAN_GW", Interface: "lan", Gateway: "192.0.2.1", MonitorDisable: new("0")},
+		}
+	}
 
 	t.Run("model store", func(t *testing.T) {
 		t.Parallel()
 
+		items := func() []schema.GatewayModelItem {
+			gws := gateways()
+
+			return []schema.GatewayModelItem{
+				{},
+				{Gateway: gws[0], UUID: new(gatewayUUIDFirst)},
+				{Gateway: gws[1], UUID: new(gatewayUUIDSecond), Disabled: new("0")},
+			}
+		}
+
 		doc := &schema.OpnSenseDocument{}
 		doc.OPNsense.Gateways.Version = "1.0.0"
-		doc.OPNsense.Gateways.Items = []schema.GatewayModelItem{{}, {Gateway: gateway}}
-		before := slices.Clone(doc.OPNsense.Gateways.Items)
+		doc.OPNsense.Gateways.Items = items()
 
 		device, _, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
-		require.Len(t, device.Routing.Gateways, 1)
+		require.Len(t, device.Routing.Gateways, 2)
 		assert.Equal(t, "dynamic", device.Routing.Gateways[0].Address)
 		assert.Equal(t, "1", device.Routing.Gateways[0].MonitorDisable)
-		assert.Equal(t, before, doc.OPNsense.Gateways.Items)
+		assert.Empty(t, device.Routing.Gateways[1].MonitorDisable)
+		assert.Equal(t, items(), doc.OPNsense.Gateways.Items)
 	})
 
 	t.Run("legacy store", func(t *testing.T) {
 		t.Parallel()
 
+		legacy := func() []schema.Gateway {
+			return append([]schema.Gateway{{}}, gateways()...)
+		}
+
 		doc := &schema.OpnSenseDocument{}
-		doc.Gateways.Gateway = []schema.Gateway{{}, gateway}
-		before := slices.Clone(doc.Gateways.Gateway)
+		doc.Gateways.Gateway = legacy()
 
 		device, _, err := opnsense.ConvertDocument(doc)
 		require.NoError(t, err)
-		require.Len(t, device.Routing.Gateways, 1)
-		assert.Equal(t, before, doc.Gateways.Gateway)
+		require.Len(t, device.Routing.Gateways, 2)
+		assert.Empty(t, device.Routing.Gateways[1].MonitorDisable)
+		assert.Equal(t, legacy(), doc.Gateways.Gateway)
 	})
 }

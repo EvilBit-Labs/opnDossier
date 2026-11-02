@@ -73,9 +73,11 @@ func (g Gateway) MonitorDisableValue() string {
 // The check is deliberately conservative: an entry is dropped only when every
 // field is zero. A gateway carrying any data at all -- even just a description
 // -- is retained, because under-reporting configured resources is the more
-// dangerous direction for an auditing tool. An item holding only elements this
-// type does not bind is dropped, although OPNsense loads it; no release writes
-// one.
+// dangerous direction for an auditing tool. An item whose only children are
+// elements this type does not bind, or bound ones that decode to zero, such as
+// an empty <name/> or a <disabled>0</disabled> under <gateways>, is dropped,
+// although OPNsense loads it; no release writes one. A model item that holds a
+// <disabled> element is kept by [GatewayModelItem.IsPlaceholder].
 //
 // Fields are compared by name rather than against the zero value: encoding/xml
 // populates XMLName when it decodes a Gateway, so a <gateway_item/> under
@@ -103,15 +105,33 @@ func (g Gateway) IsPlaceholder() bool {
 // attribute is bound here and not on the [Gateway] those two share.
 //
 // A uuid does not make an item configured: OPNsense skips an item with no child element whatever
-// its attributes, and the promoted [Gateway.IsPlaceholder] does not look at it.
+// its attributes, and [GatewayModelItem.IsPlaceholder] does not look at it.
 //
 // UUID is a pointer to keep an absent attribute apart from an empty one (GOTCHAS 3.2). OPNsense
 // gives an item with no attribute a fresh uuid on every release, while through 25.1.12 it uses an
 // empty one as the key.
+//
+// Disabled takes the <disabled> element in place of the [Gateway.Disabled] it shadows, which is
+// neither decoded nor encoded for a model item, and which [GatewayModelItem.IsPlaceholder] and the
+// converter do not read either; code that builds a model item sets Disabled. The model writes it
+// as 0 or 1 and the firewall reads it with !empty(), so it is kept as text; a pointer keeps
+// <disabled>0</disabled> apart from an absent element, which a [BoolFlag] reads alike.
 type GatewayModelItem struct {
 	Gateway
 
-	UUID *string `xml:"uuid,attr,omitempty"`
+	UUID     *string `xml:"uuid,attr,omitempty"`
+	Disabled *string `xml:"disabled,omitempty"`
+}
+
+// IsPlaceholder reports whether g is an empty <gateway_item/> of the model. The uuid does not
+// count, nor does the shadowed [Gateway.Disabled]. A <disabled> element does, whatever its text:
+// OPNsense loads an item whose only child is <disabled>0</disabled>, and that item decides which
+// store the firewall reads.
+func (g GatewayModelItem) IsPlaceholder() bool {
+	gw := g.Gateway
+	gw.Disabled = false
+
+	return g.Disabled == nil && gw.IsPlaceholder()
 }
 
 // GatewayGroup represents a group of gateways used for multi-WAN failover or load balancing.

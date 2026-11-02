@@ -1,6 +1,7 @@
 package opnsense
 
 import (
+	"cmp"
 	"fmt"
 	"net/netip"
 	"slices"
@@ -620,8 +621,15 @@ func (c *converter) modelGateways(items []schema.GatewayModelItem) []schema.Gate
 			continue
 		}
 
+		// The model's disabled flag is read as the firewall reads it, with
+		// !empty(); absent, it takes the model's default of 0. The shadowed
+		// Gateway.Disabled is never decoded or encoded for a model item, so
+		// neither this nor IsPlaceholder reads it.
+		gw := item.Gateway
+		gw.Disabled = schema.BoolFlag(item.Disabled != nil && modelFlagSet(*item.Disabled))
+
 		if item.UUID == nil {
-			kept = append(kept, item.Gateway)
+			kept = append(kept, gw)
 
 			continue
 		}
@@ -643,7 +651,7 @@ func (c *converter) modelGateways(items []schema.GatewayModelItem) []schema.Gate
 				common.SeverityMedium,
 			)
 
-			kept[place] = item.Gateway
+			kept[place] = gw
 
 			continue
 		}
@@ -662,7 +670,7 @@ func (c *converter) modelGateways(items []schema.GatewayModelItem) []schema.Gate
 		}
 
 		places[uuid] = len(kept)
-		kept = append(kept, item.Gateway)
+		kept = append(kept, gw)
 	}
 
 	return kept
@@ -738,12 +746,22 @@ func (c *converter) convertGateways(gws []schema.Gateway) []common.Gateway {
 			)
 		}
 
+		// The firewall reads an absent address family as inet in either
+		// store, and an empty one as inet under <gateways>: the model defaults
+		// it, and OPNsense fills it in for a legacy gateway from 20.1.7. It
+		// reads an absent or empty weight as 1 in either store: the model
+		// defaults it, and the gateway groups read an empty one as 1 from
+		// 19.7. On earlier releases a legacy gateway with no address family
+		// had none, and an empty weight stayed empty; the export shows inet
+		// and 1 for those too. An empty <ipprotocol/> in the model stays empty
+		// on the firewall; opnDossier cannot tell it from an absent one, and
+		// OPNsense never writes one, as the field is required.
 		result = append(result, common.Gateway{
 			Interface:      gw.Interface,
 			Address:        gw.Gateway,
 			Name:           gw.Name,
-			Weight:         gw.Weight,
-			IPProtocol:     gw.IPProtocol,
+			Weight:         cmp.Or(gw.Weight, gatewayDefaultWeight),
+			IPProtocol:     cmp.Or(gw.IPProtocol, string(common.IPProtocolInet)),
 			Interval:       gw.Interval,
 			Description:    gw.Descr,
 			Monitor:        gw.Monitor,

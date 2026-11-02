@@ -749,8 +749,9 @@ func modelFlag(value *string) bool {
 // the filter model and, in either store, for the gateway flags defaultgw and
 // monitor_disable from 24.1 and fargw from 24.1.8. Up to 24.1.7 it tested fargw
 // with isset(), which agrees on all text but 0 and an empty element. The gateway
-// flag disabled does not come through here: it is a [schema.BoolFlag] on a type
-// pfSense shares, so anything but 0 or 1 can read differently from the firewall.
+// flag disabled comes through here in the model only. Under <gateways> it is a
+// [schema.BoolFlag] on a type pfSense shares, so anything but 0 or 1 can read
+// differently from the firewall there.
 //
 // The models write 0 or 1, so this differs from [shared.IsValueTrue] only for
 // text nothing but a hand edit puts there, and for that text the firewall's

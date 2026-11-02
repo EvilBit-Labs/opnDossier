@@ -284,7 +284,8 @@ func TestOPNsense_GatewayModel_XMLRoundTrip(t *testing.T) {
 
 	want := []GatewayModelItem{
 		{
-			UUID: new("7f3c2a1e-5b6d-4e8f-9a0b-1c2d3e4f5a6b"),
+			UUID:     new("7f3c2a1e-5b6d-4e8f-9a0b-1c2d3e4f5a6b"),
+			Disabled: new("0"),
 			Gateway: Gateway{
 				Name:           "WAN_GW",
 				Descr:          "Interface WAN Gateway",
@@ -299,9 +300,9 @@ func TestOPNsense_GatewayModel_XMLRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			UUID: new("0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"),
+			UUID:     new("0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"),
+			Disabled: new("1"),
 			Gateway: Gateway{
-				Disabled:       true,
 				Name:           "WAN_GWv6",
 				Descr:          "Interface WAN Gateway IPv6",
 				Interface:      "wan",
@@ -341,7 +342,8 @@ func TestOPNsense_GatewayModel_XMLRoundTrip(t *testing.T) {
 		`<gateway_item uuid="0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d">`,
 		`<monitor_disable>1</monitor_disable>`,
 		`<monitor_disable>0</monitor_disable>`,
-		`<disabled></disabled>`,
+		`<disabled>0</disabled>`,
+		`<disabled>1</disabled>`,
 	} {
 		if !strings.Contains(marshaled, element) {
 			t.Errorf("marshaled XML lacks %s: %s", element, marshaled)
@@ -411,6 +413,112 @@ func TestGatewayModelItem_UUID_XMLRoundTrip(t *testing.T) {
 				t.Errorf("marshaled XML lacks the attribute %q: %s", tt.attribute, marshaled)
 			}
 		})
+	}
+}
+
+// TestGatewayModelItem_Disabled_XMLRoundTrip pins the model's <disabled> through
+// marshal and unmarshal, absent apart from empty and 0. OPNsense loads an item
+// whose only child is <disabled>0</disabled>, and that item makes the firewall
+// read the model instead of <gateways>, so a decode that merged 0 with absent
+// would let the predicate drop it and the converter report the legacy store.
+func TestGatewayModelItem_Disabled_XMLRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		element         string
+		wantIsNil       bool
+		wantValue       string
+		wantPlaceholder bool
+	}{
+		{name: "absent", wantIsNil: true, wantPlaceholder: true},
+		{name: "self-closing", element: `<disabled/>`},
+		{name: "zero", element: `<disabled>0</disabled>`, wantValue: "0"},
+		{name: "one", element: `<disabled>1</disabled>`, wantValue: "1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := decodeGatewayDocument(t, fmt.Appendf(nil,
+				`<opnsense><OPNsense><Gateways version="1.0.0">`+
+					`<gateway_item uuid="7f3c2a1e">%s</gateway_item>`+
+					`</Gateways></OPNsense></opnsense>`,
+				tt.element))
+			back, marshaled := remarshalGatewayDocument(t, &doc)
+
+			for _, got := range []*OpnSenseDocument{&doc, &back} {
+				items := got.OPNsense.Gateways.Items
+				if len(items) != 1 {
+					t.Fatalf("got %d items, want 1", len(items))
+				}
+
+				if isNil := items[0].Disabled == nil; isNil != tt.wantIsNil {
+					t.Fatalf("Disabled == nil is %v, want %v", isNil, tt.wantIsNil)
+				}
+
+				if items[0].Disabled != nil && *items[0].Disabled != tt.wantValue {
+					t.Errorf("Disabled = %q, want %q", *items[0].Disabled, tt.wantValue)
+				}
+
+				// The model's element must not reach the shadowed field.
+				if items[0].Gateway.Disabled {
+					t.Errorf("Gateway.Disabled is set for %s", tt.name)
+				}
+
+				if placeholder := items[0].IsPlaceholder(); placeholder != tt.wantPlaceholder {
+					t.Errorf("IsPlaceholder() = %v, want %v", placeholder, tt.wantPlaceholder)
+				}
+			}
+
+			if present := strings.Contains(marshaled, "<disabled"); present == tt.wantIsNil {
+				t.Errorf("marshaled element present = %v: %s", present, marshaled)
+			}
+		})
+	}
+}
+
+// TestGatewayModelItem_IsPlaceholder_EveryFieldDefeatsIt is the every-field
+// tripwire for the model item, which the shared one cannot take. It sets each
+// field of the item, and each leaf of the embedded Gateway, in turn. Two do not
+// count: the uuid, which is an attribute, and the Gateway.Disabled the item
+// shadows, which a model item never decodes or encodes.
+func TestGatewayModelItem_IsPlaceholder_EveryFieldDefeatsIt(t *testing.T) {
+	t.Parallel()
+
+	typ := reflect.TypeFor[GatewayModelItem]()
+	for i := range typ.NumField() {
+		field := typ.Field(i)
+
+		if !field.Anonymous {
+			var item GatewayModelItem
+			if !populateField(reflect.ValueOf(&item).Elem().Field(i)) {
+				t.Fatalf("cannot populate %s", field.Name)
+			}
+
+			if got, want := item.IsPlaceholder(), field.Name == "UUID"; got != want {
+				t.Errorf("IsPlaceholder() = %v with only %s set, want %v", got, field.Name, want)
+			}
+
+			continue
+		}
+
+		for leaf := range field.Type.NumField() {
+			name := field.Name + "." + field.Type.Field(leaf).Name
+			if field.Type.Field(leaf).Name == xmlNameField {
+				continue
+			}
+
+			var item GatewayModelItem
+			if !populateField(reflect.ValueOf(&item).Elem().Field(i).Field(leaf)) {
+				t.Fatalf("cannot populate %s", name)
+			}
+
+			if got, want := item.IsPlaceholder(), name == "Gateway.Disabled"; got != want {
+				t.Errorf("IsPlaceholder() = %v with only %s set, want %v", got, name, want)
+			}
+		}
 	}
 }
 
