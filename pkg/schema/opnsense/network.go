@@ -114,8 +114,9 @@ func (g Gateway) IsPlaceholder() bool {
 // Disabled takes the <disabled> element in place of the [Gateway.Disabled] it shadows, which is
 // neither decoded nor encoded for a model item, and which [GatewayModelItem.IsPlaceholder] and the
 // converter do not read either; code that builds a model item sets Disabled. The model writes it
-// as 0 or 1 and the firewall reads it with !empty(), so it is kept as text; a pointer keeps
-// <disabled>0</disabled> apart from an absent element, which a [BoolFlag] reads alike.
+// as 0 or 1 and the firewall reads it with !empty(). It is kept as text, because a [BoolFlag]
+// reads <disabled>0</disabled> the same as an absent element, and as a pointer, to keep an empty
+// <disabled/> apart from an absent one: OPNsense loads an item whose only child is either.
 type GatewayModelItem struct {
 	Gateway
 
