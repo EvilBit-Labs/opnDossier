@@ -599,7 +599,7 @@ func (c *converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.
 	for _, g := range groups {
 		result = append(result, common.GatewayGroup{
 			Name:        g.Name,
-			Items:       g.Item,
+			Items:       gatewayGroupItems(g),
 			Trigger:     g.Trigger,
 			Description: g.Descr,
 		})
