@@ -98,7 +98,7 @@ func AssessServiceRisk(serviceName string) string {
 	return AssessRiskLevel("info")
 }
 
-// hasManagementOnWAN checks whether any firewall rule allows inbound traffic to common management ports on the WAN interface.
+// hasManagementOnWAN checks whether any enabled pass rule allows inbound traffic to common management ports on the WAN interface.
 func hasManagementOnWAN(data *common.CommonDevice) bool {
 	mgmtPorts := []string{"443", "80", "22", "8080"}
 
@@ -106,6 +106,11 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 		if !slices.ContainsFunc(rule.Interfaces, func(s string) bool {
 			return strings.EqualFold(s, "wan")
 		}) {
+			continue
+		}
+		// A rule the firewall skips, or one that does not pass traffic, exposes
+		// nothing. A rule with no type is the pass rule both firewalls load it as.
+		if rule.Disabled || (rule.Type != "" && rule.Type != common.RuleTypePass) {
 			continue
 		}
 		// Only an outbound rule is left out. A rule with direction any matches

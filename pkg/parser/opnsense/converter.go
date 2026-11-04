@@ -402,9 +402,11 @@ func (c *converter) ruleFamily(i int, stored string) common.IPProtocol {
 // out when the element is not empty in PHP's sense (Rule.php parseIsComment),
 // which is modelFlagSet's test, so an empty element is a live rule. Through 17.1
 // it tested isset(). An empty element is read as the later releases read it, so
-// at worst a rule one of those older releases skipped is reported as live.
+// at worst a rule one of those older releases skipped is reported as live, with
+// a warning, since the config says disabled and the firewall loads the rule.
 func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.FirewallRule {
 	c.warnOnIncompleteFirewallRule(i, rule)
+	c.warnOnLiveDisabledElement(i, rule)
 
 	return common.FirewallRule{
 		UUID:        rule.UUID,
@@ -460,6 +462,25 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		// Set on the pass rule a port forward stores for itself.
 		AssociatedRuleID: rule.AssociatedRuleID,
 	}
+}
+
+// warnOnLiveDisabledElement reports a <disabled> element the firewall does not
+// act on. OPNsense from 17.7 comments a rule out only when the element is not
+// empty in PHP's sense, so an empty element or a 0 leaves the rule live, which
+// is also the shape pfSense writes for a disabled rule. OPNsense through 17.1
+// skipped such a rule. The rule is reported as the current firewall loads it,
+// and the operator is told the element did nothing.
+func (c *converter) warnOnLiveDisabledElement(i int, rule schema.Rule) {
+	if rule.Disabled == nil || modelFlagSet(*rule.Disabled) {
+		return
+	}
+
+	c.addWarning(
+		fmt.Sprintf("FirewallRules[%d].Disabled", i),
+		*rule.Disabled,
+		"<disabled> is empty or 0; OPNsense 17.7 and later load the rule, so it is reported as enabled",
+		common.SeverityMedium,
+	)
 }
 
 // legacyRuleType returns the type the firewall compiles for a stored legacy

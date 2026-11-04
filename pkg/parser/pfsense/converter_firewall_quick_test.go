@@ -63,6 +63,7 @@ func TestConverter_FirewallRules_QuickDefault(t *testing.T) {
 		{name: "interface rule with quick", elements: `<quick>yes</quick>`, wantQuick: true},
 		{name: "interface rule with quick holding 0", elements: `<quick>0</quick>`, wantQuick: true},
 		{name: "floating rule", elements: floatingYes, wantFloating: true},
+		{name: "floating element holding no", elements: `<floating>no</floating>`, wantFloating: true},
 		{
 			name:         "floating rule with quick",
 			elements:     floatingYes + `<quick>yes</quick>`,
@@ -461,6 +462,8 @@ func TestConverter_FloatingRules_ShadowOrder(t *testing.T) {
 	const (
 		anyToAny = `<source><any/></source><destination><any/></destination>`
 		anyToNet = `<source><any/></source><destination><address>203.0.113.0/24</address></destination>`
+		toNet8   = `<source><any/></source><destination><address>10.0.0.0/8</address></destination>`
+		toNet16  = `<source><any/></source><destination><address>10.1.0.0/16</address></destination>`
 		floating = `<floating>yes</floating><quick>yes</quick><direction>in</direction>`
 		onLAN    = `<interface>lan</interface>`
 
@@ -469,6 +472,9 @@ func TestConverter_FloatingRules_ShadowOrder(t *testing.T) {
 		floatingPass  = `<rule><type>pass</type>` + onLAN + floating + anyToAny + `</rule>`
 		unscopedBlock = `<rule><type>block</type>` + floating + anyToNet + `</rule>`
 		unscopedPass  = `<rule><type>pass</type>` + floating + anyToAny + `</rule>`
+
+		interfaceBlock16 = `<rule><type>block</type>` + onLAN + toNet16 + `</rule>`
+		floatingPass8    = `<rule><type>pass</type>` + onLAN + floating + toNet8 + `</rule>`
 	)
 
 	tests := []struct {
@@ -479,6 +485,11 @@ func TestConverter_FloatingRules_ShadowOrder(t *testing.T) {
 		{
 			name:   "floating block listed below an interface pass runs first",
 			filter: interfacePass + floatingBlock,
+		},
+		{
+			name:   "floating pass listed below an interface block bypasses it",
+			filter: interfaceBlock16 + floatingPass8,
+			want:   []string{"Rule 1 (block) on interface lan (in) is fully shadowed by rule 2 (pass)"},
 		},
 		{
 			name:   "floating block on an interface above a floating pass on every interface wins",
@@ -635,13 +646,74 @@ func TestConverter_ConfigPfSense_InterfaceRulesShadowFirstMatch(t *testing.T) {
 		}
 	}
 
-	for _, finding := range analysis.DetectShadowedRules(device) {
-		// A floating rule runs first wherever it is listed.
-		if device.FirewallRules[finding.RuleIndex].Floating ||
-			device.FirewallRules[finding.ShadowedByIndex].Floating {
-			continue
-		}
+	// The block that leads each of lan, opt1 and opt5 is quick, so nothing
+	// below it is reported as shadowing it, and the fixture has no other pair.
+	assert.Empty(t, analysis.DetectShadowedRules(device))
+}
 
-		assert.Less(t, finding.ShadowedByIndex, finding.RuleIndex, finding.Description)
+// TestConverter_FirewallRules_IgnoredElementsWarn pins the warnings for the
+// elements pfSense reads differently from how they look: a <direction> on a
+// rule that is not floating compiles as in (filter.inc L3376-L3383), and a
+// body in <floating>, <quick> or <disabled> is ignored by isset(). A rule
+// written as the GUI writes it draws none.
+func TestConverter_FirewallRules_IgnoredElementsWarn(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		elements string
+		want     []string
+	}{
+		{name: "interface rule"},
+		{name: "interface rule with direction in", elements: `<direction>in</direction>`},
+		{name: "floating rule with direction out", elements: `<floating>yes</floating><direction>out</direction>`},
+		{name: "empty disabled element", elements: `<disabled></disabled>`},
+		{
+			name:     "interface rule with direction out",
+			elements: `<direction>out</direction>`,
+			want:     []string{"FirewallRules[0].Direction medium"},
+		},
+		{
+			name:     "floating element holding 1 with direction any",
+			elements: `<floating>1</floating><direction>any</direction>`,
+			want:     []string{"FirewallRules[0].Direction medium", "FirewallRules[0].Floating low"},
+		},
+		{
+			name:     "disabled holding 0",
+			elements: `<disabled>0</disabled>`,
+			want:     []string{"FirewallRules[0].Disabled low"},
+		},
+		{
+			name:     "floating holding no",
+			elements: `<floating>no</floating>`,
+			want:     []string{"FirewallRules[0].Floating low"},
+		},
+		{
+			name:     "quick holding 0 on a floating rule",
+			elements: `<floating>yes</floating><quick>0</quick>`,
+			want:     []string{"FirewallRules[0].Quick low"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := `<?xml version="1.0"?><pfsense><interfaces><lan><if>em1</if></lan></interfaces><filter>` +
+				`<rule><type>pass</type><interface>lan</interface>` + tt.elements +
+				`<source><any/></source><destination><any/></destination></rule></filter></pfsense>`
+
+			_, warnings, err := pfsense.NewParser(nil).Parse(context.Background(), strings.NewReader(config))
+			require.NoError(t, err)
+
+			var got []string
+			for _, w := range warnings {
+				if strings.HasPrefix(w.Field, "FirewallRules[0].") {
+					got = append(got, w.Field+" "+string(w.Severity))
+				}
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

@@ -74,12 +74,12 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 // impactClassFor derives R12's impact class from the winner→loser action
 // relationship (not earlier/later — non-quick pf semantics flips which rule
 // is the loser, so the classification must key off which rule actually won
-// the overlap): same action ⇒ Hygiene; winner pass over any other action ⇒
-// Security; any other combination, such as a block/reject winner over a pass
-// loser or two differently-typed explicit rules ⇒ Troubleshooting. Both actions
-// go through effectiveRuleType, so a rule with no type counts as the pass rule
-// it is. The loser is not checked for being a deny, so a pass over a match rule
-// or a type the firewall does not know reads as Security (GOTCHAS 3.9).
+// the overlap): same action ⇒ Hygiene; winner pass over a block or reject
+// loser ⇒ Security; any other combination, such as a block/reject winner over
+// a pass loser, a pass over a pfSense match rule, or two differently-typed
+// explicit rules ⇒ Troubleshooting. Both actions go through effectiveRuleType,
+// so a rule with no type counts as the pass rule it is. A match rule decides no
+// traffic, so a pass over one bypasses no deny (GOTCHAS 3.9).
 func impactClassFor(winnerType, loserType common.FirewallRuleType) common.ImpactClass {
 	winner, loser := effectiveRuleType(winnerType), effectiveRuleType(loserType)
 
@@ -87,7 +87,7 @@ func impactClassFor(winnerType, loserType common.FirewallRuleType) common.Impact
 		return common.ImpactClassHygiene
 	}
 
-	if winner == common.RuleTypePass {
+	if winner == common.RuleTypePass && (loser == common.RuleTypeBlock || loser == common.RuleTypeReject) {
 		return common.ImpactClassSecurity
 	}
 
@@ -96,11 +96,11 @@ func impactClassFor(winnerType, loserType common.FirewallRuleType) common.Impact
 
 // effectiveRuleType maps an unspecified rule type to pass, the action both
 // firewalls load it as (filter.inc L3367-L3370; OPNsense FilterRule.php
-// parseType), for how a shadow finding classifies and names the rule. A rule
-// that reaches the analysis with no type reads as pass, whether it was built by
-// hand or came from a parser that leaves the type unset; a converter may fill
-// the type in first. Without this a pass above such a rule reads as a bypassed
-// deny. It does not mutate the model, and RulesEquivalent compares
+// parseType), for how a shadow finding classifies and names the rule. Both
+// shipped converters fill the type in first (GOTCHAS 3.8), so a rule reaches
+// the analysis with no type only from a hand-built CommonDevice or a parser
+// that does not fill it. Without this a pass above such a rule reads as a
+// bypassed deny. It does not mutate the model, and RulesEquivalent compares
 // FirewallRule.Type as it stands, so this reading does not reach DetectDeadRules.
 func effectiveRuleType(ruleType common.FirewallRuleType) common.FirewallRuleType {
 	if ruleType == "" {

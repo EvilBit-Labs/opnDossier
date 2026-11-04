@@ -411,6 +411,33 @@ func TestHasManagementOnWAN(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "disabled rule on WAN exposes nothing",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Type:        common.RuleTypePass,
+						Disabled:    true,
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "block rule on WAN exposes nothing",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Type:        common.RuleTypeBlock,
+						Destination: common.RuleEndpoint{Port: "22"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
 			name: "rule on WAN with port in destination string",
 			data: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{

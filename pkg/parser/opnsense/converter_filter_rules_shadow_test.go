@@ -235,7 +235,7 @@ func TestConverter_FilterRules_LegacyDisabledElement(t *testing.T) {
 				neighbor = ""
 			}
 
-			device, _ := parseFilterRulesAt(t, "1.0.4",
+			device, warnings := parseFilterRulesAt(t, "1.0.4",
 				`<rule><type>pass</type><interface>wan</interface>`+neighbor+`</rule>`+
 					`<rule><type>pass</type>`+onLAN+tt.element+toNet8+`</rule>`+block, "")
 
@@ -243,6 +243,23 @@ func TestConverter_FilterRules_LegacyDisabledElement(t *testing.T) {
 			assert.Equal(t, !tt.wantDisabled, device.FirewallRules[0].Disabled, "neighbor")
 			assert.Equal(t, tt.wantDisabled, device.FirewallRules[1].Disabled)
 			assert.False(t, device.FirewallRules[2].Disabled)
+
+			// An element the firewall leaves live is reported, since the
+			// config says disabled; absent and disabling elements are not.
+			var wantWarned []string
+			if tt.element != "" && !tt.wantDisabled {
+				wantWarned = []string{"FirewallRules[1].Disabled"}
+			}
+
+			var warned []string
+			for _, w := range warnings {
+				if w.Field == "FirewallRules[1].Disabled" {
+					assert.Equal(t, common.SeverityMedium, w.Severity)
+					warned = append(warned, w.Field)
+				}
+			}
+
+			assert.Equal(t, wantWarned, warned)
 
 			var want []string
 			if !tt.wantDisabled {

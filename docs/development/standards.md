@@ -525,7 +525,7 @@ OPNsense and pfSense use two boolean patterns. Choosing the wrong type silently 
 - **Presence-based** (`isset()` in PHP): Use `BoolFlag`. Examples: `<log/>`, `<not/>`. A bare `isset()` that must count any body takes `*string`, as `<floating>` and `<quick>` do on a pfSense filter rule, and an element the vendor tests with `!empty()` is not presence-based: `<disabled>` on a filter rule is `*string` for both reasons, one on each vendor
 - **Value-based** (`== "1"` in PHP): Use `string`. Examples: `<enable>1</enable>`, `<blockpriv>1</blockpriv>`
 
-`BoolFlag.UnmarshalXML` treats any present element as true — so `<enabled>0</enabled>` becomes `true`, breaking value-based semantics. See `docs/development/xml-structure-research.md` §1 for the complete field inventory.
+`BoolFlag.UnmarshalXML` reads an empty element as true and a body through `shared.IsValueTrue`, so `<enabled/>` is true and `<enabled>0</enabled>` is false; a value-based field that is sometimes written empty therefore still needs `string` or `FlexBool`. See `docs/development/xml-structure-research.md` §1 for the complete field inventory.
 
 **Adding New XML Fields:**
 

@@ -53,6 +53,10 @@ func (c *converter) convertFirewallRules(
 		}
 		// The warning reads the element, and the rule carries what pfSense compiles.
 		direction = compiledDirection(rule)
+		c.warnOnIgnoredDirection(i, rule, direction)
+		c.warnOnIgnoredFlagBody(i, "Floating", rule.Floating)
+		c.warnOnIgnoredFlagBody(i, "Quick", rule.Quick)
+		c.warnOnIgnoredFlagBody(i, "Disabled", rule.Disabled)
 		ipProto := common.IPProtocol(rule.IPProtocol)
 		if rule.IPProtocol != "" && !ipProto.IsValid() {
 			c.addWarning(
@@ -232,6 +236,41 @@ func (c *converter) warnOnIncompleteFirewallRule(i int, rule pfsense.FilterRule)
 			common.SeverityMedium,
 		)
 	}
+}
+
+// warnOnIgnoredDirection reports a <direction> pfSense does not compile. A rule
+// whose <floating> does not hold exactly yes compiles as in whatever the element
+// holds (filter.inc L3376-L3383), so a hand-written out or any on it changes
+// nothing on the firewall, and the operator who wrote it should hear that.
+func (c *converter) warnOnIgnoredDirection(i int, rule pfsense.FilterRule, compiled common.FirewallDirection) {
+	if compiled != "" || rule.Direction == "" || rule.Direction == string(common.DirectionIn) {
+		return
+	}
+
+	c.addWarning(
+		fmt.Sprintf("FirewallRules[%d].Direction", i),
+		rule.Direction,
+		"direction is ignored; pfSense compiles a rule whose <floating> is not yes as in",
+		common.SeverityMedium,
+	)
+}
+
+// warnOnIgnoredFlagBody reports a body pfSense does not read. It tests
+// <floating>, <quick> and <disabled> with isset(), so <disabled>0</disabled>
+// disables the rule as surely as an empty element does. The GUI writes only an
+// empty element or yes; any other body is a hand edit or a generator whose
+// author likely meant the opposite of what the firewall does.
+func (c *converter) warnOnIgnoredFlagBody(i int, name string, body *string) {
+	if body == nil || *body == "" || *body == xmlBoolYes {
+		return
+	}
+
+	c.addWarning(
+		fmt.Sprintf("FirewallRules[%d].%s", i, name),
+		*body,
+		"pfSense tests this element for presence and ignores its value",
+		common.SeverityLow,
+	)
 }
 
 // compiledDirection returns the direction pfSense compiles rule with, which is

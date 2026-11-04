@@ -792,6 +792,28 @@ func TestDetectShadowedRules_EmptyTypeReadsAsPass(t *testing.T) {
 // is reported at all depends on the class. A pair reaches the class through
 // coverage folding to CoverNone (the advisory scan) or, with one alias on both
 // rules, through ResolvePrecedence.
+// TestDetectShadowedRules_PassOverMatchIsTroubleshooting pins that a pass
+// covering a pfSense match rule bypasses no deny: the match rule decides no
+// traffic, so the finding is troubleshooting, not Security (GOTCHAS 3.9).
+func TestDetectShadowedRules_PassOverMatchIsTroubleshooting(t *testing.T) {
+	findings := DetectShadowedRules(&common.CommonDevice{
+		FirewallRules: []common.FirewallRule{
+			wideShadowRule(common.RuleTypePass),
+			narrowShadowRule(common.FirewallRuleType("match")),
+		},
+	})
+
+	require.Len(t, findings, 1)
+	assert.Equal(t, 1, findings[0].RuleIndex)
+	assert.Equal(t, common.ImpactClassTroubleshooting, findings[0].ImpactClass)
+	assert.Equal(t, common.SeverityMedium, findings[0].Severity)
+	assert.Contains(
+		t,
+		findings[0].Description,
+		"Rule 2 (match) on interface wan (in) is fully shadowed by rule 1 (pass)",
+	)
+}
+
 func TestDetectShadowedRules_EmptyType_AliasBlocked(t *testing.T) {
 	const typeless common.FirewallRuleType = ""
 
