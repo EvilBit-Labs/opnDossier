@@ -186,6 +186,7 @@ func TestParser_FirewallRules_StateTypeReadsAsFilterIncCompilesIt(t *testing.T) 
 		{"no type and no state, as on a forward's rule", ``, keepState},
 		{"type pass", `<type>pass</type>`, keepState},
 		{"an empty element", `<type>pass</type><statetype></statetype>`, keepState},
+		{"a zero, which empty() takes", `<type>pass</type><statetype>0</statetype>`, keepState},
 		{"a type that compiles as pass", `<type>allow</type>`, keepState},
 		{"a stored state", `<statetype>synproxy state</statetype>`, "synproxy state"},
 		{"no state", `<statetype>none</statetype>`, "none"},
@@ -229,8 +230,23 @@ func TestParser_FirewallRules_AnyWinsOverAddress(t *testing.T) {
 			`<source><network>lan</network></source>`+
 			`<destination><network>lan</network><any></any></destination></rule>`)
 
-	assert.Empty(t, warnings)
 	require.Len(t, device.FirewallRules, 4)
+
+	fields := make([]string, 0, len(warnings))
+	for _, warning := range warnings {
+		fields = append(fields, warning.Field)
+		assert.Equal(
+			t,
+			common.SeverityLow,
+			warning.Severity,
+			"the address beside <any> is reported, not dropped in silence",
+		)
+	}
+
+	assert.Equal(t, []string{
+		"FirewallRules[0].Source", "FirewallRules[1].Destination",
+		"FirewallRules[2].Source", "FirewallRules[3].Destination",
+	}, fields)
 
 	sourceAny := device.FirewallRules[0]
 	assert.Equal(t, "any", sourceAny.Source.Address)

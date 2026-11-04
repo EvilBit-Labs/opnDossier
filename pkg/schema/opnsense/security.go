@@ -301,12 +301,13 @@ type Rule struct {
 // An entry is dropped only when every field is zero; see
 // [StaticRoute.IsPlaceholder] for why the check is conservative. It compares with
 // the zero value rather than naming fields, as [FirewallFilterRule.IsPlaceholder]
-// does, once XMLName, which the decoder always sets, and an empty interface list,
-// which it decodes to a non-nil slice, are cleared. No <type> is not enough, since
+// does, once XMLName, which the decoder always sets, and the non-nil empty slice
+// an <interface/> child decodes to are cleared. No <type> is not enough, since
 // the rule a port forward stored for itself up to 24.7 has none. The test is on
 // content, so a rule whose only children are empty elements of string fields, or
 // elements the type does not bind, is dropped too, although OPNsense loads it. No
-// release writes one.
+// release writes one. The converter warns on the one shape the firewall does
+// load, a leading <rule/> that another rule follows (GOTCHAS 3.4).
 func (r Rule) IsPlaceholder() bool {
 	r.XMLName = xml.Name{}
 	if r.Interface.IsEmpty() {

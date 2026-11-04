@@ -1786,6 +1786,60 @@ func TestRedMode_PortForwardToNetwork_EndToEnd(t *testing.T) {
 	}
 }
 
+// TestRedMode_PortForwardToIPv6Address_EndToEnd gives the legacy port forward
+// fixture's WAN an IPv6 address and points the forward at it, and at another
+// IPv6 host, through the parser. The chain from <ipaddrv6> to firewallAddresses
+// is otherwise covered by hand-built devices alone.
+func TestRedMode_PortForwardToIPv6Address_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	const (
+		wanAddress = "<ipaddr>198.51.100.2</ipaddr>"
+		wanIPv6    = "2001:db8::2"
+	)
+
+	raw := readFixture(t, "opnsense-legacy-port-forwards.xml")
+	requireFixtureHolds(t, raw, map[string]int{
+		wanAddress:                         1,
+		"<target>192.168.10.50</target>":   1,
+		"<address>192.168.10.50</address>": 1,
+		"<local-port>8443</local-port>":    1,
+		"<port>8443</port>":                1,
+	})
+
+	tests := []struct {
+		name        string
+		target      string
+		wantExposed bool
+	}{
+		{"the WAN IPv6 address", wanIPv6, true},
+		{"the WAN IPv6 address spelled another way", "2001:0db8:0::2", true},
+		{"another IPv6 host", "2001:db8::60", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := parseConfig(t, strings.NewReplacer(
+				wanAddress, wanAddress+"<ipaddrv6>"+wanIPv6+"</ipaddrv6><subnetv6>64</subnetv6>",
+				"<target>192.168.10.50</target>", "<target>"+tc.target+"</target>",
+				"<address>192.168.10.50</address>", "<address>"+tc.target+"</address>",
+				"<local-port>8443</local-port>", "<local-port>443</local-port>",
+				"<port>8443</port>", "<port>443</port>",
+			).Replace(raw))
+
+			if !slices.ContainsFunc(device.Interfaces, func(iface common.Interface) bool {
+				return iface.IPv6Address == wanIPv6
+			}) {
+				t.Fatal("the rewritten fixture gives the WAN no IPv6 address")
+			}
+
+			assertWebGUIExposed(t, device, tc.wantExposed)
+		})
+	}
+}
+
 // TestRedMode_UnassociatedPortForwardRule_EndToEnd rewrites the legacy port
 // forward fixture to what "Add unassociated filter rule" leaves in config.xml
 // (firewall_nat_edit.php): the forward's rule with no link on either side, with

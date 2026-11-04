@@ -273,7 +273,12 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Empty(t, nonGapWarnings(warnings))
+	// Only the rule holding <any> beside <address> warns: the alias it names
+	// reaches no output, so its reference is lost on purpose and said so.
+	warned := nonGapWarnings(warnings)
+	require.Len(t, warned, 1)
+	assert.Equal(t, "FirewallRules[2].Source", warned[0].Field)
+	assert.Equal(t, common.SeverityLow, warned[0].Severity)
 	require.Len(t, device.FirewallRules, 3)
 
 	macroRule := device.FirewallRules[0]

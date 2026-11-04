@@ -1268,7 +1268,13 @@ func TestConverter_FilterRules_EndToEnd_PlaceholderNotCounted(t *testing.T) {
 		{name: "empty rule placeholder reports no rule", legacy: `<rule/>`},
 		{name: "expanded empty rule reports no rule", legacy: `<rule></rule>`},
 		{name: "a populated rule is counted", legacy: populated, want: []string{"real"}},
-		{name: "placeholder beside a real rule yields it", legacy: `<rule/>` + populated, want: []string{"real"}},
+		{
+			name:         "placeholder before a real rule yields it and is reported",
+			legacy:       `<rule/>` + populated,
+			want:         []string{"real"},
+			wantWarnings: 1,
+		},
+		{name: "placeholder after a real rule yields it alone", legacy: populated + `<rule/>`, want: []string{"real"}},
 		{name: "placeholder beside a model rule yields it", legacy: `<rule/>`, model: model, want: []string{"model"}},
 		{name: "a rule with no type is kept", legacy: typeless, want: []string{"typeless"}},
 		{
@@ -1285,7 +1291,7 @@ func TestConverter_FilterRules_EndToEnd_PlaceholderNotCounted(t *testing.T) {
 
 			device, warnings := parseFilterRules(t, tt.legacy, tt.model)
 
-			assert.Len(t, warnings, tt.wantWarnings, "a placeholder must not draw a warning")
+			assert.Len(t, warnings, tt.wantWarnings, "only the placeholder the firewall loads draws a warning")
 
 			if tt.want == nil {
 				assert.Nil(t, device.FirewallRules)
@@ -1311,8 +1317,10 @@ func TestConverter_FilterRules_PlaceholderLeavesNoGapInWarnings(t *testing.T) {
 			`<destination><any>1</any></destination></rule>`, "")
 
 	require.Equal(t, []string{"real"}, descriptions(device.FirewallRules))
-	require.Len(t, warnings, 1)
-	assert.Equal(t, "FirewallRules[0].Source", warnings[0].Field)
+	require.Len(t, warnings, 2)
+	assert.Equal(t, "Filter.Rule", warnings[0].Field, "the leading placeholder is reported")
+	assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
+	assert.Equal(t, "FirewallRules[0].Source", warnings[1].Field)
 }
 
 // TestConverter_FilterRules_WarningIndex pins the index in a warning's field to

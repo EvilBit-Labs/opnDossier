@@ -185,6 +185,7 @@ func (c *converter) filterRulesInOrder(doc *schema.OpnSenseDocument) []filterRul
 	for i := range doc.Filter.Rule {
 		rule := &doc.Filter.Rule[i]
 		if rule.IsPlaceholder() {
+			c.warnOnLoadedPlaceholder(i, len(doc.Filter.Rule))
 			continue
 		}
 
@@ -855,4 +856,24 @@ func isDigits(s string) bool {
 	}
 
 	return s != ""
+}
+
+// warnOnLoadedPlaceholder records a Medium warning for an empty <rule/> that
+// leads a list holding another rule. Rule.IsPlaceholder drops it as the
+// placeholder OPNsense leaves for an empty list, but Config::toArray on 25.7 to
+// 26.7.8 reads this shape, which only a hand edit writes, as an empty array at
+// the head of the list, and filter_core_rules_user loads that as a pass rule from
+// any to any (GOTCHAS 3.4). A <rule/> after a real rule is a string the firewall
+// skips, so it draws none.
+func (c *converter) warnOnLoadedPlaceholder(i, count int) {
+	if i != 0 || count < 2 {
+		return
+	}
+
+	c.addWarning(
+		"Filter.Rule",
+		"",
+		"empty <rule/> before another rule left out; OPNsense 25.7 to 26.7.8 loads it as a pass rule from any to any",
+		common.SeverityMedium,
+	)
 }

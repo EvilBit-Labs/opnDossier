@@ -236,11 +236,7 @@ func forwardsToAnotherHost(rule common.FirewallRule, device *common.CommonDevice
 // CIDR as its network with the host bits cleared, so that two spellings of one
 // target compare equal.
 func literalNetwork(entry string) (netip.Prefix, bool) {
-	if addr, err := netip.ParseAddr(entry); err == nil {
-		return netip.PrefixFrom(addr, addr.BitLen()), true
-	}
-
-	prefix, err := netip.ParsePrefix(entry)
+	prefix, err := analysis.ParsePrefixOrAddr(entry)
 
 	return prefix.Masked(), err == nil
 }

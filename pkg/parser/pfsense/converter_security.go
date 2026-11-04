@@ -23,7 +23,7 @@ import (
 // would read as an enabled pass rule from any to any, because pfSense's own
 // writer never produces one under <filter>. firewall_rules.php (RELENG_2_7_2,
 // lines 142-183) deletes a rule from the list init_config_arr made, and rule is
-// a list tag in xmlparse.inc (dump_xml_config_sub, unchanged on master), so a
+// a list tag in xmlparse.inc (dump_xml_config_sub, RELENG_2_7_2), so a
 // list left empty emits nothing and the box writes <filter></filter>. See
 // convertInboundNATRules for the same reading of <nat>. Because the loop never
 // skips an append, the preallocation below is correct.
@@ -37,6 +37,7 @@ func (c *converter) convertFirewallRules(
 
 	result := make([]common.FirewallRule, 0, len(doc.Filter.Rule))
 	for i, rule := range doc.Filter.Rule {
+		c.warnOnAnyBesideAddress(i, rule)
 		rule = withAnyFirst(rule)
 		c.warnOnIncompleteFirewallRule(i, rule)
 
@@ -132,6 +133,24 @@ func withAnyFirst(rule pfsense.FilterRule) pfsense.FilterRule {
 	return rule
 }
 
+// warnOnAnyBesideAddress records a Low warning for each endpoint of rule i that
+// holds <any> beside a network or address. pf reads any (withAnyFirst), so the
+// address reaches no output and an alias named there gets no reference, which
+// the unused-object check would otherwise read as unused (GOTCHAS 3.6, 23.3).
+func (c *converter) warnOnAnyBesideAddress(i int, rule pfsense.FilterRule) {
+	const message = "endpoint holds <any> beside an address; pfSense compiles it as any"
+
+	source := cmp.Or(rule.Source.Network, rule.Source.Address)
+	if source != "" && rule.Source.IsAny() {
+		c.addWarning(fmt.Sprintf("FirewallRules[%d].Source", i), source, message, common.SeverityLow)
+	}
+
+	destination := cmp.Or(rule.Destination.Network, rule.Destination.Address)
+	if destination != "" && rule.Destination.IsAny() {
+		c.addWarning(fmt.Sprintf("FirewallRules[%d].Destination", i), destination, message, common.SeverityLow)
+	}
+}
+
 // ruleType reads a stored type as filter_generate_user_rule in filter.inc does:
 // pass, block, reject and match stand, and pfSense compiles anything else as
 // pass. That covers the empty type of the companion rule the port forward page
@@ -165,13 +184,13 @@ func (c *converter) ruleType(i int, stored string) common.FirewallRuleType {
 }
 
 // ruleStateType reads a stored state type as filter_generate_user_rule in
-// filter.inc does: a pass rule that leaves it out keeps state. The port forward
-// page never writes one, so without this every TCP forward's rule would read as
-// stateless. pf applies no state option to any other type, so nothing is filled
-// in there.
+// filter.inc does: a pass rule whose state type is empty() in PHP, an absent or
+// empty element or 0, keeps state. The port forward page never writes one, so
+// without this every TCP forward's rule would read as stateless. pf applies no
+// state option to any other type, so nothing is filled in there.
 func ruleStateType(ruleType common.FirewallRuleType, stored string) string {
-	if ruleType == common.RuleTypePass {
-		return cmp.Or(stored, stateTypeKeep)
+	if ruleType == common.RuleTypePass && (stored == "" || stored == "0") {
+		return stateTypeKeep
 	}
 
 	return stored
