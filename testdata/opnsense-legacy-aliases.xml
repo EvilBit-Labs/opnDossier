@@ -31,5 +31,26 @@
       <address>10.5.5.3</address>
       <descr>c3VwZXItc2VjcmV0LWxlZ2FjeS1hbGlhcy1hcGkta2V5LTAxMjM0NTY3ODk=</descr>
     </alias>
+    <!--
+      A urltable alias keeps its one source in url, and a url alias keeps its
+      sources in repeated aliasurl elements. The address element of an old url
+      alias holds what it last fetched. OPNsense loads that up to 17.7
+      (filter_expand_aliases in filter.inc), and 18.1 and later fetch the
+      aliasurl elements and ignore it (lib/alias.py).
+    -->
+    <alias uuid="77777777-7777-7777-7777-777777777777">
+      <name>LEGACY_TABLE</name>
+      <type>urltable</type>
+      <url>https://lists.example.org/table.txt</url>
+      <descr>Legacy URL table alias</descr>
+    </alias>
+    <alias uuid="66666666-6666-6666-6666-666666666666">
+      <name>LEGACY_URLS</name>
+      <type>url</type>
+      <aliasurl>https://lists.example.org/first.txt</aliasurl>
+      <aliasurl>https://lists.example.org/second.txt</aliasurl>
+      <address>10.5.5.4 10.5.5.5</address>
+      <descr>Legacy URL alias</descr>
+    </alias>
   </aliases>
 </opnsense>

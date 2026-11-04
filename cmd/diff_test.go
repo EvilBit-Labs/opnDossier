@@ -785,7 +785,7 @@ func TestValidDiffSections(t *testing.T) {
 	}
 	joined += joinedSb770.String()
 	// Check that both implemented and unimplemented sections appear in completions
-	for _, section := range []string{"system", "firewall", "nat", "interfaces", "vlans", "dhcp", "users", "routing", "dns", "vpn", "certificates"} {
+	for _, section := range []string{"system", "firewall", "nat", "interfaces", "vlans", "dhcp", "users", "routing", "aliases", "dns", "vpn", "certificates"} {
 		assert.Contains(t, joined, section, "completions should contain section %q", section)
 	}
 }
