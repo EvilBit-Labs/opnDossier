@@ -292,6 +292,7 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | --------------- | ----------------- | -------- | ------------------------------------------- |
 | IDS.General     | Enabled           | `string` | MVC field, uses `== "1"` with helper method |
 | IDS.General     | Ips               | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.General     | Mode              | `string` | `netmap` is IPS; `divert` if a rule diverts |
 | IDS.General     | Promisc           | `string` | MVC field, uses `== "1"` with helper method |
 | IDS.EveLog.HTTP | Enable            | `string` | MVC field, value-based                      |
 | IDS.EveLog.HTTP | Extended          | `string` | MVC field, value-based                      |
