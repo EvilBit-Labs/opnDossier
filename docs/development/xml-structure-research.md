@@ -197,6 +197,8 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 | NoSync           | `<nosync>`             | `BoolFlag` | Phase 3 |
 | AssociatedRuleID | `<associated-rule-id>` | `string`   | #877    |
 
+OPNsense 18.7.10 to 26.1 leave an empty `<rule/>` under `<filter>` once the last legacy rule is deleted. `Rule.IsPlaceholder` identifies it and the converter skips it.
+
 ### 3c. Remaining Missing Fields (LOW importance)
 
 | Field        | XML Element        | Recommended Go Type |

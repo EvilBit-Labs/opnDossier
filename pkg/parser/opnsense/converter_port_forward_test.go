@@ -704,3 +704,36 @@ func TestParser_PortForwardFixtures_CompanionRuleKeepsItsLink(t *testing.T) {
 	assert.Equal(t, linkID, legacy.NAT.InboundRules[0].AssociatedRuleID,
 		"up to 25.7 the forward carries the same ID as its filter rule")
 }
+
+// TestParser_LegacyPortForwardsFixture_TypelessCompanionIsPass drops <type>
+// from the companion rule, as the port forward page wrote it up to 24.7.
+// OPNsense compiles an empty legacy type as pass (FilterRule.php), so the rule
+// still lets the forwarded traffic in.
+func TestParser_LegacyPortForwardsFixture_TypelessCompanionIsPass(t *testing.T) {
+	t.Parallel()
+
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "opnsense-legacy-port-forwards.xml"))
+	require.NoError(t, err)
+
+	const typed = "<type>pass</type>\n      <associated-rule-id>"
+	require.Equal(t, 1, strings.Count(string(raw), typed))
+	config := strings.Replace(string(raw), typed, "<associated-rule-id>", 1)
+
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
+	device, warnings, err := factory.CreateDevice(
+		context.Background(), strings.NewReader(config), common.DeviceTypeUnknown, false)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+
+	var companion *common.FirewallRule
+	for i := range device.FirewallRules {
+		if device.FirewallRules[i].AssociatedRuleID != "" {
+			companion = &device.FirewallRules[i]
+		}
+	}
+
+	require.NotNil(t, companion)
+	assert.Equal(t, common.RuleTypePass, companion.Type)
+	assert.Equal(t, analysis.WANReachable, analysis.InboundNATRuleReachability(
+		device.NAT.InboundRules[0], device.Interfaces, device.FirewallRules))
+}

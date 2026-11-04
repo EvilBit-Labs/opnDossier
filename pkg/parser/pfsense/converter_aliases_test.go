@@ -259,9 +259,9 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 			Type:      "pass",
 			Interface: opnsense.InterfaceList{"wan"},
 			Source: opnsense.Source{
-				// Both <address> and <any/> present: EffectiveAddress picks
-				// Address over Any, so AddressRef must resolve to the alias
-				// too — AliasAddress follows the same Network > Address order.
+				// Both <address> and <any/> present: filter_generate_address
+				// tests isset(any) first, so pf gets any and the alias is not
+				// in the rule it compiles.
 				Address: "WEB_SERVERS",
 				Any:     new(""),
 			},
@@ -273,7 +273,12 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 
 	device, warnings, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Empty(t, nonGapWarnings(warnings))
+	// Only the rule holding <any> beside <address> warns: the alias it names
+	// reaches no output, so its reference is lost on purpose and said so.
+	warned := nonGapWarnings(warnings)
+	require.Len(t, warned, 1)
+	assert.Equal(t, "FirewallRules[2].Source", warned[0].Field)
+	assert.Equal(t, common.SeverityLow, warned[0].Severity)
 	require.Len(t, device.FirewallRules, 3)
 
 	macroRule := device.FirewallRules[0]
@@ -288,9 +293,6 @@ func TestConverter_FirewallRules_ObjectRef_MacroAndAnyNeverAliasRef(t *testing.T
 	assert.Nil(t, aliasRule.Destination.AddressRef, "a literal IP address must not resolve as an alias ref")
 
 	addressAndAnyRule := device.FirewallRules[2]
-	assert.Equal(t, "WEB_SERVERS", addressAndAnyRule.Source.Address,
-		"EffectiveAddress picks Address over Any")
-	require.NotNil(t, addressAndAnyRule.Source.AddressRef,
-		"an <address> alias must resolve even when <any/> is also present")
-	assert.Equal(t, "WEB_SERVERS", addressAndAnyRule.Source.AddressRef.Name)
+	assert.Equal(t, "any", addressAndAnyRule.Source.Address, "filter.inc tests <any> before <address>")
+	assert.Nil(t, addressAndAnyRule.Source.AddressRef, "an alias beside <any/> is not in the compiled rule")
 }

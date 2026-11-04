@@ -13,3 +13,11 @@ const (
 	// direct equality checks.
 	xmlBoolYes = "yes"
 )
+
+// ruleTypeMatch is the filter rule type that neither passes nor blocks.
+// common.FirewallRuleType has no value for it.
+const ruleTypeMatch = "match"
+
+// stateTypeKeep is the state type filter.inc compiles a pass rule with when the
+// rule leaves <statetype> out.
+const stateTypeKeep = "keep state"

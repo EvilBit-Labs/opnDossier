@@ -974,16 +974,14 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 		wantSeverity common.Severity
 	}{
 		{
-			name: "empty type",
+			name: "empty type reads as pass without a warning",
 			rule: schema.Rule{
 				Type:        "",
 				Interface:   schema.InterfaceList{"lan"},
 				Source:      schema.Source{Any: &anyStr},
 				Destination: schema.Destination{Network: "lan"},
 			},
-			wantWarnings: 1,
-			wantField:    "FirewallRules[0].Type",
-			wantSeverity: common.SeverityHigh,
+			wantWarnings: 0,
 		},
 		{
 			name: "missing source address",
@@ -1025,11 +1023,12 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 			name: "multiple issues",
 			rule: schema.Rule{
 				Type:        "",
+				Descr:       "not a placeholder",
 				Interface:   schema.InterfaceList{},
 				Source:      schema.Source{},
 				Destination: schema.Destination{},
 			},
-			wantWarnings: 4,
+			wantWarnings: 3,
 		},
 	}
 
@@ -1169,4 +1168,49 @@ func TestConverter_Users_Warnings(t *testing.T) {
 	assert.Equal(t, common.SeverityHigh, warnings[0].Severity)
 	assert.Equal(t, "Users[0].UID", warnings[1].Field)
 	assert.Equal(t, common.SeverityHigh, warnings[1].Severity)
+}
+
+// TestConverter_FirewallRules_TypelessRuleIsPass covers a legacy rule with no
+// <type> that no port forward created: FilterRule.php compiles it as pass all
+// the same.
+func TestConverter_FirewallRules_TypelessRuleIsPass(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	doc.Filter.Rule = []schema.Rule{{
+		Interface:   schema.InterfaceList{"wan"},
+		Source:      schema.Source{Network: "any"},
+		Destination: schema.Destination{Network: "any"},
+	}}
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	assert.Empty(t, warnings)
+	require.Len(t, device.FirewallRules, 1)
+	assert.Equal(t, common.RuleTypePass, device.FirewallRules[0].Type)
+}
+
+// TestConverter_FirewallRules_UnrecognizedTypeStaysAsStored pins where OPNsense
+// differs from pfSense: FilterRule.php defaults only a type empty() accepts and
+// hands any other value to pf as written, so the converter does not read it as
+// pass.
+func TestConverter_FirewallRules_UnrecognizedTypeStaysAsStored(t *testing.T) {
+	t.Parallel()
+
+	doc := schema.NewOpnSenseDocument()
+	doc.Filter.Rule = []schema.Rule{{
+		Type:        "allow",
+		Interface:   schema.InterfaceList{"wan"},
+		Source:      schema.Source{Network: "any"},
+		Destination: schema.Destination{Network: "any"},
+	}}
+
+	device, warnings, err := opnsense.ConvertDocument(doc)
+	require.NoError(t, err)
+	require.Len(t, device.FirewallRules, 1)
+	assert.Equal(t, common.FirewallRuleType("allow"), device.FirewallRules[0].Type)
+
+	require.Len(t, warnings, 1)
+	assert.Equal(t, "FirewallRules[0].Type", warnings[0].Field)
+	assert.Equal(t, common.SeverityLow, warnings[0].Severity)
 }
