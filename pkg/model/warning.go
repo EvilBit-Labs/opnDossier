@@ -22,9 +22,9 @@ type Severity string
 //     converter currently emits this level — it is reserved for future
 //     invariant-breaking conditions discovered during conversion.
 //   - [SeverityHigh]: significant information missing or silently altered
-//     (e.g., a firewall rule with an empty type, or an inbound NAT rule
-//     missing its internal IP). Converters reserve this for conditions that
-//     render the converted config functionally incorrect.
+//     (e.g., an inbound NAT rule missing its internal IP). Converters
+//     reserve this for conditions that render the converted config
+//     functionally incorrect.
 //   - [SeverityMedium]: partially preserved data, orphaned cross-references,
 //     or missing but recoverable context (e.g., a rule missing its source
 //     address, an orphan reservation pointing at no subnet).

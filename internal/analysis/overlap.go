@@ -293,8 +293,8 @@ func addressRelation(covering, target string) Coverage {
 		return CoverFull
 	}
 
-	cp, cErr := parsePrefixOrAddr(covering)
-	tp, tErr := parsePrefixOrAddr(target)
+	cp, cErr := ParsePrefixOrAddr(covering)
+	tp, tErr := ParsePrefixOrAddr(target)
 
 	if cErr != nil || tErr != nil {
 		return CoverNone
@@ -315,10 +315,10 @@ func addressRelation(covering, target string) Coverage {
 	return CoverNone
 }
 
-// parsePrefixOrAddr parses s as a CIDR prefix, or — if s has no "/" — as a
+// ParsePrefixOrAddr parses s as a CIDR prefix, or — if s has no "/" — as a
 // single host address represented as a maximally-specific prefix (a /32 for
 // IPv4, a /128 for IPv6).
-func parsePrefixOrAddr(s string) (netip.Prefix, error) {
+func ParsePrefixOrAddr(s string) (netip.Prefix, error) {
 	if strings.Contains(s, "/") {
 		return netip.ParsePrefix(s)
 	}

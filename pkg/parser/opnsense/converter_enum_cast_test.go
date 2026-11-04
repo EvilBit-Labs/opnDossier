@@ -202,19 +202,15 @@ func TestConverter_EnumCast_EmitsWarning(t *testing.T) {
 // elements are a legitimate way to omit a value and must not produce an
 // enum-cast warning on any of the enum field paths.
 //
-// Note: this test sets Type: "pass" on the firewall rule because the
-// converter emits a separate SeverityHigh "firewall rule has empty type"
-// warning when Type is empty — that warning is not an enum-cast concern
-// and would obscure the invariant under test. Direction, IPProtocol, and
-// the NAT / LAGG / VIP enum fields are left empty to exercise the
-// enum-cast branch specifically.
+// Type, Direction, IPProtocol, and the NAT / LAGG / VIP enum fields are left
+// empty to exercise the enum-cast branch specifically.
 func TestConverter_EnumCast_EmptyStringDoesNotWarn(t *testing.T) {
 	t.Parallel()
 
 	doc := &schema.OpnSenseDocument{
 		Filter: schema.Filter{
 			Rule: []schema.Rule{{
-				Type:      "pass",
+				Type:      "",
 				Interface: schema.InterfaceList{"wan"},
 				UUID:      "00000000-0000-0000-0000-000000000000",
 			}},
@@ -250,6 +246,7 @@ func TestConverter_EnumCast_EmptyStringDoesNotWarn(t *testing.T) {
 	// a message substring — a future code path emitting a different message
 	// on empty enum values should still fail this test.
 	unexpectedFields := []string{
+		"FirewallRules[0].Type",
 		"FirewallRules[0].Direction",
 		"FirewallRules[0].IPProtocol",
 		"NAT.OutboundMode",
