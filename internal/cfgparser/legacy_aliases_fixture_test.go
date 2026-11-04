@@ -27,7 +27,7 @@ func TestParser_OPNsenseLegacyAliasesFixture(t *testing.T) {
 
 	device := parseLegacyAliasesFixture(t)
 
-	require.Len(t, device.NamedObjects, 2)
+	require.Len(t, device.NamedObjects, 4)
 
 	legacyHosts, ok := device.NamedObjects["LEGACY_HOSTS"]
 	require.True(t, ok)
@@ -37,6 +37,21 @@ func TestParser_OPNsenseLegacyAliasesFixture(t *testing.T) {
 	legacySecret, ok := device.NamedObjects["LEGACY_SECRET"]
 	require.True(t, ok)
 	assert.Equal(t, []string{"10.5.5.3"}, legacySecret.Members)
+
+	// A url alias reads as its sources and what it last fetched, since the release
+	// decides which of them the firewall loads.
+	legacyTable, ok := device.NamedObjects["LEGACY_TABLE"]
+	require.True(t, ok)
+	assert.Equal(t, []string{"https://lists.example.org/table.txt"}, legacyTable.Members)
+
+	legacyURLs, ok := device.NamedObjects["LEGACY_URLS"]
+	require.True(t, ok)
+	assert.Equal(t,
+		[]string{
+			"https://lists.example.org/first.txt", "https://lists.example.org/second.txt",
+			"10.5.5.4", "10.5.5.5",
+		},
+		legacyURLs.Members)
 }
 
 // legacySecretMarker is the secret-shaped value embedded in
@@ -94,7 +109,8 @@ func legacyAliasesFixturePath() string {
 
 // parseLegacyAliasesFixture opens and parses
 // testdata/opnsense-legacy-aliases.xml through the full parser pipeline,
-// failing the test on any error.
+// failing the test on any error. The one warning is the fixture's urltable
+// alias, a vendor type the model has no constant for (GOTCHAS §5.2).
 func parseLegacyAliasesFixture(t *testing.T) *common.CommonDevice {
 	t.Helper()
 
@@ -105,7 +121,8 @@ func parseLegacyAliasesFixture(t *testing.T) *common.CommonDevice {
 	factory := parser.NewFactory(NewXMLParser())
 	device, warnings, err := factory.CreateDevice(context.Background(), f, common.DeviceTypeUnknown, false)
 	require.NoError(t, err)
-	assert.Empty(t, warnings)
+	require.Len(t, warnings, 1, "%+v", warnings)
+	assert.Equal(t, "NamedObjects[LEGACY_TABLE].Type", warnings[0].Field)
 	require.NotNil(t, device)
 
 	return device
