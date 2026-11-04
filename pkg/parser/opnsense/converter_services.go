@@ -720,7 +720,9 @@ func (c *converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailabil
 
 // convertIDs (IDS = Intrusion Detection System) maps doc.OPNsense.IntrusionDetectionSystem
 // to *common.IDSConfig.
-func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
+// divertRule reports whether a rule of the filter model sends traffic to Suricata
+// (see convertFirewallRules); it settles divert mode.
+func (c *converter) convertIDs(doc *schema.OpnSenseDocument, divertRule bool) *common.IDSConfig {
 	ids := doc.OPNsense.IntrusionDetectionSystem
 	if ids == nil {
 		return nil
@@ -739,7 +741,7 @@ func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 
 	config := &common.IDSConfig{
 		Enabled:           ids.IsEnabled(),
-		IPSMode:           c.idsRunsInline(doc, ids),
+		IPSMode:           ids.IsEnabled() && c.idsRunsInline(doc, ids, divertRule),
 		Promiscuous:       ids.IsPromiscuousMode(),
 		Interfaces:        ids.GetMonitoredInterfaces(),
 		HomeNetworks:      ids.GetHomeNetworks(),
@@ -811,11 +813,11 @@ func (c *converter) checkIDSMode(ids *schema.IDS) {
 // beside it shows a failed IDS migration: the firewall ignores <ips> and, with no
 // <mode>, runs pcap. Restoring such a config onto an older release is the one case
 // this gets wrong, and that errs towards reporting less protection.
-func (c *converter) idsRunsInline(doc *schema.OpnSenseDocument, ids *schema.IDS) bool {
+func (c *converter) idsRunsInline(doc *schema.OpnSenseDocument, ids *schema.IDS, divertRule bool) bool {
 	switch {
 	case !ids.IsIPSMode():
 		return false
-	case ids.IsDivertMode() && !c.idsDivertRule:
+	case ids.IsDivertMode() && !divertRule:
 		c.warnIfEngineRuns(ids, idsModePath, ids.General.Mode, common.SeverityHigh,
 			"OPNsense IDS divert mode inspects only traffic a firewall rule sends it, and no enabled "+
 				"pass rule of the filter model on an enabled interface with a device has divert-to "+

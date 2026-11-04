@@ -27,19 +27,30 @@ func idsDivertDocument(t *testing.T, rules string) *schema.OpnSenseDocument {
 	return doc
 }
 
-// TestConverter_IDSDivertRule_DoesNotCarryOver reuses one converter, as
-// ToCommonDevice allows by resetting its warnings, and pins that the rule found in
-// one document does not stand in for a rule missing from the next.
-func TestConverter_IDSDivertRule_DoesNotCarryOver(t *testing.T) {
+// TestConverter_ConvertFirewallRules_ReportsDivertRule pins the second result of
+// convertFirewallRules, which convertIDs reads to settle divert mode: set by an
+// enabled pass rule with divert-to 8000, and by nothing else.
+func TestConverter_ConvertFirewallRules_ReportsDivertRule(t *testing.T) {
 	t.Parallel()
 
-	c := newConverter()
+	tests := []struct {
+		name  string
+		rules string
+		want  bool
+	}{
+		{name: "no rules", rules: "", want: false},
+		{name: "pass rule to Suricata", rules: `<rule><divert-to>8000</divert-to></rule>`, want: true},
+		{name: "disabled rule", rules: `<rule><enabled>0</enabled><divert-to>8000</divert-to></rule>`, want: false},
+		{name: "block rule", rules: `<rule><action>block</action><divert-to>8000</divert-to></rule>`, want: false},
+		{name: "other divert port", rules: `<rule><divert-to>8001</divert-to></rule>`, want: false},
+	}
 
-	device, _, err := c.ToCommonDevice(idsDivertDocument(t, `<rule><divert-to>8000</divert-to></rule>`))
-	require.NoError(t, err)
-	assert.True(t, device.IDS.IPSMode)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	device, _, err = c.ToCommonDevice(idsDivertDocument(t, ""))
-	require.NoError(t, err)
-	assert.False(t, device.IDS.IPSMode)
+			_, got := newConverter().convertFirewallRules(idsDivertDocument(t, tc.rules))
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

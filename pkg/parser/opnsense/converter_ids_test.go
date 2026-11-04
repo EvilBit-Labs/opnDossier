@@ -352,6 +352,8 @@ func TestConverter_IDS_DisabledEngineDrawsNoCaptureWarning(t *testing.T) {
 		model   string
 	}{
 		{name: "divert with no rule", version: "1.1.2", general: `<mode>divert</mode>`},
+		{name: "netmap", version: "1.1.2", general: `<mode>netmap</mode>`},
+		{name: "ips on a model that predates mode", version: "1.1.1", general: `<ips>1</ips>`},
 		{name: "mode on a model that predates it", version: "1.1.1", general: `<mode>netmap</mode>`},
 		{name: "unknown mode on a model that predates it", version: "1.1.1", general: `<mode>afpacket</mode>`},
 		{name: "ips on a model that reads mode", version: "1.1.2", general: `<ips>1</ips>`},
