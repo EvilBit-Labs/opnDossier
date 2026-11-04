@@ -352,8 +352,9 @@ const (
 type IPProtocol string
 
 const (
-    IPProtocolInet  IPProtocol = "inet"   // IPv4
-    IPProtocolInet6 IPProtocol = "inet6"  // IPv6
+    IPProtocolInet   IPProtocol = "inet"   // IPv4
+    IPProtocolInet6  IPProtocol = "inet6"  // IPv6
+    IPProtocolInet46 IPProtocol = "inet46" // IPv4 and IPv6 in one rule
 )
 
 type FirewallDirection string
