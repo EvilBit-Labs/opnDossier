@@ -2635,7 +2635,7 @@ func TestAlias_XMLRoundTrip(t *testing.T) {
 			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
 				t.Fatalf("xml.Unmarshal() error = %v", err)
 			}
-			if got != tt.want {
+			if !aliasesEqual(got, tt.want) {
 				t.Errorf("xml.Unmarshal() = %+v, want %+v", got, tt.want)
 			}
 
@@ -2655,7 +2655,7 @@ func TestAlias_XMLRoundTrip(t *testing.T) {
 			if err := xml.Unmarshal(marshaled, &roundTripped); err != nil {
 				t.Fatalf("round-trip xml.Unmarshal() error = %v", err)
 			}
-			if roundTripped != tt.want {
+			if !aliasesEqual(roundTripped, tt.want) {
 				t.Errorf("round-trip result = %+v, want %+v", roundTripped, tt.want)
 			}
 		})
