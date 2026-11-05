@@ -821,8 +821,10 @@ func (g *GatewayModelItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
     sets Gateway.HasChildElement. The model block is an anonymous struct,
     which cannot carry a method, so the item does.
 
-    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded,
-    so the default encoder writes the element this reads.
+    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so
+    the default encoder writes the fields this reads. It does not keep an item
+    whose only children are empty or unbound, such as <name/> or <priority>:
+    those are omitted, and the item reads back as a placeholder.
 
 type Gateways struct {
 	XMLName xml.Name       `xml:"gateways"`
@@ -837,13 +839,16 @@ func NewGateways() *Gateways
     gateways and gateway groups.
 
 func (g *Gateways) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
-    UnmarshalXML decodes <gateways> as encoding/xml would and sets
-    Gateway.HasChildElement on each item. The container decodes the items,
-    so that Gateway, which GatewayModelItem embeds and pfSense shares, needs no
-    UnmarshalXML of its own.
+    UnmarshalXML decodes <gateways> as encoding/xml would, namespaces
+    aside (GOTCHAS [decodeGatewayItem]), and sets Gateway.HasChildElement
+    on each item. The container decodes the items, so that Gateway, which
+    GatewayModelItem embeds and pfSense shares, needs no UnmarshalXML of its
+    own.
 
-    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded,
-    so the default encoder writes the element this reads.
+    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so
+    the default encoder writes the fields this reads. It does not keep an item
+    whose only children are empty or unbound, such as <name/> or <priority>:
+    those are omitted, and the item reads back as a placeholder.
 
 type Group struct {
 	Name        string   `xml:"name"        json:"name"                  yaml:"name"                  validate:"required,alphanum"`

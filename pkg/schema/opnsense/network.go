@@ -39,7 +39,7 @@ func NewGateways() *Gateways {
 	}
 }
 
-// UnmarshalXML decodes <gateways> as encoding/xml would, namespaces aside (see
+// UnmarshalXML decodes <gateways> as encoding/xml would, namespaces aside (GOTCHAS
 // [decodeGatewayItem]), and sets [Gateway.HasChildElement] on
 // each item. The container decodes the items, so that [Gateway], which [GatewayModelItem] embeds
 // and pfSense shares, needs no UnmarshalXML of its own.
