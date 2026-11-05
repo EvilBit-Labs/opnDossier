@@ -416,11 +416,9 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		Direction:   c.ruleDirection(i, cmp.Or(rule.Direction, string(common.DirectionIn))),
 		IPProtocol:  c.ruleFamily(i, rule.IPProtocol),
 		StateType:   legacyStateType(rule.StateType),
-		Floating:    rule.Floating != "",
-		// shortcut: Quick is a BoolFlag, so <quick>0</quick> on an interface rule reads as
-		// absent and the rule as quick; make it a *string if a release ever writes that.
-		Quick:    bool(rule.Quick) || rule.Floating == "",
-		Protocol: rule.Protocol,
+		Floating:    rule.Floating != nil,
+		Quick:       legacyQuick(rule),
+		Protocol:    rule.Protocol,
 		Source: common.RuleEndpoint{
 			Address:     rule.Source.EffectiveAddress(),
 			AddressRef:  c.namedObjects.Ref(rule.Source.AliasAddress()),
@@ -462,6 +460,19 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		// Set on the pass rule a port forward stores for itself.
 		AssociatedRuleID: rule.AssociatedRuleID,
 	}
+}
+
+// legacyQuick reads <quick> on a legacy rule as FilterRule.php does: an absent
+// element takes the default, quick unless floating (L220-L222), and a present
+// one goes through parseBool, which is !empty(), so <quick>0</quick>, which the
+// legacy rules page writes for an unticked box, and <quick/> are not quick on
+// any rule.
+func legacyQuick(rule schema.Rule) bool {
+	if rule.Quick == nil {
+		return rule.Floating == nil
+	}
+
+	return modelFlagSet(*rule.Quick)
 }
 
 // warnOnLiveDisabledElement reports a <disabled> element the firewall does not

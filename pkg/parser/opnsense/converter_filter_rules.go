@@ -267,9 +267,8 @@ func pluginRulePriority(rule schema.FirewallFilterRule, doc *schema.OpnSenseDocu
 // legacyRulePriority returns the priority OPNsense gives a legacy rule: floating
 // first, then rules on a group <ifgroups> defines, by the group's sequence.
 func legacyRulePriority(rule *schema.Rule, groups map[string]int) int {
-	// The firewall tests for the element, which holds yes or 1. An empty one
-	// cannot be told from an absent one here.
-	if rule.Floating != "" {
+	// The firewall tests for the element with isset(), whatever it holds.
+	if rule.Floating != nil {
 		return priorityFloating
 	}
 

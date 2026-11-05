@@ -245,7 +245,7 @@ func countOPNEndpointFields(isAny bool, network, address string) int {
 
 func validateOPNRuleDirection(prefix string, rule schema.Rule) []ValidationError {
 	var errors []ValidationError
-	if rule.Floating == floatingYes && rule.Direction == "" {
+	if rule.Floating != nil && *rule.Floating == floatingYes && rule.Direction == "" {
 		errors = append(errors, ValidationError{
 			Field:   prefix + ".direction",
 			Message: "direction is required for floating rules",

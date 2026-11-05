@@ -135,14 +135,15 @@ func TestConverter_FirewallRules(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 
 	anyStr := ""
+	floating, quick := "yes", "1"
 	doc.Filter.Rule = []schema.Rule{
 		{
 			Type:       "pass",
 			Descr:      "Allow LAN",
 			Interface:  schema.InterfaceList{"lan"},
 			IPProtocol: "inet",
-			Floating:   "yes",
-			Quick:      true,
+			Floating:   &floating,
+			Quick:      &quick,
 			Log:        true,
 			Source: schema.Source{
 				Any:  &anyStr,
