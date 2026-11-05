@@ -1288,6 +1288,18 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 			errorField:     "filter.rule[0].direction",
 		},
 		{
+			// The firewall floats on isset(), so an empty element and a 1 count.
+			name: "present floating elements without direction - invalid",
+			filter: schema.Filter{
+				Rule: []schema.Rule{
+					{Type: "pass", Interface: schema.InterfaceList{"wan"}, Floating: new("")},
+					{Type: "pass", Interface: schema.InterfaceList{"wan"}, Floating: new("1")},
+				},
+			},
+			expectedErrors: 2,
+			errorField:     "filter.rule[0].direction",
+		},
+		{
 			name: "floating rule with invalid direction",
 			filter: schema.Filter{
 				Rule: []schema.Rule{
