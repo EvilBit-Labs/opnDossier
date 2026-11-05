@@ -26,7 +26,7 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **Upstream PHP pattern:** `isset($rule['log'])`, which counts an empty element, or `!empty($rule['interfacenot'])`, which does not. Check which one the vendor uses: pfSense tests `<disabled>` on a filter rule with `isset()` and OPNsense with `!empty()`, so the same element reads differently on the two.
 
-**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`, and on a pfSense filter rule `<floating>`, `<quick>` and `<disabled>`)
+**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`, `<floating>` on an OPNsense legacy rule, and on a pfSense filter rule `<floating>`, `<quick>` and `<disabled>`)
 
 | Element                     | Parent Context                               | Upstream Evidence                                                                                                                                        |
 | --------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -280,10 +280,11 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 
 - System: IPv6Allow (system.go, and pfSense system.go)
 - FilterRule: Floating, Quick, Disabled (pfSense security.go). The direction check also reads `Floating`'s body (section 1a)
+- Rule: Floating (security.go)
 
 **Converted to `*string` (the body is tested with `!empty()`):**
 
-- Rule: Disabled (security.go)
+- Rule: Disabled, Quick (security.go)
 - FirewallFilterRule: Enabled, Quick (security.go)
 
 **Converted to BoolFlag (presence-based — `isset()` in PHP):**
