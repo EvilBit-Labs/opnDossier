@@ -1107,7 +1107,7 @@ func TestRule_BoolFlagFields_XMLRoundTrip(t *testing.T) {
 		name         string
 		xml          string
 		wantDisabled bool
-		wantQuick    BoolFlag
+		wantQuick    bool
 		wantLog      BoolFlag
 	}{
 		{
@@ -1150,8 +1150,8 @@ func TestRule_BoolFlagFields_XMLRoundTrip(t *testing.T) {
 			if (got.Disabled != nil) != tt.wantDisabled {
 				t.Errorf("Disabled element present = %v, want %v", got.Disabled != nil, tt.wantDisabled)
 			}
-			if got.Quick != tt.wantQuick {
-				t.Errorf("Quick = %v, want %v", got.Quick, tt.wantQuick)
+			if (got.Quick != nil) != tt.wantQuick {
+				t.Errorf("Quick element present = %v, want %v", got.Quick != nil, tt.wantQuick)
 			}
 			if got.Log != tt.wantLog {
 				t.Errorf("Log = %v, want %v", got.Log, tt.wantLog)
@@ -1200,8 +1200,8 @@ func TestRule_NewStringFields_XMLRoundTrip(t *testing.T) {
 			if err := xml.Unmarshal([]byte(tt.xml), &got); err != nil {
 				t.Fatalf("xml.Unmarshal() error = %v", err)
 			}
-			if got.Floating != tt.wantFloating {
-				t.Errorf("Floating = %q, want %q", got.Floating, tt.wantFloating)
+			if derefString(got.Floating) != tt.wantFloating {
+				t.Errorf("Floating = %q, want %q", derefString(got.Floating), tt.wantFloating)
 			}
 			if got.Gateway != tt.wantGateway {
 				t.Errorf("Gateway = %q, want %q", got.Gateway, tt.wantGateway)
@@ -1347,7 +1347,7 @@ func TestRule_FloatingRules_XMLRoundTrip(t *testing.T) {
 		wantFloating string
 		wantDir      string
 		wantGateway  string
-		wantQuick    BoolFlag
+		wantQuick    bool
 		wantLog      BoolFlag
 		wantTracker  string
 		wantState    string
@@ -1431,11 +1431,12 @@ func assertFloatingRuleFields(
 	label string,
 	got Rule,
 	wantFloating, wantDir, wantGateway, wantTracker, wantState string,
-	wantQuick, wantLog BoolFlag,
+	wantQuick bool,
+	wantLog BoolFlag,
 ) {
 	t.Helper()
-	if got.Floating != wantFloating {
-		t.Errorf("%s Floating = %q, want %q", label, got.Floating, wantFloating)
+	if derefString(got.Floating) != wantFloating {
+		t.Errorf("%s Floating = %q, want %q", label, derefString(got.Floating), wantFloating)
 	}
 	if got.Direction != wantDir {
 		t.Errorf("%s Direction = %q, want %q", label, got.Direction, wantDir)
@@ -1443,8 +1444,8 @@ func assertFloatingRuleFields(
 	if got.Gateway != wantGateway {
 		t.Errorf("%s Gateway = %q, want %q", label, got.Gateway, wantGateway)
 	}
-	if got.Quick != wantQuick {
-		t.Errorf("%s Quick = %v, want %v", label, got.Quick, wantQuick)
+	if (got.Quick != nil) != wantQuick {
+		t.Errorf("%s Quick element present = %v, want %v", label, got.Quick != nil, wantQuick)
 	}
 	if got.Log != wantLog {
 		t.Errorf("%s Log = %v, want %v", label, got.Log, wantLog)
@@ -1903,7 +1904,7 @@ func assertRuleFieldsEmpty(t *testing.T, got Rule) {
 		name string
 		got  string
 	}{
-		{"Floating", got.Floating},
+		{"Floating", derefString(got.Floating)},
 		{"Gateway", got.Gateway},
 		{"Direction", got.Direction},
 		{"StateType", got.StateType},
@@ -1933,7 +1934,7 @@ func assertRuleFieldsEmpty(t *testing.T, got Rule) {
 		got  bool
 	}{
 		{"Log", bool(got.Log)},
-		{"Quick", bool(got.Quick)},
+		{"Quick", got.Quick != nil},
 		{"TCPFlagsAny", bool(got.TCPFlagsAny)},
 		{"AllowOpts", bool(got.AllowOpts)},
 		{"DisableReplyTo", bool(got.DisableReplyTo)},
@@ -2031,11 +2032,11 @@ func verifyCompleteRuleFields(t *testing.T, got Rule, prefix string) {
 	if got.Direction != "in" {
 		t.Errorf("%s Direction = %q, want %q", prefix, got.Direction, "in")
 	}
-	if got.Floating != floatingYes {
-		t.Errorf("%s Floating = %q, want %q", prefix, got.Floating, floatingYes)
+	if derefString(got.Floating) != floatingYes {
+		t.Errorf("%s Floating = %q, want %q", prefix, derefString(got.Floating), floatingYes)
 	}
-	if got.Quick != true {
-		t.Errorf("%s Quick = %v, want true", prefix, got.Quick)
+	if got.Quick == nil {
+		t.Errorf("%s Quick = nil, want an element", prefix)
 	}
 	if got.Protocol != testTCP {
 		t.Errorf("%s Protocol = %q, want %q", prefix, got.Protocol, testTCP)
@@ -3015,4 +3016,13 @@ func TestFirewallAlias_EmptyAliases_RoundTrip(t *testing.T) {
 	if len(roundTripped.Alias.Aliases.Alias) != 0 {
 		t.Errorf("round-trip Alias.Aliases.Alias = %+v, want empty", roundTripped.Alias.Aliases.Alias)
 	}
+}
+
+// derefString returns the string a *string points to, or "" for nil.
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+
+	return *s
 }

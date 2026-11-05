@@ -26,34 +26,34 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **Upstream PHP pattern:** `isset($rule['log'])`, which counts an empty element, or `!empty($rule['interfacenot'])`, which does not. Check which one the vendor uses: pfSense tests `<disabled>` on a filter rule with `isset()` and OPNsense with `!empty()`, so the same element reads differently on the two.
 
-**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`, and on a pfSense filter rule `<floating>`, `<quick>` and `<disabled>`)
+**Go type:** `BoolFlag` (custom type in `pkg/schema/opnsense/common.go`), or `*string` where the body must be ignored (`<ipv6allow>`, `<any>`, `<floating>` on an OPNsense legacy rule, and on a pfSense filter rule `<floating>`, `<quick>` and `<disabled>`)
 
-| Element                     | Parent Context                               | Upstream Evidence                                                                                                                                                                                     |
-| --------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<any/>`                    | `<source>`, `<destination>`                  | `isset($this->rule['source']['any'])` in FilterRule.php                                                                                                                                               |
-| `<not/>`                    | `<source>`, `<destination>`                  | `isset($adr['not'])` in filter.inc                                                                                                                                                                    |
-| `<disabled/>`               | `<rule>` (pfSense filter)                    | `isset($rule['disabled'])` in filter.inc                                                                                                                                                              |
-| `<floating/>`               | `<rule>` (pfSense filter)                    | `isset($rule['floating'])` in filter.inc                                                                                                                                                              |
-| `<quick/>`                  | `<rule>` (pfSense filter)                    | `isset($rule['quick'])` in filter.inc                                                                                                                                                                 |
-| `<disabled/>`               | `<rule>` (NAT)                               | `isset($rule['disabled'])` in filter.inc                                                                                                                                                              |
-| `<log/>`                    | `<rule>` (filter)                            | `isset($rule['log'])` sets `$filterent['log'] = true`                                                                                                                                                 |
-| `<quick/>`                  | `<rule>` (OPNsense filter, legacy and model) | `parseBool,quick` (`!empty`): content matters, `<quick/>` is not quick. The model's `FirewallFilterRule.Quick` is `*string`; the legacy `Rule.Quick` is still `BoolFlag` and reads it as quick (#976) |
-| `<disableconsolemenu/>`     | `<system>`                                   | config.xml.sample: self-closing                                                                                                                                                                       |
-| `<enable/>`                 | `<rrd>`                                      | config.xml.sample: self-closing                                                                                                                                                                       |
-| `<tcpflags_any/>`           | `<rule>` (filter)                            | `isset($rule['tcpflags_any'])`                                                                                                                                                                        |
-| `<nopfsync/>`               | `<rule>` (filter)                            | `isset($rule['nopfsync'])`                                                                                                                                                                            |
-| `<allowopts/>`              | `<rule>` (filter)                            | `$filterent['allowopts'] = true`                                                                                                                                                                      |
-| `<disablereplyto/>`         | `<rule>` (filter)                            | `$filterent['disablereplyto'] = true`                                                                                                                                                                 |
-| `<nosync/>`                 | `<rule>` (filter, NAT)                       | `$natent['nosync'] = true`                                                                                                                                                                            |
-| `<nordr/>`                  | `<rule>` (NAT inbound)                       | `isset($natent['nordr'])`                                                                                                                                                                             |
-| `<staticnatport/>`          | `<rule>` (NAT outbound)                      | Presence-checked in OPNsense                                                                                                                                                                          |
-| `<nonat/>`                  | `<rule>` (NAT outbound)                      | Presence-checked                                                                                                                                                                                      |
-| `<interfacenot/>`           | `<rule>` (filter)                            | `!empty($rule['interfacenot'])`                                                                                                                                                                       |
-| `<nottagged/>`              | `<rule>` (filter)                            | Match packets NOT tagged                                                                                                                                                                              |
-| `<trigger_initial_wizard/>` | `<opnsense>` (root)                          | First-boot wizard trigger                                                                                                                                                                             |
-| `<ipv6allow/>`              | `<system>`                                   | `isset($config['system']['ipv6allow'])`, before 26.1                                                                                                                                                  |
-| `<enable/>`                 | `<interfaces><wan>`                          | Interface enabled (pfSense uses BoolFlag)                                                                                                                                                             |
-| `<enable/>`                 | `<dhcpd><lan>`                               | DHCP scope enabled (pfSense uses BoolFlag)                                                                                                                                                            |
+| Element                     | Parent Context                               | Upstream Evidence                                                                                                                                        |
+| --------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<any/>`                    | `<source>`, `<destination>`                  | `isset($this->rule['source']['any'])` in FilterRule.php                                                                                                  |
+| `<not/>`                    | `<source>`, `<destination>`                  | `isset($adr['not'])` in filter.inc                                                                                                                       |
+| `<disabled/>`               | `<rule>` (pfSense filter)                    | `isset($rule['disabled'])` in filter.inc                                                                                                                 |
+| `<floating/>`               | `<rule>` (pfSense filter)                    | `isset($rule['floating'])` in filter.inc                                                                                                                 |
+| `<quick/>`                  | `<rule>` (pfSense filter)                    | `isset($rule['quick'])` in filter.inc                                                                                                                    |
+| `<disabled/>`               | `<rule>` (NAT)                               | `isset($rule['disabled'])` in filter.inc                                                                                                                 |
+| `<log/>`                    | `<rule>` (filter)                            | `isset($rule['log'])` sets `$filterent['log'] = true`                                                                                                    |
+| `<quick/>`                  | `<rule>` (OPNsense filter, legacy and model) | `parseBool,quick` (`!empty`): content matters, `<quick/>` is not quick. Both `FirewallFilterRule.Quick` and the legacy `Rule.Quick` are `*string` (#976) |
+| `<disableconsolemenu/>`     | `<system>`                                   | config.xml.sample: self-closing                                                                                                                          |
+| `<enable/>`                 | `<rrd>`                                      | config.xml.sample: self-closing                                                                                                                          |
+| `<tcpflags_any/>`           | `<rule>` (filter)                            | `isset($rule['tcpflags_any'])`                                                                                                                           |
+| `<nopfsync/>`               | `<rule>` (filter)                            | `isset($rule['nopfsync'])`                                                                                                                               |
+| `<allowopts/>`              | `<rule>` (filter)                            | `$filterent['allowopts'] = true`                                                                                                                         |
+| `<disablereplyto/>`         | `<rule>` (filter)                            | `$filterent['disablereplyto'] = true`                                                                                                                    |
+| `<nosync/>`                 | `<rule>` (filter, NAT)                       | `$natent['nosync'] = true`                                                                                                                               |
+| `<nordr/>`                  | `<rule>` (NAT inbound)                       | `isset($natent['nordr'])`                                                                                                                                |
+| `<staticnatport/>`          | `<rule>` (NAT outbound)                      | Presence-checked in OPNsense                                                                                                                             |
+| `<nonat/>`                  | `<rule>` (NAT outbound)                      | Presence-checked                                                                                                                                         |
+| `<interfacenot/>`           | `<rule>` (filter)                            | `!empty($rule['interfacenot'])`                                                                                                                          |
+| `<nottagged/>`              | `<rule>` (filter)                            | Match packets NOT tagged                                                                                                                                 |
+| `<trigger_initial_wizard/>` | `<opnsense>` (root)                          | First-boot wizard trigger                                                                                                                                |
+| `<ipv6allow/>`              | `<system>`                                   | `isset($config['system']['ipv6allow'])`, before 26.1                                                                                                     |
+| `<enable/>`                 | `<interfaces><wan>`                          | Interface enabled (pfSense uses BoolFlag)                                                                                                                |
+| `<enable/>`                 | `<dhcpd><lan>`                               | DHCP scope enabled (pfSense uses BoolFlag)                                                                                                               |
 
 **pfSense Bug #6893 note:** Prior to pfSense 2.3.3, some code produced `<tag/>` while other code produced `<tag></tag>`. Both forms are valid XML and our `*string` / `BoolFlag` types handle both correctly via Go's `encoding/xml`.
 
@@ -173,9 +173,9 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 | Target      | `<target>`      | `string`        | Correct   | Initial |
 | SourcePort  | `<sourceport>`  | `string`        | Correct   | Initial |
 | Disabled    | `<disabled>`    | `*string`       | Converted | Phase 2 |
-| Quick       | `<quick>`       | `BoolFlag`      | Converted | Phase 2 |
+| Quick       | `<quick>`       | `*string`       | Converted | #976    |
 | Log         | `<log>`         | `BoolFlag`      | Added     | Phase 2 |
-| Floating    | `<floating>`    | `string`        | Added     | Phase 2 |
+| Floating    | `<floating>`    | `*string`       | Converted | #976    |
 | Gateway     | `<gateway>`     | `string`        | Added     | Phase 2 |
 | Direction   | `<direction>`   | `string`        | Added     | Phase 2 |
 | Tracker     | `<tracker>`     | `string`        | Added     | Phase 2 |
@@ -280,15 +280,16 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 
 - System: IPv6Allow (system.go, and pfSense system.go)
 - FilterRule: Floating, Quick, Disabled (pfSense security.go). The direction check also reads `Floating`'s body (section 1a)
+- Rule: Floating (security.go)
 
 **Converted to `*string` (the body is tested with `!empty()`):**
 
-- Rule: Disabled (security.go)
+- Rule: Disabled, Quick (security.go)
 - FirewallFilterRule: Enabled, Quick (security.go)
 
 **Converted to BoolFlag (presence-based — `isset()` in PHP):**
 
-- Rule: Log (security.go) — Phase 2. `Rule.Quick` sits here too, although the firewall tests it with `!empty()`; it moves to `*string` under #976
+- Rule: Log (security.go) — Phase 2. `Rule.Quick` was here too and moved to `*string` under #976, since the firewall tests it with `!empty()`
 - NATRule: Disabled, Log (security.go) — Phase 2
 - InboundRule: Disabled, Log (security.go) — Phase 2
 - System: DisableConsoleMenu (system.go) — Phase 3

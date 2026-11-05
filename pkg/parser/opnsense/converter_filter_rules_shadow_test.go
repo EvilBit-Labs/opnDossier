@@ -382,3 +382,110 @@ func TestConverter_FilterRules_ShadowClassOfRuleWithNoType(t *testing.T) {
 		})
 	}
 }
+
+// TestConverter_FilterRules_LegacyQuickElement pins how OPNsense reads <quick>
+// on a legacy rule. FilterRule.php applies the default, quick unless floating,
+// only when the element is absent; a present one goes through parseBool, which
+// is !empty(), so <quick>0</quick>, which the legacy rules page writes for an
+// unticked box, and <quick/> are not quick on any rule. A pass read as quick
+// shadows the block below it; read as not quick, the block wins the pair.
+func TestConverter_FilterRules_LegacyQuickElement(t *testing.T) {
+	t.Parallel()
+
+	const (
+		onLAN    = `<interface>lan</interface>`
+		toNet8   = `<source><any>1</any></source><destination><address>10.0.0.0/8</address></destination>`
+		toNet16  = `<source><any>1</any></source><destination><address>10.1.0.0/16</address></destination>`
+		floating = `<floating>yes</floating><direction>in</direction>`
+		block    = `<rule><type>block</type>` + onLAN + toNet16 + `</rule>`
+
+		shadowedByAllow = "Rule 2 (block) on interface lan (in) is fully shadowed by rule 1 (pass)"
+		lastMatch       = "Rule 1 (pass) on interface lan (in) is partially shadowed by rule 2 (block)"
+	)
+
+	tests := []struct {
+		name      string
+		elements  string
+		wantQuick bool
+	}{
+		{name: "interface rule with no quick", wantQuick: true},
+		{name: "interface rule with quick holding 1", elements: `<quick>1</quick>`, wantQuick: true},
+		{name: "interface rule with quick holding yes", elements: `<quick>yes</quick>`, wantQuick: true},
+		{name: "interface rule with quick holding 0", elements: `<quick>0</quick>`},
+		{name: "interface rule with self-closing quick", elements: `<quick/>`},
+		{name: "interface rule with empty quick", elements: `<quick></quick>`},
+		{name: "floating rule with no quick", elements: floating},
+		{name: "floating rule with quick holding 1", elements: floating + `<quick>1</quick>`, wantQuick: true},
+		{name: "floating rule with quick holding 0", elements: floating + `<quick>0</quick>`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, _ := parseFilterRules(t, `<rule><type>pass</type>`+onLAN+tt.elements+toNet8+`</rule>`+block, "")
+
+			require.Len(t, device.FirewallRules, 2)
+			assert.Equal(t, tt.wantQuick, device.FirewallRules[0].Quick)
+
+			want, wantClass := lastMatch, common.ImpactClassTroubleshooting
+			if tt.wantQuick {
+				want, wantClass = shadowedByAllow, common.ImpactClassSecurity
+			}
+
+			assert.Equal(t, []string{want}, shadowSummaries(device))
+
+			findings := analysis.DetectShadowedRules(device)
+			require.Len(t, findings, 1)
+			assert.Equal(t, wantClass, findings[0].ImpactClass)
+		})
+	}
+}
+
+// TestConverter_FilterRules_LegacyFloatingElement pins that <floating> on a
+// legacy rule is read for presence, as the firewall does (filter.lib.inc
+// isset()), so an empty <floating/> is a floating rule: it ranks ahead of the
+// interface rules and takes the not-quick default.
+func TestConverter_FilterRules_LegacyFloatingElement(t *testing.T) {
+	t.Parallel()
+
+	const (
+		onLAN  = `<interface>lan</interface>`
+		toAny  = `<source><any>1</any></source><destination><any>1</any></destination>`
+		first  = `<rule><type>block</type><descr>first</descr>` + onLAN + toAny + `</rule>`
+		second = "second"
+	)
+
+	tests := []struct {
+		name         string
+		element      string
+		wantFloating bool
+	}{
+		{name: "absent element"},
+		{name: "self-closing element", element: `<floating/>`, wantFloating: true},
+		{name: "element holding yes", element: `<floating>yes</floating>`, wantFloating: true},
+		{name: "element holding 1", element: `<floating>1</floating>`, wantFloating: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, _ := parseFilterRules(t,
+				first+`<rule><type>pass</type><descr>`+second+`</descr>`+onLAN+tt.element+toAny+`</rule>`, "")
+
+			require.Len(t, device.FirewallRules, 2)
+
+			// A floating rule ranks first; an interface rule keeps list order.
+			index := 1
+			if tt.wantFloating {
+				index = 0
+			}
+
+			rule := device.FirewallRules[index]
+			assert.Equal(t, second, rule.Description)
+			assert.Equal(t, tt.wantFloating, rule.Floating)
+			assert.Equal(t, !tt.wantFloating, rule.Quick, "quick unless floating")
+		})
+	}
+}

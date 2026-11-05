@@ -141,8 +141,8 @@ func TestConverter_FirewallRules(t *testing.T) {
 			Descr:      "Allow LAN",
 			Interface:  schema.InterfaceList{"lan"},
 			IPProtocol: "inet",
-			Floating:   "yes",
-			Quick:      true,
+			Floating:   new("yes"),
+			Quick:      new("1"),
 			Log:        true,
 			Source: schema.Source{
 				Any:  &anyStr,
