@@ -438,13 +438,52 @@ func TestHasManagementOnWAN(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "rule on WAN with port in destination string",
+			name: "rule on WAN with a port range holding a management port",
 			data: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
 						Direction:   common.DirectionIn,
-						Destination: common.RuleEndpoint{Port: "range:80-90"},
+						Destination: common.RuleEndpoint{Port: "80-90"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with a port list holding a management port",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionIn,
+						Destination: common.RuleEndpoint{Port: "8443,443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with a port that only holds a management port's digits",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionIn,
+						Destination: common.RuleEndpoint{Port: "1443"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "rule on WAN with no destination port matches every port",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionIn,
+						Destination: common.RuleEndpoint{Address: "any"},
 					},
 				},
 			},

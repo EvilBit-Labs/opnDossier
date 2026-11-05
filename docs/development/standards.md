@@ -513,7 +513,7 @@ The config.xml data model is enhanced in phases to ensure backward compatibility
 | Phase | Scope                        | Fields Added | Key Changes                                                                                                                        |
 | ----- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | Source/Destination gaps      | 3            | Address, Port (Source), Not — added directly to structs                                                                            |
-| 2     | High-priority Rule fields    | 8            | Log, Disabled/Quick→BoolFlag, Floating, Gateway, Direction, Tracker, StateType                                                     |
+| 2     | High-priority Rule fields    | 8            | Log, Disabled, Quick (as `BoolFlag` then; retyped since, see below), Floating, Gateway, Direction, Tracker, StateType              |
 | 3     | Rate-limiting and advanced   | 14           | max-src-\*, TCP/ICMP flags, state timeout, advanced BoolFlags                                                                      |
 | 4     | NAT rule enhancements        | 9            | NATRule: StaticNatPort, NoNat, NatPort, PoolOptsSrcHashKey; InboundRule: NATReflection, AssociatedRuleID, NoRDR, NoSync, LocalPort |
 | 5     | Documentation and validation | —            | Research doc updates, field reference, validator enhancements                                                                      |

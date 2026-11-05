@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
@@ -100,7 +101,7 @@ func AssessServiceRisk(serviceName string) string {
 
 // hasManagementOnWAN checks whether any enabled pass rule allows inbound traffic to common management ports on the WAN interface.
 func hasManagementOnWAN(data *common.CommonDevice) bool {
-	mgmtPorts := []string{"443", "80", "22", "8080"}
+	mgmtPorts := []int{443, 80, 22, 8080}
 
 	for _, rule := range data.FirewallRules {
 		if !slices.ContainsFunc(rule.Interfaces, func(s string) bool {
@@ -119,8 +120,10 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 		if rule.Direction == common.DirectionOut {
 			continue
 		}
+		// A list or range is matched by containment, and a rule with no port or
+		// a port alias counts, so the score over-reports (GOTCHAS 8.4).
 		for _, port := range mgmtPorts {
-			if strings.Contains(rule.Destination.Port, port) {
+			if analysis.RulePortPermits(rule.Destination.Port, port) {
 				return true
 			}
 		}

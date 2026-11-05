@@ -93,6 +93,39 @@ func IsAnyPort(port string) bool {
 	return trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny)
 }
 
+// RulePortPermits reports whether a rule's destination or external port
+// permits traffic to the numeric service port.
+//
+// An empty or "any" rule port permits every port. Otherwise the rule port is a
+// comma-separated list whose entries are each a numeric port or a numeric "N-M"
+// range, matched exactly or by containment. A token that is neither, a port
+// alias or a malformed range, cannot be resolved here, so it is treated as
+// permitting the port: the over-report direction, since a false negative in a
+// security audit is worse than a false positive (GOTCHAS 8.4).
+func RulePortPermits(rulePort string, servicePort int) bool {
+	if IsAnyPort(rulePort) {
+		return true
+	}
+
+	for token := range strings.SplitSeq(rulePort, ",") {
+		token = strings.TrimSpace(token)
+		if token == "" {
+			continue
+		}
+
+		r, ok := parsePortPart(token)
+		if !ok {
+			return true
+		}
+
+		if r.lo <= servicePort && servicePort <= r.hi {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsAnyProtocol reports whether a rule's protocol field matches every layer-4
 // protocol. An empty protocol is the common shape; "any" appears in
 // hand-written and API-created rules.
