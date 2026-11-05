@@ -48,15 +48,21 @@ type deadRuleOwnerKey struct {
 // a Kind field ("unreachable" or "duplicate") for structured classification.
 // Returns nil when no dead rules are found.
 //
-// The shadow core groups rules by (interface, direction) with floating-first
-// reordering (internal/analysis/precedence.go), but the pre-existing
-// DetectDeadRules output — pinned byte-for-byte by this file's test suite —
-// buckets by interface name only and orders by raw per-interface list
-// position, with no notion of direction, quick, or floating rules.
+// The shadow core groups rules by (interface, direction) in pf evaluation
+// order and keeps a disabled rule from winning (internal/analysis/precedence.go),
+// but the pre-existing DetectDeadRules output — pinned byte-for-byte by this
+// file's test suite — buckets by interface name only and orders by raw
+// per-interface list position, with no notion of direction, quick, or floating
+// rules, and lets a disabled rule own a finding.
 // normalizeForDeadRuleView collapses the shadow core's grouping back down to
 // that legacy shape before calling DetectShadowedRules; the flatten loop
 // below then re-projects the filtered result using the *original* rules'
 // interface bindings and positions so output ordering is unchanged.
+//
+// That contract covers what this function does with the rules it is given.
+// RulesEquivalent compares them as converted, so a converter that changes a field
+// it reads, as the pfSense Quick and Direction readings and each vendor's Disabled
+// reading do, changes what counts as a duplicate (GOTCHAS 23.2).
 func DetectDeadRules(cfg *common.CommonDevice) []common.DeadRuleFinding {
 	if cfg == nil || len(cfg.FirewallRules) == 0 {
 		return nil
@@ -173,11 +179,12 @@ func isTerminalDenyRule(rule common.FirewallRule) bool {
 }
 
 // normalizeForDeadRuleView builds a shallow clone of cfg whose firewall
-// rules are given a uniform Direction (DirectionIn), Quick=true, and
-// Floating=false. The legacy DetectDeadRules algorithm never modeled
-// direction, quick-vs-non-quick precedence, or floating rules — it grouped
-// purely by interface name and treated the earlier rule in each per-interface
-// list as always taking precedence. Forcing every rule into the "in" bucket
+// rules are given a uniform Direction (DirectionIn), Quick=true,
+// Floating=false, and Disabled=false. The legacy DetectDeadRules algorithm
+// never modeled direction, quick-vs-non-quick precedence, or floating rules,
+// and never skipped a disabled rule — it grouped purely by interface name and
+// treated the earlier rule in each per-interface list as always taking
+// precedence. Forcing every rule into the "in" bucket
 // with quick (first-match, earlier-wins) semantics and no floating
 // device-wide join collapses the shadow core's (interface, direction)
 // grouping (internal/analysis/precedence.go) back down to exactly that
@@ -192,6 +199,9 @@ func isTerminalDenyRule(rule common.FirewallRule) bool {
 //     true, no Interfaces) never joins any group — exactly reproducing the
 //     legacy blind spot, where such a rule has no entry in `rule.Interfaces`
 //     and so never appears in any per-interface bucket either.
+//   - Disabled=false uniformly keeps a disabled rule as a possible owner, which
+//     the shadow core no longer allows. RulesEquivalent still tells a disabled
+//     rule from an enabled one: DetectDeadRules hands it the original rules.
 //
 // The clone is a new slice — cfg's own FirewallRules backing array is never
 // mutated. Callers rely on this: the detector must never write through to the
@@ -203,6 +213,7 @@ func normalizeForDeadRuleView(cfg *common.CommonDevice) *common.CommonDevice {
 		rule.Direction = common.DirectionIn
 		rule.Quick = true
 		rule.Floating = false
+		rule.Disabled = false
 		normalized[i] = rule
 	}
 

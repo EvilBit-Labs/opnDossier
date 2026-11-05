@@ -385,13 +385,105 @@ func TestHasManagementOnWAN(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "rule on WAN with port in destination string",
+			name: "rule on WAN with direction any also matches inbound",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionAny,
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with an unrecognized direction counts as inbound",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.FirewallDirection("sideways"),
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "disabled rule on WAN exposes nothing",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Type:        common.RuleTypePass,
+						Disabled:    true,
+						Destination: common.RuleEndpoint{Port: "443"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "block rule on WAN exposes nothing",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Type:        common.RuleTypeBlock,
+						Destination: common.RuleEndpoint{Port: "22"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "rule on WAN with a port range holding a management port",
 			data: &common.CommonDevice{
 				FirewallRules: []common.FirewallRule{
 					{
 						Interfaces:  []string{"wan"},
 						Direction:   common.DirectionIn,
-						Destination: common.RuleEndpoint{Port: "range:80-90"},
+						Destination: common.RuleEndpoint{Port: "80-90"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with a port list holding a management port",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionIn,
+						Destination: common.RuleEndpoint{Port: "8443,443"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "rule on WAN with a port that only holds a management port's digits",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionIn,
+						Destination: common.RuleEndpoint{Port: "1443"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "rule on WAN with no destination port matches every port",
+			data: &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{
+					{
+						Interfaces:  []string{"wan"},
+						Direction:   common.DirectionIn,
+						Destination: common.RuleEndpoint{Address: "any"},
 					},
 				},
 			},

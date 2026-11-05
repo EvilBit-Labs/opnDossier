@@ -38,10 +38,10 @@ type PrecedencePair struct {
 	// and so may appear in a PrecedencePair under either value).
 	Direction common.FirewallDirection
 	// Winner is the rule that wins the shared traffic under pf evaluation
-	// semantics.
+	// semantics. It is never a disabled rule; see derivePairWinnerLoser.
 	Winner IndexedRule
 	// Loser is the rule that is shadowed on the overlap — the rule a shadow
-	// finding should be reported against.
+	// finding should be reported against. It can be a disabled rule.
 	Loser IndexedRule
 	// Extent is how much of Loser's match set Winner covers: CoverFull when
 	// Loser is shadowed in its entirety, CoverPartial when only the
@@ -55,13 +55,13 @@ type PrecedencePair struct {
 }
 
 // ResolvePrecedence groups cfg's firewall rules into pf evaluation-order
-// groups — by (interface, direction), with unscoped floating rules
-// (Floating && len(Interfaces)==0) joining every interface group ahead of
-// interface-bound rules — and resolves every overlapping pair within each
-// group into its effective PrecedencePair per pf quick (first-match) /
-// non-quick (last-match) semantics (ADR-0005, KTD-5). Overlap candidacy is
-// decided by the U4 coverage predicate; pairs whose coverage is CoverNone or
-// CoverIndeterminate produce no result.
+// groups — by (interface, direction), with floating rules joining the groups
+// they apply to (every group when unscoped) in evaluation order — and resolves
+// every overlapping pair within each group into its effective PrecedencePair
+// per pf quick (first-match) / non-quick (last-match) semantics (ADR-0005,
+// KTD-5). Overlap candidacy is decided by the U4 coverage predicate; pairs
+// whose coverage is CoverNone or CoverIndeterminate produce no result, and
+// neither does a pair a disabled rule would win.
 //
 // ResolvePrecedence is a pure function of cfg: no shared state, and
 // deterministic output order (sorted interface name, then direction bucket,
@@ -72,7 +72,7 @@ func ResolvePrecedence(cfg *common.CommonDevice) []PrecedencePair {
 		return nil
 	}
 
-	groups := buildPrecedenceGroups(cfg.FirewallRules, cfg.Interfaces)
+	groups := buildPrecedenceGroups(cfg)
 
 	var pairs []PrecedencePair
 
@@ -90,31 +90,27 @@ type precedenceGroupKey struct {
 	dir   common.FirewallDirection
 }
 
-// buildPrecedenceGroups partitions rules into their pf evaluation-order
+// buildPrecedenceGroups partitions cfg's rules into their pf evaluation-order
 // groups: for every interface any rule is bound to, and for each direction
-// bucket a rule is compatible with, unscoped floating rules are placed
-// ahead of interface-bound rules, each subset preserving the rules'
-// original relative list order. Groups with fewer than two rules are
-// dropped — there is nothing to resolve a pair from.
+// bucket a rule is compatible with, the rules orderedGroupRules selects, in
+// the order it gives them. Groups with fewer than two rules are dropped —
+// there is nothing to resolve a pair from.
 //
 // Candidate interface names normally come only from interface-bound rules'
 // r.Interfaces. An unscoped floating rule never appears in r.Interfaces, so
 // a ruleset of ONLY unscoped floating rules (no interface-bound rules at
 // all) would otherwise yield zero candidate interface names — zero groups —
-// and a floating-vs-floating shadow would never be evaluated. deviceIfaces
-// (cfg.Interfaces) is consulted as a fallback seed for candidate names, but
-// ONLY when an unscoped floating rule is actually present in rules — this
-// scopes the fix so a normal interface-bound-only ruleset (the overwhelming
-// common case) produces byte-for-byte identical groups to before.
-func buildPrecedenceGroups(
-	rules []common.FirewallRule,
-	deviceIfaces []common.Interface,
-) map[precedenceGroupKey][]IndexedRule {
+// and a floating-vs-floating shadow would never be evaluated. cfg.Interfaces
+// is consulted as a fallback seed for candidate names, but ONLY when an
+// unscoped floating rule is actually present in the rules — this scopes the
+// fix so a normal interface-bound-only ruleset (the overwhelming common case)
+// produces byte-for-byte identical groups to before.
+func buildPrecedenceGroups(cfg *common.CommonDevice) map[precedenceGroupKey][]IndexedRule {
 	ifaceNames := make(map[string]struct{})
 
 	hasUnscopedFloating := false
 
-	for _, r := range rules {
+	for _, r := range cfg.FirewallRules {
 		for _, iface := range r.Interfaces {
 			ifaceNames[iface] = struct{}{}
 		}
@@ -125,7 +121,7 @@ func buildPrecedenceGroups(
 	}
 
 	if hasUnscopedFloating {
-		for _, iface := range deviceIfaces {
+		for _, iface := range cfg.Interfaces {
 			if iface.Name != "" {
 				ifaceNames[iface.Name] = struct{}{}
 			}
@@ -136,7 +132,7 @@ func buildPrecedenceGroups(
 
 	for iface := range ifaceNames {
 		for _, bucket := range bucketDirections {
-			ordered := orderedGroupRules(rules, iface, bucket)
+			ordered := orderedGroupRules(cfg, iface, bucket)
 			if len(ordered) >= minGroupSizeForOverlap {
 				groups[precedenceGroupKey{iface: iface, dir: bucket}] = ordered
 			}
@@ -146,31 +142,49 @@ func buildPrecedenceGroups(
 	return groups
 }
 
+// floatingFirst reports whether cfg's floating rules must be moved ahead of its
+// interface rules to put a group in evaluation order. The OPNsense converter
+// has already sorted the list into that order, which does not always lead with
+// the floating rules: the os-firewall plugin put the filter model's rules ahead
+// of every legacy rule (GOTCHAS 3.8). The pfSense converter keeps document
+// order, while pfSense compiles floating rules first wherever they sit in
+// config.xml (filter.inc rule_arr1). Any device not typed OPNsense gets the
+// move, the general pf reading ADR-0005 records. enrich types an untyped device
+// as OPNsense before it calls ComputeAnalysis, so such a device gets the move
+// only from a direct call into this package.
+func floatingFirst(cfg *common.CommonDevice) bool {
+	return cfg.DeviceType != common.DeviceTypeOPNsense
+}
+
 // orderedGroupRules builds the pf evaluation order for one (iface, bucket)
-// group: every unscoped floating rule compatible with bucket, in original
-// list order, followed by every rule bound to iface compatible with bucket,
-// in original list order.
-func orderedGroupRules(rules []common.FirewallRule, iface string, bucket common.FirewallDirection) []IndexedRule {
-	var ordered []IndexedRule
+// group from the rules compatible with bucket that are bound to iface or are
+// unscoped floating rules. Where floatingFirst applies, the floating ones come
+// first and the rest after them, each in original list order; elsewhere the
+// group keeps list order. Either way floating rules stay in list order among
+// themselves, scoped or not.
+func orderedGroupRules(cfg *common.CommonDevice, iface string, bucket common.FirewallDirection) []IndexedRule {
+	moveFloating := floatingFirst(cfg)
 
-	for i, r := range rules {
-		if isUnscopedFloating(r) && ruleInBucket(r.Direction, bucket) {
+	var floating, ordered []IndexedRule
+
+	for i, r := range cfg.FirewallRules {
+		applies := isUnscopedFloating(r) || slices.Contains(r.Interfaces, iface)
+		if !applies || !ruleInBucket(r.Direction, bucket) {
+			continue
+		}
+
+		if moveFloating && r.Floating {
+			floating = append(floating, IndexedRule{Index: i, Rule: r})
+		} else {
 			ordered = append(ordered, IndexedRule{Index: i, Rule: r})
 		}
 	}
 
-	for i, r := range rules {
-		if !isUnscopedFloating(r) && slices.Contains(r.Interfaces, iface) && ruleInBucket(r.Direction, bucket) {
-			ordered = append(ordered, IndexedRule{Index: i, Rule: r})
-		}
-	}
-
-	return ordered
+	return append(floating, ordered...)
 }
 
 // isUnscopedFloating reports whether r is a floating rule with no specific
-// interface binding — the class that joins every interface group ahead of
-// interface-bound rules.
+// interface binding — the class that joins every interface group.
 func isUnscopedFloating(r common.FirewallRule) bool {
 	return r.Floating && len(r.Interfaces) == 0
 }
@@ -277,6 +291,14 @@ type pairWinnerLoser struct {
 // later's own Quick flag plays no part in this decision: a non-quick
 // earlier rule never stops evaluation, so any later matching rule — quick
 // or not — supersedes it for the overlapping traffic.
+//
+// Rule.Disabled means the firewall does not load the rule. Each vendor has its
+// own test, which its converter applies: pfSense skips a rule on isset()
+// (filter.inc L3256, L4267), and OPNsense compiles one to a comment on !empty()
+// (Rule.php parseIsComment). A disabled winner therefore takes nothing from the
+// other rule, and the pair resolves to CoverNone with no alias signal. A
+// disabled loser keeps its pair: it is staged, not dead (GOTCHAS 23.2), and it
+// would still lose if it were enabled.
 func derivePairWinnerLoser(
 	earlier, later IndexedRule,
 	no common.NamedObjects,
@@ -293,6 +315,10 @@ func derivePairWinnerLoser(
 	} else {
 		cov, aliasBlocked = coverage(later.Rule, earlier.Rule, no)
 		wl = pairWinnerLoser{winner: later, loser: earlier}
+	}
+
+	if wl.winner.Rule.Disabled {
+		return wl, CoverNone, false
 	}
 
 	return wl, cov, aliasBlocked

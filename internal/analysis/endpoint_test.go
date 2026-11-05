@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
+	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
@@ -261,6 +262,49 @@ func TestIsWideOpenPassRule_NegatedAnyIsWideOpen(t *testing.T) {
 				assert.True(t, analysis.IsWideOpenPassRule(r),
 					"source %+v, destination %+v", r.Source, r.Destination)
 			}
+		})
+	}
+}
+
+// TestRulePortPermits covers exact match, numeric ranges with reversed bounds,
+// comma lists with empty and padded tokens, and the over-report on an alias or
+// an empty rule port.
+func TestRulePortPermits(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		rulePort    string
+		servicePort int
+		want        bool
+	}{
+		{name: "empty rule port permits everything", rulePort: "", servicePort: 22, want: true},
+		{name: "any rule port permits everything", rulePort: constants.NetworkAny, servicePort: 22, want: true},
+		{name: "exact numeric match", rulePort: "22", servicePort: 22, want: true},
+		{name: "exact numeric miss", rulePort: "23", servicePort: 22, want: false},
+		{name: "a port holding the digits of another is a miss", rulePort: "1443", servicePort: 443, want: false},
+		{name: "range hit", rulePort: "20-25", servicePort: 22, want: true},
+		{name: "range miss", rulePort: "80-90", servicePort: 22, want: false},
+		{name: "reversed range is malformed and over-reports", rulePort: "25-20", servicePort: 22, want: true},
+		{name: "comma list hit", rulePort: "80,22,443", servicePort: 22, want: true},
+		{name: "comma list miss", rulePort: "80,21,443", servicePort: 22, want: false},
+		{name: "comma list with empty token still matches", rulePort: "22,,443", servicePort: 22, want: true},
+		{
+			name:        "comma list with empty token: non-matching port still misses",
+			rulePort:    "22,,443",
+			servicePort: 100,
+			want:        false,
+		},
+		{name: "whitespace-padded tokens", rulePort: "22, 443", servicePort: 443, want: true},
+		{name: "unresolvable alias over-reports", rulePort: "MgmtPorts", servicePort: 22, want: true},
+		{name: "a range with a non-numeric bound is an alias", rulePort: "abc-25", servicePort: 22, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, analysis.RulePortPermits(tt.rulePort, tt.servicePort))
 		})
 	}
 }
