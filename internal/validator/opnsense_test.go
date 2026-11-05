@@ -1246,7 +1246,6 @@ func TestValidateFilter_MutualExclusivity(t *testing.T) {
 
 // TestValidateFilter_FloatingRuleConstraints tests floating rule direction validation.
 func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
-	yes := "yes"
 	interfaces := &schema.Interfaces{
 		Items: map[string]schema.Interface{
 			"wan": {},
@@ -1267,7 +1266,7 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 					{
 						Type:      "pass",
 						Interface: schema.InterfaceList{"wan", "lan"},
-						Floating:  &yes,
+						Floating:  new("yes"),
 						Direction: "any",
 					},
 				},
@@ -1281,7 +1280,7 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 					{
 						Type:      "pass",
 						Interface: schema.InterfaceList{"wan"},
-						Floating:  &yes,
+						Floating:  new("yes"),
 					},
 				},
 			},
@@ -1295,7 +1294,7 @@ func TestValidateFilter_FloatingRuleConstraints(t *testing.T) {
 					{
 						Type:      "pass",
 						Interface: schema.InterfaceList{"wan"},
-						Floating:  &yes,
+						Floating:  new("yes"),
 						Direction: "invalid",
 					},
 				},
