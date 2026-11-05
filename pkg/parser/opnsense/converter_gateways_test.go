@@ -618,9 +618,9 @@ func TestConverter_Gateways_Flags(t *testing.T) {
 	})
 }
 
-// TestConverter_Gateways_EmptyItems covers the empty <gateway_item/> OPNsense
-// skips in both stores. It is not a gateway, so it must not decide which store
-// is read: the real gateway would be lost to a phantom.
+// TestConverter_Gateways_EmptyItems covers the <gateway_item> with no child
+// element, which OPNsense skips in both stores. It is not a gateway, so it must
+// not decide which store is read: the real gateway would be lost to a phantom.
 func TestConverter_Gateways_EmptyItems(t *testing.T) {
 	t.Parallel()
 
@@ -634,7 +634,13 @@ func TestConverter_Gateways_EmptyItems(t *testing.T) {
 	t.Run("a model holding nothing else falls back to the legacy gateway", func(t *testing.T) {
 		t.Parallel()
 
-		for _, item := range []string{empty, emptyWithUUID} {
+		// Text and comments are not child elements, so these are empty too.
+		noChild := []string{
+			`      <gateway_item uuid="` + gatewayUUIDThird + `">` + "\n      </gateway_item>\n",
+			`      <gateway_item uuid="` + gatewayUUIDThird + `"><!-- <name>GW</name> --></gateway_item>` + "\n",
+		}
+
+		for _, item := range append([]string{empty, emptyWithUUID}, noChild...) {
 			device, warnings := convertConfig(t, raw.withModel(gatewayVersionAttr, legacyGatewayItem, item))
 			assert.Equal(t, want.Routing.Gateways, device.Routing.Gateways, item)
 			assert.Empty(t, gatewayWarnings(warnings), item)
@@ -684,6 +690,66 @@ func TestConverter_Gateways_EmptyItems(t *testing.T) {
 		require.Len(t, got, 1)
 		assert.Equal(t, "9.9.9", got[0].Value)
 		assert.Equal(t, common.SeverityLow, got[0].Severity)
+	})
+}
+
+// TestConverter_Gateways_ChildrenThatDecodeToZero covers an item whose only
+// child decodes to the zero value, or is an element the schema does not bind.
+// OPNsense loads it in both stores, because it has a child element, so the
+// converter keeps it. In the model it then decides the store: the firewall
+// reads the model and not the leftover legacy gateway. The item has no name,
+// so it draws the converter's empty-name warning, and in the legacy store,
+// where no address is filled in, the empty-address one too.
+func TestConverter_Gateways_ChildrenThatDecodeToZero(t *testing.T) {
+	t.Parallel()
+
+	raw := readGatewayConfig(t)
+	children := []string{
+		"<name/>",
+		"<descr></descr>",
+		"<priority>255</priority>",
+		"<monitor_noroute/>",
+	}
+
+	t.Run("model store", func(t *testing.T) {
+		t.Parallel()
+
+		for _, child := range children {
+			item := `      <gateway_item uuid="` + gatewayUUIDThird + `">` + child + "</gateway_item>\n"
+			device, warnings := convertConfig(t, raw.withModel(gatewayVersionAttr, legacyGatewayItem, item))
+			require.Len(t, device.Routing.Gateways, 1, child)
+
+			gw := device.Routing.Gateways[0]
+			assert.Empty(t, gw.Name, child)
+			assert.Equal(t, "dynamic", gw.Address, child)
+			assert.Equal(t, "wan", gw.Interface, child)
+			assert.Equal(t, "1", gw.MonitorDisable, child)
+
+			got := gatewayWarnings(warnings)
+			require.Len(t, got, 1, child)
+			assert.Equal(t, "gateway has empty name", got[0].Message, child)
+			assert.Equal(t, "wan", got[0].Value, child)
+		}
+	})
+
+	t.Run("legacy store", func(t *testing.T) {
+		t.Parallel()
+
+		for _, child := range slices.Concat(children, []string{"<disabled>0</disabled>"}) {
+			item := "    <gateway_item>" + child + "</gateway_item>\n"
+
+			device, warnings := convertConfig(t, raw.withLegacy(item))
+			require.Len(t, device.Routing.Gateways, 1, child)
+			assert.Empty(t, device.Routing.Gateways[0].Interface, child)
+
+			got := gatewayWarnings(warnings)
+			require.Len(t, got, 2, child)
+			assert.Equal(t, "gateway has empty address", got[0].Message, child)
+			assert.Equal(t, "gateway has empty name", got[1].Message, child)
+
+			device, _ = convertConfig(t, raw.withLegacy(item+legacyGatewayItem))
+			assert.Equal(t, []string{"", "WAN_GW"}, gatewayNames(device.Routing.Gateways), child)
+		}
 	})
 }
 
@@ -835,6 +901,77 @@ func TestConverter_Gateways_ReducedItemTakesTheDefaults(t *testing.T) {
 		assert.Equal(t, "inet6", device.Routing.Gateways[0].IPProtocol)
 		assert.Equal(t, "3", device.Routing.Gateways[0].Weight)
 	})
+}
+
+// TestConverter_Gateways_InterfaceDefault drives a gateway that leaves
+// <interface> out, or writes it empty, through parse and convert in both
+// stores. The model defaults an absent interface to wan (Routing/Gateways.xml),
+// and gatewayIterator fills in none for a legacy gateway. The empty
+// <interface/> in the model stays empty on the firewall; that row pins the
+// converter's reading, since the schema cannot tell it from an absent element,
+// and OPNsense never writes one, as the field is required (GOTCHAS 3.7).
+func TestConverter_Gateways_InterfaceDefault(t *testing.T) {
+	t.Parallel()
+
+	const (
+		modelInterface  = "        <interface>wan</interface>\n"
+		legacyInterface = "      <interface>wan</interface>\n"
+		wanElement      = "<interface>wan</interface>"
+	)
+
+	raw := readGatewayConfig(t)
+	item := namedModelGateway(gatewayUUIDFirst, "GW_REDUCED", "192.0.2.1")
+
+	tests := []struct {
+		name  string
+		shape string
+		cfg   func(string) []byte
+		want  string
+	}{
+		{
+			name:  "model item omits it",
+			shape: strings.Replace(item, modelInterface, "", 1),
+			cfg:   func(s string) []byte { return raw.withModel(gatewayVersionAttr, "", s) },
+			want:  "wan",
+		},
+		{
+			name:  "model item empties it",
+			shape: strings.Replace(item, wanElement, "<interface/>", 1),
+			cfg:   func(s string) []byte { return raw.withModel(gatewayVersionAttr, "", s) },
+			want:  "wan",
+		},
+		{
+			name:  "model item sets it",
+			shape: strings.Replace(item, wanElement, "<interface>opt1</interface>", 1),
+			cfg:   func(s string) []byte { return raw.withModel(gatewayVersionAttr, "", s) },
+			want:  "opt1",
+		},
+		{
+			name:  "legacy item omits it",
+			shape: strings.Replace(legacyGatewayItem, legacyInterface, "", 1),
+			cfg:   raw.withLegacy,
+		},
+		{
+			name:  "legacy item empties it",
+			shape: strings.Replace(legacyGatewayItem, wanElement, "<interface/>", 1),
+			cfg:   raw.withLegacy,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// A replacement that matched nothing would leave wan in place and
+			// the test would pass on a converter without the default.
+			require.NotContains(t, tc.shape, wanElement)
+
+			device, warnings := convertConfig(t, tc.cfg(tc.shape))
+			require.Len(t, device.Routing.Gateways, 1)
+			assert.Equal(t, tc.want, device.Routing.Gateways[0].Interface)
+			assert.Empty(t, gatewayWarnings(warnings))
+		})
+	}
 }
 
 // TestConvertDocument_GatewaysLeaveTheDocumentUnchanged pins that neither store

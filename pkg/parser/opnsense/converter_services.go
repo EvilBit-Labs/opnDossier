@@ -568,9 +568,11 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 
 // convertGatewayItems reads the gateways from the <OPNsense><Gateways> model
 // when it holds any, and from <gateways> otherwise, as the vendor's
-// gatewayIterator does. An empty <gateway_item/> does not count in either
-// store. OPNsense 24.1 migration M1_0_0 copies the <gateways><gateway_item>
-// entries into the model and, once one is stored, deletes all of them.
+// gatewayIterator does. A <gateway_item> with no child element does not count
+// in either store, and one with any child element does, whatever it holds
+// (schema.Gateway.IsPlaceholder). OPNsense 24.1 migration M1_0_0 copies the
+// <gateways><gateway_item> entries into the model and, once one is stored,
+// deletes all of them.
 func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.Gateway {
 	model := doc.OPNsense.Gateways
 	items := c.modelGateways(model.Items)
@@ -591,6 +593,15 @@ func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.G
 		if items[i].MonitorDisable == nil {
 			items[i].MonitorDisable = new(xmlBoolTrue)
 		}
+
+		// An item that omits the element takes the model's default of wan.
+		// An empty <interface/> stays empty on the firewall; opnDossier cannot
+		// tell it from an absent one, and OPNsense never writes one, as the
+		// field is required. The vendor fills in no interface for a legacy
+		// gateway.
+		if items[i].Interface == "" {
+			items[i].Interface = gatewayDefaultInterface
+		}
 	}
 
 	return c.convertGateways(items)
@@ -609,8 +620,8 @@ func (c *converter) convertGatewayItems(doc *schema.OpnSenseDocument) []common.G
 // two apart, so both items are kept with a warning, which over-reports on the
 // older releases.
 //
-// An empty <gateway_item/> is skipped before its uuid is read. Only a hand edit
-// or a generator repeats a uuid; OPNsense does not.
+// An item with no child element is skipped before its uuid is read. Only a
+// hand edit or a generator repeats a uuid; OPNsense does not.
 func (c *converter) modelGateways(items []schema.GatewayModelItem) []schema.Gateway {
 	var kept []schema.Gateway
 
@@ -676,9 +687,10 @@ func (c *converter) modelGateways(items []schema.GatewayModelItem) []schema.Gate
 	return kept
 }
 
-// configuredGateways returns a copy of the legacy gateways without the empty
-// <gateway_item/> elements. It is a copy because slices.DeleteFunc writes into
-// the slice it is given, and ConvertDocument takes a document the caller owns.
+// configuredGateways returns a copy of the legacy gateways without the
+// <gateway_item> elements that hold no child element. It is a copy because
+// slices.DeleteFunc writes into the slice it is given, and ConvertDocument takes
+// a document the caller owns.
 func configuredGateways(gws []schema.Gateway) []schema.Gateway {
 	return slices.DeleteFunc(slices.Clone(gws), schema.Gateway.IsPlaceholder)
 }

@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"slices"
 )
 
 // NetworkConfig groups network-related configuration.
@@ -30,12 +31,102 @@ type Gateways struct {
 	Groups  []GatewayGroup `xml:"gateway_group,omitempty"`
 }
 
+// NewGateways returns a pointer to a Gateways struct with empty slices for gateways and gateway groups.
+func NewGateways() *Gateways {
+	return &Gateways{
+		Gateway: make([]Gateway, 0),
+		Groups:  make([]GatewayGroup, 0),
+	}
+}
+
+// UnmarshalXML decodes <gateways> as encoding/xml would and sets [Gateway.HasChildElement] on
+// each item. The container decodes the items, so that [Gateway], which [GatewayModelItem] embeds
+// and pfSense shares, needs no UnmarshalXML of its own.
+//
+// No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so the default encoder
+// writes the element this reads.
+func (g *Gateways) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// Fields is Gateways without this method. Its name is exported because encoding/xml reads the
+	// XMLName of an embedded struct through the embedded field, and panics on an unexported one.
+	type Fields Gateways
+
+	aux := struct {
+		*Fields
+
+		// Items takes every <gateway_item>, in place of the Fields.Gateway it shadows.
+		Items []legacyGatewayItem `xml:"gateway_item"`
+	}{Fields: (*Fields)(g)}
+
+	if err := d.DecodeElement(&aux, &start); err != nil {
+		return err
+	}
+
+	// encoding/xml does not set the XMLName of an embedded struct.
+	g.XMLName = start.Name
+
+	// Appended, as the default decoder appends, so a second <gateways> adds to the first.
+	g.Gateway = slices.Grow(g.Gateway, len(aux.Items))
+	for _, item := range aux.Items {
+		g.Gateway = append(g.Gateway, Gateway(item))
+	}
+
+	return nil
+}
+
+// legacyGatewayItem is a <gateway_item> under <gateways>, decoded by [Gateways.UnmarshalXML].
+type legacyGatewayItem Gateway
+
+// UnmarshalXML decodes the item into the [Gateway] it converts to and sets HasChildElement.
+func (l *legacyGatewayItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return decodeGatewayItem(d, start, (*Gateway)(l), &l.HasChildElement)
+}
+
+// decodeGatewayItem decodes the element start opens into v, as encoding/xml would, and sets
+// *child when the element holds a child element. OPNsense decides whether a <gateway_item>
+// exists with SimpleXML's count(), which counts child elements and nothing else, so text, CDATA,
+// comments and processing instructions do not count, and neither do attributes. v must not
+// implement [xml.Unmarshaler], or it would be called again here.
+func decodeGatewayItem(d *xml.Decoder, start xml.StartElement, v any, child *bool) error {
+	return xml.NewTokenDecoder(&childElementTokens{d: d, start: &start, child: child}).Decode(v)
+}
+
+// childElementTokens hands the tokens of one element to a second decoder, its start element
+// first. Every start element after that one is inside the element, so the first is a child of
+// it. The second decoder stops at the element's end element and reads nothing after it.
+type childElementTokens struct {
+	d     *xml.Decoder
+	start *xml.StartElement
+	child *bool
+}
+
+// Token implements [xml.TokenReader].
+func (r *childElementTokens) Token() (xml.Token, error) {
+	if start := r.start; start != nil {
+		r.start = nil
+
+		return *start, nil
+	}
+
+	tok, err := r.d.Token()
+	if _, ok := tok.(xml.StartElement); ok {
+		*r.child = true
+	}
+
+	return tok, err
+}
+
 // Gateway represents an individual gateway configuration entry, including the bound interface,
 // gateway address, IP protocol version, monitoring settings, and default gateway designation.
 //
 // MonitorDisable is a pointer because the two OPNsense stores read an absent element differently:
 // the gateway model defaults it to 1, and the legacy element to 0. [Gateway.MonitorDisableValue]
 // returns its text.
+//
+// HasChildElement records that the decoded <gateway_item> held a child element, whatever the child
+// held. [Gateways.UnmarshalXML] and [GatewayModelItem.UnmarshalXML] set it; nothing encodes it.
+// Gateway has no UnmarshalXML or MarshalXML and must not get one: [GatewayModelItem] embeds it, so
+// the method would be promoted and would decode or encode a model item without its uuid and its
+// <disabled>.
 type Gateway struct {
 	XMLName        xml.Name `xml:"gateway_item"`
 	Interface      string   `xml:"interface,omitempty"`
@@ -52,6 +143,8 @@ type Gateway struct {
 	DefaultGW      string   `xml:"defaultgw,omitempty"`
 	MonitorDisable *string  `xml:"monitor_disable,omitempty"`
 	FarGW          string   `xml:"fargw,omitempty"`
+
+	HasChildElement bool `xml:"-" json:"-" yaml:"-"`
 }
 
 // MonitorDisableValue returns the text of <monitor_disable>, which is empty for
@@ -64,27 +157,31 @@ func (g Gateway) MonitorDisableValue() string {
 	return *g.MonitorDisable
 }
 
-// IsPlaceholder reports whether g is an empty <gateway_item/> marker rather than
-// a configured gateway. OPNsense skips that element in both stores: the model
-// loader drops an item with no child element, and gatewayIterator drops a
-// legacy one from 24.1.3. It does not count when choosing the store either, so
-// a model holding nothing else falls back to <gateways>.
+// IsPlaceholder reports whether g is a <gateway_item> with no child element, a
+// marker rather than a configured gateway. OPNsense skips such an item in both
+// stores: the model loader in every release, and gatewayIterator under
+// <gateways> from 24.1.3. Such an item does not count when choosing the store
+// either, so a model holding nothing else falls back to <gateways>.
 //
-// The check is deliberately conservative: an entry is dropped only when every
-// field is zero. A gateway carrying any data at all -- even just a description
-// -- is retained, because under-reporting configured resources is the more
-// dangerous direction for an auditing tool. An item whose only children are
-// elements this type does not bind, or bound ones that decode to zero, such as
-// an empty <name/> or a <disabled>0</disabled> under <gateways>, is dropped,
-// although OPNsense loads it; no release writes one. A model item that holds a
-// <disabled> element is kept by [GatewayModelItem.IsPlaceholder].
+// A decoded item that held a child element is a gateway whatever the child
+// held, as on the firewall: an item whose only child is an empty <name/>, a
+// <disabled>0</disabled>, or an element this type does not bind, such as
+// <priority>, is kept. Its fields cannot show that, because each of those
+// decodes to the zero value, so HasChildElement records it.
+//
+// A value built in code has no such record and is a placeholder only when every
+// field is zero. The check is deliberately conservative: a gateway carrying any
+// data at all -- even just a description -- is retained, because
+// under-reporting configured resources is the more dangerous direction for an
+// auditing tool.
 //
 // Fields are compared by name rather than against the zero value: encoding/xml
 // populates XMLName when it decodes a Gateway, so a <gateway_item/> under
 // <gateways> never equals Gateway{}. One in the model does, because the XMLName
 // of an embedded struct stays unset, and comparing named fields reads both alike.
 func (g Gateway) IsPlaceholder() bool {
-	return g.Interface == "" &&
+	return !g.HasChildElement &&
+		g.Interface == "" &&
 		g.Gateway == "" &&
 		g.Name == "" &&
 		g.Weight == "" &&
@@ -116,7 +213,7 @@ func (g Gateway) IsPlaceholder() bool {
 // converter do not read either; code that builds a model item sets Disabled. The model writes it
 // as 0 or 1 and the firewall reads it with !empty(). It is kept as text, because a [BoolFlag]
 // reads <disabled>0</disabled> the same as an absent element, and as a pointer, to keep an empty
-// <disabled/> apart from an absent one: OPNsense loads an item whose only child is either.
+// <disabled/> apart from an absent one, so that it is written back as it was read.
 type GatewayModelItem struct {
 	Gateway
 
@@ -124,10 +221,23 @@ type GatewayModelItem struct {
 	Disabled *string `xml:"disabled,omitempty"`
 }
 
-// IsPlaceholder reports whether g is an empty <gateway_item/> of the model. The uuid does not
-// count, nor does the shadowed [Gateway.Disabled]. A <disabled> element does, whatever its text:
-// OPNsense loads an item whose only child is <disabled>0</disabled>, and that item decides which
-// store the firewall reads.
+// UnmarshalXML decodes a model <gateway_item> as encoding/xml would and sets
+// [Gateway.HasChildElement]. The model block is an anonymous struct, which cannot carry a method,
+// so the item does.
+//
+// No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so the default encoder
+// writes the element this reads.
+func (g *GatewayModelItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// fields is GatewayModelItem without this method. Gateway has none to promote into it.
+	type fields GatewayModelItem
+
+	return decodeGatewayItem(d, start, (*fields)(g), &g.HasChildElement)
+}
+
+// IsPlaceholder reports whether g is a model <gateway_item> with no child element. The uuid
+// does not count, nor does the shadowed [Gateway.Disabled]. A decoded item that held a child
+// element is a gateway whatever the child held, and it decides which store the firewall reads.
+// For a value built in code, a set Disabled counts, whatever its text.
 func (g GatewayModelItem) IsPlaceholder() bool {
 	gw := g.Gateway
 	gw.Disabled = false
@@ -207,14 +317,6 @@ func NewVLANs() *VLANs {
 func NewBridges() *Bridges {
 	return &Bridges{
 		Bridge: make([]Bridge, 0),
-	}
-}
-
-// NewGateways returns a pointer to a Gateways struct with empty slices for gateways and gateway groups.
-func NewGateways() *Gateways {
-	return &Gateways{
-		Gateway: make([]Gateway, 0),
-		Groups:  make([]GatewayGroup, 0),
 	}
 }
 

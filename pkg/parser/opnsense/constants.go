@@ -21,4 +21,8 @@ const (
 	// gatewayDefaultWeight is the weight the firewall gives a gateway that
 	// leaves <weight> out or empty.
 	gatewayDefaultWeight = "1"
+
+	// gatewayDefaultInterface is the interface the gateway model gives an item
+	// that leaves <interface> out (Routing/Gateways.xml).
+	gatewayDefaultInterface = "wan"
 )

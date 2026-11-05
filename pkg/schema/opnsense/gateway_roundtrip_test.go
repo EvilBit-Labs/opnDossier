@@ -278,7 +278,9 @@ func TestGateway_MonitorDisable_XMLRoundTrip(t *testing.T) {
 // so it is marshaled through the document that holds it. Decoding from the
 // vendor's XML and comparing with written-out values keeps a renamed tag from
 // passing: it would round-trip with itself. encoding/xml leaves the XMLName of
-// an embedded struct unset, so the values below leave it out.
+// an embedded struct unset, so the values below leave it out. Decoding sets
+// HasChildElement, and the items written back keep their children, so the
+// second decode sets it again.
 func TestOPNsense_GatewayModel_XMLRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -287,33 +289,35 @@ func TestOPNsense_GatewayModel_XMLRoundTrip(t *testing.T) {
 			UUID:     new("7f3c2a1e-5b6d-4e8f-9a0b-1c2d3e4f5a6b"),
 			Disabled: new("0"),
 			Gateway: Gateway{
-				Name:           "WAN_GW",
-				Descr:          "Interface WAN Gateway",
-				Interface:      "wan",
-				IPProtocol:     "inet",
-				Gateway:        "192.0.2.1",
-				DefaultGW:      "1",
-				FarGW:          "0",
-				MonitorDisable: new("1"),
-				Weight:         "1",
-				Interval:       "1",
+				Name:            "WAN_GW",
+				Descr:           "Interface WAN Gateway",
+				Interface:       "wan",
+				IPProtocol:      "inet",
+				Gateway:         "192.0.2.1",
+				DefaultGW:       "1",
+				FarGW:           "0",
+				MonitorDisable:  new("1"),
+				Weight:          "1",
+				Interval:        "1",
+				HasChildElement: true,
 			},
 		},
 		{
 			UUID:     new("0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"),
 			Disabled: new("1"),
 			Gateway: Gateway{
-				Name:           "WAN_GWv6",
-				Descr:          "Interface WAN Gateway IPv6",
-				Interface:      "wan",
-				IPProtocol:     "inet6",
-				Gateway:        "2001:db8::1",
-				DefaultGW:      "0",
-				FarGW:          "1",
-				MonitorDisable: new("0"),
-				Monitor:        "2001:db8::53",
-				Weight:         "2",
-				Interval:       "2",
+				Name:            "WAN_GWv6",
+				Descr:           "Interface WAN Gateway IPv6",
+				Interface:       "wan",
+				IPProtocol:      "inet6",
+				Gateway:         "2001:db8::1",
+				DefaultGW:       "0",
+				FarGW:           "1",
+				MonitorDisable:  new("0"),
+				Monitor:         "2001:db8::53",
+				Weight:          "2",
+				Interval:        "2",
+				HasChildElement: true,
 			},
 		},
 	}
