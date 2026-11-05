@@ -39,10 +39,9 @@ func NewGateways() *Gateways {
 	}
 }
 
-// UnmarshalXML decodes <gateways> as encoding/xml would, namespaces aside (GOTCHAS
-// [decodeGatewayItem]), and sets [Gateway.HasChildElement] on
-// each item. The container decodes the items, so that [Gateway], which [GatewayModelItem] embeds
-// and pfSense shares, needs no UnmarshalXML of its own.
+// UnmarshalXML decodes <gateways> as encoding/xml would, namespaces aside (GOTCHAS 3.4), and
+// sets [Gateway.HasChildElement] on each item. The container decodes the items, so that
+// [Gateway], which [GatewayModelItem] embeds and pfSense shares, needs no UnmarshalXML of its own.
 //
 // No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so the default encoder
 // writes the fields this reads. It does not keep an item whose only children are empty or
