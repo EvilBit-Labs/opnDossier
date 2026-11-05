@@ -72,9 +72,9 @@ vlan, wolentry
 | `diag`                     | `services.go` | No (pfSense-specific)         | IPv6NAT only                                                                   |
 | `rrd`                      | `document.go` | Yes (full)                    | Enable flag                                                                    |
 | `load_balancer`            | `document.go` | Yes (full)                    | Deprecated in pfSense 2.8+                                                     |
-| `staticroutes`             | `document.go` | Yes (full)                    | Identical                                                                      |
+| `staticroutes`             | `document.go` | Yes (full)                    | Shared type; `version` and `<enabled>` are OPNsense's; state is `<disabled>`   |
 | `ppps`                     | `document.go` | Yes (full)                    | Identical base                                                                 |
-| `gateways`                 | `document.go` | Yes (full)                    | Identical base                                                                 |
+| `gateways`                 | `document.go` | Yes (full)                    | Identical base; OPNsense 26.7 Item2 to Item5 unread on pfSense                 |
 | `ca[]` / `cert[]`          | `document.go` | Yes (full)                    | Top-level arrays                                                               |
 | `vlans`                    | `document.go` | Yes (full)                    | Identical                                                                      |
 | `revision`                 | `document.go` | Yes (full)                    | Identical                                                                      |

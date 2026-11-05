@@ -246,10 +246,19 @@ func (g GatewayModelItem) IsPlaceholder() bool {
 }
 
 // GatewayGroup represents a group of gateways used for multi-WAN failover or load balancing.
+//
+// Up to OPNsense 26.1, and on pfSense, Item repeats once per member gateway as
+// name|tier (name|tier|vip on pfSense and on OPNsense up to 19.1). From 26.7
+// the group is an MVC model: Item holds the tier 1 gateways as one
+// comma-separated list and Item2 to Item5 hold tiers 2 to 5.
 type GatewayGroup struct {
 	XMLName xml.Name `xml:"gateway_group"`
 	Name    string   `xml:"name,omitempty"`
 	Item    []string `xml:"item,omitempty"`
+	Item2   string   `xml:"item2,omitempty"`
+	Item3   string   `xml:"item3,omitempty"`
+	Item4   string   `xml:"item4,omitempty"`
+	Item5   string   `xml:"item5,omitempty"`
 	Trigger string   `xml:"trigger,omitempty"`
 	Descr   string   `xml:"descr,omitempty"`
 }
@@ -257,6 +266,7 @@ type GatewayGroup struct {
 // StaticRoutes represents the <staticroutes> container element holding all static route entries.
 type StaticRoutes struct {
 	XMLName xml.Name      `xml:"staticroutes"`
+	Version string        `xml:"version,attr,omitempty"`
 	Route   []StaticRoute `xml:"route,omitempty"`
 }
 
@@ -267,8 +277,12 @@ type StaticRoute struct {
 	Gateway  string   `xml:"gateway,omitempty"`
 	Descr    string   `xml:"descr,omitempty"`
 	Disabled BoolFlag `xml:"disabled,omitempty"`
-	Created  string   `xml:"created,omitempty"`
-	Updated  string   `xml:"updated,omitempty"`
+	// Enabled replaces Disabled from OPNsense 26.1.10 (Routes model 1.0.1), whose
+	// migration deletes <disabled>. A pointer, because the firewall falls back to
+	// <disabled> only when <enabled> is absent.
+	Enabled *string `xml:"enabled,omitempty"`
+	Created string  `xml:"created,omitempty"`
+	Updated string  `xml:"updated,omitempty"`
 }
 
 // IsPlaceholder reports whether r is an empty <route/> marker rather than a
@@ -289,6 +303,7 @@ func (r StaticRoute) IsPlaceholder() bool {
 		r.Gateway == "" &&
 		r.Descr == "" &&
 		!bool(r.Disabled) &&
+		r.Enabled == nil &&
 		r.Created == "" &&
 		r.Updated == ""
 }

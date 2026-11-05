@@ -3,6 +3,7 @@ package opnsense
 import (
 	"encoding/xml"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -333,12 +334,19 @@ func (s Source) EffectiveAddress() string {
 // to its Address under EffectiveAddress, so its AddressRef must resolve to
 // that same alias rather than being dropped.
 //
-// This exists specifically for named-object (alias) resolution: a macro
-// must never be looked up against the alias table, even if an alias happens
-// to share the same name (e.g. an alias literally named "lan").
-// EffectiveAddress is unsuitable for that lookup because it also surfaces
-// the Network macro and the "any" sentinel; callers deriving
-// RuleEndpoint.AddressRef must use AliasAddress instead.
+// This exists for named-object (alias) resolution on firewall rules and pfSense
+// port forwards, which keep an alias in <address>: there a value in <network> is
+// a macro, and a macro must not be looked up against the alias table even if an
+// alias happens to share the same name (e.g. an alias literally named "lan").
+//
+// Do not use it for an endpoint that keeps aliases in <network>, because it
+// returns "" for every such alias. Both GUIs write an outbound NAT alias there
+// (firewall_nat_out_edit.php, firewall_nat_out.inc), and the 26.x port forward
+// model does too, so those converters look the alias up on EffectiveAddress.
+// That is what the firewalls do with that value: pfSense tests is_alias first
+// and OPNsense's Rule.php lets an alias replace an interface of the same name.
+// On pfSense, where an alias may be named "any", a bare <any/> then reads as a
+// reference to it, which at worst rates that alias as in use.
 func (s Source) AliasAddress() string {
 	if s.Network != "" {
 		return ""
@@ -398,9 +406,8 @@ func (d Destination) EffectiveAddress() string {
 // effective address came from an interface/network macro (e.g. "lan"), and
 // otherwise returns Address (itself "" for a bare "any" wildcard).
 //
-// See Source.AliasAddress for the full rationale: this exists so named-object
-// (alias) resolution never mistakes a macro for an alias reference, even when
-// an alias happens to share the same name.
+// See Source.AliasAddress for the full rationale, including the endpoints that
+// keep aliases in <network> and so must not use it.
 func (d Destination) AliasAddress() string {
 	if d.Network != "" {
 		return ""
@@ -445,17 +452,41 @@ type Created struct {
 // mac, dynipv6host, authgroup) that the converter treats as unrecognized and
 // warns on rather than silently dropping (GOTCHAS §5.2).
 //
-// Content holds members newline-separated — the modern OPNsense MVC
-// convention (mirrors KeaSubnet.Pools, see GOTCHAS §18.2). Legacy configs
-// may instead populate Address; the converter checks both and prefers
-// Content when non-empty.
+// The two paths share this struct but not their elements, so it binds both sets
+// and the converter reads whichever a config holds.
+//
+// The model (Alias.xml) writes Content, with members newline-separated (mirrors
+// KeaSubnet.Pools, see GOTCHAS §18.2), and ModelDescription. Enabled,
+// PathExpression, Interface and Expire exist only there. Expire is the seconds
+// after which OPNsense purges an unused address from an external alias's table
+// (core.inc runs pfctl -T expire), so it changes what that alias holds; the
+// firewall reads it on no other type. The model's other elements are left
+// unbound: updatefreq sets how often a list is fetched, authtype, username and
+// password how it is fetched, and counters and categories concern neither.
+//
+// The legacy block writes Description (<descr>) and keeps members by type: URL for
+// a urltable alias (one entry), AliasURLs for a url alias (the element repeats),
+// Address otherwise. An old url alias also holds what it last fetched in Address,
+// which OPNsense loads up to 17.7 in place of AliasURLs, so the converter keeps
+// both. Proto can appear on either path.
+//
+// Enabled is a pointer so that an absent element stays distinct from an empty one
+// and from 0 (GOTCHAS §3.2). See convertNamedObjects for how each is read.
 type Alias struct {
-	UUID        string `xml:"uuid,attr,omitempty" json:"uuid,omitempty"        yaml:"uuid,omitempty"`
-	Name        string `xml:"name"                json:"name,omitempty"        yaml:"name,omitempty"`
-	Type        string `xml:"type"                json:"type,omitempty"        yaml:"type,omitempty"`
-	Content     string `xml:"content,omitempty"   json:"content,omitempty"     yaml:"content,omitempty"`
-	Address     string `xml:"address,omitempty"   json:"address,omitempty"     yaml:"address,omitempty"`
-	Description string `xml:"descr,omitempty"     json:"description,omitempty" yaml:"description,omitempty"`
+	UUID             string   `xml:"uuid,attr,omitempty"       json:"uuid,omitempty"             yaml:"uuid,omitempty"`
+	Enabled          *string  `xml:"enabled"                   json:"enabled,omitempty"          yaml:"enabled,omitempty"`
+	Name             string   `xml:"name"                      json:"name,omitempty"             yaml:"name,omitempty"`
+	Type             string   `xml:"type"                      json:"type,omitempty"             yaml:"type,omitempty"`
+	PathExpression   string   `xml:"path_expression,omitempty" json:"pathExpression,omitempty"   yaml:"pathExpression,omitempty"`
+	Proto            string   `xml:"proto,omitempty"           json:"proto,omitempty"            yaml:"proto,omitempty"`
+	Interface        string   `xml:"interface,omitempty"       json:"interface,omitempty"        yaml:"interface,omitempty"`
+	Content          string   `xml:"content,omitempty"         json:"content,omitempty"          yaml:"content,omitempty"`
+	Expire           string   `xml:"expire,omitempty"          json:"expire,omitempty"           yaml:"expire,omitempty"`
+	Address          string   `xml:"address,omitempty"         json:"address,omitempty"          yaml:"address,omitempty"`
+	URL              string   `xml:"url,omitempty"             json:"url,omitempty"              yaml:"url,omitempty"`
+	AliasURLs        []string `xml:"aliasurl,omitempty"        json:"aliasUrls,omitempty"        yaml:"aliasUrls,omitempty"`
+	Description      string   `xml:"descr,omitempty"           json:"description,omitempty"      yaml:"description,omitempty"`
+	ModelDescription string   `xml:"description,omitempty"     json:"modelDescription,omitempty" yaml:"modelDescription,omitempty"`
 }
 
 // AliasList is the container for a set of firewall alias definitions. It is
@@ -607,9 +638,13 @@ type IDS struct {
 	Files            string   `xml:"files"`
 	FileTags         string   `xml:"fileTags"`
 	General          struct {
-		Text              string `xml:",chardata" json:"text,omitempty"`
-		Enabled           string `xml:"enabled"`
-		Ips               string `xml:"ips"`
+		Text    string `xml:",chardata" json:"text,omitempty"`
+		Enabled string `xml:"enabled"`
+		Ips     string `xml:"ips"`
+		// Mode replaced Ips in model 1.1.2 (OPNsense 26.1): pcap is IDS, netmap
+		// runs Suricata inline on the selected interfaces, and divert runs it
+		// inline on the traffic firewall rules send it.
+		Mode              string `xml:"mode"`
 		Promisc           string `xml:"promisc"`
 		Interfaces        string `xml:"interfaces"`
 		Homenet           string `xml:"homenet"`
@@ -732,9 +767,81 @@ func (ids *IDS) IsEnabled() bool {
 	return ids != nil && ids.General.Enabled == "1"
 }
 
-// IsIPSMode returns true if the IDS is operating in IPS (Intrusion Prevention) mode.
+// IsIPSMode returns true if the IDS is set to operate in IPS (Intrusion Prevention)
+// mode. A model older than 1.1.2 is read from <ips> alone, as the releases that
+// ship it read it. From 1.1.2 on, OPNsense reads only <mode> and runs pcap without
+// it, so <ips> decides only for a config that has neither <mode> nor a version.
+//
+// The answer rests on <IDS> alone. A model writes only its own element, but a save
+// keeps the version it loaded, so the version can disagree with the release that
+// wrote the elements: a failed 26.1 migration followed by a save leaves <mode> under
+// 1.1.1, and a 26.1 config restored onto 25.7 and saved there leaves <ips> under
+// 1.1.2. Each firewall reads the element of its own release, while this follows the
+// version, so the converter warns on those shapes. What decides whether traffic
+// reaches Suricata lies outside <IDS>; see [IDS.IsDivertMode].
 func (ids *IDS) IsIPSMode() bool {
-	return ids != nil && ids.General.Ips == "1"
+	if ids == nil {
+		return false
+	}
+
+	if ids.PredatesModeOption() {
+		return ids.General.Ips == "1"
+	}
+
+	switch ids.General.Mode {
+	case "netmap", "divert":
+		return true
+	case "":
+		return ids.Version == "" && ids.General.Ips == "1"
+	default:
+		return false
+	}
+}
+
+// idsModeModelVersion is the IDS model version that replaced <ips> with
+// <mode>, shipped with OPNsense 26.1.
+const idsModeModelVersion = "1.1.2"
+
+// IsDivertMode reports whether a model that reads <mode> selects divert. Suricata
+// then captures nothing by itself: it inspects only what a firewall rule sends it
+// with divert-to, and it reads neither the interfaces nor the promiscuous setting.
+// IsIPSMode cannot see the rules, so it reports divert as IPS and leaves the caller
+// to look for such a rule.
+func (ids *IDS) IsDivertMode() bool {
+	return ids != nil && !ids.PredatesModeOption() && ids.General.Mode == "divert"
+}
+
+// PredatesModeOption reports whether the IDS model is older than 1.1.2, so that a
+// release shipping that model reads <ips> and ignores any <mode>. A later release
+// reads <mode> whatever the version says; a config it runs keeps an older version
+// only if its migration failed. An empty version or one that does not parse reports
+// false, since neither shows which model wrote the config.
+func (ids *IDS) PredatesModeOption() bool {
+	if ids == nil {
+		return false
+	}
+
+	have, ok := modelVersionNumbers(ids.Version)
+	want, _ := modelVersionNumbers(idsModeModelVersion)
+
+	return ok && slices.Compare(have, want) < 0
+}
+
+// modelVersionNumbers splits a dotted model version such as 1.1.2 into its
+// numbers, so 1.1.10 sorts after 1.1.2. It reports false when a part is not a
+// number.
+func modelVersionNumbers(version string) ([]int, bool) {
+	parts := strings.Split(version, ".")
+	numbers := make([]int, 0, len(parts))
+	for _, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, false
+		}
+		numbers = append(numbers, n)
+	}
+
+	return numbers, true
 }
 
 // GetMonitoredInterfaces parses the comma-separated interfaces string and returns a slice.
@@ -775,7 +882,7 @@ func (ids *IDS) GetDetectionMode() string {
 	if ids == nil {
 		return "Disabled"
 	}
-	if ids.General.Ips == "1" {
+	if ids.IsIPSMode() {
 		return "IPS (Prevention)"
 	}
 	return "IDS (Detection Only)"

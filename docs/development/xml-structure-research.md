@@ -292,6 +292,7 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | --------------- | ----------------- | -------- | ------------------------------------------- |
 | IDS.General     | Enabled           | `string` | MVC field, uses `== "1"` with helper method |
 | IDS.General     | Ips               | `string` | MVC field, uses `== "1"` with helper method |
+| IDS.General     | Mode              | `string` | `netmap` is IPS; `divert` if a rule diverts |
 | IDS.General     | Promisc           | `string` | MVC field, uses `== "1"` with helper method |
 | IDS.EveLog.HTTP | Enable            | `string` | MVC field, value-based                      |
 | IDS.EveLog.HTTP | Extended          | `string` | MVC field, value-based                      |
@@ -339,6 +340,8 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | Interfaces.Settings    | \*Offloading (x3)   | `string` | MVC field, value-based |
 | Interfaces.Settings    | DisableVLANHWFilter | `string` | MVC option: 0, 1 or 2  |
 
+`Alias` (security.go) binds the model's `<enabled>` as `*string`, since an absent element has to stay distinct from an empty one. OPNsense loads an alias with no members when `<enabled>` is 0 or empty (`filter_tables.conf`, `filter_core_get_port_alias`), apart from the `external` and `internal` types, whose tables it leaves as they are (`has_parser` in `alias_init.py`). The converter reads those values as disabled and reads an absent element as enabled: the model's default is 1, OPNsense writes the element on every save, and a legacy or pfSense alias has none. The same struct binds `<path_expression>`, `<proto>`, `<interface>`, `<expire>` and `<description>` for the model, and `<descr>`, `<url>` and repeated `<aliasurl>` for the legacy `<aliases>` block. `<expire>` is a number of seconds, kept as `string`, after which `pfctl -T expire` purges unused addresses from an `external` alias (`core.inc`); the firewall reads it on no other type. A legacy alias keeps `<url>`, `<aliasurl>` and `<address>` together in its members, because on a `url` alias OPNsense up to 17.7 loads `<address>`, a `url_ports` alias loads it at the 17.1 tag and nothing from 17.1.11 through 17.7, and from 18.1 both load `<aliasurl>`. The other model elements stay unbound: `<updatefreq>` sets how often a list is fetched, `<authtype>`, `<username>` and `<password>` how it is fetched, and `<counters>` and `<categories>` concern neither.
+
 ### 5d. Interfaces and DHCP (interfaces.go, dhcp.go) — platform-specific
 
 pfSense and OPNsense use different boolean semantics for interface and DHCP scope enable flags:
@@ -349,6 +352,8 @@ pfSense and OPNsense use different boolean semantics for interface and DHCP scop
 | DhcpdInterface | Enable | `opnsense.BoolFlag` | `string`      | pfSense: presence-based `<enable/>` / absent. OPNsense: value-based `<enable>1</enable>`. pfSense parser uses platform-specific type fork (`pkg/schema/pfsense/dhcp.go`) with BoolFlag, converts to `"1"` for API compatibility       |
 
 **Implementation:** The pfSense parser uses an intermediate `decodeDocument` type (`pkg/parser/pfsense/decode_types.go`) that decodes XML with BoolFlag-aware pfsense.Interface and pfsense.DhcpdInterface types, then converts to backward-compatible opnsense.Interfaces/opnsense.Dhcpd with string Enable fields set to `"1"` (enabled) or `""` (disabled).
+
+**Static routes (network.go):** both parsers share `StaticRoute`, and the vendors read it differently. OPNsense 26.1.10 (Routes model 1.0.1) replaced `<disabled>` with `<enabled>`, typed `*string` because `get_staticroutes` (util.inc) separates absent from empty: a present `<enabled>` decides, an empty one or `0` disables the route (PHP `empty()`, `modelFlagSet` in the converter), and only an absent one falls back to `<disabled>`. Neither reader checks the model version, so the element decides at any version. `<disabled>` stays a `BoolFlag` for that fallback. OPNsense tested it with `isset()` through 17.7 and has tested it with `!empty()` since 18.1, where Routes model 1.0.0 writes `0` or `1`. `BoolFlag` agrees with `!empty()` on those two values and not on `<disabled/>` or `<disabled>no</disabled>`, which the model does not write. pfSense has no `<enabled>`, writes `<disabled></disabled>` and tests it with `isset()`, so its converter takes a route's state only from `Disabled`. `StaticRoutes.Version` binds the `version` attribute: `1.0.0` from 18.1 to 26.1.9, `1.0.1` from 26.1.10, and none before 18.1 or on pfSense. The OPNsense converter warns on any other value.
 
 ---
 
@@ -422,7 +427,9 @@ Several fields pack multiple values into a single element:
 - `<icmptype>3,11,0</icmptype>` (ICMP type list)
 - Space-separated: `<timeservers>0.ntp.org 1.ntp.org</timeservers>`
 
-Our `InterfaceList` custom type correctly handles the comma-separated case.
+Our `InterfaceList` custom type correctly handles the comma-separated `<interface>` case.
+
+Gateway group tiers pack gateways the same way, but `InterfaceList` plays no part in them. OPNsense 26.7 maps `<gateways><gateway_group>` with a legacy mapper, so the element stays where it was and carries no `version` attribute. `<item>` holds the tier 1 gateways as one comma-separated list, and `<item2>` to `<item5>` hold tiers 2 to 5, bound as the strings `GatewayGroup.Item2` to `Item5`. Up to 26.1 `<item>` repeats once per gateway as `name|tier`, or `name|tier|vip` up to 19.1 and on pfSense, which is why `GatewayGroup.Item` stays a slice. `GatewayGroupItemField` rewrites the legacy entries into the five fields when the migrations run at boot. The OPNsense converter's `gatewayGroupItems` reads either form into one `name|tier` entry per gateway. pfSense reuses the type, and its converter exports `Item` as written and does not read the tier fields.
 
 ### 7c. UUID vs Tracker
 

@@ -66,6 +66,10 @@ func (c *converter) ToCommonDevice(
 	// signature. Must be set before the device literal below is evaluated.
 	c.namedObjects = namedObjects
 
+	// The IDS conversion needs to know whether a rule feeds Suricata, which only
+	// the rule pass can tell; see divertsToSuricata.
+	firewallRules, idsDivertRule := c.convertFirewallRules(doc)
+
 	device := &common.CommonDevice{
 		DeviceType:       common.DeviceTypeOPNsense,
 		Version:          doc.Version,
@@ -81,7 +85,7 @@ func (c *converter) ToCommonDevice(
 		VirtualIPs:       c.convertVirtualIPs(doc),
 		InterfaceGroups:  c.convertInterfaceGroups(doc),
 		NamedObjects:     namedObjects,
-		FirewallRules:    c.convertFirewallRules(doc),
+		FirewallRules:    firewallRules,
 		NAT:              c.convertNAT(doc),
 		DHCP:             append(c.convertDHCP(doc), c.convertKeaDHCPScopes(doc)...),
 		DNS:              c.convertDNS(doc),
@@ -91,7 +95,7 @@ func (c *converter) ToCommonDevice(
 		VPN:              c.convertVPN(doc),
 		Routing:          c.convertRouting(doc),
 		HighAvailability: c.convertHA(doc),
-		IDS:              c.convertIDs(doc),
+		IDS:              c.convertIDs(doc, idsDivertRule),
 		Syslog:           c.convertSyslog(doc),
 		Users:            c.convertUsers(doc),
 		Groups:           c.convertGroups(doc),
@@ -301,22 +305,33 @@ func (c *converter) convertVLANs(doc *schema.OpnSenseDocument) []common.VLAN {
 // filter model, to []common.FirewallRule in the order the firewall evaluates
 // them (see filterRulesInOrder). The index of a rule in the result addresses
 // its warnings.
-func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) []common.FirewallRule {
+//
+// The second result reports whether a rule of the filter model sends traffic to
+// Suricata: an enabled pass rule that divertsToSuricata. pf diverts a packet only
+// when the rule passes it, and the model refuses divert-to on any other action
+// (Filter.php). convertIDs reads it to settle divert mode.
+func (c *converter) convertFirewallRules(doc *schema.OpnSenseDocument) ([]common.FirewallRule, bool) {
 	sources := c.filterRulesInOrder(doc)
 	if len(sources) == 0 {
-		return nil
+		return nil, false
 	}
 
+	divertRule := false
 	result := make([]common.FirewallRule, 0, len(sources))
 	for i, source := range sources {
-		if source.model != nil {
-			result = append(result, c.convertFilterModelRule(i, *source.model, doc))
-		} else {
+		if source.model == nil {
 			result = append(result, c.convertLegacyFirewallRule(i, *source.legacy))
+			continue
 		}
+
+		converted := c.convertFilterModelRule(i, *source.model, doc)
+		if !converted.Disabled && converted.Type == common.RuleTypePass && divertsToSuricata(*source.model, doc) {
+			divertRule = true
+		}
+		result = append(result, converted)
 	}
 
-	return result
+	return result, divertRule
 }
 
 // ruleType casts a stored rule action and warns about one it does not know.
@@ -503,6 +518,10 @@ func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 }
 
 // convertOutboundNATRules maps []schema.NATRule to []common.NATRule.
+//
+// Unlike a firewall rule, an outbound NAT rule keeps an alias in <network>
+// (firewall_nat_out_edit.php), so the source and destination look it up on
+// EffectiveAddress; see Source.AliasAddress.
 func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NATRule {
 	if len(rules) == 0 {
 		return nil
@@ -537,14 +556,14 @@ func (c *converter) convertOutboundNATRules(rules []schema.NATRule) []common.NAT
 			Source: common.RuleEndpoint{
 				Address:    r.Source.EffectiveAddress(),
 				Port:       r.Source.Port,
-				AddressRef: c.namedObjects.Ref(r.Source.AliasAddress()),
+				AddressRef: c.namedObjects.Ref(r.Source.EffectiveAddress()),
 				PortRef:    c.namedObjects.Ref(r.Source.Port),
 				Negated:    bool(r.Source.Not),
 			},
 			Destination: common.RuleEndpoint{
 				Address:    r.Destination.EffectiveAddress(),
 				Port:       r.EffectiveDestinationPort(),
-				AddressRef: c.namedObjects.Ref(r.Destination.AliasAddress()),
+				AddressRef: c.namedObjects.Ref(r.Destination.EffectiveAddress()),
 				PortRef:    c.namedObjects.Ref(r.EffectiveDestinationPort()),
 				Negated:    bool(r.Destination.Not),
 			},

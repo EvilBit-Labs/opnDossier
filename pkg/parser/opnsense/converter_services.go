@@ -23,6 +23,25 @@ var knownUnboundPlusVersions = map[string]struct{}{
 	"1.0.2": {},
 }
 
+// idsModelVersions lists every <IDS version="..."> IDS.xml has carried, up to
+// 1.1.2 (26.1), which replaced <ips> with <mode>. One literal keeps the
+// version strings clear of goconst's count across the other version sets.
+var idsModelVersions = strings.Fields("1.0.0 1.0.1 1.0.2 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7 1.0.8 1.0.9 1.1.0 1.1.1 1.1.2")
+
+// idsModes lists the <mode> options of IDS model 1.1.2. OPNsense runs any other
+// value as pcap, so it reads as IDS, and convertIDs warns on it (GOTCHAS 5.2). An
+// older model is read from <ips>, so there checkIDSMode warns on any <mode>.
+var idsModes = strings.Fields("pcap netmap divert")
+
+const (
+	// idsModePath and idsIPSPath address the conversion warnings on those elements.
+	idsModePath = "IDS.General.Mode"
+	idsIPSPath  = "IDS.General.Ips"
+	// idsDivertPort is the divert socket Suricata listens on (rc.conf.d) and the
+	// only divert-to target OPNsense offers (list_divert_sockets.php).
+	idsDivertPort = "8000"
+)
+
 // convertDHCP maps doc.Dhcpd.Items to []common.DHCPScope.
 func (c *converter) convertDHCP(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	items := doc.Dhcpd.Items
@@ -562,7 +581,7 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 	return common.Routing{
 		Gateways:      c.convertGatewayItems(doc),
 		GatewayGroups: c.convertGatewayGroups(doc.Gateways.Groups),
-		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes.Route),
+		StaticRoutes:  c.convertStaticRoutes(doc.StaticRoutes),
 	}
 }
 
@@ -797,7 +816,7 @@ func (c *converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.
 	for _, g := range groups {
 		result = append(result, common.GatewayGroup{
 			Name:        g.Name,
-			Items:       g.Item,
+			Items:       gatewayGroupItems(g),
 			Trigger:     g.Trigger,
 			Description: g.Descr,
 		})
@@ -806,16 +825,29 @@ func (c *converter) convertGatewayGroups(groups []schema.GatewayGroup) []common.
 	return result
 }
 
-// convertStaticRoutes maps []schema.StaticRoute to []common.StaticRoute.
+// routesModelVersion is the Routes model version from OPNsense 18.1 to 26.1.9.
+const routesModelVersion = "1.0.0"
+
+// knownRoutesModelVersions lists the <staticroutes version="..."> values this
+// converter has been checked against. 1.0.1 (26.1.10) replaced each route's
+// <disabled> with <enabled>.
+var knownRoutesModelVersions = map[string]struct{}{
+	"":                 {},
+	routesModelVersion: {},
+	"1.0.1":            {},
+}
+
+// convertStaticRoutes maps the routes in <staticroutes> to []common.StaticRoute
+// and warns on a model version it has not been checked against.
 //
 // Empty <route/> placeholders are skipped so they neither surface as blank
 // routes in exported output nor flip CommonDevice.HasRoutes to true for a
 // device with no routing configuration. The result is grown on demand rather
 // than preallocated because the loop may skip entries.
-func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.StaticRoute {
+func (c *converter) convertStaticRoutes(routes schema.StaticRoutes) []common.StaticRoute {
 	var result []common.StaticRoute
 
-	for _, r := range routes {
+	for _, r := range routes.Route {
 		if r.IsPlaceholder() {
 			continue
 		}
@@ -825,13 +857,37 @@ func (c *converter) convertStaticRoutes(routes []schema.StaticRoute) []common.St
 			NetworkRef:  c.namedObjects.Ref(r.Network),
 			Gateway:     r.Gateway,
 			Description: r.Descr,
-			Disabled:    bool(r.Disabled),
+			Disabled:    staticRouteDisabled(r),
 			Created:     r.Created,
 			Updated:     r.Updated,
 		})
 	}
 
+	if _, known := knownRoutesModelVersions[routes.Version]; !known {
+		c.addWarning("StaticRoutes.Version", routes.Version,
+			"unrecognized OPNsense static routes model version; element mapping may be stale",
+			common.SeverityMedium)
+	}
+
 	return result
+}
+
+// staticRouteDisabled reads <enabled> as get_staticroutes (util.inc) does: when
+// present it wins, and the route is disabled when it is empty or 0 (PHP
+// empty(), the same test modelFlagSet makes for the filter model). Without one,
+// <disabled> keeps its BoolFlag reading. The firewall has tested that element
+// with !empty() since 18.1; the two agree on the 0 and 1 the Routes model
+// writes, and differ on values it does not write, such as <disabled/> (disabled
+// here, installed there) or <disabled>no</disabled> (the reverse). OPNsense 15.1
+// wrote <disabled/> itself, and the isset() of releases through 17.7 read it as
+// BoolFlag does. Following !empty() would need the element's raw body, which the
+// BoolFlag the pfSense converter also reads does not keep.
+func staticRouteDisabled(r schema.StaticRoute) bool {
+	if r.Enabled != nil {
+		return !modelFlagSet(*r.Enabled)
+	}
+
+	return bool(r.Disabled)
 }
 
 // convertHA maps doc.HighAvailabilitySync to common.HighAvailability.
@@ -862,15 +918,28 @@ func (c *converter) convertHA(doc *schema.OpnSenseDocument) common.HighAvailabil
 
 // convertIDs (IDS = Intrusion Detection System) maps doc.OPNsense.IntrusionDetectionSystem
 // to *common.IDSConfig.
-func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
+// divertRule reports whether a rule of the filter model sends traffic to Suricata
+// (see convertFirewallRules); it settles divert mode.
+func (c *converter) convertIDs(doc *schema.OpnSenseDocument, divertRule bool) *common.IDSConfig {
 	ids := doc.OPNsense.IntrusionDetectionSystem
 	if ids == nil {
 		return nil
 	}
 
-	return &common.IDSConfig{
+	if ids.Version != "" && !slices.Contains(idsModelVersions, ids.Version) {
+		c.addWarning(
+			"IDS.Version",
+			ids.Version,
+			"unrecognized OPNsense IDS model version; element mapping may be stale",
+			common.SeverityMedium,
+		)
+	}
+
+	c.checkIDSMode(ids)
+
+	config := &common.IDSConfig{
 		Enabled:           ids.IsEnabled(),
-		IPSMode:           ids.IsIPSMode(),
+		IPSMode:           ids.IsEnabled() && c.idsRunsInline(doc, ids, divertRule),
 		Promiscuous:       ids.IsPromiscuousMode(),
 		Interfaces:        ids.GetMonitoredInterfaces(),
 		HomeNetworks:      ids.GetHomeNetworks(),
@@ -889,6 +958,121 @@ func (c *converter) convertIDs(doc *schema.OpnSenseDocument) *common.IDSConfig {
 			ToserverGroups: ids.General.Detect.ToserverGroups,
 		},
 	}
+
+	// Divert mode captures on no interface, so these settings, left in the
+	// config from another mode or by default, say nothing about what Suricata sees.
+	if ids.IsDivertMode() {
+		config.Promiscuous = false
+		config.Interfaces = nil
+	}
+
+	return config
+}
+
+// checkIDSMode warns on a <mode> or <ips> that [schema.IDS.IsIPSMode] may read
+// differently from the firewall. A vendor save can write the first two shapes (see
+// there), and each reads right for the releases on one side of 26.1 only. The third
+// is a value no release offers.
+func (c *converter) checkIDSMode(ids *schema.IDS) {
+	mode := ids.General.Mode
+
+	switch {
+	case mode != "" && ids.PredatesModeOption():
+		c.warnIfEngineRuns(ids, idsModePath, mode, common.SeverityMedium,
+			"OPNsense IDS model older than 1.1.2 carries <mode>; reported from <ips>, "+
+				"but OPNsense 26.1 and later read <mode> whatever the model version says")
+	case mode == "" && ids.Version != "" && !ids.PredatesModeOption() && ids.General.Ips == "1":
+		c.warnIfEngineRuns(ids, idsIPSPath, ids.General.Ips, common.SeverityMedium,
+			"OPNsense IDS model 1.1.2 or later carries <ips> without <mode>; reported as IDS, "+
+				"as OPNsense 26.1 and later run it, but a release before 26.1 reads <ips>")
+	case mode != "" && !slices.Contains(idsModes, mode):
+		c.addWarning(
+			idsModePath,
+			mode,
+			"unrecognized OPNsense IDS mode; reported as IDS, as OPNsense 26.1 runs it",
+			common.SeverityMedium,
+		)
+	}
+}
+
+// idsRunsInline reports whether Suricata runs inline on traffic it receives. It
+// starts from [schema.IDS.IsIPSMode] and settles what <IDS> alone cannot.
+//
+// In divert mode Suricata gets only what a rule sends it, and without such a rule
+// it gets nothing, so reporting IPS would claim blocking that does not happen. The
+// report has no way to say idle, so this reads as IDS, the nearer claim. Only the
+// filter model is searched: the legacy schema does not bind divert-to and its rule
+// page cannot set it, so a hand-edited legacy rule reads as no rule. The search
+// follows a rule's enabled flag and its interfaces (divertsToSuricata), not all that
+// makes the firewall comment a rule out: one left with an address or port that does
+// not resolve, or a gateway of the other address family, still reads as IPS.
+//
+// The interface settings block exists only from OPNsense 26.1 on, so an <ips> read
+// beside it shows a failed IDS migration: the firewall ignores <ips> and, with no
+// <mode>, runs pcap. Restoring such a config onto an older release is the one case
+// this gets wrong, and that errs towards reporting less protection.
+func (c *converter) idsRunsInline(doc *schema.OpnSenseDocument, ids *schema.IDS, divertRule bool) bool {
+	switch {
+	case !ids.IsIPSMode():
+		return false
+	case ids.IsDivertMode() && !divertRule:
+		c.warnIfEngineRuns(ids, idsModePath, ids.General.Mode, common.SeverityHigh,
+			"OPNsense IDS divert mode inspects only traffic a firewall rule sends it, and no enabled "+
+				"pass rule of the filter model on an enabled interface with a device has divert-to "+
+				idsDivertPort+"; reported as IDS, although Suricata receives no traffic")
+
+		return false
+	case ids.General.Mode == "" && doc.OPNsense.Interfaces.Settings != nil:
+		c.warnIfEngineRuns(ids, idsIPSPath, ids.General.Ips, common.SeverityMedium,
+			"OPNsense IDS model was not migrated, yet the config carries the 26.1 interface settings: "+
+				"OPNsense ignores <ips> and, with no <mode>, runs pcap; reported as IDS")
+
+		return false
+	default:
+		return true
+	}
+}
+
+// warnIfEngineRuns records a warning about what the engine does with traffic, which
+// says nothing while it is off.
+func (c *converter) warnIfEngineRuns(
+	ids *schema.IDS,
+	field, value string,
+	severity common.Severity,
+	message string,
+) {
+	if ids.IsEnabled() {
+		c.addWarning(field, value, message, severity)
+	}
+}
+
+// divertsToSuricata reports whether a rule of the filter model targets Suricata
+// and its interfaces leave it in the ruleset. Whether it is enabled and passes
+// traffic is for the caller, which has the converted rule.
+func divertsToSuricata(rule schema.FirewallFilterRule, doc *schema.OpnSenseDocument) bool {
+	return rule.DivertTo == idsDivertPort &&
+		mapsToDevice(rule.Interface, doc) &&
+		mapsToDevice(rule.ReceivedOn, doc)
+}
+
+// mapsToDevice reports whether an <interface> or <received-on> list leaves a rule
+// in the ruleset. OPNsense writes one pf rule for each entry and comments out those
+// naming an interface it has not mapped to a device, and it maps only an interface
+// with <enable> and <if> (legacy_config_get_interfaces, Rule.php reader). So one
+// mapped entry is enough, and an empty entry, like an empty list, names no interface
+// to miss. The model of 26.1 has no <received-on>, and 26.7.8 reads it this way.
+//
+// This is stricter than the reported rule's Disabled field, which asks only whether
+// the interface is defined (definesAny). OPNsense tests <enable> with isset, so
+// <enable>0</enable> counts. An empty element counts there too but not here, where
+// it decodes like an absent one, as it does for common.Interface.Enabled. OPNsense
+// writes 1, and that reading errs towards IDS with the High warning.
+func mapsToDevice(list string, doc *schema.OpnSenseDocument) bool {
+	return slices.ContainsFunc(strings.Split(list, listSeparator), func(key string) bool {
+		iface := doc.Interfaces.Items[key]
+
+		return key == "" || (iface.Enable != "" && iface.If != "")
+	})
 }
 
 // convertSyslog maps doc.Syslog to common.SyslogConfig.

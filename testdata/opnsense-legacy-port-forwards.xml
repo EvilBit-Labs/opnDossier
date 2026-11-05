@@ -33,26 +33,26 @@
             <name>MAIL_HOST</name>
             <type>host</type>
             <content>192.168.20.25</content>
-            <descr>Mail server</descr>
+            <description>Mail server</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000002">
             <name>MAIL_PORTS</name>
             <type>port</type>
             <content>25
 587</content>
-            <descr>Mail submission ports</descr>
+            <description>Mail submission ports</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000003">
             <name>TRUSTED_NETS</name>
             <type>network</type>
             <content>203.0.113.0/24</content>
-            <descr>Networks allowed to reach the mail server</descr>
+            <description>Networks allowed to reach the mail server</description>
           </alias>
           <alias uuid="a1a1a1a1-0000-4000-8000-000000000004">
             <name>SPARE_HOST</name>
             <type>host</type>
             <content>192.168.20.99</content>
-            <descr>Referenced by nothing</descr>
+            <description>Referenced by nothing</description>
           </alias>
         </aliases>
       </Alias>
