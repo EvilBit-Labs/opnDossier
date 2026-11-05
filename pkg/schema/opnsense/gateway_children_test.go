@@ -418,12 +418,12 @@ func TestGateways_UnmarshalXML_KeepsTheSyntaxError(t *testing.T) {
 				t.Fatalf("err = %v, want an *xml.SyntaxError", err)
 			}
 
-			end := strings.Index(data, "</nam>")
-			if end < 0 {
+			before, _, found := strings.Cut(data, "</nam>")
+			if !found {
 				t.Fatal("the input has no </nam>")
 			}
 
-			if want := strings.Count(data[:end], "\n") + 1; syntax.Line != want {
+			if want := strings.Count(before, "\n") + 1; syntax.Line != want {
 				t.Errorf("Line = %d, want %d", syntax.Line, want)
 			}
 		})

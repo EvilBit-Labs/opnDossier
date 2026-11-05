@@ -588,7 +588,8 @@ func (c *converter) convertRouting(doc *schema.OpnSenseDocument) common.Routing 
 // convertGatewayItems reads the gateways from the <OPNsense><Gateways> model
 // when it holds any, and from <gateways> otherwise, as the vendor's
 // gatewayIterator does. A <gateway_item> with no child element does not count
-// in either store, and one with any child element does, whatever it holds
+// in either store, as on current releases (24.1.3 and later under <gateways>),
+// and one with any child element does, whatever it holds
 // (schema.Gateway.IsPlaceholder). OPNsense 24.1 migration M1_0_0 copies the
 // <gateways><gateway_item> entries into the model and, once one is stored,
 // deletes all of them.

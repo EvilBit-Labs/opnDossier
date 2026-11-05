@@ -39,12 +39,15 @@ func NewGateways() *Gateways {
 	}
 }
 
-// UnmarshalXML decodes <gateways> as encoding/xml would and sets [Gateway.HasChildElement] on
+// UnmarshalXML decodes <gateways> as encoding/xml would, namespaces aside (see
+// [decodeGatewayItem]), and sets [Gateway.HasChildElement] on
 // each item. The container decodes the items, so that [Gateway], which [GatewayModelItem] embeds
 // and pfSense shares, needs no UnmarshalXML of its own.
 //
 // No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so the default encoder
-// writes the element this reads.
+// writes the fields this reads. It does not keep an item whose only children are empty or
+// unbound, such as <name/> or <priority>: those are omitted, and the item reads back as a
+// placeholder.
 func (g *Gateways) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// Fields is Gateways without this method. Its name is exported because encoding/xml reads the
 	// XMLName of an embedded struct through the embedded field, and panics on an unexported one.
@@ -86,6 +89,11 @@ func (l *legacyGatewayItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 // exists with SimpleXML's count(), which counts child elements and nothing else, so text, CDATA,
 // comments and processing instructions do not count, and neither do attributes. v must not
 // implement [xml.Unmarshaler], or it would be called again here.
+//
+// Two differences arise only on namespaced input, which OPNsense never writes. count() skips a
+// child with a namespace prefix, and this counts it, because the decoder has already resolved the
+// prefix. The second decoder also resolves the item's namespaces again, so an item that declares
+// a prefix bound to another of its prefixes gets a different XMLName.Space.
 func decodeGatewayItem(d *xml.Decoder, start xml.StartElement, v any, child *bool) error {
 	return xml.NewTokenDecoder(&childElementTokens{d: d, start: &start, child: child}).Decode(v)
 }
@@ -226,7 +234,9 @@ type GatewayModelItem struct {
 // so the item does.
 //
 // No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so the default encoder
-// writes the element this reads.
+// writes the fields this reads. It does not keep an item whose only children are empty or
+// unbound, such as <name/> or <priority>: those are omitted, and the item reads back as a
+// placeholder.
 func (g *GatewayModelItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// fields is GatewayModelItem without this method. Gateway has none to promote into it.
 	type fields GatewayModelItem
