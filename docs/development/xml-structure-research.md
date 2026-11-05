@@ -173,9 +173,9 @@ The `<source>` and `<destination>` elements are the most complex sub-structures 
 | Target      | `<target>`      | `string`        | Correct   | Initial |
 | SourcePort  | `<sourceport>`  | `string`        | Correct   | Initial |
 | Disabled    | `<disabled>`    | `*string`       | Converted | Phase 2 |
-| Quick       | `<quick>`       | `BoolFlag`      | Converted | Phase 2 |
+| Quick       | `<quick>`       | `*string`       | Converted | #976    |
 | Log         | `<log>`         | `BoolFlag`      | Added     | Phase 2 |
-| Floating    | `<floating>`    | `string`        | Added     | Phase 2 |
+| Floating    | `<floating>`    | `*string`       | Converted | #976    |
 | Gateway     | `<gateway>`     | `string`        | Added     | Phase 2 |
 | Direction   | `<direction>`   | `string`        | Added     | Phase 2 |
 | Tracker     | `<tracker>`     | `string`        | Added     | Phase 2 |
