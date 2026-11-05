@@ -39,6 +39,8 @@ Caught by CodeRabbit on PR #695.
 
 ## Solution
 
+> **Later change:** `wanRulePermitsPort` reads `device.NAT.InboundRules` again, through `forwardsToAnotherHost`, to recognize the filter rule a port forward stores for itself. The rules there can only take a pass rule out of the count, never add one, so a NAT rule is still never evidence of exposure and the invariant on this page holds. Do not remove that read as a regression of this bug. The code and comments quoted below are as they stood in #695; `GOTCHAS.md` §8.4 has the current behavior.
+
 Before, `wanRulePermitsPort` iterated both `device.FirewallRules` and `device.NAT.InboundRules`:
 
 ```go

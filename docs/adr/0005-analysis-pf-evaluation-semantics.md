@@ -8,7 +8,7 @@ Shadow detection (issue #202) must decide whether a rule is overridden by a high
 
 ## Decision
 
-The analysis engine derives rule precedence from pf evaluation semantics, not raw list order: quick rules are first-match, non-quick rules are last-match, unscoped floating rules evaluate device-wide before interface rules, and coverage is scoped by (interface, direction). Precedence is computed from the modeled `Quick`, `Floating`, and `Direction` fields.
+The analysis engine derives rule precedence from pf evaluation semantics, not raw list order: quick rules are first-match, non-quick rules are last-match, floating rules evaluate in list order before interface rules (device-wide when unscoped), and coverage is scoped by (interface, direction). Precedence is computed from the modeled `Quick`, `Floating`, and `Direction` fields. An OPNsense rule list is not raw: the converter has already sorted it into evaluation order, which on configs saved by the os-firewall plugin puts some interface rules ahead of floating rules, so the engine takes it as it stands instead of moving floating rules first. A disabled rule cannot win a pair, because the firewall does not load it: pfSense skips a rule on `isset()`, OPNsense comments one out on `!empty()`, and each converter applies its vendor's test. It can still lose one: it is staged rather than dead, and it would lose if it were enabled. `DetectDeadRules` still lets a disabled rule own a finding, as it always did.
 
 ## Alternatives Considered
 

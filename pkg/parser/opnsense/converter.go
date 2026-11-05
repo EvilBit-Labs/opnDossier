@@ -391,27 +391,34 @@ func (c *converter) ruleFamily(i int, stored string) common.IPProtocol {
 // "lan") or the "any" wildcard is never mistaken for an alias reference,
 // even when an alias happens to share that name.
 //
-// An absent <direction>, <statetype> or <quick> takes the firewall's default
-// (FilterRule.php: in, keep state, and quick unless floating), which is what the
-// filter model writes out, so a rule reads alike in both stores and a diff across
-// a migration is quiet on them. <floating> is tested for presence, as the firewall
+// An absent <type>, <direction>, <statetype> or <quick> takes the firewall's
+// default (FilterRule.php: pass, in, keep state, and quick unless floating), which
+// is what the filter model writes out, so a rule reads alike in both stores and a
+// diff across a migration is quiet on them. Up to 24.7 the port forward page wrote
+// its companion rule with no <type>. <floating> is tested for presence, as the firewall
 // does (filter.lib.inc isset) and as legacyRulePriority ranks it.
+//
+// <disabled> is not tested for presence. From 17.7 the firewall comments a rule
+// out when the element is not empty in PHP's sense (Rule.php parseIsComment),
+// which is modelFlagSet's test, so an empty element is a live rule. Through 17.1
+// it tested isset(). An empty element is read as the later releases read it, so
+// at worst a rule one of those older releases skipped is reported as live, with
+// a warning, since the config says disabled and the firewall loads the rule.
 func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.FirewallRule {
 	c.warnOnIncompleteFirewallRule(i, rule)
+	c.warnOnLiveDisabledElement(i, rule)
 
 	return common.FirewallRule{
 		UUID:        rule.UUID,
-		Type:        c.ruleType(i, rule.Type),
+		Type:        c.ruleType(i, legacyRuleType(rule.Type)),
 		Description: rule.Descr,
 		Interfaces:  []string(rule.Interface),
 		Direction:   c.ruleDirection(i, cmp.Or(rule.Direction, string(common.DirectionIn))),
 		IPProtocol:  c.ruleFamily(i, rule.IPProtocol),
 		StateType:   legacyStateType(rule.StateType),
-		Floating:    rule.Floating != "",
-		// shortcut: Quick is a BoolFlag, so <quick>0</quick> on an interface rule reads as
-		// absent and the rule as quick; make it a *string if a release ever writes that.
-		Quick:    bool(rule.Quick) || rule.Floating == "",
-		Protocol: rule.Protocol,
+		Floating:    rule.Floating != nil,
+		Quick:       legacyQuick(rule),
+		Protocol:    rule.Protocol,
 		Source: common.RuleEndpoint{
 			Address:     rule.Source.EffectiveAddress(),
 			AddressRef:  c.namedObjects.Ref(rule.Source.AliasAddress()),
@@ -432,7 +439,7 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 		TargetRef:       c.namedObjects.Ref(rule.Target),
 		Gateway:         rule.Gateway,
 		Log:             bool(rule.Log),
-		Disabled:        bool(rule.Disabled),
+		Disabled:        rule.Disabled != nil && modelFlagSet(*rule.Disabled),
 		Tracker:         rule.Tracker,
 		MaxSrcNodes:     rule.MaxSrcNodes,
 		MaxSrcConn:      rule.MaxSrcConn,
@@ -455,19 +462,55 @@ func (c *converter) convertLegacyFirewallRule(i int, rule schema.Rule) common.Fi
 	}
 }
 
+// legacyQuick reads <quick> on a legacy rule as FilterRule.php does: an absent
+// element takes the default, quick unless floating (L220-L222), and a present
+// one goes through parseBool, which is !empty(), so <quick>0</quick>, which the
+// legacy rules page writes for an unticked box, and <quick/> are not quick on
+// any rule.
+func legacyQuick(rule schema.Rule) bool {
+	if rule.Quick == nil {
+		return rule.Floating == nil
+	}
+
+	return modelFlagSet(*rule.Quick)
+}
+
+// warnOnLiveDisabledElement reports a <disabled> element the firewall does not
+// act on. OPNsense from 17.7 comments a rule out only when the element is not
+// empty in PHP's sense, so an empty element or a 0 leaves the rule live, which
+// is also the shape pfSense writes for a disabled rule. OPNsense through 17.1
+// skipped such a rule. The rule is reported as the current firewall loads it,
+// and the operator is told the element did nothing.
+func (c *converter) warnOnLiveDisabledElement(i int, rule schema.Rule) {
+	if rule.Disabled == nil || modelFlagSet(*rule.Disabled) {
+		return
+	}
+
+	c.addWarning(
+		fmt.Sprintf("FirewallRules[%d].Disabled", i),
+		*rule.Disabled,
+		"<disabled> is empty or 0; OPNsense 17.7 and later load the rule, so it is reported as enabled",
+		common.SeverityMedium,
+	)
+}
+
+// legacyRuleType returns the type the firewall compiles for a stored legacy
+// <type>. parseType in FilterRule.php tests it with empty(), the same test
+// modelFlagSet makes, so 0 takes the default as an empty element does. Any other
+// value goes to pf as written.
+func legacyRuleType(stored string) string {
+	if modelFlagSet(stored) {
+		return stored
+	}
+
+	return string(common.RuleTypePass)
+}
+
 // warnOnIncompleteFirewallRule records a conversion warning for each
 // required field rule leaves empty. Split out of convertLegacyFirewallRule to
 // keep that function inside the length limit; i is the rule index used to
 // address the warning.
 func (c *converter) warnOnIncompleteFirewallRule(i int, rule schema.Rule) {
-	if rule.Type == "" {
-		c.addWarning(
-			fmt.Sprintf("FirewallRules[%d].Type", i),
-			rule.UUID,
-			"firewall rule has empty type",
-			common.SeverityHigh,
-		)
-	}
 	if rule.Source.EffectiveAddress() == "" {
 		c.addWarning(
 			fmt.Sprintf("FirewallRules[%d].Source", i),

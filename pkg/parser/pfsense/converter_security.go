@@ -18,6 +18,15 @@ import (
 // AliasAddress (not EffectiveAddress) so an interface/network macro (e.g.
 // "lan") or the "any" wildcard is never mistaken for an alias reference,
 // even when an alias happens to share that name.
+//
+// There is no IsPlaceholder guard here (GOTCHAS 3.4), although an empty <rule/>
+// would read as an enabled pass rule from any to any, because pfSense's own
+// writer never produces one under <filter>. firewall_rules.php (RELENG_2_7_2,
+// lines 142-183) deletes a rule from the list init_config_arr made, and rule is
+// a list tag in xmlparse.inc (dump_xml_config_sub, RELENG_2_7_2), so a
+// list left empty emits nothing and the box writes <filter></filter>. See
+// convertInboundNATRules for the same reading of <nat>. Because the loop never
+// skips an append, the preallocation below is correct.
 func (c *converter) convertFirewallRules(
 	doc *pfsense.Document,
 	namedObjects common.NamedObjects,
@@ -28,17 +37,11 @@ func (c *converter) convertFirewallRules(
 
 	result := make([]common.FirewallRule, 0, len(doc.Filter.Rule))
 	for i, rule := range doc.Filter.Rule {
+		c.warnOnAnyBesideAddress(i, rule)
+		rule = withAnyFirst(rule)
 		c.warnOnIncompleteFirewallRule(i, rule)
 
-		ruleType := common.FirewallRuleType(rule.Type)
-		if rule.Type != "" && !ruleType.IsValid() {
-			c.addWarning(
-				fmt.Sprintf("FirewallRules[%d].Type", i),
-				rule.Type,
-				"unrecognized firewall rule type",
-				common.SeverityLow,
-			)
-		}
+		ruleType := c.ruleType(i, rule.Type)
 		direction := common.FirewallDirection(rule.Direction)
 		if rule.Direction != "" && !direction.IsValid() {
 			c.addWarning(
@@ -48,6 +51,12 @@ func (c *converter) convertFirewallRules(
 				common.SeverityLow,
 			)
 		}
+		// The warning reads the element, and the rule carries what pfSense compiles.
+		direction = compiledDirection(rule)
+		c.warnOnIgnoredDirection(i, rule, direction)
+		c.warnOnIgnoredFlagBody(i, "Floating", rule.Floating)
+		c.warnOnIgnoredFlagBody(i, "Quick", rule.Quick)
+		c.warnOnIgnoredFlagBody(i, "Disabled", rule.Disabled)
 		ipProto := common.IPProtocol(rule.IPProtocol)
 		if rule.IPProtocol != "" && !ipProto.IsValid() {
 			c.addWarning(
@@ -64,11 +73,16 @@ func (c *converter) convertFirewallRules(
 			Description: rule.Descr,
 			Interfaces:  []string(rule.Interface),
 			IPProtocol:  ipProto,
-			StateType:   rule.StateType,
+			StateType:   ruleStateType(ruleType, rule.StateType),
 			Direction:   direction,
-			Floating:    rule.Floating == xmlBoolYes,
-			Quick:       bool(rule.Quick),
-			Protocol:    rule.Protocol,
+			// pfSense decides whether a rule is floating, and whether it is
+			// quick, with isset(), whatever <floating> and <quick> hold, and
+			// makes every rule that is not floating quick (filter.inc L3387,
+			// L4295). Only its direction check also requires "yes"
+			// (compiledDirection).
+			Floating: rule.Floating != nil,
+			Quick:    rule.Quick != nil || rule.Floating == nil,
+			Protocol: rule.Protocol,
 			Source: common.RuleEndpoint{
 				Address:    rule.Source.EffectiveAddress(),
 				AddressRef: namedObjects.Ref(rule.Source.AliasAddress()),
@@ -87,7 +101,7 @@ func (c *converter) convertFirewallRules(
 			TargetRef:       namedObjects.Ref(rule.Target),
 			Gateway:         rule.Gateway,
 			Log:             bool(rule.Log),
-			Disabled:        bool(rule.Disabled),
+			Disabled:        rule.Disabled != nil,
 			Tracker:         rule.Tracker,
 			MaxSrcNodes:     rule.MaxSrcNodes,
 			MaxSrcConn:      rule.MaxSrcConn,
@@ -113,19 +127,91 @@ func (c *converter) convertFirewallRules(
 	return result
 }
 
+// withAnyFirst returns rule with the address cleared from an endpoint that holds
+// <any>. filter_generate_address in filter.inc tests isset(any) before network
+// and address, so pf gets any for such an endpoint whatever else it holds, while
+// EffectiveAddress and AliasAddress follow the OPNsense order, which prefers the
+// address. No pfSense page writes both: only a hand edit or a generator does.
+func withAnyFirst(rule pfsense.FilterRule) pfsense.FilterRule {
+	if rule.Source.IsAny() {
+		rule.Source.Network, rule.Source.Address = "", ""
+	}
+
+	if rule.Destination.IsAny() {
+		rule.Destination.Network, rule.Destination.Address = "", ""
+	}
+
+	return rule
+}
+
+// warnOnAnyBesideAddress records a Low warning for each endpoint of rule i that
+// holds <any> beside a network or address. pf reads any (withAnyFirst), so the
+// address reaches no output and an alias named there gets no reference, which
+// the unused-object check would otherwise read as unused (GOTCHAS 3.6, 23.3).
+func (c *converter) warnOnAnyBesideAddress(i int, rule pfsense.FilterRule) {
+	const message = "endpoint holds <any> beside an address; pfSense compiles it as any"
+
+	source := cmp.Or(rule.Source.Network, rule.Source.Address)
+	if source != "" && rule.Source.IsAny() {
+		c.addWarning(fmt.Sprintf("FirewallRules[%d].Source", i), source, message, common.SeverityLow)
+	}
+
+	destination := cmp.Or(rule.Destination.Network, rule.Destination.Address)
+	if destination != "" && rule.Destination.IsAny() {
+		c.addWarning(fmt.Sprintf("FirewallRules[%d].Destination", i), destination, message, common.SeverityLow)
+	}
+}
+
+// ruleType reads a stored type as filter_generate_user_rule in filter.inc does:
+// pass, block, reject and match stand, and pfSense compiles anything else as
+// pass. That covers the empty type of the companion rule the port forward page
+// writes, which needs no warning, and a value no pfSense page writes, which is
+// reported as pass with one. The common model has no type for match, so it stays
+// as stored with a Low warning. pfSense's parser trims tab, newline and carriage
+// return from element text (cData in xmlparse.inc) and encoding/xml does not, so
+// the test trims them too. A space survives on the firewall, so " block" really
+// compiles as pass.
+func (c *converter) ruleType(i int, stored string) common.FirewallRuleType {
+	trimmed := strings.Trim(stored, "\t\n\r")
+
+	ruleType := common.FirewallRuleType(trimmed)
+	if trimmed == "" || ruleType.IsValid() {
+		return cmp.Or(ruleType, common.RuleTypePass)
+	}
+
+	field := fmt.Sprintf("FirewallRules[%d].Type", i)
+	if trimmed == ruleTypeMatch {
+		c.addWarning(field, stored, "unrecognized firewall rule type", common.SeverityLow)
+
+		return ruleType
+	}
+
+	c.addWarning(field, stored,
+		"unrecognized firewall rule type, which pfSense compiles as pass; it is reported as pass",
+		common.SeverityMedium,
+	)
+
+	return common.RuleTypePass
+}
+
+// ruleStateType reads a stored state type as filter_generate_user_rule in
+// filter.inc does: a pass rule whose state type is empty() in PHP, an absent or
+// empty element or 0, keeps state. The port forward page never writes one, so
+// without this every TCP forward's rule would read as stateless. pf applies no
+// state option to any other type, so nothing is filled in there.
+func ruleStateType(ruleType common.FirewallRuleType, stored string) string {
+	if ruleType == common.RuleTypePass && (stored == "" || stored == "0") {
+		return stateTypeKeep
+	}
+
+	return stored
+}
+
 // warnOnIncompleteFirewallRule records a conversion warning for each
 // required field rule leaves empty. Split out of convertFirewallRules to
 // keep that function inside the length limit; i is the rule index used to
 // address the warning.
 func (c *converter) warnOnIncompleteFirewallRule(i int, rule pfsense.FilterRule) {
-	if rule.Type == "" && rule.AssociatedRuleID == "" {
-		c.addWarning(
-			fmt.Sprintf("FirewallRules[%d].Type", i),
-			rule.UUID,
-			"firewall rule has empty type",
-			common.SeverityHigh,
-		)
-	}
 	if rule.Source.EffectiveAddress() == "" {
 		c.addWarning(
 			fmt.Sprintf("FirewallRules[%d].Source", i),
@@ -150,6 +236,60 @@ func (c *converter) warnOnIncompleteFirewallRule(i int, rule pfsense.FilterRule)
 			common.SeverityMedium,
 		)
 	}
+}
+
+// warnOnIgnoredDirection reports a <direction> pfSense does not compile. A rule
+// whose <floating> does not hold exactly yes compiles as in whatever the element
+// holds (filter.inc L3376-L3383), so a hand-written out or any on it changes
+// nothing on the firewall, and the operator who wrote it should hear that.
+func (c *converter) warnOnIgnoredDirection(i int, rule pfsense.FilterRule, compiled common.FirewallDirection) {
+	if compiled != "" || rule.Direction == "" || rule.Direction == string(common.DirectionIn) {
+		return
+	}
+
+	c.addWarning(
+		fmt.Sprintf("FirewallRules[%d].Direction", i),
+		rule.Direction,
+		"direction is ignored; pfSense compiles a rule whose <floating> is not yes as in",
+		common.SeverityMedium,
+	)
+}
+
+// warnOnIgnoredFlagBody reports a body pfSense does not read. It tests
+// <floating>, <quick> and <disabled> with isset(), so <disabled>0</disabled>
+// disables the rule as surely as an empty element does. The GUI writes only an
+// empty element or yes; any other body is a hand edit or a generator whose
+// author likely meant the opposite of what the firewall does.
+func (c *converter) warnOnIgnoredFlagBody(i int, name string, body *string) {
+	if body == nil || *body == "" || *body == xmlBoolYes {
+		return
+	}
+
+	c.addWarning(
+		fmt.Sprintf("FirewallRules[%d].%s", i, name),
+		*body,
+		"pfSense tests this element for presence and ignores its value",
+		common.SeverityLow,
+	)
+}
+
+// compiledDirection returns the direction pfSense compiles rule with, which is
+// not always what <direction> holds (filter.inc L3376-L3383, the same since
+// RELENG_2_2). Only a rule whose <floating> holds exactly yes keeps its
+// direction, and with none it gets no direction keyword and matches both ways.
+// Every other rule compiles as in whatever the element holds, so the field stays
+// empty, which reads as in, and a hand-written <direction> on one does not move
+// it to another evaluation group.
+func compiledDirection(rule pfsense.FilterRule) common.FirewallDirection {
+	if rule.Floating == nil || *rule.Floating != xmlBoolYes {
+		return ""
+	}
+
+	if rule.Direction == "" {
+		return common.DirectionAny
+	}
+
+	return common.FirewallDirection(rule.Direction)
 }
 
 // convertNAT maps doc.Nat and system fields to common.NATConfig.

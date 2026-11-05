@@ -334,8 +334,8 @@ func TestConverter_FirewallRules(t *testing.T) {
 			IPProtocol: "inet",
 			StateType:  "keep state",
 			Direction:  "in",
-			Floating:   "yes",
-			Quick:      true,
+			Floating:   new("yes"),
+			Quick:      new("yes"),
 			Protocol:   "tcp",
 			Source: opnsense.Source{
 				Any: new(string),
@@ -800,7 +800,7 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 		wantSeverity common.Severity
 	}{
 		{
-			name: "empty type",
+			name: "empty type reads as pass without a warning",
 			rules: []pfsenseSchema.FilterRule{
 				{
 					Type:      "",
@@ -811,9 +811,7 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 					},
 				},
 			},
-			wantWarnings: 1,
-			wantField:    "FirewallRules[0].Type",
-			wantSeverity: common.SeverityHigh,
+			wantWarnings: 0,
 		},
 		{
 			name: "missing source address",
@@ -869,7 +867,7 @@ func TestConverter_FirewallRules_Warnings(t *testing.T) {
 					Destination: opnsense.Destination{},
 				},
 			},
-			wantWarnings: 4,
+			wantWarnings: 3,
 		},
 	}
 
@@ -1468,12 +1466,13 @@ func TestParser_ConfigPfSense_YAMLOutput(t *testing.T) {
 }
 
 // TestParser_ConfigPfSense_Warnings verifies conversion warnings have valid structure when present.
-// The standard pfSense fixture produces no warnings because NAT-associated rules (empty type
-// with associated-rule-id) are excluded from the empty-type check.
+// The standard pfSense fixture produces only the known-gap warnings; its port-forward
+// rules have no type and read as pass.
 func TestParser_ConfigPfSense_Warnings(t *testing.T) {
 	t.Parallel()
 
 	_, warnings := parseConfigPfSenseFixture(t)
+	assert.Empty(t, nonGapWarnings(warnings))
 
 	// Verify any warnings that are emitted have valid structure.
 	for _, w := range warnings {

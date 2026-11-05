@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -250,8 +251,8 @@ type Rule struct {
 	IPProtocol  string        `xml:"ipprotocol,omitempty"`
 	StateType   string        `xml:"statetype,omitempty"`
 	Direction   string        `xml:"direction,omitempty"`
-	Floating    string        `xml:"floating,omitempty"`
-	Quick       BoolFlag      `xml:"quick,omitempty"`
+	Floating    *string       `xml:"floating,omitempty"` // tested with isset(): any element is floating (GOTCHAS 15.0)
+	Quick       *string       `xml:"quick,omitempty"`    // absent takes the default; a present one is tested with !empty()
 	Protocol    string        `xml:"protocol,omitempty"`
 	Source      Source        `xml:"source"`
 	Destination Destination   `xml:"destination"`
@@ -259,7 +260,7 @@ type Rule struct {
 	Gateway     string        `xml:"gateway,omitempty"`
 	SourcePort  string        `xml:"sourceport,omitempty"`
 	Log         BoolFlag      `xml:"log,omitempty"`
-	Disabled    BoolFlag      `xml:"disabled,omitempty"`
+	Disabled    *string       `xml:"disabled,omitempty"` // tested with !empty(), not for presence (GOTCHAS 15.0)
 	Tracker     string        `xml:"tracker,omitempty"`
 	// Rate-limiting fields (DoS protection)
 	MaxSrcNodes     string `xml:"max-src-nodes,omitempty"`
@@ -287,6 +288,33 @@ type Rule struct {
 	// Up to 25.7 the forward carries the same value; from 26.1 only this rule
 	// keeps it.
 	AssociatedRuleID string `xml:"associated-rule-id,omitempty"`
+}
+
+// IsPlaceholder reports whether r is an empty <rule/> marker rather than a
+// configured firewall rule. From 18.7.10 to 26.1 OPNsense leaves one under
+// <filter> once the last legacy rule is deleted, since the rules page empties
+// the list and Config::fromArray writes an empty list as one childless element.
+// A config upgraded to 26.7 can still carry it. The firewall loads no rule from
+// it; read as a rule it would take every default and become an enabled pass rule
+// from any to any.
+//
+// An entry is dropped only when every field is zero; see
+// [StaticRoute.IsPlaceholder] for why the check is conservative. It compares with
+// the zero value rather than naming fields, as [FirewallFilterRule.IsPlaceholder]
+// does, once XMLName, which the decoder always sets, and the non-nil empty slice
+// an <interface/> child decodes to are cleared. No <type> is not enough, since
+// the rule a port forward stored for itself up to 24.7 has none. The test is on
+// content, so a rule whose only children are empty elements of string fields, or
+// elements the type does not bind, is dropped too, although OPNsense loads it. No
+// release writes one. The converter warns on the one shape the firewall does
+// load, a leading <rule/> that another rule follows (GOTCHAS 3.4).
+func (r Rule) IsPlaceholder() bool {
+	r.XMLName = xml.Name{}
+	if r.Interface.IsEmpty() {
+		r.Interface = nil
+	}
+
+	return reflect.DeepEqual(r, Rule{})
 }
 
 // Source represents a firewall rule source.
@@ -332,7 +360,9 @@ func (s Source) EffectiveAddress() string {
 // since <any/> carries no address). Matching EffectiveAddress's precedence
 // is deliberate — an endpoint that sets both <address> and <any/> resolves
 // to its Address under EffectiveAddress, so its AddressRef must resolve to
-// that same alias rather than being dropped.
+// that same alias rather than being dropped. That is OPNsense's order. A pfSense
+// filter rule tests <any> first, so the pfSense converter clears the address of
+// such an endpoint before it reads either method.
 //
 // This exists for named-object (alias) resolution on firewall rules and pfSense
 // port forwards, which keep an alias in <address>: there a value in <network> is
