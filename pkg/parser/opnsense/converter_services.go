@@ -730,8 +730,9 @@ func gatewayFlag(value string) string {
 
 // checkGatewayModelVersion warns when the gateway model carries a version this
 // converter has not been checked against, as checkFilterModelVersion does. With
-// no gateways decoded the item element may have been renamed (§18.1), and the
-// legacy fallback is then empty because the migration deleted it.
+// no gateways decoded from the model the item element may have been renamed
+// (§18.1). The legacy fallback is then usually empty, because the migration
+// deleted it, but any gateways it still holds are exported.
 func (c *converter) checkGatewayModelVersion(version string, items int) {
 	if _, known := knownGatewayModelVersions[version]; known {
 		return
@@ -741,7 +742,8 @@ func (c *converter) checkGatewayModelVersion(version string, items int) {
 		c.addWarning(
 			"OPNsense.Gateways.Version",
 			version,
-			"unrecognized OPNsense gateway model version and no gateways decoded; the gateway element may have been renamed",
+			"unrecognized OPNsense gateway model version and no gateways decoded from the model; "+
+				"the gateway element may have been renamed",
 			common.SeverityLow,
 		)
 

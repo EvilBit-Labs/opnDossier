@@ -690,6 +690,9 @@ func TestConverter_Gateways_EmptyItems(t *testing.T) {
 		require.Len(t, got, 1)
 		assert.Equal(t, "9.9.9", got[0].Value)
 		assert.Equal(t, common.SeverityLow, got[0].Severity)
+		// The legacy gateway is exported, so the warning must not say the
+		// export has none.
+		assert.Contains(t, got[0].Message, "no gateways decoded from the model")
 	})
 }
 
