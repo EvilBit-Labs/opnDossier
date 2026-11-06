@@ -1133,8 +1133,9 @@ func TestConverter_Gateways_Warnings(t *testing.T) {
 	doc := schema.NewOpnSenseDocument()
 	doc.Gateways.Gateway = []schema.Gateway{
 		{
-			Name:    "",
-			Gateway: "",
+			Interface: "wan",
+			Name:      "",
+			Gateway:   "",
 		},
 	}
 
