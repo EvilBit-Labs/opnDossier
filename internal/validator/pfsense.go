@@ -357,6 +357,10 @@ func countPfSenseEndpointFields(isAny bool, network, address string) int {
 	return count
 }
 
+// floatingYes is the <floating> body pfSense's direction check requires
+// (filter.inc). The rule floats on isset(), whatever the element holds.
+const floatingYes = "yes"
+
 func validatePfSenseRuleDirection(prefix string, rule pfsense.FilterRule) []ValidationError {
 	var errors []ValidationError
 	if rule.Floating != nil && *rule.Floating == floatingYes && rule.Direction == "" {

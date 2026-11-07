@@ -246,7 +246,8 @@ func countOPNEndpointFields(isAny bool, network, address string) int {
 func validateOPNRuleDirection(prefix string, rule schema.Rule) []ValidationError {
 	var errors []ValidationError
 	// The firewall floats a rule on isset(), whatever the element holds, so the
-	// direction requirement follows presence, as the converter does.
+	// direction requirement follows presence. The converter does not require
+	// one: it defaults an absent direction to in.
 	if rule.Floating != nil && rule.Direction == "" {
 		errors = append(errors, ValidationError{
 			Field:   prefix + ".direction",
