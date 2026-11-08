@@ -726,8 +726,9 @@ type Gateway struct {
     child element, whatever the child held. Gateways.UnmarshalXML and
     GatewayModelItem.UnmarshalXML set it; nothing encodes it. Gateway has no
     UnmarshalXML or MarshalXML and must not get one: GatewayModelItem embeds it,
-    so the method would be promoted and would decode or encode a model item
-    without its uuid and its <disabled>.
+    so a MarshalXML would be promoted to the model item, and an UnmarshalXML to
+    the alias GatewayModelItem.UnmarshalXML decodes through, and either would
+    handle the item without its uuid and its <disabled>.
 
 func (g Gateway) IsPlaceholder() bool
     IsPlaceholder reports whether g is a <gateway_item> with no child element,
@@ -756,7 +757,8 @@ func (g Gateway) IsPlaceholder() bool
 
 func (g Gateway) MonitorDisableValue() string
     MonitorDisableValue returns the text of <monitor_disable>, which is empty
-    for an absent element and an empty one alike.
+    for an absent element and an empty one alike. Test MonitorDisable == nil to
+    decide a default; this returns the text only.
 
 type GatewayGroup struct {
 	XMLName xml.Name `xml:"gateway_group"`
@@ -821,10 +823,11 @@ func (g *GatewayModelItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
     sets Gateway.HasChildElement. The model block is an anonymous struct,
     which cannot carry a method, so the item does.
 
-    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so
-    the default encoder writes the fields this reads. It does not keep an item
-    whose only children are empty or unbound, such as <name/> or <priority>:
-    those are omitted, and the item reads back as a placeholder.
+    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded,
+    so the default encoder writes the fields this reads. A round trip does not
+    keep an item whose only children are empty or unbound, such as <name/>
+    or <priority>: the encoder omits them, and the item reads back as a
+    placeholder.
 
 type Gateways struct {
 	XMLName xml.Name       `xml:"gateways"`
@@ -844,10 +847,11 @@ func (g *Gateways) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
     decodes the items, so that Gateway, which GatewayModelItem embeds and
     pfSense shares, needs no UnmarshalXML of its own.
 
-    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded, so
-    the default encoder writes the fields this reads. It does not keep an item
-    whose only children are empty or unbound, such as <name/> or <priority>:
-    those are omitted, and the item reads back as a placeholder.
+    No MarshalXML pairs it (GOTCHAS 3.3): HasChildElement is not encoded,
+    so the default encoder writes the fields this reads. A round trip does not
+    keep an item whose only children are empty or unbound, such as <name/>
+    or <priority>: the encoder omits them, and the item reads back as a
+    placeholder.
 
 type Group struct {
 	Name        string   `xml:"name"        json:"name"                  yaml:"name"                  validate:"required,alphanum"`

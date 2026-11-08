@@ -216,9 +216,17 @@ func TestConverter_Gateways_ReadFromModel(t *testing.T) {
 		// was added in the model later, or after a hand edit, and the vendor
 		// then ignores every legacy gateway, named or not.
 		left := strings.Replace(legacyGatewayItem, "WAN_GW", "OLD_GW", 1)
-		device, _ := convertConfig(t, raw.withModel(gatewayVersionAttr, left, migratedWANGateway("192.0.2.9")))
+		device, warnings := convertConfig(t, raw.withModel(gatewayVersionAttr, left, migratedWANGateway("192.0.2.9")))
 		require.Equal(t, []string{"WAN_GW"}, gatewayNames(device.Routing.Gateways))
 		assert.Equal(t, "192.0.2.9", device.Routing.Gateways[0].Address)
+
+		// The config says OLD_GW exists and the firewall ignores it, so the
+		// export says which gateways it left out.
+		got := gatewayWarnings(warnings)
+		require.Len(t, got, 1)
+		assert.Equal(t, "Gateways.GatewayItem", got[0].Field)
+		assert.Equal(t, "OLD_GW", got[0].Value)
+		assert.Equal(t, common.SeverityMedium, got[0].Severity)
 	})
 
 	t.Run("empty model falls back to the legacy element", func(t *testing.T) {
@@ -267,8 +275,37 @@ func TestConverter_Gateways_ReadFromModel(t *testing.T) {
 		require.Len(t, got, 1)
 		assert.Equal(t, "OPNsense.Gateways.Version", got[0].Field)
 		assert.Equal(t, "9.9.9", got[0].Value)
-		assert.Equal(t, common.SeverityLow, got[0].Severity)
+		// Nothing is exported from either store, so this is the §18.1 case.
+		assert.Equal(t, common.SeverityMedium, got[0].Severity)
+		assert.Contains(t, got[0].Message, "either store")
 	})
+}
+
+// TestConverter_Gateways_GroupsStayUnderTheLegacyElement is the shape of every
+// 24.1+ multi-WAN box: the gateways in the model, the group that names them
+// still under <gateways>.
+func TestConverter_Gateways_GroupsStayUnderTheLegacyElement(t *testing.T) {
+	t.Parallel()
+
+	raw := readGatewayConfig(t)
+
+	const group = `    <gateway_group>
+      <name>WAN_FAILOVER</name>
+      <descr>WAN Failover Group</descr>
+      <item>WAN_GW|1</item>
+      <item>WAN_GW2|2</item>
+      <trigger>member</trigger>
+    </gateway_group>
+`
+	second := namedModelGateway(gatewayUUIDSecond, "WAN_GW2", "198.51.100.1")
+	device, warnings := convertConfig(t,
+		raw.withModel(gatewayVersionAttr, group, migratedWANGateway("192.0.2.1"), second))
+	assert.Equal(t, []string{"WAN_GW", "WAN_GW2"}, gatewayNames(device.Routing.Gateways))
+	require.Len(t, device.Routing.GatewayGroups, 1)
+	assert.Equal(t, "WAN_FAILOVER", device.Routing.GatewayGroups[0].Name)
+	assert.Equal(t, []string{"WAN_GW|1", "WAN_GW2|2"}, device.Routing.GatewayGroups[0].Items)
+	assert.Equal(t, "member", device.Routing.GatewayGroups[0].Trigger)
+	assert.Empty(t, gatewayWarnings(warnings))
 }
 
 // repeatedGatewayUUIDCase is a model and what is exported of it. wantReplaced
@@ -729,9 +766,11 @@ func TestConverter_Gateways_ChildrenThatDecodeToZero(t *testing.T) {
 			assert.Equal(t, "1", gw.MonitorDisable, child)
 
 			got := gatewayWarnings(warnings)
-			require.Len(t, got, 1, child)
-			assert.Equal(t, "gateway has empty name", got[0].Message, child)
-			assert.Equal(t, "wan", got[0].Value, child)
+			require.Len(t, got, 2, child)
+			assert.Equal(t, "Gateways.GatewayItem", got[0].Field, child)
+			assert.Equal(t, "WAN_GW", got[0].Value, child)
+			assert.Equal(t, "gateway has empty name", got[1].Message, child)
+			assert.Equal(t, "wan", got[1].Value, child)
 		}
 	})
 
@@ -797,8 +836,9 @@ func TestConverter_Gateways_Disabled(t *testing.T) {
 			assert.Equal(t, tt.want, gw.Disabled, tt.name)
 
 			got := gatewayWarnings(warnings)
-			require.Len(t, got, 1, tt.name)
-			assert.Equal(t, "gateway has empty name", got[0].Message, tt.name)
+			require.Len(t, got, 2, tt.name)
+			assert.Equal(t, "Gateways.GatewayItem", got[0].Field, tt.name)
+			assert.Equal(t, "gateway has empty name", got[1].Message, tt.name)
 		}
 	})
 
