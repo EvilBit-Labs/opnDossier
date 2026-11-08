@@ -251,7 +251,7 @@ type Rule struct {
 	IPProtocol  string        `xml:"ipprotocol,omitempty"`
 	StateType   string        `xml:"statetype,omitempty"`
 	Direction   string        `xml:"direction,omitempty"`
-	Floating    *string       `xml:"floating,omitempty"` // tested with isset(): any element is floating (GOTCHAS 15.0)
+	Floating    *string       `xml:"floating,omitempty"` // tested with isset(): any element is floating (GOTCHAS 3.8)
 	Quick       *string       `xml:"quick,omitempty"`    // absent takes the default; a present one is tested with !empty()
 	Protocol    string        `xml:"protocol,omitempty"`
 	Source      Source        `xml:"source"`

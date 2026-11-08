@@ -411,12 +411,14 @@ func TestConverter_FilterRules_LegacyQuickElement(t *testing.T) {
 		{name: "interface rule with no quick", wantQuick: true},
 		{name: "interface rule with quick holding 1", elements: `<quick>1</quick>`, wantQuick: true},
 		{name: "interface rule with quick holding yes", elements: `<quick>yes</quick>`, wantQuick: true},
+		{name: "interface rule with quick holding no", elements: `<quick>no</quick>`, wantQuick: true},
 		{name: "interface rule with quick holding 0", elements: `<quick>0</quick>`},
 		{name: "interface rule with self-closing quick", elements: `<quick/>`},
 		{name: "interface rule with empty quick", elements: `<quick></quick>`},
 		{name: "floating rule with no quick", elements: floating},
 		{name: "floating rule with quick holding 1", elements: floating + `<quick>1</quick>`, wantQuick: true},
 		{name: "floating rule with quick holding 0", elements: floating + `<quick>0</quick>`},
+		{name: "floating rule with self-closing quick", elements: floating + `<quick/>`},
 	}
 
 	for _, tt := range tests {
