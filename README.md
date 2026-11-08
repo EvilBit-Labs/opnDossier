@@ -400,6 +400,9 @@ GitHub Action references should be pinned with intention. The three options, in 
       config-file: config.xml
 ```
 
+> [!NOTE]
+> This example pins the v1.8.0 release. v1.8.0 does not read OPNsense 26.7 firewall rules kept in the filter model, so an audit of such a config passes its rule checks on an empty rule set. Once v1.9.0 has shipped, pin its commit instead (`git rev-parse "v1.9.0^{commit}"`); the example is updated after each release.
+
 **Acceptable (most users): pin to a version tag.** This is what the Quick Start snippet above uses. You trust that the maintainers will not move published tags (we don't), and in exchange you get a readable reference and automatic patch-level fixes when you bump.
 
 ```yaml

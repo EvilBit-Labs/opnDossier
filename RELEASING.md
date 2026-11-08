@@ -161,7 +161,7 @@ ls -la dist/
 
 ### Step 2: Generate Changelog Preview
 
-`CHANGELOG.md` follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). During development, commits flow into `## [Unreleased]` at the top of `CHANGELOG.md`. On release, git-cliff promotes the Unreleased section to `## [vX.Y.Z] - YYYY-MM-DD` and seeds a new empty Unreleased section for the next cycle.
+`CHANGELOG.md` follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). During development, commits flow into `## [Unreleased]` at the top of `CHANGELOG.md`. On release, git-cliff promotes the Unreleased section to `## [vX.Y.Z] - YYYY-MM-DD`; the next Unreleased section appears on its own once commits land after the tag (git-cliff does not emit an empty one).
 
 Commit types are mapped to Keep-a-Changelog buckets by `cliff.toml`:
 
@@ -187,8 +187,8 @@ git-cliff --output /dev/stdout
 just changelog-version vX.Y.Z
 ```
 
-> [!WARNING]
-> `git-cliff` rewrites the date on every existing `## [vX.Y.Z] - YYYY-MM-DD` header to the tag commit's date, which can differ from the date the release was cut (v1.8.0 moved from 10-19 to 10-20). Check `git diff CHANGELOG.md` for changed `## [` lines other than the promoted one and restore them: each `RELEASE_NOTES.md` links to its changelog section by that date.
+> [!NOTE]
+> `CHANGELOG.md` is generator output: do not hand-edit it, and take whatever `just changelog-version` writes as canonical. The recipe reads the commits reachable from `origin/main` (override with `just changelog-version vX.Y.Z <ref>`), not from `HEAD`, so running it on the prep branch does not list the branch's own commits, which the squash merge erases anyway; `docs(release)` commits are skipped by `cliff.toml` for the same reason. Release header dates are the tag timestamp in UTC, so a tag pushed in the US evening is dated the next day (v1.8.0 reads 2026-10-20), and the `Full changelog` anchor in `RELEASE_NOTES.md` must copy the date the generator wrote for the new header.
 
 ### Step 3: Create and Push Tag (this publishes the release)
 
@@ -532,4 +532,4 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Test binary — download, run `opndossier --version`, confirm version
 - [ ] Verify Docker — `docker pull ghcr.io/evilbit-labs/opndossier:vX.Y.Z`
 - [ ] Verify Homebrew cask updated (if `HOMEBREW_TAP_TOKEN` is set)
-- [ ] Open a follow-up PR that moves the README "Pinning" SHA-pin example and its version comment to the new release (`git rev-parse "vX.Y.Z^{commit}"`), so the production example recommends the release just shipped rather than the one before it
+- [ ] Open a follow-up PR that moves the README "Pinning" SHA-pin example to the new release (`git rev-parse "vX.Y.Z^{commit}"`): the SHA, its version comment, the note under the example, and the paragraph below it that names which release the pinned Action defaults to. The production example then recommends the release just shipped rather than the one before it

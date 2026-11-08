@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **release**: Revise the v1.8.0 release notes for readability ([#910](https://github.com/EvilBit-Labs/opnDossier/pull/910))
-
 - **llms**: Call the model reference hand-maintained ([#925](https://github.com/EvilBit-Labs/opnDossier/pull/925))
 
 - Add bercedev as a contributor for doc ([#933](https://github.com/EvilBit-Labs/opnDossier/pull/933))
@@ -61,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **parser**: Read OPNsense gateways from the 24.1 Gateways model ([#959](https://github.com/EvilBit-Labs/opnDossier/pull/959))
 
 
-## [1.8.0] - 2026-10-19
+## [1.8.0] - 2026-10-20
 
 ### Added
 
@@ -81,8 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **parser**: Return the NAT endpoints directly ([#847](https://github.com/EvilBit-Labs/opnDossier/pull/847))
 
 - **cli**: Regenerate the CLI reference and close the cached deadcode-guard hole ([#854](https://github.com/EvilBit-Labs/opnDossier/pull/854))
-
-- **release**: Prepare v1.8.0 ([#901](https://github.com/EvilBit-Labs/opnDossier/pull/901))
 
 - Prep release
 
@@ -136,8 +132,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refresh solutions store against the current codebase ([#823](https://github.com/EvilBit-Labs/opnDossier/pull/823))
 
 - **notices**: Update third-party package URLs to latest versions
-
-- **release**: Add v1.7.3 release notes ([#830](https://github.com/EvilBit-Labs/opnDossier/pull/830))
 
 
 ### Fixed
@@ -202,8 +196,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add intigenesis as a contributor for code ([#736](https://github.com/EvilBit-Labs/opnDossier/pull/736))
-
-- **release**: Add v1.7.0 changelog and release notes ([#737](https://github.com/EvilBit-Labs/opnDossier/pull/737))
 
 - **audit**: Consolidate finding type literals into shared constants ([#738](https://github.com/EvilBit-Labs/opnDossier/pull/738))
 

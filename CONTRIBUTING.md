@@ -399,7 +399,7 @@ opnDossier treats vulnerability management as a first-class workflow concern.
   - `just sbom` - generate SBOM artifacts (CycloneDX + SPDX)
 - **CI requirements** (see [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml)):
   - **govulncheck** scans the Go module graph against the Go vulnerability database.
-  - **Trivy** performs a filesystem dependency scan (vulnerabilities and secrets; its misconfiguration scanner is not enabled), reporting `CRITICAL`, `HIGH`, and `MEDIUM` findings. It runs with `ignore-unfixed`, so a vulnerability with no fix available is omitted from the report rather than listed.
+  - **Trivy** performs a filesystem dependency scan (vulnerabilities and secrets; its misconfiguration scanner is not enabled). The workflow lists `CRITICAL`, `HIGH` and `MEDIUM`, but that filter does not apply to SARIF output unless `limit-severities-for-sarif` is set, so `LOW` and `UNKNOWN` findings reach code scanning as well. It runs with `ignore-unfixed`, so a vulnerability with no fix available is omitted from the report rather than listed.
   - Scans run on every PR, every push to `main`, and on a weekly schedule.
   - **CodeQL** runs through GitHub's repository-level default setup for code scanning, not from this workflow (see `SECURITY.md`).
 - **Where results live**:
