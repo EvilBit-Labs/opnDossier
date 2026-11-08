@@ -112,7 +112,7 @@ Before creating a release, verify:
 - [ ] Version references in code are correct (if any hardcoded)
 - [ ] `action.yml` default `version:` input is bumped to the new tag
 - [ ] README GitHub Action examples (`uses:` lines) are swept to the new tag
-- [ ] README "Pinning" section SHA-pin example is updated to the previous release's commit SHA (the new tag's commit does not exist until the prep PR is squash-merged, so the example lags one release by design)
+- [ ] README "Pinning" section SHA-pin example is updated to the previous release's commit SHA (the new tag's commit does not exist until the prep PR is squash-merged; the post-release step below moves it to the new release)
 - [ ] Public-API snapshot fixtures (`pkg/*/testdata/api-snapshots/*.golden`) reviewed for unintended diffs since the last tag. These are the authoritative baseline for the semver contract — any unexplained change must be explained or reverted before tagging. See [docs/development/public-api.md § API Shape Enforcement](docs/development/public-api.md#api-shape-enforcement).
 - [ ] Documentation reflects new features/changes
 - [ ] Breaking changes are documented
@@ -512,7 +512,7 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Bump `action.yml` default `version:` input to the new tag (e.g. `vX.Y.Z`)
 - [ ] Sweep README GitHub Action examples (`uses: EvilBit-Labs/opnDossier@vX.Y.Z` lines) to the new tag — grep for the previous tag to catch every callsite
 - [ ] Sweep user-guide docs for stale version examples — `grep -rn "vPREV\.Y\.Z" docs/user-guide/` and update all matches to the new tag (covers `getting-started.md` version-output example, `installation.md` cosign TAG example, and any future callsites)
-- [ ] Update the SHA-pin example in the README "Pinning" section to the previous release's commit SHA (`git rev-parse "vPREV^{commit}"`; the bare tag name resolves to the annotated tag object, not the commit). The new tag's commit does not exist until this prep PR is squash-merged, so the example lags one release by design
+- [ ] Update the SHA-pin example in the README "Pinning" section to the previous release's commit SHA (`git rev-parse "vPREV^{commit}"`; the bare tag name resolves to the annotated tag object, not the commit). The new tag's commit does not exist until this prep PR is squash-merged; the post-release step below moves it to the new release
 - [ ] Commit `RELEASE_NOTES.md`, `CHANGELOG.md`, `action.yml`, and `README.md` to `main`
 - [ ] Push to `main`
 
@@ -532,3 +532,4 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Test binary — download, run `opndossier --version`, confirm version
 - [ ] Verify Docker — `docker pull ghcr.io/evilbit-labs/opndossier:vX.Y.Z`
 - [ ] Verify Homebrew cask updated (if `HOMEBREW_TAP_TOKEN` is set)
+- [ ] Open a follow-up PR that moves the README "Pinning" SHA-pin example and its version comment to the new release (`git rev-parse "vX.Y.Z^{commit}"`), so the production example recommends the release just shipped rather than the one before it
