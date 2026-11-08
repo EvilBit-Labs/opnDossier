@@ -112,7 +112,7 @@ Before creating a release, verify:
 - [ ] Version references in code are correct (if any hardcoded)
 - [ ] `action.yml` default `version:` input is bumped to the new tag
 - [ ] README GitHub Action examples (`uses:` lines) are swept to the new tag
-- [ ] README "Pinning" section SHA-pin example is updated to the new release commit SHA
+- [ ] README "Pinning" section SHA-pin example is updated to the previous release's commit SHA (the new tag's commit does not exist until the prep PR is squash-merged, so the example lags one release by design)
 - [ ] Public-API snapshot fixtures (`pkg/*/testdata/api-snapshots/*.golden`) reviewed for unintended diffs since the last tag. These are the authoritative baseline for the semver contract — any unexplained change must be explained or reverted before tagging. See [docs/development/public-api.md § API Shape Enforcement](docs/development/public-api.md#api-shape-enforcement).
 - [ ] Documentation reflects new features/changes
 - [ ] Breaking changes are documented
@@ -186,6 +186,9 @@ git-cliff --output /dev/stdout
 # Generate the final changelog for a specific version and write to disk
 just changelog-version vX.Y.Z
 ```
+
+> [!WARNING]
+> `git-cliff` rewrites the date on every existing `## [vX.Y.Z] - YYYY-MM-DD` header to the tag commit's date, which can differ from the date the release was cut (v1.8.0 moved from 10-19 to 10-20). Check `git diff CHANGELOG.md` for changed `## [` lines other than the promoted one and restore them: each `RELEASE_NOTES.md` links to its changelog section by that date.
 
 ### Step 3: Create and Push Tag (this publishes the release)
 
@@ -509,7 +512,7 @@ Copy-paste checklist for cutting a release. See sections above for details on ea
 - [ ] Bump `action.yml` default `version:` input to the new tag (e.g. `vX.Y.Z`)
 - [ ] Sweep README GitHub Action examples (`uses: EvilBit-Labs/opnDossier@vX.Y.Z` lines) to the new tag — grep for the previous tag to catch every callsite
 - [ ] Sweep user-guide docs for stale version examples — `grep -rn "vPREV\.Y\.Z" docs/user-guide/` and update all matches to the new tag (covers `getting-started.md` version-output example, `installation.md` cosign TAG example, and any future callsites)
-- [ ] Update the SHA-pin example in the README "Pinning" section to the new release commit SHA (`git rev-parse "vX.Y.Z^{commit}"` once the tag exists, or the commit you intend to tag; the bare tag name resolves to the annotated tag object, not the commit)
+- [ ] Update the SHA-pin example in the README "Pinning" section to the previous release's commit SHA (`git rev-parse "vPREV^{commit}"`; the bare tag name resolves to the annotated tag object, not the commit). The new tag's commit does not exist until this prep PR is squash-merged, so the example lags one release by design
 - [ ] Commit `RELEASE_NOTES.md`, `CHANGELOG.md`, `action.yml`, and `README.md` to `main`
 - [ ] Push to `main`
 
