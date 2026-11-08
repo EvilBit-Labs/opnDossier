@@ -34,6 +34,7 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<not/>`                    | `<source>`, `<destination>`                  | `isset($adr['not'])` in filter.inc                                                                                                                       |
 | `<disabled/>`               | `<rule>` (pfSense filter)                    | `isset($rule['disabled'])` in filter.inc                                                                                                                 |
 | `<floating/>`               | `<rule>` (pfSense filter)                    | `isset($rule['floating'])` in filter.inc                                                                                                                 |
+| `<floating/>`               | `<rule>` (OPNsense legacy filter)            | `isset($rule['floating'])` in filter.lib.inc; `<quick>` beside it is `!empty()` in FilterRule.php (#976)                                                 |
 | `<quick/>`                  | `<rule>` (pfSense filter)                    | `isset($rule['quick'])` in filter.inc                                                                                                                    |
 | `<disabled/>`               | `<rule>` (NAT)                               | `isset($rule['disabled'])` in filter.inc                                                                                                                 |
 | `<log/>`                    | `<rule>` (filter)                            | `isset($rule['log'])` sets `$filterent['log'] = true`                                                                                                    |
@@ -550,10 +551,10 @@ This architecture resolves the type mismatch issue described in Section 5 by usi
 
 ### 10c. Phase Summary
 
-| Phase | Scope                             | Fields Added                                                                             | Status   |
-| ----- | --------------------------------- | ---------------------------------------------------------------------------------------- | -------- |
-| 1     | Source/Destination gaps           | Address, Port (Source), Not                                                              | Complete |
-| 2     | High-priority Rule fields         | Log, Disabled→BoolFlag, Quick→BoolFlag, Floating, Gateway, Direction, Tracker, StateType | Complete |
-| 3     | Rate-limiting and advanced fields | 14 fields (max-src-\*, TCP/ICMP, state/advanced)                                         | Complete |
-| 4     | NAT rule enhancements             | NATRule +4 fields, InboundRule +5 fields                                                 | Complete |
-| 5     | Documentation and validation      | Research doc updates, field reference, validator enhancements                            | Complete |
+| Phase | Scope                             | Fields Added                                                                                                   | Status   |
+| ----- | --------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------- |
+| 1     | Source/Destination gaps           | Address, Port (Source), Not                                                                                    | Complete |
+| 2     | High-priority Rule fields         | Log, Disabled→BoolFlag, Quick→BoolFlag (now `*string`, #976), Floating, Gateway, Direction, Tracker, StateType | Complete |
+| 3     | Rate-limiting and advanced fields | 14 fields (max-src-\*, TCP/ICMP, state/advanced)                                                               | Complete |
+| 4     | NAT rule enhancements             | NATRule +4 fields, InboundRule +5 fields                                                                       | Complete |
+| 5     | Documentation and validation      | Research doc updates, field reference, validator enhancements                                                  | Complete |
