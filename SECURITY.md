@@ -4,11 +4,9 @@
 
 | Version | Supported                       |
 | ------- | ------------------------------- |
-| 1.3.x   | :white_check_mark: Full support |
-| 1.2.x   | :white_check_mark: Best effort  |
-| 1.1.x   | :x:                             |
-| 1.0.x   | :x:                             |
-| < 1.0   | :x:                             |
+| 1.8.x   | :white_check_mark: Full support |
+| 1.7.x   | :white_check_mark: Best effort  |
+| < 1.7   | :x:                             |
 
 **Support policy:** Releases within the last 90 days receive full support (security patches, bug fixes). Releases within the last 6 months receive best-effort assistance. Older releases are unsupported — please upgrade to the latest version. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
 
