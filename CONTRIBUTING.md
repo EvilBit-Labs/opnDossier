@@ -24,7 +24,7 @@ opnDossier follows strict coding standards and development practices:
 
 #### Go Support Policy
 
-opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI currently tests `stable` only: the module minimum (`go 1.26.0` in `go.mod`) is newer than `oldstable`, so the matrix in `.github/workflows/ci.yml` returns to `stable` + `oldstable` once that gap closes. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
+opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. The module minimum is `go 1.26.0` in `go.mod`, which is `oldstable` today. CI currently tests `stable` only: the matrix in `.github/workflows/ci.yml` is hard-coded to that one version, and restoring `oldstable` is a workflow change tracked separately. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
 
 ### Development Setup
 
@@ -399,7 +399,7 @@ opnDossier treats vulnerability management as a first-class workflow concern.
   - `just sbom` - generate SBOM artifacts (CycloneDX + SPDX)
 - **CI requirements** (see [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml)):
   - **govulncheck** scans the Go module graph against the Go vulnerability database.
-  - **Trivy** performs a filesystem dependency and misconfiguration scan, reporting `CRITICAL`, `HIGH`, and `MEDIUM` findings.
+  - **Trivy** performs a filesystem dependency scan (vulnerabilities and secrets; its misconfiguration scanner is not enabled), reporting `CRITICAL`, `HIGH`, and `MEDIUM` findings.
   - Scans run on every PR, every push to `main`, and on a weekly schedule.
   - **CodeQL** runs through GitHub's repository-level default setup for code scanning, not from this workflow (see `SECURITY.md`).
 - **Where results live**:

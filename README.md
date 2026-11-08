@@ -408,7 +408,7 @@ GitHub Action references should be pinned with intention. The three options, in 
 
 **Not recommended for production: `@main` or `@latest`.** Both are moving targets: `@main` follows the default branch (may contain unreleased changes); `@latest` is only meaningful as an image tag on `ghcr.io/evilbit-labs/opndossier` and will pull whatever the registry currently points `latest` at. Use these only in throwaway sandboxes, never in CI that protects production configuration.
 
-The `version:` input of the action follows the same three levels and defaults to the current release tag (`v1.8.1`). Override it only if you understand the tradeoff.
+The `version:` input of the action follows the same three levels and defaults to the Action's own release tag: the `v1.8.1` Action defaults to `v1.8.1`, and the SHA-pinned example above, which is the v1.8.0 Action, defaults to `v1.8.0`. Override it only if you understand the tradeoff.
 
 ### Using the Docker image directly
 

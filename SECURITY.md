@@ -90,7 +90,7 @@ opnDossier includes several security-focused features:
 - **Typed data handling**: All XML elements map to strictly typed Go structs with validation
 - **Continuous vulnerability scanning** (`.github/workflows/security.yml`, on push/PR and weekly):
   - `govulncheck` against the Go vulnerability database
-  - Trivy filesystem scan (dependencies + misconfiguration), results uploaded to GitHub code scanning
+  - Trivy filesystem scan (dependency vulnerabilities and secrets; the misconfiguration scanner is not enabled), results uploaded to GitHub code scanning
 - **CodeQL semantic analysis**: GitHub's repository-level default setup for code scanning (Security → Code scanning). Advanced-setup CodeQL is intentionally not in the workflow — GitHub rejects the SARIF upload when default setup is enabled.
 - **Supply-chain posture**: OSSF Scorecard analysis (`.github/workflows/scorecard.yml`)
 - **Automated dependency updates**: Dependabot (`.github/dependabot.yml`)
