@@ -2,15 +2,13 @@
 
 ## Supported Versions
 
-| Version | Supported                       |
-| ------- | ------------------------------- |
-| 1.3.x   | :white_check_mark: Full support |
-| 1.2.x   | :white_check_mark: Best effort  |
-| 1.1.x   | :x:                             |
-| 1.0.x   | :x:                             |
-| < 1.0   | :x:                             |
+| Version                     | Supported                       |
+| --------------------------- | ------------------------------- |
+| Latest minor line (1.9.x)   | :white_check_mark: Full support |
+| Previous minor line (1.8.x) | :white_check_mark: Best effort  |
+| Older                       | :x:                             |
 
-**Support policy:** Releases within the last 90 days receive full support (security patches, bug fixes). Releases within the last 6 months receive best-effort assistance. Older releases are unsupported — please upgrade to the latest version. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
+**Support policy:** the latest minor release line receives full support (security patches and bug fixes, shipped as patch releases). The previous minor line receives best-effort assistance. Older lines are unsupported — please upgrade to the latest version. The table moves when a new minor release ships, not on a calendar. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
 
 ## Reporting a Vulnerability
 
@@ -41,7 +39,7 @@ Please include:
 
 **Out of scope:**
 
-- Vulnerabilities in OPNsense itself
+- Vulnerabilities in OPNsense or pfSense themselves
 - Issues requiring physical access to the machine running opnDossier
 - Social engineering attacks
 
@@ -61,7 +59,7 @@ Once a confirmed vulnerability is triaged:
 
 1. **Triage**: we determine severity, affected versions, and scope.
 2. **Fix**: we develop the patch on a private branch; critical issues are fast-tracked.
-3. **Ship**: the fix ships either in the next scheduled release or as a hotfix (see [RELEASING.md](RELEASING.md) § Hotfix / security releases for the hotfix procedure).
+3. **Ship**: the fix ships either in the next scheduled release or as a hotfix (see [RELEASING.md](RELEASING.md) § Hotfix Process for the hotfix procedure).
 4. **Backport**: supported branches (per the Supported Versions table above) receive the fix. Unsupported branches do not.
 5. **Disclosure**: the Security Advisory is published once users have had reasonable time to upgrade.
 
@@ -92,7 +90,7 @@ opnDossier includes several security-focused features:
 - **Typed data handling**: All XML elements map to strictly typed Go structs with validation
 - **Continuous vulnerability scanning** (`.github/workflows/security.yml`, on push/PR and weekly):
   - `govulncheck` against the Go vulnerability database
-  - Trivy filesystem scan (dependencies + misconfiguration), results uploaded to GitHub code scanning
+  - Trivy filesystem scan (dependency vulnerabilities and secrets; the misconfiguration scanner is not enabled, and vulnerabilities with no available fix are omitted via `ignore-unfixed`), results uploaded to GitHub code scanning
 - **CodeQL semantic analysis**: GitHub's repository-level default setup for code scanning (Security → Code scanning). Advanced-setup CodeQL is intentionally not in the workflow — GitHub rejects the SARIF upload when default setup is enabled.
 - **Supply-chain posture**: OSSF Scorecard analysis (`.github/workflows/scorecard.yml`)
 - **Automated dependency updates**: Dependabot (`.github/dependabot.yml`)

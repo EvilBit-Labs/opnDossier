@@ -5,14 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.9.0] - 2026-11-08
 
 ### Changed
 
-- Prep release
+- **llms**: Call the model reference hand-maintained ([#925](https://github.com/EvilBit-Labs/opnDossier/pull/925))
+
+- Add bercedev as a contributor for doc ([#933](https://github.com/EvilBit-Labs/opnDossier/pull/933))
+
+- List IPProtocolInet46 with the other IPProtocol values ([#948](https://github.com/EvilBit-Labs/opnDossier/pull/948))
+
+- **parser**: Pin a word-bodied legacy quick element as quick ([#985](https://github.com/EvilBit-Labs/opnDossier/pull/985))
 
 
-## [1.8.0] - 2026-10-19
+### Fixed
+
+- **diff**: Rate interface enable changes so --security keeps them ([#924](https://github.com/EvilBit-Labs/opnDossier/pull/924))
+
+- **parser**: Read OPNsense firewall rules kept in the filter model ([#911](https://github.com/EvilBit-Labs/opnDossier/pull/911))
+
+- **parser**: Read legacy rule defaults and floating as the firewall does ([#934](https://github.com/EvilBit-Labs/opnDossier/pull/934))
+
+- **diff**: Keep changes the displayed text does not show under --normalize ([#914](https://github.com/EvilBit-Labs/opnDossier/pull/914))
+
+- **converter**: Mark negated endpoints in the firewall rules table ([#928](https://github.com/EvilBit-Labs/opnDossier/pull/928))
+
+- **audit**: Count a negated any endpoint as matching every host ([#931](https://github.com/EvilBit-Labs/opnDossier/pull/931))
+
+- **parser**: Order port forwards by the firewall's sort key ([#935](https://github.com/EvilBit-Labs/opnDossier/pull/935))
+
+- **diff**: Report zero-padded IPv4 octets under --normalize ([#936](https://github.com/EvilBit-Labs/opnDossier/pull/936))
+
+- **parser**: Keep negated outbound NAT endpoints in conversion ([#939](https://github.com/EvilBit-Labs/opnDossier/pull/939))
+
+- **validator**: Accept inet46 and modulate state on OPNsense filter rules ([#941](https://github.com/EvilBit-Labs/opnDossier/pull/941))
+
+- **diff**: Keep digits-only changes under --normalize ([#940](https://github.com/EvilBit-Labs/opnDossier/pull/940))
+
+- **parser**: Read the enabled flag on OPNsense 26.1.10 static routes ([#961](https://github.com/EvilBit-Labs/opnDossier/pull/961))
+
+- **diff**: Compare aliases ([#964](https://github.com/EvilBit-Labs/opnDossier/pull/964))
+
+- **parser**: Read every tier of OPNsense 26.7 gateway groups ([#963](https://github.com/EvilBit-Labs/opnDossier/pull/963))
+
+- **parser**: Read IPS mode from the OPNsense 26.1 IDS mode option ([#962](https://github.com/EvilBit-Labs/opnDossier/pull/962))
+
+- **parser**: Read filter rules with no type as pass ([#960](https://github.com/EvilBit-Labs/opnDossier/pull/960))
+
+- **parser**: Treat pfSense interface rules as quick ([#958](https://github.com/EvilBit-Labs/opnDossier/pull/958))
+
+- **parser**: Read legacy rule quick and floating as OPNsense does ([#978](https://github.com/EvilBit-Labs/opnDossier/pull/978))
+
+- **parser**: Read OPNsense gateways from the 24.1 Gateways model ([#959](https://github.com/EvilBit-Labs/opnDossier/pull/959))
+
+
+## [1.8.0] - 2026-10-20
 
 ### Added
 
@@ -33,7 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **cli**: Regenerate the CLI reference and close the cached deadcode-guard hole ([#854](https://github.com/EvilBit-Labs/opnDossier/pull/854))
 
-- **release**: Prepare v1.8.0 ([#901](https://github.com/EvilBit-Labs/opnDossier/pull/901))
+- Prep release
+
+- **ci**: Bump github action versions
 
 
 ### Fixed
@@ -55,6 +104,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **parser**: Stop reading enabled IPv6 and offload settings as off ([#874](https://github.com/EvilBit-Labs/opnDossier/pull/874))
 
 - **diff**: Compare rule endpoints by value ([#880](https://github.com/EvilBit-Labs/opnDossier/pull/880))
+
+- **lint**: Follow the golangci-lint 2.15.0 schema and exhaustive changes ([#908](https://github.com/EvilBit-Labs/opnDossier/pull/908))
+
+- **release**: Give the archive mtime an RFC3339 date, not a Unix epoch ([#909](https://github.com/EvilBit-Labs/opnDossier/pull/909))
 
 
 ### Build
@@ -79,8 +132,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refresh solutions store against the current codebase ([#823](https://github.com/EvilBit-Labs/opnDossier/pull/823))
 
 - **notices**: Update third-party package URLs to latest versions
-
-- **release**: Add v1.7.3 release notes ([#830](https://github.com/EvilBit-Labs/opnDossier/pull/830))
 
 
 ### Fixed
@@ -145,8 +196,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add intigenesis as a contributor for code ([#736](https://github.com/EvilBit-Labs/opnDossier/pull/736))
-
-- **release**: Add v1.7.0 changelog and release notes ([#737](https://github.com/EvilBit-Labs/opnDossier/pull/737))
 
 - **audit**: Consolidate finding type literals into shared constants ([#738](https://github.com/EvilBit-Labs/opnDossier/pull/738))
 

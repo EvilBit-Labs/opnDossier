@@ -55,6 +55,7 @@ commit_preprocessors = [
 commit_parsers = [
   # Skip administrative/noise commits first.
   { message = "^chore\\(release\\): prepare for", skip = true },
+  { message = "^docs\\(release\\)", skip = true },
   { message = "^chore\\(deps.*\\)", skip = true },
   { message = "^chore\\(pr\\)", skip = true },
   { message = "^chore\\(pull\\)", skip = true },

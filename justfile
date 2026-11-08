@@ -391,8 +391,8 @@ changelog:
 
 # Generate changelog for a specific version
 [group('docs')]
-changelog-version version:
-    @{{ mise_exec }} git-cliff --tag {{ version }} --output CHANGELOG.md
+changelog-version version base="origin/main":
+    @{{ mise_exec }} git-cliff --tag {{ version }} --output CHANGELOG.md $(git rev-parse {{ base }})
 
 # Generate changelog for unreleased changes only
 [group('docs')]
