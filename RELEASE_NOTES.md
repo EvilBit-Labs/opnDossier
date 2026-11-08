@@ -50,7 +50,7 @@ Two CLI surfaces change.
 ## Also in this release
 
 - The developer docs list `IPProtocolInet46` with the other `IPProtocol` values, and the plugin-development example matching IPv6 traffic no longer skips dual-stack rules. ([#948](https://github.com/EvilBit-Labs/opnDossier/pull/948))
-- `SECURITY.md`'s supported-versions table now names 1.8.x and 1.7.x; it had not moved since 1.3.
+- `SECURITY.md`'s supported-versions table now names 1.9.x (full support) and 1.8.x (best effort); it had not moved since 1.3, and its policy text now matches the table.
 - Dependency bumps: `spf13/pflag` 1.1.0, `yuin/goldmark` 1.8.7, `go-playground/validator` 10.30.6, `golang.org/x/net` 0.62.0, the Alpine base image, and the usual Actions pins. The Go toolchain is unchanged.
 
 ## Upgrade notes
