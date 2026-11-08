@@ -1,15 +1,15 @@
-# opnDossier v1.8.1: the rules the firewall actually loads
+# opnDossier v1.9.0: the rules the firewall actually loads
 
-v1.8.1 is a bug-fix release that continues the v1.8.0 theme: reading `config.xml` the way the firewall does rather than the way an older release wrote it. Two of the fixes are large. On OPNsense 26.7 the factory default keeps its firewall rules in the MVC filter model and leaves `<filter>` empty, and opnDossier read that model as one opaque string, so a 26.7 firewall converted to zero rules and every rule check passed for lack of input. OPNsense 24.1 moved gateways into a model the same way, so an upgraded firewall exported no gateways. Neither produced a warning, and the exit code was 0.
+v1.9.0 is a bug-fix release that continues the v1.8.0 theme: reading `config.xml` the way the firewall does rather than the way an older release wrote it. Two of the fixes are large. On OPNsense 26.7 the factory default keeps its firewall rules in the MVC filter model and leaves `<filter>` empty, and opnDossier read that model as one opaque string, so a 26.7 firewall converted to zero rules and every rule check passed for lack of input. OPNsense 24.1 moved gateways into a model the same way, so an upgraded firewall exported no gateways. Neither produced a warning, and the exit code was 0.
 
 The rest tightens the shadow analysis, `diff` and the red audit so they stop under-reporting: `diff` compares aliases for the first time, `--normalize` no longer hides real changes, a negated endpoint is read and shown as negated, and pfSense interface rules are evaluated first-match as pfSense does.
 
 ## Breaking changes
 
-None in the stability-tracked packages. The `pkg/model`, `pkg/parser`, `pkg/parser/opnsense` and `pkg/parser/pfsense` API snapshots only gained things.
+None under the policy in [`docs/development/public-api.md`](./docs/development/public-api.md): the `pkg/model`, `pkg/parser`, `pkg/parser/opnsense` and `pkg/parser/pfsense` API snapshots only gained things. That policy classes new exported fields as a minor change, which is why this release is v1.9.0 and not v1.8.1 even though every commit is a fix. One of the additions still changes what compiles, so read the second bullet.
 
 - `model.NamedObject` gains `disabled`, `proto`, `interface`, `pathExpression` and `expire`. ([#964](https://github.com/EvilBit-Labs/opnDossier/pull/964))
-- `model.RuleEndpoint` gains `addressRefs`, one reference per alias in a comma-separated address list. Because the new field is a slice, `RuleEndpoint` is no longer a comparable type: code that compares two endpoints with `==` stops compiling and needs a field-wise comparison. `opnDossier`'s own diff engine had exactly that bug (two parses of one config compared unequal whenever a rule named an alias), so this is the compiler catching what the tests did not. ([#911](https://github.com/EvilBit-Labs/opnDossier/pull/911))
+- `model.RuleEndpoint` gains `addressRefs`, one reference per alias in a comma-separated address list. Because the new field is a slice, `RuleEndpoint` is no longer a comparable type: code that compares two endpoints with `==`, or uses one as a map key, stops compiling. Migration: compare field by field (`Address`, `Port`, `Negated`, and the references by name), and key maps on a derived string rather than the struct. Consumers that only read fields are unaffected. `opnDossier`'s own diff engine had exactly the `==` bug (two parses of one config compared unequal whenever a rule named an alias), so this is the compiler catching what the tests did not. ([#911](https://github.com/EvilBit-Labs/opnDossier/pull/911))
 
 `pkg/schema` is public but follows the vendor (see [`docs/development/public-api.md`](./docs/development/public-api.md)), and several of its types change here to match what the firewalls read. If you unmarshal `config.xml` through these types yourself, review the following.
 
@@ -23,7 +23,7 @@ Two CLI surfaces change.
 
 - `diff --normalize` normalizes whitespace and addresses only. The port normalizer is gone: it stripped leading zeros from any digits-only value, so a hostname of `007` becoming `7` was reported as no change. ([#940](https://github.com/EvilBit-Labs/opnDossier/pull/940))
 - The high-severity "firewall rule has empty type" conversion warning is gone. Both firewalls load such a rule as `pass`, and the converters now do too. ([#960](https://github.com/EvilBit-Labs/opnDossier/pull/960))
-- The GitHub Action's default `version:` input is `v1.8.1`. Re-pin your `uses:` lines.
+- The GitHub Action's default `version:` input is `v1.9.0`. Re-pin your `uses:` lines.
 
 ## Fixed
 
@@ -67,8 +67,8 @@ Upgrading is a drop-in replacement. No config changes, no CLI flag changes. But 
 
 **`diff` output changes.** A new `aliases` section; `--normalize` reports changes it used to hide; `--security` includes interface enable changes.
 
-**GitHub Action users should re-pin to `v1.8.1`.**
+**GitHub Action users should re-pin to `v1.9.0`.**
 
 ## Full changelog
 
-See [CHANGELOG.md](./CHANGELOG.md#181---2026-11-08) for the complete list.
+See [CHANGELOG.md](./CHANGELOG.md#190---2026-11-08) for the complete list.

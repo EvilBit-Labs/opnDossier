@@ -4,8 +4,8 @@
 
 | Version                     | Supported                       |
 | --------------------------- | ------------------------------- |
-| Latest minor line (1.8.x)   | :white_check_mark: Full support |
-| Previous minor line (1.7.x) | :white_check_mark: Best effort  |
+| Latest minor line (1.9.x)   | :white_check_mark: Full support |
+| Previous minor line (1.8.x) | :white_check_mark: Best effort  |
 | Older                       | :x:                             |
 
 **Support policy:** the latest minor release line receives full support (security patches and bug fixes, shipped as patch releases). The previous minor line receives best-effort assistance. Older lines are unsupported — please upgrade to the latest version. The table moves when a new minor release ships, not on a calendar. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
