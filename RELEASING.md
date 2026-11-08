@@ -36,7 +36,7 @@ opnDossier follows [Semantic Versioning 2.0.0](https://semver.org/):
 Install these tools before creating a release:
 
 ```bash
-# Install via mise (recommended - see .mise.toml)
+# Install via mise (recommended - see mise.toml)
 mise install
 
 # Or install manually:

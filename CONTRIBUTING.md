@@ -17,13 +17,14 @@ opnDossier follows strict coding standards and development practices:
 ### Prerequisites
 
 - **Go 1.26+** - Latest stable version recommended
+- **mise** - Installs the pinned toolchain from `mise.toml` (`just install` runs `mise install`)
 - **Just** - Task runner for development workflows
 - **Git** - Version control
 - **golangci-lint** - Linting tool
 
 #### Go Support Policy
 
-opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI exercises both versions on every PR via a `stable` + `oldstable` matrix. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
+opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. CI currently tests `stable` only: the module minimum (`go 1.26.0` in `go.mod`) is newer than `oldstable`, so the matrix in `.github/workflows/ci.yml` returns to `stable` + `oldstable` once that gap closes. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
 
 ### Development Setup
 
@@ -53,7 +54,7 @@ mise exec -- pre-commit install --hook-type pre-commit --hook-type commit-msg
 
 The `pre-commit` framework runs fast formatters and linters (mdformat, actionlint, `golangci-lint fmt`, `golangci-lint run --fix`) on every commit. These must be quick enough to never get in the way.
 
-**Full quality bar before pushing.** The `just ci-check` recipe runs the complete suite — `check`, `format-check`, `lint`, `test`, `test-integration`, and `test-race`. Run it manually before pushing when you want the full signal locally:
+**Full quality bar before pushing.** The `just ci-check` recipe runs the complete suite — `check`, `format-check`, `lint`, `test`, `test-integration`, `test-race`, `completeness-check`, and `deadcode-check`. Run it manually before pushing when you want the full signal locally:
 
 ```bash
 just ci-check
@@ -145,7 +146,7 @@ opndossier/
 
 opnDossier has two independent extension points:
 
-**Device Parsers** (`pkg/parser/`) -- Add support for new device types (pfSense, Fortinet, etc.). Device parsers transform vendor-specific XML into the platform-agnostic `CommonDevice` model. They self-register via `init()` and are linked at compile time through blank imports. See the [Device Parser Development](docs/development/plugin-development.md#device-parser-development) section in the Plugin Development Guide.
+**Device Parsers** (`pkg/parser/`) -- Add support for new device types (Fortinet, etc.; OPNsense and pfSense are built in). Device parsers transform vendor-specific XML into the platform-agnostic `CommonDevice` model. They self-register via `init()` and are linked at compile time through blank imports. See the [Device Parser Development](docs/development/plugin-development.md#device-parser-development) section in the Plugin Development Guide.
 
 **Compliance Plugins** (`internal/plugins/`) -- Add new compliance standards and audit checks. Compliance plugins implement the `compliance.Plugin` interface and run security checks against the `CommonDevice` model. See the [Plugin Development Guide](docs/development/plugin-development.md) for details.
 
@@ -398,9 +399,9 @@ opnDossier treats vulnerability management as a first-class workflow concern.
   - `just sbom` - generate SBOM artifacts (CycloneDX + SPDX)
 - **CI requirements** (see [`.github/workflows/security.yml`](https://github.com/EvilBit-Labs/opnDossier/blob/main/.github/workflows/security.yml)):
   - **govulncheck** scans the Go module graph against the Go vulnerability database.
-  - **CodeQL** performs semantic static analysis on the Go source.
   - **Trivy** performs a filesystem dependency and misconfiguration scan, reporting `CRITICAL`, `HIGH`, and `MEDIUM` findings.
   - Scans run on every PR, every push to `main`, and on a weekly schedule.
+  - **CodeQL** runs through GitHub's repository-level default setup for code scanning, not from this workflow (see `SECURITY.md`).
 - **Where results live**:
   - CodeQL and Trivy SARIF uploads appear in the GitHub Security tab (Code Scanning).
   - `govulncheck` failures appear in the workflow summary.
