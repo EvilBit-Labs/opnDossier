@@ -2,13 +2,13 @@
 
 ## Supported Versions
 
-| Version | Supported                       |
-| ------- | ------------------------------- |
-| 1.8.x   | :white_check_mark: Full support |
-| 1.7.x   | :white_check_mark: Best effort  |
-| < 1.7   | :x:                             |
+| Version                     | Supported                       |
+| --------------------------- | ------------------------------- |
+| Latest minor line (1.8.x)   | :white_check_mark: Full support |
+| Previous minor line (1.7.x) | :white_check_mark: Best effort  |
+| Older                       | :x:                             |
 
-**Support policy:** Releases within the last 90 days receive full support (security patches, bug fixes). Releases within the last 6 months receive best-effort assistance. Older releases are unsupported — please upgrade to the latest version. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
+**Support policy:** the latest minor release line receives full support (security patches and bug fixes, shipped as patch releases). The previous minor line receives best-effort assistance. Older lines are unsupported — please upgrade to the latest version. The table moves when a new minor release ships, not on a calendar. Review the [release notes](https://github.com/EvilBit-Labs/opnDossier/releases) when upgrading.
 
 ## Reporting a Vulnerability
 
