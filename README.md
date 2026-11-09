@@ -48,19 +48,19 @@ opndossier display config.xml
 
 #### Markdown display output
 
-![Terminal screenshot showing opnDossier markdown output with system configuration and firewall rules](images/display.png)
+![Terminal recording of opnDossier display rendering a config as markdown with system configuration and firewall rules](docs/images/display.gif)
 
 #### Convert to JSON for automation/integration
 
-![Screenshot of JSON export showing structured device data for automation and integration](images/json-output.png)
+![Terminal recording of opnDossier convert exporting firewall rules as JSON for automation and integration](docs/images/convert.gif)
 
 #### Configuration diff
 
-![Screenshot of structured configuration diff showing added interfaces, changed DHCP ranges, and modified firewall rules](images/diff.png)
+![Terminal recording of opnDossier diff showing structured configuration changes grouped by section](docs/images/diff.gif)
 
 #### Audit findings example
 
-![Screenshot of audit compliance findings showing severity levels and remediation recommendations](images/audit.png)
+![Terminal recording of opnDossier audit showing compliance findings with severity levels and remediation recommendations](docs/images/audit.gif)
 
 ## Analysis & Security Features
 
@@ -77,7 +77,7 @@ Identifies common security issues in your firewall configuration:
 
 Example output:
 
-![Screenshot of security findings with severity indicators and actionable recommendations](images/findings.png)
+![Screenshot of security findings with severity indicators and actionable recommendations](docs/images/findings.png)
 
 ### Dead Rule Detection
 
@@ -105,7 +105,7 @@ Comprehensive checks for structural and logical issues:
 
 Example validation report:
 
-![Screenshot of configuration validation output showing detected issues and warnings](images/validation.png)
+![Terminal recording of opnDossier validate showing detected issues and the JSON output mode](docs/images/validate.gif)
 
 ### Unused Resource Detection
 
