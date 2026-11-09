@@ -393,15 +393,12 @@ GitHub Action references should be pinned with intention. The three options, in 
 
 ```yaml
   - name: Audit OPNsense config
-  # v1.8.0 — verify SHA against the release at https://github.com/EvilBit-Labs/opnDossier/releases/tag/v1.8.0
-    uses: EvilBit-Labs/opnDossier@99c39466ef05168327dbab162c482cc9d74462df
+  # v1.9.0 — verify SHA against the release at https://github.com/EvilBit-Labs/opnDossier/releases/tag/v1.9.0
+    uses: EvilBit-Labs/opnDossier@20df9080af58530ce578c88b131678f6de5f0060
     with:
       command: audit
       config-file: config.xml
 ```
-
-> [!NOTE]
-> This example pins the v1.8.0 release. v1.8.0 does not read OPNsense 26.7 firewall rules kept in the filter model, so an audit of such a config passes its rule checks on an empty rule set. Once v1.9.0 has shipped, pin its commit instead (`git rev-parse "v1.9.0^{commit}"`); the example is updated after each release.
 
 **Acceptable (most users): pin to a version tag.** This is what the Quick Start snippet above uses. You trust that the maintainers will not move published tags (we don't), and in exchange you get a readable reference and automatic patch-level fixes when you bump.
 
@@ -411,7 +408,7 @@ GitHub Action references should be pinned with intention. The three options, in 
 
 **Not recommended for production: `@main` or `@latest`.** Both are moving targets: `@main` follows the default branch (may contain unreleased changes); `@latest` is only meaningful as an image tag on `ghcr.io/evilbit-labs/opndossier` and will pull whatever the registry currently points `latest` at. Use these only in throwaway sandboxes, never in CI that protects production configuration.
 
-The `version:` input of the action follows the same three levels and defaults to the Action's own release tag: the `v1.9.0` Action defaults to `v1.9.0`, and the SHA-pinned example above, which is the v1.8.0 Action, defaults to `v1.8.0`. Override it only if you understand the tradeoff.
+The `version:` input of the action follows the same three levels and defaults to the Action's own release tag: the `v1.9.0` Action defaults to `v1.9.0`, and the SHA-pinned example above is the v1.9.0 Action and also defaults to `v1.9.0`. Override it only if you understand the tradeoff.
 
 ### Using the Docker image directly
 

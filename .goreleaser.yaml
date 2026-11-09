@@ -192,6 +192,9 @@ universal_binaries:
     ids:
       - opndossier
     replace: true
+    # Without this the universal binary takes the project name, opnDossier,
+    # while every other platform ships opndossier (GOTCHAS 22.3).
+    name_template: opndossier
     hooks:
       post:
         # macOS code signing with quill (optional, requires Apple credentials)
