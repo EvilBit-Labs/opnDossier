@@ -36,7 +36,7 @@ opndossier audit [flags] <config.xml> [config2.xml ...]
 
 For global flags (`--verbose`, `--quiet`, `--config`, etc.), see [Configuration Reference](../configuration-reference.md).
 
-![Screenshot of opnDossier audit command showing STIG compliance findings with severity levels and control status](../../images/audit.png)
+![Terminal recording of opnDossier audit showing STIG compliance findings with severity levels and control status](../../images/audit.gif)
 
 ## Audit Modes
 

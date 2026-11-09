@@ -366,7 +366,8 @@ generate-docs: generate-cli-docs
 generate-cli-docs:
     @{{ mise_exec }} go run . docs docs/cli/
 
-# Regenerate VHS terminal demo GIFs from tape files
+# Regenerate VHS terminal demo GIFs from tape files and publish them to docs/images/,
+# where README.md and the user-guide command pages embed them
 [group('docs')]
 generate-demos:
     @echo "Building opnDossier binary for demos..."
@@ -378,7 +379,8 @@ generate-demos:
         echo "Recording $tape..."; \
         env -i HOME="$HOME" PATH="$PATH" TERM="xterm-256color" vhs "$tape"; \
     done
-    @echo "Done — GIFs in vhs/gif/"
+    @cp vhs/gif/*.gif docs/images/
+    @echo "Done — GIFs published to docs/images/"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Changelog
