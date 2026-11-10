@@ -175,26 +175,6 @@ func computeAuditTotals(cc *common.ComplianceResults) (total, compliant, nonComp
 	return total, compliant, nonCompliant
 }
 
-// writeAuditMetadata emits the final "Audit Metadata" table when Metadata
-// is non-empty. Keys are sorted for determinism.
-func writeAuditMetadata(md *markdown.Markdown, cc *common.ComplianceResults) {
-	if len(cc.Metadata) == 0 {
-		return
-	}
-	md.H2("Audit Metadata")
-	metadataTable := markdown.TableSet{
-		Header: []string{"Key", colValue},
-		Rows:   make([][]string, 0, len(cc.Metadata)),
-	}
-	for _, key := range slices.Sorted(maps.Keys(cc.Metadata)) {
-		metadataTable.Rows = append(metadataTable.Rows, []string{
-			formatters.EscapeTableContent(key),
-			formatters.EscapeTableContent(cc.Metadata[key]),
-		})
-	}
-	md.Table(metadataTable)
-}
-
 // pluginSummaryItems renders a per-plugin summary as bullet list items. When
 // no Summary is attached, a single "no data available" entry is returned so
 // the H3 heading is not left dangling.

@@ -3,8 +3,11 @@ package converter
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
@@ -126,7 +129,7 @@ func TestExtractTablesWithPlaceholders(t *testing.T) {
 		{
 			name:             "simple table",
 			input:            `<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>`,
-			expectedHTML:     `<p>OPNDOSSIER_PH_0</p>`,
+			expectedHTML:     `<p>OPNDOSSIER_PH_0_END</p>`,
 			expectedReplaces: []string{"A\tB\n1\t2"},
 		},
 		{
@@ -138,7 +141,7 @@ func TestExtractTablesWithPlaceholders(t *testing.T) {
 		{
 			name:             "table with formatted cell content",
 			input:            `<table><tr><td><strong>bold</strong></td><td>plain</td></tr></table>`,
-			expectedHTML:     `<p>OPNDOSSIER_PH_0</p>`,
+			expectedHTML:     `<p>OPNDOSSIER_PH_0_END</p>`,
 			expectedReplaces: []string{"bold\tplain"},
 		},
 	}
@@ -166,7 +169,7 @@ func TestExtractAlertsWithPlaceholders(t *testing.T) {
 		{
 			name:             "warning alert",
 			input:            "<blockquote>\n<p>[!WARNING]<br />\nBe careful.</p>\n</blockquote>",
-			expectedHTML:     "<p>OPNDOSSIER_PH_0</p>",
+			expectedHTML:     "<p>OPNDOSSIER_PH_0_END</p>",
 			expectedReplaces: []string{"WARNING:\nBe careful."},
 		},
 		{
@@ -178,7 +181,7 @@ func TestExtractAlertsWithPlaceholders(t *testing.T) {
 		{
 			name:             "note alert",
 			input:            "<blockquote>\n<p>[!NOTE]<br />\nSome info.</p>\n</blockquote>",
-			expectedHTML:     "<p>OPNDOSSIER_PH_0</p>",
+			expectedHTML:     "<p>OPNDOSSIER_PH_0_END</p>",
 			expectedReplaces: []string{"NOTE:\nSome info."},
 		},
 	}
@@ -264,6 +267,149 @@ func TestTrimLineWhitespace(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestStripMarkdownFormatting_NestedLists pins that a nested list keeps its
+// hierarchy in the text format. html2text flattens every <li> to one prefix,
+// so the pipeline renders a list with nesting itself and keeps its indentation
+// through the whitespace trim. A flat list still goes through html2text and
+// reads as before.
+func TestStripMarkdownFormatting_NestedLists(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "flat list unchanged",
+			input:    "- a\n- b\n",
+			expected: "- a\n- b\n",
+		},
+		{
+			name:     "two levels",
+			input:    "- **parent**\n  - child one\n  - child two\n- **other**\n  - child three\n",
+			expected: "- parent\n  - child one\n  - child two\n- other\n  - child three\n",
+		},
+		{
+			name:     "three levels",
+			input:    "- a\n  - b\n    - c\n  - d\n- e\n",
+			expected: "- a\n  - b\n    - c\n  - d\n- e\n",
+		},
+		{
+			name:     "ordered list nested in a bullet list",
+			input:    "- a\n  1. first\n  2. second\n",
+			expected: "- a\n  - first\n  - second\n",
+		},
+		{
+			name:     "inline markup and entities inside items",
+			input:    "- *em* and [link](https://example.com)\n  - Services &gt; Setup\n",
+			expected: "- em and link (https://example.com)\n  - Services > Setup\n",
+		},
+		{
+			name:     "heading and paragraph around the list",
+			input:    "### Recommendations\n- a\n  - b\n\nAfter.\n",
+			expected: "Recommendations\n\n- a\n  - b\n\nAfter.\n",
+		},
+		{
+			name:     "continuation paragraph after a nested list stays with its item",
+			input:    "- parent\n  - child\n\n  continuation of parent\n- next\n",
+			expected: "- parent\n  - child\n  continuation of parent\n- next\n",
+		},
+		{
+			name:     "continuation paragraph at the second level",
+			input:    "- a\n  - b\n    - c\n\n    after c\n",
+			expected: "- a\n  - b\n    - c\n    after c\n",
+		},
+		// The cases below hold several placeholders in one document, so a
+		// slip in the restore order or in the index alignment of the shared
+		// replacements slice shows up here.
+		{
+			name:     "two nested lists separated by a paragraph",
+			input:    "- a\n  - b\n\nBetween.\n\n- c\n  - d\n",
+			expected: "- a\n  - b\n\nBetween.\n\n- c\n  - d\n",
+		},
+		{
+			name:     "table followed by a nested list",
+			input:    "| a | b |\n|---|---|\n| 1 | 2 |\n\n- parent\n  - child\n",
+			expected: "a\tb\n1\t2\n\n- parent\n  - child\n",
+		},
+		{
+			name:     "alert, nested list and table in one document",
+			input:    "> [!NOTE]\n> Careful.\n\n- a\n  - b\n\n| x | y |\n|---|---|\n| 3 | 4 |\n",
+			expected: "NOTE:\nCareful.\n\n- a\n  - b\n\nx\ty\n3\t4\n",
+		},
+		{
+			// The table is extracted first, so its placeholder sits inside the
+			// list's replacement and is restored by the second pass, at the
+			// item's indentation.
+			name:     "table inside an item that also has a nested list",
+			input:    "- parent\n  - child\n\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n- next\n",
+			expected: "- parent\n  - child\n  a\tb\n  1\t2\n- next\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := StripMarkdownFormatting(tt.input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestStripMarkdownFormatting_ManyPlaceholders pins that placeholder indices
+// do not collide once a document holds more than ten of them. A nested list
+// is extracted after the tables, so it gets index 10, whose marker the marker
+// for index 1 matched as a prefix: the list vanished, the first table was
+// restored twice and a stray "0" was left behind.
+func TestStripMarkdownFormatting_ManyPlaceholders(t *testing.T) {
+	t.Parallel()
+
+	var input, expected strings.Builder
+	input.WriteString("- parent\n  - child\n\n")
+	expected.WriteString("- parent\n  - child\n\n")
+	for i := range 10 {
+		fmt.Fprintf(&input, "| h%d |\n|---|\n| v%d |\n\n", i, i)
+		fmt.Fprintf(&expected, "h%d\nv%d\n\n", i, i)
+	}
+
+	result, err := StripMarkdownFormatting(input.String())
+	require.NoError(t, err)
+	assert.Equal(t, strings.TrimSpace(expected.String())+"\n", result)
+}
+
+// TestStripMarkdownFormatting_AuditRecommendations passes the recommendations
+// the audit builder renders through the text pipeline and checks that each
+// component's recommendations stay nested under it (#993 review).
+func TestStripMarkdownFormatting_AuditRecommendations(t *testing.T) {
+	t.Parallel()
+
+	section := builder.NewMarkdownBuilder().BuildAuditSection(&common.CommonDevice{
+		ComplianceResults: &common.ComplianceResults{
+			Mode: "blue",
+			Metadata: map[string]any{
+				"recommendations": []audit.Recommendation{
+					{
+						Component:       "backup-config",
+						Recommendations: []string{"Enable AutoConfigBackup in Services > Auto Config Backup"},
+					},
+					{Component: "dns-config", Recommendations: []string{"Configure DNS servers", "Enable DNSSEC"}},
+				},
+			},
+		},
+	})
+
+	text, err := StripMarkdownFormatting(section)
+	require.NoError(t, err)
+	assert.Contains(t, text,
+		"Recommendations\n\n"+
+			"- backup-config\n"+
+			"  - Enable AutoConfigBackup in Services > Auto Config Backup\n"+
+			"- dns-config\n"+
+			"  - Configure DNS servers\n"+
+			"  - Enable DNSSEC\n")
 }
 
 func TestHybridGenerator_GeneratePlainText(t *testing.T) {
