@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/formatters"
@@ -235,14 +236,17 @@ func formatMetadataValue(value any) string {
 }
 
 // humanizeMetadataKey turns a snake_case metadata key into a section title:
-// "configuration_summary" becomes "Configuration Summary".
+// "configuration_summary" becomes "Configuration Summary". The first rune of
+// each word is upper-cased, not the first byte, so a key that starts a word
+// with a multi-byte character stays valid UTF-8.
 func humanizeMetadataKey(key string) string {
 	words := strings.Split(key, "_")
 	for i, word := range words {
 		if word == "" {
 			continue
 		}
-		words[i] = strings.ToUpper(word[:1]) + word[1:]
+		first, size := utf8.DecodeRuneInString(word)
+		words[i] = string(unicode.ToUpper(first)) + word[size:]
 	}
 	return strings.TrimSpace(strings.Join(words, " "))
 }

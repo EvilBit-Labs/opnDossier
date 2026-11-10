@@ -310,6 +310,7 @@ func TestHumanizeMetadataNames(t *testing.T) {
 		"recommendations":       "Recommendations",
 		"enumeration_data":      "Enumeration Data",
 		"admin_portals":         "Admin Portals",
+		"écart_type":            "Écart Type",
 		"":                      "",
 	}
 	for in, want := range keys {
