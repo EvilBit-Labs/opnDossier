@@ -2,10 +2,10 @@ package builder
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -67,6 +67,7 @@ func TestBuildAuditSection_StructuredMetadataRendersLabeled(t *testing.T) {
 		"report_type":           "blue_team",
 		"recommendation_count":  3,
 		"compliance_frameworks": []string{"FIREWALL", "SANS", "STIG"},
+		"scan_times":            []time.Time{time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)},
 		"configuration_summary": audit.ConfigSummary{Interfaces: 2, FirewallRules: 7, NATRules: 1, Users: 1},
 		"recommendations": []audit.Recommendation{
 			{
@@ -91,6 +92,8 @@ func TestBuildAuditSection_StructuredMetadataRendersLabeled(t *testing.T) {
 		"| report\\_type | blue\\_team |",
 		"| recommendation\\_count | 3 |",
 		"| compliance\\_frameworks | FIREWALL, SANS, STIG |",
+		// A list of fmt.Stringer values is a list of text, not of records.
+		"| scan\\_times | 2026-01-02 03:04:05 +0000 UTC |",
 		// A struct becomes a labeled Field/Value table under its own heading,
 		// in declaration order, with acronym runs kept together.
 		"### Configuration Summary",
@@ -230,7 +233,10 @@ func TestIsStructuredMetadata(t *testing.T) {
 		{"int", 3, false},
 		{"bool", true, false},
 		{"string slice", []string{"a"}, false},
-		{"stringer struct", reflect.TypeFor[int](), false},
+		{"stringer struct", time.Time{}, false},
+		{"stringer struct pointer", &time.Time{}, false},
+		{"stringer struct slice", []time.Time{time.Now()}, false},
+		{"stringer struct pointer slice", []*time.Time{{}}, false},
 		{"struct", audit.ConfigSummary{}, true},
 		{"struct pointer", &audit.ConfigSummary{}, true},
 		{"struct slice", []audit.Recommendation{}, true},
@@ -262,6 +268,11 @@ func TestFormatMetadataValue(t *testing.T) {
 		{"int", 42, "42"},
 		{"bool", false, "false"},
 		{"string slice joined", []string{"FIREWALL", "SANS"}, "FIREWALL, SANS"},
+		{
+			"stringer slice joined",
+			[]time.Time{time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC), time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC)},
+			"2026-01-02 03:04:05 +0000 UTC, 2026-01-03 00:00:00 +0000 UTC",
+		},
 		{"empty slice", []string{}, ""},
 		{
 			"nested struct labeled",

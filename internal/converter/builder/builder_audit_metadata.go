@@ -56,7 +56,8 @@ func writeAuditMetadata(md *markdown.Markdown, cc *common.ComplianceResults) {
 
 // isStructuredMetadata reports whether value is a struct or a list of structs,
 // which the key/value table cannot show with its fields labeled. A value that
-// formats itself through fmt.Stringer, such as time.Time, stays a scalar.
+// formats itself through fmt.Stringer, such as time.Time, stays a scalar, and
+// so does a list of such values: formatMetadataValue joins them as text.
 func isStructuredMetadata(value any) bool {
 	if value == nil {
 		return false
@@ -69,7 +70,11 @@ func isStructuredMetadata(value any) bool {
 		return true
 	}
 	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
-		return indirectType(t.Elem()).Kind() == reflect.Struct
+		elem := t.Elem()
+		if elem.Implements(reflect.TypeFor[fmt.Stringer]()) {
+			return false
+		}
+		return indirectType(elem).Kind() == reflect.Struct
 	}
 	return false
 }
