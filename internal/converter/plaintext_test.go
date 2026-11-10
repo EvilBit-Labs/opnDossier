@@ -5,6 +5,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/audit"
 	"github.com/EvilBit-Labs/opnDossier/internal/converter/builder"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
@@ -251,6 +252,16 @@ func TestTrimLineWhitespace(t *testing.T) {
 			expected: "Name\tValue\nfoo\tbar\n",
 		},
 		{
+			name:     "indented list item keeps its indent",
+			input:    "- parent \n  - child \n    - grandchild\t\n",
+			expected: "- parent\n  - child\n    - grandchild\n",
+		},
+		{
+			name:     "single leading space before a list item is an artifact",
+			input:    " - item\n",
+			expected: "- item\n",
+		},
+		{
 			name:     "empty string",
 			input:    "",
 			expected: "",
@@ -264,6 +275,92 @@ func TestTrimLineWhitespace(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestStripMarkdownFormatting_NestedLists pins that a nested list keeps its
+// hierarchy in the text format. html2text flattens every <li> to one prefix,
+// so the pipeline renders a list with nesting itself and keeps its indentation
+// through the whitespace trim. A flat list still goes through html2text and
+// reads as before.
+func TestStripMarkdownFormatting_NestedLists(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "flat list unchanged",
+			input:    "- a\n- b\n",
+			expected: "- a\n- b\n",
+		},
+		{
+			name:     "two levels",
+			input:    "- **parent**\n  - child one\n  - child two\n- **other**\n  - child three\n",
+			expected: "- parent\n  - child one\n  - child two\n- other\n  - child three\n",
+		},
+		{
+			name:     "three levels",
+			input:    "- a\n  - b\n    - c\n  - d\n- e\n",
+			expected: "- a\n  - b\n    - c\n  - d\n- e\n",
+		},
+		{
+			name:     "ordered list nested in a bullet list",
+			input:    "- a\n  1. first\n  2. second\n",
+			expected: "- a\n  - first\n  - second\n",
+		},
+		{
+			name:     "inline markup and entities inside items",
+			input:    "- *em* and [link](https://example.com)\n  - Services &gt; Setup\n",
+			expected: "- em and link (https://example.com)\n  - Services > Setup\n",
+		},
+		{
+			name:     "heading and paragraph around the list",
+			input:    "### Recommendations\n- a\n  - b\n\nAfter.\n",
+			expected: "Recommendations\n\n- a\n  - b\n\nAfter.\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := StripMarkdownFormatting(tt.input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestStripMarkdownFormatting_AuditRecommendations passes the recommendations
+// the audit builder renders through the text pipeline and checks that each
+// component's recommendations stay nested under it (#993 review).
+func TestStripMarkdownFormatting_AuditRecommendations(t *testing.T) {
+	t.Parallel()
+
+	section := builder.NewMarkdownBuilder().BuildAuditSection(&common.CommonDevice{
+		ComplianceResults: &common.ComplianceResults{
+			Mode: "blue",
+			Metadata: map[string]any{
+				"recommendations": []audit.Recommendation{
+					{
+						Component:       "backup-config",
+						Recommendations: []string{"Enable AutoConfigBackup in Services > Auto Config Backup"},
+					},
+					{Component: "dns-config", Recommendations: []string{"Configure DNS servers", "Enable DNSSEC"}},
+				},
+			},
+		},
+	})
+
+	text, err := StripMarkdownFormatting(section)
+	require.NoError(t, err)
+	assert.Contains(t, text,
+		"Recommendations\n\n"+
+			"- backup-config\n"+
+			"  - Enable AutoConfigBackup in Services > Auto Config Backup\n"+
+			"- dns-config\n"+
+			"  - Configure DNS servers\n"+
+			"  - Enable DNSSEC\n")
 }
 
 func TestHybridGenerator_GeneratePlainText(t *testing.T) {
