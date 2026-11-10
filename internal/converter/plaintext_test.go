@@ -319,6 +319,32 @@ func TestStripMarkdownFormatting_NestedLists(t *testing.T) {
 			input:    "- a\n  - b\n    - c\n\n    after c\n",
 			expected: "- a\n  - b\n    - c\n    after c\n",
 		},
+		// The cases below hold several placeholders in one document, so a
+		// slip in the restore order or in the index alignment of the shared
+		// replacements slice shows up here.
+		{
+			name:     "two nested lists separated by a paragraph",
+			input:    "- a\n  - b\n\nBetween.\n\n- c\n  - d\n",
+			expected: "- a\n  - b\n\nBetween.\n\n- c\n  - d\n",
+		},
+		{
+			name:     "table followed by a nested list",
+			input:    "| a | b |\n|---|---|\n| 1 | 2 |\n\n- parent\n  - child\n",
+			expected: "a\tb\n1\t2\n\n- parent\n  - child\n",
+		},
+		{
+			name:     "alert, nested list and table in one document",
+			input:    "> [!NOTE]\n> Careful.\n\n- a\n  - b\n\n| x | y |\n|---|---|\n| 3 | 4 |\n",
+			expected: "NOTE:\nCareful.\n\n- a\n  - b\n\nx\ty\n3\t4\n",
+		},
+		{
+			// The table is extracted first, so its placeholder sits inside the
+			// list's replacement and is restored by the second pass, at the
+			// item's indentation.
+			name:     "table inside an item that also has a nested list",
+			input:    "- parent\n  - child\n\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n- next\n",
+			expected: "- parent\n  - child\n  a\tb\n  1\t2\n- next\n",
+		},
 	}
 
 	for _, tt := range tests {

@@ -100,10 +100,27 @@ func StripMarkdownFormatting(markdown string) (string, error) {
 		text = strings.Replace(text, fmt.Sprintf(placeholderFmt, i), replacements[i], 1)
 	}
 	for i, replacement := range replacements[:firstList] {
-		text = strings.Replace(text, fmt.Sprintf(placeholderFmt, i), replacement, 1)
+		text = replaceIndented(text, fmt.Sprintf(placeholderFmt, i), replacement)
 	}
 
 	return strings.TrimSpace(text) + "\n", nil
+}
+
+// replaceIndented replaces the first occurrence of placeholder in text with
+// replacement, indenting every line of the replacement after the first by
+// the whitespace that precedes the placeholder on its line, so a table
+// restored inside a nested list item sits at the item's indentation.
+func replaceIndented(text, placeholder, replacement string) string {
+	at := strings.Index(text, placeholder)
+	if at < 0 {
+		return text
+	}
+	lineStart := strings.LastIndex(text[:at], "\n") + 1
+	indent := text[lineStart:at]
+	if strings.TrimSpace(indent) == "" && indent != "" {
+		replacement = strings.ReplaceAll(replacement, "\n", "\n"+indent)
+	}
+	return text[:at] + replacement + text[at+len(placeholder):]
 }
 
 // extractTablesWithPlaceholders replaces HTML tables with placeholders and stores
