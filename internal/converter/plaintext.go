@@ -3,7 +3,6 @@ package converter
 import (
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/k3a/html2text"
@@ -40,10 +39,6 @@ var (
 	// reHTMLListTag matches the list tags the nested-list renderer walks: the
 	// opening and closing <ul>, <ol> (with any attributes) and <li> tags.
 	reHTMLListTag = regexp.MustCompile(`(?i)<(/?)(ul|ol|li)\b[^>]*>`)
-
-	// reIndentedListItem matches a line renderListBlock indented: two spaces
-	// per nesting level in front of the "- " list prefix.
-	reIndentedListItem = regexp.MustCompile(`^(?: {2})+- `)
 )
 
 // placeholderFmt is a unique marker format that survives html2text processing.
@@ -78,6 +73,9 @@ func StripMarkdownFormatting(markdown string) (string, error) {
 	htmlContent = extractTablesWithPlaceholders(htmlContent, &replacements, &counter)
 	htmlContent = convertLinksToPlainText(htmlContent)
 	htmlContent = extractAlertsWithPlaceholders(htmlContent, &replacements, &counter)
+	// Nested lists are restored after the whitespace trim, which would strip
+	// their indentation, so their placeholders start at firstList.
+	firstList := counter
 	htmlContent = extractNestedListsWithPlaceholders(htmlContent, &replacements, &counter)
 
 	// Stage 3: Convert remaining HTML to text
@@ -87,16 +85,23 @@ func StripMarkdownFormatting(markdown string) (string, error) {
 		html2text.WithListSupportPrefix("- "),
 	)
 
-	// Stage 4: Replace placeholders with formatted text. Later placeholders
-	// are restored first, so one that was extracted from inside an earlier
-	// one, such as a table inside a list item, is restored by its turn.
-	for i, replacement := range slices.Backward(replacements) {
+	// Stage 4: Replace table and alert placeholders with formatted text
+	for i, replacement := range replacements[:firstList] {
 		text = strings.Replace(text, fmt.Sprintf(placeholderFmt, i), replacement, 1)
 	}
 
 	// Stage 5: Post-process text output
 	text = trimLineWhitespace(text)
 	text = reExcessiveNewlines.ReplaceAllString(text, "\n\n")
+
+	// Stage 6: Restore nested lists, whose indentation the trim would have
+	// stripped, then any table or alert placeholder one of them carried.
+	for i := firstList; i < len(replacements); i++ {
+		text = strings.Replace(text, fmt.Sprintf(placeholderFmt, i), replacements[i], 1)
+	}
+	for i, replacement := range replacements[:firstList] {
+		text = strings.Replace(text, fmt.Sprintf(placeholderFmt, i), replacement, 1)
+	}
 
 	return strings.TrimSpace(text) + "\n", nil
 }
@@ -193,9 +198,11 @@ func extractNestedListsWithPlaceholders(htmlContent string, replacements *[]stri
 
 // renderListBlock renders one list element, nested lists included, as text:
 // one line per item with the "- " prefix, indented two spaces per level below
-// the first. An item's own inline content, the HTML between its <li> and the
-// next list tag, goes through html2text so emphasis, links and entities read
-// as they do elsewhere in the document.
+// the first. The HTML between two list tags is one item's content: the text
+// that opens an item, or what follows a nested list inside it, such as a
+// continuation paragraph, which is written on its own line at the item's
+// indentation. Each piece goes through html2text so emphasis, links and
+// entities read as they do elsewhere in the document.
 func renderListBlock(block string) string {
 	tags := reHTMLListTag.FindAllStringSubmatchIndex(block, -1)
 
@@ -203,41 +210,41 @@ func renderListBlock(block string) string {
 	depth := 0
 	for i, tag := range tags {
 		closing := block[tag[2]:tag[3]] == "/"
-		if !strings.EqualFold(block[tag[4]:tag[5]], "li") {
-			if closing {
-				depth--
-			} else {
-				depth++
-			}
-			continue
+		isItem := strings.EqualFold(block[tag[4]:tag[5]], "li")
+		switch {
+		case isItem:
+		case closing:
+			depth--
+		default:
+			depth++
 		}
-		if closing {
-			continue
-		}
+
 		end := len(block)
 		if i+1 < len(tags) {
 			end = tags[i+1][0]
 		}
-		item := html2text.HTML2TextWithOptions(block[tag[1]:end], html2text.WithUnixLineBreaks())
+		content := html2text.HTML2TextWithOptions(block[tag[1]:end], html2text.WithUnixLineBreaks())
+		text := strings.Join(strings.Fields(content), " ")
 		indent := strings.Repeat("  ", max(depth-1, 0))
-		lines = append(lines, indent+"- "+strings.Join(strings.Fields(item), " "))
+		switch {
+		case isItem && !closing:
+			lines = append(lines, indent+"- "+text)
+		case text != "":
+			lines = append(lines, indent+"  "+text)
+		}
 	}
 	return strings.Join(lines, "\n")
 }
 
-// trimLineWhitespace strips trailing whitespace from each line, and leading
-// whitespace too unless the line is an indented list item. html2text produces
-// artifact whitespace: leading spaces after headings/HRs, and trailing spaces
-// on list items. Tables use tab-separated placeholders, restored before this
-// runs, and the only intentional indentation is the two spaces per level
-// renderListBlock writes in front of a nested item.
+// trimLineWhitespace strips leading and trailing whitespace from each line.
+// html2text produces artifact whitespace: leading spaces after headings/HRs,
+// and trailing spaces on list items. TrimSpace is safe here because nothing
+// it sees carries intentional indentation: tables use tab-separated
+// placeholders, and a nested list, whose indentation is intentional, is
+// restored from its placeholder only after this runs.
 func trimLineWhitespace(text string) string {
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
-		if reIndentedListItem.MatchString(line) {
-			lines[i] = strings.TrimRight(line, " \t\r")
-			continue
-		}
 		lines[i] = strings.TrimSpace(line)
 	}
 	return strings.Join(lines, "\n")

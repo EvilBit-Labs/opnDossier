@@ -252,16 +252,6 @@ func TestTrimLineWhitespace(t *testing.T) {
 			expected: "Name\tValue\nfoo\tbar\n",
 		},
 		{
-			name:     "indented list item keeps its indent",
-			input:    "- parent \n  - child \n    - grandchild\t\n",
-			expected: "- parent\n  - child\n    - grandchild\n",
-		},
-		{
-			name:     "single leading space before a list item is an artifact",
-			input:    " - item\n",
-			expected: "- item\n",
-		},
-		{
 			name:     "empty string",
 			input:    "",
 			expected: "",
@@ -318,6 +308,16 @@ func TestStripMarkdownFormatting_NestedLists(t *testing.T) {
 			name:     "heading and paragraph around the list",
 			input:    "### Recommendations\n- a\n  - b\n\nAfter.\n",
 			expected: "Recommendations\n\n- a\n  - b\n\nAfter.\n",
+		},
+		{
+			name:     "continuation paragraph after a nested list stays with its item",
+			input:    "- parent\n  - child\n\n  continuation of parent\n- next\n",
+			expected: "- parent\n  - child\n  continuation of parent\n- next\n",
+		},
+		{
+			name:     "continuation paragraph at the second level",
+			input:    "- a\n  - b\n    - c\n\n    after c\n",
+			expected: "- a\n  - b\n    - c\n    after c\n",
 		},
 	}
 
