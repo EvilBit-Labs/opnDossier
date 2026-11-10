@@ -3,6 +3,8 @@ package converter
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/audit"
@@ -127,7 +129,7 @@ func TestExtractTablesWithPlaceholders(t *testing.T) {
 		{
 			name:             "simple table",
 			input:            `<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>`,
-			expectedHTML:     `<p>OPNDOSSIER_PH_0</p>`,
+			expectedHTML:     `<p>OPNDOSSIER_PH_0_END</p>`,
 			expectedReplaces: []string{"A\tB\n1\t2"},
 		},
 		{
@@ -139,7 +141,7 @@ func TestExtractTablesWithPlaceholders(t *testing.T) {
 		{
 			name:             "table with formatted cell content",
 			input:            `<table><tr><td><strong>bold</strong></td><td>plain</td></tr></table>`,
-			expectedHTML:     `<p>OPNDOSSIER_PH_0</p>`,
+			expectedHTML:     `<p>OPNDOSSIER_PH_0_END</p>`,
 			expectedReplaces: []string{"bold\tplain"},
 		},
 	}
@@ -167,7 +169,7 @@ func TestExtractAlertsWithPlaceholders(t *testing.T) {
 		{
 			name:             "warning alert",
 			input:            "<blockquote>\n<p>[!WARNING]<br />\nBe careful.</p>\n</blockquote>",
-			expectedHTML:     "<p>OPNDOSSIER_PH_0</p>",
+			expectedHTML:     "<p>OPNDOSSIER_PH_0_END</p>",
 			expectedReplaces: []string{"WARNING:\nBe careful."},
 		},
 		{
@@ -179,7 +181,7 @@ func TestExtractAlertsWithPlaceholders(t *testing.T) {
 		{
 			name:             "note alert",
 			input:            "<blockquote>\n<p>[!NOTE]<br />\nSome info.</p>\n</blockquote>",
-			expectedHTML:     "<p>OPNDOSSIER_PH_0</p>",
+			expectedHTML:     "<p>OPNDOSSIER_PH_0_END</p>",
 			expectedReplaces: []string{"NOTE:\nSome info."},
 		},
 	}
@@ -355,6 +357,27 @@ func TestStripMarkdownFormatting_NestedLists(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestStripMarkdownFormatting_ManyPlaceholders pins that placeholder indices
+// do not collide once a document holds more than ten of them. A nested list
+// is extracted after the tables, so it gets index 10, whose marker the marker
+// for index 1 matched as a prefix: the list vanished, the first table was
+// restored twice and a stray "0" was left behind.
+func TestStripMarkdownFormatting_ManyPlaceholders(t *testing.T) {
+	t.Parallel()
+
+	var input, expected strings.Builder
+	input.WriteString("- parent\n  - child\n\n")
+	expected.WriteString("- parent\n  - child\n\n")
+	for i := range 10 {
+		fmt.Fprintf(&input, "| h%d |\n|---|\n| v%d |\n\n", i, i)
+		fmt.Fprintf(&expected, "h%d\nv%d\n\n", i, i)
+	}
+
+	result, err := StripMarkdownFormatting(input.String())
+	require.NoError(t, err)
+	assert.Equal(t, strings.TrimSpace(expected.String())+"\n", result)
 }
 
 // TestStripMarkdownFormatting_AuditRecommendations passes the recommendations

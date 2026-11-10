@@ -42,8 +42,11 @@ var (
 )
 
 // placeholderFmt is a unique marker format that survives html2text processing.
-// Uses a prefix unlikely to appear in normal content.
-const placeholderFmt = "OPNDOSSIER_PH_%d"
+// Uses a prefix unlikely to appear in normal content. The index is terminated
+// so that no placeholder is a prefix of another: without the terminator the
+// marker for index 1 matched inside the marker for index 10, and a document
+// with eleven placeholders restored the wrong one.
+const placeholderFmt = "OPNDOSSIER_PH_%d_END"
 
 // StripMarkdownFormatting converts markdown to plain text using a
 // goldmark -> HTML -> html2text pipeline. goldmarkRenderer handles all markdown
