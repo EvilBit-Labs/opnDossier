@@ -82,21 +82,37 @@ func indirectType(t reflect.Type) reflect.Type {
 	return t
 }
 
+// indirectValue strips every pointer layer from v, the same layers
+// indirectType strips from its type, so a value the classifier calls
+// structured is one the renderers can read. A nil pointer at any depth
+// yields an invalid Value, which callers test with IsValid.
+func indirectValue(v reflect.Value) reflect.Value {
+	for v.IsValid() && v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return reflect.Value{}
+		}
+		v = v.Elem()
+	}
+	return v
+}
+
 // writeStructuredMetadata emits one subsection for a struct or list-of-struct
 // metadata value. Recommendations carry a list inside each record, which no
 // table cell can hold, so they render as nested bullets. Every other struct
 // renders as a labeled Field/Value table and every other list of structs as a
 // table with one column per field, so a structured key added later is
-// labeled without a renderer of its own.
+// labeled without a renderer of its own. The key is plugin-supplied data
+// like every other metadata key, so the title is escaped as the table
+// escaped the key before.
 func writeStructuredMetadata(md *markdown.Markdown, key string, value any) {
-	md.H3(humanizeMetadataKey(key))
+	md.H3(formatters.EscapeMarkdownValue(humanizeMetadataKey(key)))
 
 	if recs, ok := value.([]audit.Recommendation); ok {
 		writeRecommendations(md, recs)
 		return
 	}
 
-	v := reflect.Indirect(reflect.ValueOf(value))
+	v := indirectValue(reflect.ValueOf(value))
 	switch {
 	case !v.IsValid():
 		md.PlainText(metadataNone).BlankLine()
@@ -163,7 +179,7 @@ func structListTable(list reflect.Value) markdown.TableSet {
 
 	table := markdown.TableSet{Header: header}
 	for i := range list.Len() {
-		elem := reflect.Indirect(list.Index(i))
+		elem := indirectValue(list.Index(i))
 		if !elem.IsValid() {
 			continue
 		}
@@ -188,7 +204,7 @@ func formatMetadataValue(value any) string {
 		return formatters.EscapeTableContent(value)
 	}
 
-	v := reflect.Indirect(reflect.ValueOf(value))
+	v := indirectValue(reflect.ValueOf(value))
 	switch {
 	case !v.IsValid():
 		return ""

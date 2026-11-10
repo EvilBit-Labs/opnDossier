@@ -154,6 +154,9 @@ func TestBuildAuditSection_StructuredMetadataEscapesContent(t *testing.T) {
 		"recommendations": []audit.Recommendation{
 			{Component: "x_y", Recommendations: []string{"use `safe` <b>values</b> | always"}},
 		},
+		// A structured key is plugin-supplied data too; its heading must not
+		// become an image or a link.
+		"scan_![probe](https://example.invalid/beacon)": reconCounts{Interfaces: 1},
 	}
 
 	result := NewMarkdownBuilder().BuildAuditSection(&common.CommonDevice{
@@ -164,15 +167,53 @@ func TestBuildAuditSection_StructuredMetadataEscapesContent(t *testing.T) {
 		"| a\\|b\\<img src=x\\> | 22 | wan |",
 		"- **x\\_y**",
 		"  - use \\`safe\\` \\<b\\>values\\</b\\> \\| always",
+		"### Scan !\\[probe\\](https://example.invalid/beacon)\n",
 	} {
 		if !strings.Contains(result, want) {
 			t.Errorf("expected output to contain %q, got:\n%s", want, result)
 		}
 	}
+	if strings.Contains(result, "![probe](") {
+		t.Errorf("a structured key reached a heading as live markup:\n%s", result)
+	}
 	// Every angle bracket must carry its escape, or goldmark would parse the
 	// value as a raw HTML node.
 	if unescapedAngle.MatchString(result) {
 		t.Errorf("an unescaped angle bracket reached the output:\n%s", result)
+	}
+}
+
+// TestBuildAuditSection_StructuredMetadataPointerChains pins that a value the
+// classifier calls structured through several pointer layers is unwrapped the
+// same way by the renderers, and that a nil pointer at any depth renders as
+// "None." or an omitted row instead of panicking.
+func TestBuildAuditSection_StructuredMetadataPointerChains(t *testing.T) {
+	t.Parallel()
+
+	summary := &audit.ConfigSummary{Interfaces: 2, FirewallRules: 7, NATRules: 1, Users: 1}
+	portal := &portalEntry{Name: "webgui", Port: 443, Reachability: "lan"}
+	metadata := map[string]any{
+		"configuration_summary": &summary,
+		"enumeration_data":      (**reconCounts)(nil),
+		"admin_portals":         []**portalEntry{nil, &portal},
+	}
+
+	result := NewMarkdownBuilder().BuildAuditSection(&common.CommonDevice{
+		ComplianceResults: &common.ComplianceResults{Mode: "red", Metadata: metadata},
+	})
+
+	for _, want := range []string{
+		"### Configuration Summary\n| Field | Value |",
+		"| Firewall Rules | 7 |",
+		"### Enumeration Data\nNone.\n",
+		"### Admin Portals\n| Name | Port | Reachability |\n|---------|---------|---------|\n| webgui | 443 | lan |\n",
+	} {
+		if !strings.Contains(result, want) {
+			t.Errorf("expected output to contain %q, got:\n%s", want, result)
+		}
+	}
+	if strings.Count(result, "| webgui |") != 1 {
+		t.Errorf("expected exactly one portal row, got:\n%s", result)
 	}
 }
 
@@ -195,6 +236,8 @@ func TestIsStructuredMetadata(t *testing.T) {
 		{"struct slice", []audit.Recommendation{}, true},
 		{"nil struct slice", []portalEntry(nil), true},
 		{"struct pointer slice", []*portalEntry{}, true},
+		{"double struct pointer", func() any { p := &audit.ConfigSummary{}; return &p }(), true},
+		{"nil double struct pointer", (**audit.ConfigSummary)(nil), true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -231,6 +274,12 @@ func TestFormatMetadataValue(t *testing.T) {
 			"Name: ssh, Port: 22, Reachability: lan",
 		},
 		{"nil pointer", (*portalEntry)(nil), ""},
+		{"nil double pointer", (**portalEntry)(nil), ""},
+		{
+			"double pointer unwrapped",
+			func() any { p := &portalEntry{Name: "ssh", Port: 22, Reachability: "lan"}; return &p }(),
+			"Name: ssh, Port: 22, Reachability: lan",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
