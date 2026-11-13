@@ -306,7 +306,7 @@ The audit engine performs the following checks per plugin:
 
 2. **Packet Filtering (V-206674)** - Scans pass rules for overly broad source/destination addresses (any, 0.0.0.0/0, ::/0, RFC 1918 ranges) and flags rules without specific port restrictions.
 
-3. **Service Hardening (V-206690)** - Checks for an enabled SNMP agent, Unbound DNS with DNSSEC stripping, more than 2 DHCP interfaces, and configured load balancer services.
+3. **Service Hardening (V-206690)** - Checks for an enabled SNMP agent, more than 2 DHCP interfaces, and configured load balancer services.
 
 4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
 
