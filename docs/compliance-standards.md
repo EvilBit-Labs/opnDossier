@@ -473,10 +473,9 @@ Additional DISA Firewall SRG controls under consideration:
 
 ### Planned Features
 
-1. **Real SANS Check Logic**: Replace placeholder stubs with actual analysis
-2. **Automated Remediation**: Generate configuration fixes
-3. **Compliance Monitoring**: Track compliance over time
-4. **Integration**: SIEM and ticketing system integration
+1. **Automated Remediation**: Generate configuration fixes
+2. **Compliance Monitoring**: Track compliance over time
+3. **Integration**: SIEM and ticketing system integration
 
 ## References
 
