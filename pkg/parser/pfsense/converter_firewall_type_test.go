@@ -55,7 +55,7 @@ func TestParser_ConfigPfSense_TypelessRulesArePass(t *testing.T) {
 	require.Len(t, device.NAT.InboundRules, 2)
 	for _, nat := range device.NAT.InboundRules {
 		assert.Equal(t, analysis.WANReachable,
-			analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules),
+			analysis.InboundNATRuleReachability(nat, device),
 			nat.Description)
 	}
 }

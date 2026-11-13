@@ -239,6 +239,13 @@ func DetectUnusedInterfaces(cfg *common.CommonDevice) []common.UnusedInterfaceFi
 	for _, rule := range cfg.FirewallRules {
 		for _, iface := range rule.Interfaces {
 			used[iface] = true
+
+			// A rule on an interface group applies on every member, so the
+			// members are in use even though no rule names them.
+			members, _ := interfaceGroupMembers(cfg, iface)
+			for _, member := range members {
+				used[member] = true
+			}
 		}
 	}
 	for _, scope := range cfg.DHCP {
@@ -314,7 +321,7 @@ func DetectSecurityIssues(cfg *common.CommonDevice) []common.SecurityFinding {
 
 	for i, rule := range cfg.FirewallRules {
 		if !rule.Disabled && rule.Type == common.RuleTypePass && IsAnyEndpoint(rule.Source) &&
-			RuleReachability(rule, cfg.Interfaces) == WANReachable {
+			RuleReachability(rule, cfg) == WANReachable {
 			findings = append(findings, common.SecurityFinding{
 				Component:      fmt.Sprintf("filter.rule[%d]", i),
 				Issue:          "Overly Permissive WAN Rule",

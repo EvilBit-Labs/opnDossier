@@ -62,7 +62,7 @@ func (fp *Plugin) checkNoAnySourceOnWANInbound(device *common.CommonDevice) chec
 		// floating pass rules with source=any on WAN are not missed — their
 		// interface list is empty and would otherwise skip the loop entirely.
 		if analysis.IsAnyEndpoint(rule.Source) &&
-			analysis.RuleReachability(rule, device.Interfaces) == analysis.WANReachable {
+			analysis.RuleReachability(rule, device) == analysis.WANReachable {
 			return checkResult{Result: false, Known: true}
 		}
 	}
@@ -187,7 +187,7 @@ func (fp *Plugin) checkPrivateAddressFilteringOnWAN(device *common.CommonDevice)
 
 	foundWAN := false
 	for _, iface := range device.Interfaces {
-		if analysis.InterfaceReachability(iface) == analysis.WANReachable {
+		if analysis.InterfaceReachability(iface, device) == analysis.WANReachable {
 			foundWAN = true
 			if !iface.BlockPrivate {
 				return checkResult{Result: false, Known: true}
@@ -211,7 +211,7 @@ func (fp *Plugin) checkBogonFilteringOnWAN(device *common.CommonDevice) checkRes
 
 	foundWAN := false
 	for _, iface := range device.Interfaces {
-		if analysis.InterfaceReachability(iface) == analysis.WANReachable {
+		if analysis.InterfaceReachability(iface, device) == analysis.WANReachable {
 			foundWAN = true
 			if !iface.BlockBogons {
 				return checkResult{Result: false, Known: true}

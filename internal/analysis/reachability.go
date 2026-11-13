@@ -29,23 +29,58 @@ func (r Reachability) String() string {
 	return string(r)
 }
 
-// IsWANInterfaceName reports whether name is a WAN-style interface name,
-// using case-insensitive "wan" prefix matching (e.g. "wan", "WAN", "wan2").
+// IsWANInterface reports whether the interface or interface group named name
+// faces the WAN on device.
 //
-// This is the single canonical WAN-interface-name predicate in the codebase.
-// internal/plugins/sans, internal/plugins/firewall, and the rest of
-// internal/analysis all route through this function instead of
-// reimplementing the check — see GOTCHAS.md and the reachability
-// consolidation history for why the two previously-divergent exact-match
-// sites in this package were bugs, not just duplication.
+// An interface group applies a rule on every member (OPNsense ifgroup_setup
+// attaches each member to the pf group), so a group faces the WAN when any
+// member does. Group membership comes from device.InterfaceGroups; a name that
+// no group lists is classified as an interface.
 //
-// Known limitation: detection is name-prefix-only. A secondary internet uplink
-// left with its default logical name (e.g. "opt1") rather than renamed to a
-// "wan"-prefixed name is classified LAN-only, so a service exposed on it can be
-// under-reported. Closing this requires consulting gateway/default-route
-// signals (common.Gateway.Interface) and is tracked as follow-up work, not
-// addressed by this consolidation.
-func IsWANInterfaceName(name string) bool {
+// An interface faces the WAN when its key starts with "wan".
+//
+// A nil device has no groups, so only the "wan" key prefix applies.
+func IsWANInterface(device *common.CommonDevice, name string) bool {
+	if members, ok := interfaceGroupMembers(device, name); ok {
+		return slices.ContainsFunc(members, func(member string) bool {
+			return isUplinkName(device, member)
+		})
+	}
+
+	return isUplinkName(device, name)
+}
+
+// interfaceGroupMembers returns the members device.InterfaceGroups lists for
+// the group named name, and false when no group has that name.
+func interfaceGroupMembers(device *common.CommonDevice, name string) ([]string, bool) {
+	if device == nil {
+		return nil, false
+	}
+
+	for _, group := range device.InterfaceGroups {
+		if group.Name == name {
+			return group.Members, true
+		}
+	}
+
+	return nil, false
+}
+
+// isUplinkName classifies the interface keyed name.
+func isUplinkName(_ *common.CommonDevice, name string) bool {
+	return hasWANKey(name)
+}
+
+// isUplinkInterface classifies iface. It does not expand interface groups:
+// an entry OPNsense writes for a group under <interfaces> is not an interface
+// of its own.
+func isUplinkInterface(_ *common.CommonDevice, iface common.Interface) bool {
+	return hasWANKey(iface.Name)
+}
+
+// hasWANKey reports whether name is a "wan"-prefixed interface key, matched
+// case-insensitively (e.g. "wan", "WAN", "wan2").
+func hasWANKey(name string) bool {
 	return strings.HasPrefix(strings.ToLower(name), "wan")
 }
 
@@ -57,14 +92,15 @@ func isLoopbackInterfaceName(name string) bool {
 	return lower == "lo" || strings.HasPrefix(lower, "lo0")
 }
 
-// InterfaceReachability classifies a single interface as WAN-reachable,
-// LAN-only, or local, based on its administrative state and name.
-func InterfaceReachability(iface common.Interface) Reachability {
+// InterfaceReachability classifies a single interface of device as
+// WAN-reachable, LAN-only, or local, based on its administrative state and
+// name.
+func InterfaceReachability(iface common.Interface, device *common.CommonDevice) Reachability {
 	if !iface.Enabled || isLoopbackInterfaceName(iface.Name) {
 		return Local
 	}
 
-	if IsWANInterfaceName(iface.Name) {
+	if isUplinkInterface(device, iface) {
 		return WANReachable
 	}
 
@@ -72,7 +108,7 @@ func InterfaceReachability(iface common.Interface) Reachability {
 }
 
 // RuleReachability classifies a firewall rule's reachability using its bound
-// interfaces and IP protocol.
+// interfaces and the interface groups of device.
 //
 // A rule counts as WAN-reachable when it applies to any WAN interface. This
 // includes:
@@ -82,12 +118,10 @@ func InterfaceReachability(iface common.Interface) Reachability {
 //   - Unscoped floating rules (Floating == true with an empty rule.Interfaces),
 //     which apply to every interface and are therefore WAN-reachable whenever
 //     any live WAN interface exists on the device.
-//   - IPv6-only WAN interfaces, matched the same way as any other WAN
-//     interface: the classification below is purely name-prefix based via
-//     IsWANInterfaceName and does not branch on rule.IPProtocol or inspect
-//     the interface's IPv6Address, so a wan-prefixed interface serving only
-//     IPv6 is matched by its name alone — a misconfigured/unassigned address
-//     must not mask a real exposure.
+//   - Rules on an interface group with a WAN member (IsWANInterface).
+//   - IPv6-only WAN interfaces: the classification does not branch on
+//     rule.IPProtocol, so a misconfigured or unassigned address must not mask
+//     a real exposure.
 //
 // Enabled-state handling is deliberately asymmetric between the two binding
 // styles. The unscoped-floating path resolves against the actual interface
@@ -95,12 +129,12 @@ func InterfaceReachability(iface common.Interface) Reachability {
 // a device-wide rule cannot reach a WAN that is administratively down, and
 // nothing in rule.Interfaces tells us which interfaces exist. The
 // interface-scoped path, by contrast, trusts the operator's explicit binding:
-// a rule bound by name to "wan" is classified as governing WAN traffic by
-// intent, independent of the interface's current admin state (a disabled
-// interface merely makes the rule inert, which is a separate concern from
-// where the rule is scoped). It also keeps classification working for rules
-// that reference an interface name not present in the passed-in ifaces slice.
-func RuleReachability(rule common.FirewallRule, ifaces []common.Interface) Reachability {
+// a rule bound to an uplink is classified as governing WAN traffic by intent,
+// independent of the interface's current admin state (a disabled interface
+// merely makes the rule inert, which is a separate concern from where the rule
+// is scoped). It also keeps classification working for rules that reference
+// an interface name not present in device.Interfaces.
+func RuleReachability(rule common.FirewallRule, device *common.CommonDevice) Reachability {
 	// An unscoped floating rule (no interface list) applies device-wide, so it
 	// is WAN-reachable whenever any live WAN interface exists. A floating rule
 	// WITH an explicit interface list is scoped to exactly those interfaces —
@@ -108,8 +142,8 @@ func RuleReachability(rule common.FirewallRule, ifaces []common.Interface) Reach
 	// below. Treating every floating rule as device-wide would false-positive a
 	// LAN-scoped floating rule (e.g. an anti-lockout rule) as WAN-reachable.
 	if rule.Floating && len(rule.Interfaces) == 0 {
-		if slices.ContainsFunc(ifaces, func(iface common.Interface) bool {
-			return InterfaceReachability(iface) == WANReachable
+		if device != nil && slices.ContainsFunc(device.Interfaces, func(iface common.Interface) bool {
+			return InterfaceReachability(iface, device) == WANReachable
 		}) {
 			return WANReachable
 		}
@@ -117,7 +151,9 @@ func RuleReachability(rule common.FirewallRule, ifaces []common.Interface) Reach
 		return LANOnly
 	}
 
-	if slices.ContainsFunc(rule.Interfaces, IsWANInterfaceName) {
+	if slices.ContainsFunc(rule.Interfaces, func(name string) bool {
+		return IsWANInterface(device, name)
+	}) {
 		return WANReachable
 	}
 
@@ -125,34 +161,36 @@ func RuleReachability(rule common.FirewallRule, ifaces []common.Interface) Reach
 }
 
 // InboundNATRuleReachability reports whether an inbound (port-forward) NAT
-// rule is WAN-reachable.
+// rule of device is WAN-reachable.
 //
 // A NAT rule is WAN-reachable only when it is enabled, applies to a WAN
-// interface, AND at least one enabled pass rule also applies to a WAN
-// interface. NAT presence alone — with no matching enabled pass rule — is
-// never WAN-reachable: OPNsense and pfSense both require an explicit pass
-// rule (or an auto-added "filter rule association") to actually allow the
-// forwarded traffic through the firewall; a port-forward with no
-// corresponding pass rule is inert.
-func InboundNATRuleReachability(
-	nat common.InboundNATRule,
-	ifaces []common.Interface,
-	passRules []common.FirewallRule,
-) Reachability {
+// interface or an interface group with a WAN member, AND at least one enabled
+// pass rule in device.FirewallRules also applies to one. NAT presence alone —
+// with no matching enabled pass rule — is never WAN-reachable: OPNsense and
+// pfSense both require an explicit pass rule (or an auto-added "filter rule
+// association") to actually allow the forwarded traffic through the firewall;
+// a port-forward with no corresponding pass rule is inert.
+func InboundNATRuleReachability(nat common.InboundNATRule, device *common.CommonDevice) Reachability {
 	if nat.Disabled {
 		return Local
 	}
 
-	if !slices.ContainsFunc(nat.Interfaces, IsWANInterfaceName) {
+	if !slices.ContainsFunc(nat.Interfaces, func(name string) bool {
+		return IsWANInterface(device, name)
+	}) {
 		return LANOnly
 	}
 
-	for _, rule := range passRules {
+	if device == nil {
+		return LANOnly
+	}
+
+	for _, rule := range device.FirewallRules {
 		if rule.Disabled || rule.Type != common.RuleTypePass {
 			continue
 		}
 
-		if RuleReachability(rule, ifaces) == WANReachable {
+		if RuleReachability(rule, device) == WANReachable {
 			return WANReachable
 		}
 	}

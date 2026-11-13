@@ -201,7 +201,7 @@ func populateSystemStats(stats *common.Statistics, cfg *common.CommonDevice) {
 }
 
 func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice) {
-	blockPrivate, blockBogons := wanBlockingFlags(cfg.Interfaces)
+	blockPrivate, blockBogons := wanBlockingFlags(cfg)
 	if blockPrivate {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
 	}
@@ -225,12 +225,12 @@ func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice
 // strings.
 //
 //nolint:gocritic // unnamedResult retained; project-wide nonamedreturns disables the typical fix.
-func wanBlockingFlags(ifaces []common.Interface) (bool, bool) {
+func wanBlockingFlags(cfg *common.CommonDevice) (bool, bool) {
 	blockPrivate := false
 	blockBogons := false
 
-	for _, iface := range ifaces {
-		if InterfaceReachability(iface) != WANReachable {
+	for _, iface := range cfg.Interfaces {
+		if InterfaceReachability(iface, cfg) != WANReachable {
 			continue
 		}
 

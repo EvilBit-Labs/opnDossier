@@ -180,7 +180,7 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 			continue
 		}
 
-		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable ||
+		if analysis.RuleReachability(rule, device) != analysis.WANReachable ||
 			forwardsToAnotherHost(rule, device) {
 			continue
 		}
@@ -502,7 +502,7 @@ func (r *Report) addWeakNATRules(blackhat bool) {
 	count := 0
 	for i, nat := range device.NAT.InboundRules {
 		if nat.NoRDR ||
-			analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
+			analysis.InboundNATRuleReachability(nat, device) != analysis.WANReachable {
 			continue
 		}
 
@@ -650,7 +650,7 @@ func (r *Report) addEnumerationData() {
 	if cfg := r.Configuration; cfg != nil {
 		data.Interfaces = len(cfg.Interfaces)
 		for _, iface := range cfg.Interfaces {
-			if analysis.InterfaceReachability(iface) == analysis.WANReachable {
+			if analysis.InterfaceReachability(iface, cfg) == analysis.WANReachable {
 				data.WANInterfaces++
 			}
 		}
