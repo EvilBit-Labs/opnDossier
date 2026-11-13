@@ -165,10 +165,10 @@ func TestConverter_Unbound_KnownModelVersions(t *testing.T) {
 
 	const lastCheckedPatch = 15
 
-	want := map[string]struct{}{"": {}}
+	want := make([]string, 0, lastCheckedPatch+1)
 	for patch := 0; patch <= lastCheckedPatch; patch++ {
 		version := fmt.Sprintf("1.0.%d", patch)
-		want[version] = struct{}{}
+		want = append(want, version)
 
 		_, warnings := parseUnboundXML(t, unboundPlus(version, `<enabled>1</enabled>`, ``))
 		assert.Nil(t, findWarning(warnings, unboundVersionWarningField, version), "version %s", version)

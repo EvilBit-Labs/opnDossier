@@ -17,26 +17,12 @@ import (
 // the same class of silent-drift risk documented for Kea DHCP (GOTCHAS 18.1).
 // Every version through 1.0.15 (26.7) keeps the elements convertDNS reads
 // under the same names: <general> from 1.0.5 and <advanced> from 1.0.3, the
-// migrations that created them.
-var knownUnboundPlusVersions = map[string]struct{}{
-	"":       {}, // empty/unset is accepted
-	"1.0.0":  {},
-	"1.0.1":  {},
-	"1.0.2":  {},
-	"1.0.3":  {},
-	"1.0.4":  {},
-	"1.0.5":  {},
-	"1.0.6":  {},
-	"1.0.7":  {},
-	"1.0.8":  {},
-	"1.0.9":  {},
-	"1.0.10": {},
-	"1.0.11": {},
-	"1.0.12": {},
-	"1.0.13": {},
-	"1.0.14": {},
-	"1.0.15": {},
-}
+// migrations that created them. An absent attribute is accepted too. One
+// literal keeps the version strings clear of goconst's count across the
+// other version sets, as for idsModelVersions.
+var knownUnboundPlusVersions = strings.Fields(
+	"1.0.0 1.0.1 1.0.2 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7 1.0.8 1.0.9 1.0.10 1.0.11 1.0.12 1.0.13 1.0.14 1.0.15",
+)
 
 // idsModelVersions lists every <IDS version="..."> IDS.xml has carried, up to
 // 1.1.2 (26.1), which replaced <ips> with <mode>. One literal keeps the
@@ -221,7 +207,7 @@ func (c *converter) buildDHCPAdvancedV6(d schema.DhcpdInterface) *common.DHCPAdv
 // (readUnboundServiceFlags).
 func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 	unboundPlus := doc.OPNsense.UnboundPlus
-	if _, ok := knownUnboundPlusVersions[unboundPlus.Version]; !ok {
+	if unboundPlus.Version != "" && !slices.Contains(knownUnboundPlusVersions, unboundPlus.Version) {
 		c.addWarning(
 			"DNS.Unbound.UnboundPlus.Version",
 			unboundPlus.Version,
