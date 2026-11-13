@@ -234,3 +234,52 @@ func TestConverter_SNMP_SecretsNeverExported(t *testing.T) {
 	}
 	assert.Contains(t, string(raw), `"username":"monitor"`)
 }
+
+// TestConverter_SNMP_ModelVersionPins checks every version each os-net-snmp
+// model has carried converts without a warning, and that an unknown version
+// warns whether or not the agent is enabled: a renamed <enabled> would read
+// as an agent that is off, so the check cannot wait for an enabled one.
+func TestConverter_SNMP_ModelVersionPins(t *testing.T) {
+	t.Parallel()
+
+	for _, version := range strings.Fields("1.0.0 1.0.1 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7") {
+		_, warnings := convertSNMPConfig(t, netsnmpBlock(version, "1", "public", "", ""))
+		assert.Empty(t, warnings, "general model %s", version)
+	}
+
+	for _, version := range []string{"1.0.0", "1.0.1"} {
+		body := strings.Replace(netsnmpBlock("1.0.7", "1", "public", "", ""),
+			`<user version="1.0.1">`, `<user version="`+version+`">`, 1)
+		_, warnings := convertSNMPConfig(t, body)
+		assert.Empty(t, warnings, "user model %s", version)
+	}
+
+	tests := []struct {
+		name      string
+		body      string
+		wantField string
+	}{
+		{
+			name:      "unknown general version with the agent off",
+			body:      netsnmpBlock("1.0.8", "0", "public", "", ""),
+			wantField: "SNMP.Netsnmp.General.Version",
+		},
+		{
+			name: "unknown user version",
+			body: strings.Replace(netsnmpBlock("1.0.7", "1", "public", "", ""),
+				`<user version="1.0.1">`, `<user version="1.0.2">`, 1),
+			wantField: "SNMP.Netsnmp.User.Version",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, warnings := convertSNMPConfig(t, tc.body)
+			require.Len(t, warnings, 1)
+			assert.Equal(t, tc.wantField, warnings[0].Field)
+			assert.Equal(t, common.SeverityMedium, warnings[0].Severity)
+		})
+	}
+}
