@@ -67,7 +67,9 @@ func TestFirewallPlugin_RunChecks(t *testing.T) {
 					Timezone:           "America/New_York",
 					TimeServers:        []string{"0.pool.ntp.org", "1.pool.ntp.org"},
 				},
-				Certificates: []common.Certificate{{RefID: "cert-123", Certificate: caIssuedCertificate(t)}},
+				Certificates: []common.Certificate{
+					{RefID: "cert-123", Certificate: caIssuedCertificate(t), PrivateKey: storedKey},
+				},
 				Groups: []common.Group{
 					{Name: "admins", Privileges: "page-system-config"},
 				},

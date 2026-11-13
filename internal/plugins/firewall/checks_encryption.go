@@ -30,15 +30,17 @@ const minimumNTPServers = 2
 // that is not self-signed. One issued by an internal CA passes. A reference
 // alone proves nothing: every OPNsense and pfSense box that has started its
 // GUI over https holds one, to the self-signed certificate the firewall
-// generated for itself. Certificate data that cannot be decoded, such as a
-// truncated or redacted value, leaves the control unknown.
+// generated for itself. A certificate with no private key cannot be served,
+// and pfSense replaces it with a self-signed one at start. Certificate data
+// that cannot be decoded, such as truncated or placeholder data, leaves the
+// control unknown.
 func (fp *Plugin) checkValidWebGUICertificate(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
 	cert, ok := webGUICertificate(device)
-	if !ok || strings.TrimSpace(cert.Certificate) == "" {
+	if !ok || strings.TrimSpace(cert.Certificate) == "" || strings.TrimSpace(cert.PrivateKey) == "" {
 		return checkResult{Result: false, Known: true}
 	}
 

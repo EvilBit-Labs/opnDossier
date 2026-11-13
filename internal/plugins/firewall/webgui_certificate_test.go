@@ -116,6 +116,62 @@ func webGUICertVerdict(t *testing.T, device *common.CommonDevice) certVerdict {
 	return certVerdict{evaluated: slices.Contains(evaluated, webGUICertControl), failed: failed}
 }
 
+// storedKey stands in for a certificate's private key. The check only asks
+// whether one is stored.
+const storedKey = "stored-key"
+
+// sha1CAIssuedCertificate returns certificate data for a leaf an internal CA
+// signed with SHA-1, which Go refuses to verify.
+func sha1CAIssuedCertificate(t *testing.T) string {
+	t.Helper()
+
+	caKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	ca := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "Internal Root CA"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		SignatureAlgorithm:    x509.SHA1WithRSA,
+	}
+
+	leafKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	leaf := &x509.Certificate{
+		SerialNumber:       big.NewInt(2),
+		Subject:            pkix.Name{CommonName: "fw.example.internal"},
+		NotBefore:          time.Now().Add(-time.Hour),
+		NotAfter:           time.Now().Add(24 * time.Hour),
+		SignatureAlgorithm: x509.SHA1WithRSA,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, leaf, ca, &leafKey.PublicKey, caKey)
+	require.NoError(t, err)
+
+	return storedCertificate(der)
+}
+
+// keyFirstBundle returns certificate data whose PEM text holds a private key
+// before the CA-issued certificate, as a pasted bundle can.
+func keyFirstBundle(t *testing.T, caIssued string) string {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	der, err := x509.MarshalECPrivateKey(key)
+	require.NoError(t, err)
+
+	bundle := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: der})
+	bundle = append(bundle, decoded(t, caIssued)...)
+
+	return base64.StdEncoding.EncodeToString(bundle)
+}
+
 // TestFirewallPlugin_ValidWebGUICertificate pins FIREWALL-036 on the shapes a
 // config can hold. A reference alone used to pass it, so the self-signed
 // certificate every firewall generates for its own GUI passed as valid.
@@ -137,12 +193,26 @@ func TestFirewallPlugin_ValidWebGUICertificate(t *testing.T) {
 		protocol  string
 		ref       string
 		data      string // certificate data stored under refid "web"
+		noKey     bool   // stores no private key with it
 		evaluated bool
 		failed    bool
 	}{
 		{name: "CA-issued", protocol: "https", ref: "web", data: caIssued, evaluated: true},
 		{name: "CA-issued, wrapped", protocol: "https", ref: "web", data: wrapped.String(), evaluated: true},
 		{name: "CA-issued, raw PEM", protocol: "https", ref: "web", data: decoded(t, caIssued), evaluated: true},
+		{
+			name: "CA-issued, key before certificate", protocol: "https", ref: "web",
+			data: keyFirstBundle(t, caIssued), evaluated: true,
+		},
+		// Issuer and subject differ, so the signature Go refuses does not matter.
+		{
+			name: "CA-issued, SHA-1 signature", protocol: "https", ref: "web",
+			data: sha1CAIssuedCertificate(t), evaluated: true,
+		},
+		{
+			name: "CA-issued, no private key", protocol: "https", ref: "web",
+			data: caIssued, noKey: true, evaluated: true, failed: true,
+		},
 		{name: "self-signed", protocol: "https", ref: "web", data: selfSigned, evaluated: true, failed: true},
 		{name: "self-signed CA", protocol: "https", ref: "web", data: selfSignedCA, evaluated: true, failed: true},
 		{name: "plain HTTP", protocol: "http", ref: "web", data: caIssued, evaluated: true, failed: true},
@@ -151,18 +221,23 @@ func TestFirewallPlugin_ValidWebGUICertificate(t *testing.T) {
 		{name: "dangling reference", protocol: "https", ref: "gone", data: caIssued, evaluated: true, failed: true},
 		{name: "no certificate data", protocol: "https", ref: "web", data: "", evaluated: true, failed: true},
 		{name: "truncated data", protocol: "https", ref: "web", data: "LS0tLS1CRUdJTi..."},
-		{name: "redacted data", protocol: "https", ref: "web", data: "[REDACTED]"},
+		{name: "placeholder data", protocol: "https", ref: "web", data: "-"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			key := storedKey
+			if tt.noKey {
+				key = ""
+			}
+
 			device := &common.CommonDevice{
 				System: common.System{WebGUI: common.WebGUI{Protocol: tt.protocol, SSLCertRef: tt.ref}},
 				Certificates: []common.Certificate{
-					{RefID: "other", Certificate: selfSigned},
-					{RefID: "web", Certificate: tt.data},
+					{RefID: "other", Certificate: selfSigned, PrivateKey: storedKey},
+					{RefID: "web", Certificate: tt.data, PrivateKey: key},
 				},
 			}
 
@@ -222,9 +297,12 @@ func decoded(t *testing.T, data string) string {
 	return string(pemText)
 }
 
-// TestFirewallPlugin_ValidWebGUICertificate_SHA1SelfSigned pins a self-signed
-// SHA-1 certificate, the kind older boxes still carry for their web GUI.
-func TestFirewallPlugin_ValidWebGUICertificate_SHA1SelfSigned(t *testing.T) {
+// TestFirewallPlugin_ValidWebGUICertificate_UnverifiableSelfSigned pins
+// self-signed certificates whose signature Go cannot or will not verify. The
+// OPNsense Trust model still offers RSA-512 keys, and older boxes carry SHA-1
+// and MD5 certificates. Reading a refused signature as "signed by another key"
+// would pass the control on them.
+func TestFirewallPlugin_ValidWebGUICertificate_UnverifiableSelfSigned(t *testing.T) {
 	t.Parallel()
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -238,20 +316,34 @@ func TestFirewallPlugin_ValidWebGUICertificate_SHA1SelfSigned(t *testing.T) {
 		SignatureAlgorithm: x509.SHA1WithRSA,
 	}
 
-	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	sha1, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
 	require.NoError(t, err)
 
-	device := &common.CommonDevice{
-		System:       common.System{WebGUI: common.WebGUI{Protocol: "https", SSLCertRef: "web"}},
-		Certificates: []common.Certificate{{RefID: "web", Certificate: storedCertificate(der)}},
-	}
+	for name, data := range map[string]string{
+		"SHA-1":   storedCertificate(sha1),
+		"MD5":     md5SelfSignedCertificate,
+		"RSA-512": rsa512SelfSignedCertificate,
+		"DSA":     dsaSelfSignedCertificate,
+		"Ed448":   ed448SelfSignedCertificate,
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	assert.Equal(t, certVerdict{evaluated: true, failed: true}, webGUICertVerdict(t, device))
+			device := &common.CommonDevice{
+				System:       common.System{WebGUI: common.WebGUI{Protocol: "https", SSLCertRef: "web"}},
+				Certificates: []common.Certificate{{RefID: "web", Certificate: data, PrivateKey: storedKey}},
+			}
+
+			assert.Equal(t, certVerdict{evaluated: true, failed: true}, webGUICertVerdict(t, device))
+		})
+	}
 }
 
-// md5SelfSignedCertificate is stored certificate data for a self-signed
-// certificate signed with MD5 (openssl req -x509 -md5), which Go refuses to
-// verify. It holds no key.
+// The constants below are stored certificate data for self-signed
+// certificates Go cannot create, made with openssl req -x509. They hold no
+// key.
+
+// md5SelfSignedCertificate is signed with MD5.
 const md5SelfSignedCertificate = "" +
 	"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlDSERDQ0FZV2dBd0lCQWdJ" +
 	"VUFqdmR1bEJ3TXJnNkpRRWl2YTFrL1pGWFVxTXdEUVlKS29aSWh2Y05BUUVFDQpC" +
@@ -271,16 +363,62 @@ const md5SelfSignedCertificate = "" +
 	"ZmFra0VRbzR2bS9JTEtGc1UwQ09EUHZzNE1OY0VneHYxDQpOZUVXRENSdzJkbUpG" +
 	"UklTNkQ3d0h3PT0NCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0NCg=="
 
-// TestFirewallPlugin_ValidWebGUICertificate_MD5SelfSigned pins a self-signed
-// certificate whose signature Go refuses to verify. Reading the refusal as
-// "signed by another key" would pass the control on it.
-func TestFirewallPlugin_ValidWebGUICertificate_MD5SelfSigned(t *testing.T) {
-	t.Parallel()
+// rsa512SelfSignedCertificate has a 512-bit RSA key, a size the OPNsense
+// Trust model offers and Go refuses to verify.
+const rsa512SelfSignedCertificate = "" +
+	"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlCbHpDQ0FVR2dBd0lCQWdJ" +
+	"VUd4dm9MaVZya3IvTkNqaE0zMHZnV1lSUkRZZ3dEUVlKS29aSWh2Y05BUUVMDQpC" +
+	"UUF3SHpFZE1Cc0dBMVVFQXd3VVQxQk9jMlZ1YzJVdWJHOWpZV3hrYjIxaGFXNHdJ" +
+	"QmNOTWpZeE1URXpNVGsxDQpNVFF4V2hnUE1qRXlOakV3TWpBeE9UVXhOREZhTUI4" +
+	"eEhUQWJCZ05WQkFNTUZFOVFUbk5sYm5ObExteHZZMkZzDQpaRzl0WVdsdU1Gd3dE" +
+	"UVlKS29aSWh2Y05BUUVCQlFBRFN3QXdTQUpCQUs5RThZRDFSRHNlRFprcm1sOXRL" +
+	"aWNGDQpNY1FLbHl5blcyUnhmeFN5VUJ1NHRqa2pIRGxzUzZockNXZm83K0t2RVo2" +
+	"bjl1WFcwZVd4YzN4YW00cTNBdE1DDQpBd0VBQWFOVE1GRXdIUVlEVlIwT0JCWUVG" +
+	"S0lPTXZJTFZsRjhkZUV1eXZGOTFjQUJ4c2MyTUI4R0ExVWRJd1FZDQpNQmFBRktJ" +
+	"T012SUxWbEY4ZGVFdXl2RjkxY0FCeHNjMk1BOEdBMVVkRXdFQi93UUZNQU1CQWY4" +
+	"d0RRWUpLb1pJDQpodmNOQVFFTEJRQURRUUJOQ2VLNUdKZ0x2K211M2kyTVIrYm5X" +
+	"dFEvalZBL3c0blZmRUVreWdqdmV0V05yaEkyDQpXVHYwZ2laa1BZSEdVa1VDa2lX" +
+	"emd5SmJTMGVEOHNodUVpblkNCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0NCg=="
 
-	device := &common.CommonDevice{
-		System:       common.System{WebGUI: common.WebGUI{Protocol: "https", SSLCertRef: "web"}},
-		Certificates: []common.Certificate{{RefID: "web", Certificate: md5SelfSignedCertificate}},
-	}
+// dsaSelfSignedCertificate has a DSA key.
+const dsaSelfSignedCertificate = "" +
+	"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlDOVRDQ0FxT2dBd0lCQWdJ" +
+	"VWNNbXRmbE5BaS9HZDZ3ZjBnemZDT2ZmZFcxWXdDd1lKWUlaSUFXVURCQU1DDQpN" +
+	"Qjh4SFRBYkJnTlZCQU1NRkU5UVRuTmxibk5sTG14dlkyRnNaRzl0WVdsdU1DQVhE" +
+	"VEkyTVRFeE16RTVOVEUwDQpNVm9ZRHpJeE1qWXhNREl3TVRrMU1UUXhXakFmTVIw" +
+	"d0d3WURWUVFEREJSUFVFNXpaVzV6WlM1c2IyTmhiR1J2DQpiV0ZwYmpDQ0FiNHdn" +
+	"Z0V6QmdjcWhrak9PQVFCTUlJQkpnS0JnUURBcjZWZ0lJU1ZGeVF3K1VXMlljcFk3" +
+	"NlUzDQp2L0dMZmxQTjhreHQ4aUR2eS8xK3l1ajcwemtRTXVrbTY4Tlg0eU51blVO" +
+	"ZmFhL0RIaG9jQndLbzlEeTRMazRQDQoyejJhTklQTUEyZnRMQkxhM3BsR0xvYk9y" +
+	"Q0F3Q3FXVlkyTGRZbmlQSFNrb3dpUXlXTzFjcmtCdEFBOEdIODVhDQpIUDRvVmZN" +
+	"N2RIdDFwYTlwY1FJZEFJWEEyOG4xMXQ0ZmdMRERaZXRSNzFIcWdabVFzVlZXN1or" +
+	"NE5yOENnWUJNDQpyMTNocFZXdGhxdlhXR0lCMnFFUSt0bExmNjFYaGVGNXF5SVlt" +
+	"TytUZFRoV0JYZFo0VEp0UU41ZHVlU1dNMllwDQpudmtvaDUyVUxVOC9iRlJmRm5U" +
+	"d3l2V0R4eXRkT0gwTmlUYUxWTng4dWZyVXlXR3FLemlzOE80N3Nvd1dIT1RqDQo3" +
+	"NXZ1d24wY25la3JVTmNKQW9JZlZ4QjBTNG1tUTkydk5zUzVqUXNKaEFPQmhBQUNn" +
+	"WUF1Y2l2S1J4ejNhWFYrDQpod3lGN3k1aUpYY2Z5ejRTUnJjNGhEWWdFTjF4YUVP" +
+	"REs1SHkwRzI4aDZ2UXNibVEzeEhKQVByN1FpT3ZwOG02DQp5MmVkNWhOTXpHZFE4" +
+	"Rk1TeVo5N1NaMmV1c3loZkFxT3hHdG9jU2N1SWVDNldUWG5rNXlOc0wySEhBL3Mx" +
+	"RWRrDQpZSXlMT3VrMGRNdy81azdycnNhcW81a3lmS2NZNTZOVE1GRXdIUVlEVlIw" +
+	"T0JCWUVGSnV4UTlGSERJZ0NScXM2DQpIdlFsZjd1VmZuL1JNQjhHQTFVZEl3UVlN" +
+	"QmFBRkp1eFE5RkhESWdDUnFzNkh2UWxmN3VWZm4vUk1BOEdBMVVkDQpFd0VCL3dR" +
+	"Rk1BTUJBZjh3Q3dZSllJWklBV1VEQkFNQ0F6OEFNRHdDSENBRlNxUDdaYmRJU3Nx" +
+	"RXBsZDNPM0gzDQpZbGVVTGFQZDRFakhsSDhDSEVQbFlCaXJ1eFRQSVYyY28xZnpD" +
+	"ZHo3QjhSRjhNOFRJVnFtcno4PQ0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ0K"
 
-	assert.Equal(t, certVerdict{evaluated: true, failed: true}, webGUICertVerdict(t, device))
-}
+// ed448SelfSignedCertificate has an Ed448 key.
+const ed448SelfSignedCertificate = "" +
+	"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlCb0RDQ0FTQ2dBd0lCQWdJ" +
+	"VUs1VkVGY1VTcEdXd1dKUUZxamUxMFZYMTVEb3dCUVlESzJWeE1COHhIVEFiDQpC" +
+	"Z05WQkFNTUZFOVFUbk5sYm5ObExteHZZMkZzWkc5dFlXbHVNQ0FYRFRJMk1URXhN" +
+	"ekU1TlRFME1Wb1lEekl4DQpNall4TURJd01UazFNVFF4V2pBZk1SMHdHd1lEVlFR" +
+	"RERCUlBVRTV6Wlc1elpTNXNiMk5oYkdSdmJXRnBiakJEDQpNQVVHQXl0bGNRTTZB" +
+	"RUR3Mk5WZkxaV0ZQcEVKMTZ5OERPdkxYRFI5Y2pZRnRxSGdXeDRTQzVNUmF6T3pY" +
+	"eUxnDQpVR0NXaVlDWXZRNDBQWWpWeGVUYno3cVlBS05UTUZFd0hRWURWUjBPQkJZ" +
+	"RUZQZzVtb3VQelhsdlZIQWRrMUFUDQpYTWxXRmo1ck1COEdBMVVkSXdRWU1CYUFG" +
+	"UGc1bW91UHpYbHZWSEFkazFBVFhNbFdGajVyTUE4R0ExVWRFd0VCDQovd1FGTUFN" +
+	"QkFmOHdCUVlESzJWeEEzTUFJNXZIZzZNZXVzNmYwcitFRDl2OFNQUXVqWTkvMVJl" +
+	"THFFSE9rcFUxDQpLZm5vQkRvMFNtbmkxQXRDQ0Z2ZUdXb2NGeldtUVF6SFFqbUF4" +
+	"ZGEwV2xLY1JZQno4NXhKUzk3S3VzdzRqY044DQpHd0lPZkRxQVM2dFdPNzVTL2hB" +
+	"ZXdqenRqMnA3SWhWTGZaSVZrVmVoR3pTRWFnWUENCi0tLS0tRU5EIENFUlRJRklD" +
+	"QVRFLS0tLS0NCg=="

@@ -20,7 +20,8 @@ import (
 // reference that is empty or names no certificate in the store is replaced
 // when the GUI starts by a freshly generated self-signed certificate, so it
 // never stands for a CA-issued one. pfSense does the same for a certificate
-// with no certificate data, which the caller checks.
+// with no certificate data or no private key, which the caller checks; with
+// either missing, OPNsense has nothing it can serve either.
 func webGUICertificate(device *common.CommonDevice) (common.Certificate, bool) {
 	gui := device.System.WebGUI
 	if gui.Protocol != constants.ProtocolHTTPS || gui.SSLCertRef == "" {
@@ -37,7 +38,7 @@ func webGUICertificate(device *common.CommonDevice) (common.Certificate, bool) {
 }
 
 // errNoCertificatePEM reports certificate data that holds no PEM certificate
-// block, such as a truncated or redacted value.
+// block, such as truncated or placeholder data.
 var errNoCertificatePEM = errors.New("no PEM certificate block")
 
 // parseStoredCertificate decodes certificate data as both firewalls store it:
@@ -65,23 +66,13 @@ func parseStoredCertificate(data string) (*x509.Certificate, error) {
 	}
 }
 
-// isSelfSigned reports whether cert names itself as its issuer and is signed
-// by its own key. A certificate an internal CA issued has the CA as issuer,
-// so it is not self-signed. A self-issued certificate whose signature uses an
-// algorithm Go refuses to verify, such as MD5, counts as self-signed: the key
-// cannot be checked, and reading it the other way would pass the control on
-// an old self-signed certificate.
+// isSelfSigned reports whether cert names itself as its issuer, the rule
+// OPNsense applies when it imports a certificate (cert_import in certs.inc
+// links a CA only when issuer and subject differ). A certificate an internal
+// CA issued has the CA as issuer, so it is not self-signed. The signature is
+// not checked: Go refuses to verify many keys and algorithms the Trust pages
+// still create, such as RSA-512, DSA, Ed448 and MD5, and a refusal must not
+// read as "signed by another key".
 func isSelfSigned(cert *x509.Certificate) bool {
-	if !bytes.Equal(cert.RawIssuer, cert.RawSubject) {
-		return false
-	}
-
-	err := cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature)
-	if err == nil {
-		return true
-	}
-
-	var insecure x509.InsecureAlgorithmError
-
-	return errors.As(err, &insecure)
+	return bytes.Equal(cert.RawIssuer, cert.RawSubject)
 }
