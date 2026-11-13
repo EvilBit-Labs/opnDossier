@@ -72,9 +72,9 @@ const threeRanges = `<dnsmasq version="1.0.9">
     </dhcp_ranges>
   </dnsmasq>`
 
-// parseDnsmasqConfig runs a config holding the given <dnsmasq> element
-// through parse and convert.
-func parseDnsmasqConfig(t *testing.T, dnsmasq string) (*common.CommonDevice, []common.ConversionWarning) {
+// parseDnsmasqConfig runs a config holding the given <dnsmasq> element, and
+// whatever else extra holds, through parse and convert.
+func parseDnsmasqConfig(t *testing.T, dnsmasq, extra string) (*common.CommonDevice, []common.ConversionWarning) {
 	t.Helper()
 
 	config := `<?xml version="1.0"?>
@@ -82,6 +82,7 @@ func parseDnsmasqConfig(t *testing.T, dnsmasq string) (*common.CommonDevice, []c
   <system><hostname>fw</hostname><domain>example.com</domain></system>
   ` + dnsmasqInterfaces + `
   ` + dnsmasq + `
+  ` + extra + `
 </opnsense>`
 
 	factory := parser.NewFactory(cfgparser.NewXMLParser())
@@ -118,7 +119,7 @@ func hasReference(findings []compliance.Finding, control string) bool {
 func TestConverter_Dnsmasq_FactoryDefaultServesLANDHCP(t *testing.T) {
 	t.Parallel()
 
-	device, warnings := parseDnsmasqConfig(t, dnsmasqFactoryDefault)
+	device, warnings := parseDnsmasqConfig(t, dnsmasqFactoryDefault, "")
 	assert.Empty(t, dnsmasqWarnings(warnings))
 
 	require.Len(t, device.DHCP, 1)
@@ -131,6 +132,8 @@ func TestConverter_Dnsmasq_FactoryDefaultServesLANDHCP(t *testing.T) {
 	assert.Equal(t, common.DHCPRange{From: "::1000", To: "::2000"}, *scope.RangeV6)
 
 	assert.True(t, device.DNS.DNSMasq.Enabled)
+	assert.Equal(t, "53053", device.DNS.DNSMasq.Port)
+	assert.False(t, device.DNS.DNSMasq.DNSSEC)
 
 	findings, _, err := firewall.NewPlugin().RunChecks(device)
 	require.NoError(t, err)
@@ -148,7 +151,7 @@ func TestConverter_Dnsmasq_FactoryDefaultServesLANDHCP(t *testing.T) {
 func TestConverter_Dnsmasq_ScopesReachTheChecks(t *testing.T) {
 	t.Parallel()
 
-	device, warnings := parseDnsmasqConfig(t, threeRanges)
+	device, warnings := parseDnsmasqConfig(t, threeRanges, "")
 	assert.Empty(t, dnsmasqWarnings(warnings))
 
 	require.Len(t, device.DHCP, 3)
@@ -162,7 +165,7 @@ func TestConverter_Dnsmasq_ScopesReachTheChecks(t *testing.T) {
 
 	// The factory default's one scope stays under the limit, so the finding
 	// above comes from the ranges and not from something else in the config.
-	oneScope, _ := parseDnsmasqConfig(t, dnsmasqFactoryDefault)
+	oneScope, _ := parseDnsmasqConfig(t, dnsmasqFactoryDefault, "")
 	stigFindings, _, err = stig.NewPlugin().RunChecks(oneScope)
 	require.NoError(t, err)
 	assert.False(t, hasReference(stigFindings, "V-206690"))
@@ -209,7 +212,7 @@ func TestConverter_Dnsmasq_ScopeEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			device, _ := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9">`+tt.settings+ranges+`</dnsmasq>`)
+			device, _ := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9">`+tt.settings+ranges+`</dnsmasq>`, "")
 			require.Len(t, device.DHCP, 2)
 			assert.Equal(t, tt.wantLAN, device.DHCP[0].Enabled, "lan")
 			assert.Equal(t, tt.wantOpt1, device.DHCP[1].Enabled, "opt1")
@@ -226,7 +229,7 @@ func TestConverter_Dnsmasq_RangeWithoutInterface(t *testing.T) {
     <dhcp_ranges><start_addr>192.168.1.100</start_addr><end_addr>192.168.1.149</end_addr></dhcp_ranges>
     <dhcp_ranges><start_addr>192.168.1.150</start_addr><end_addr>192.168.1.199</end_addr></dhcp_ranges>
     <dhcp_ranges><interface>lan</interface><start_addr></start_addr></dhcp_ranges>
-  </dnsmasq>`)
+  </dnsmasq>`, "")
 
 	require.Len(t, device.DHCP, 1)
 	assert.Empty(t, device.DHCP[0].Interface)
@@ -255,7 +258,7 @@ func TestConverter_Dnsmasq_DHCPOptions(t *testing.T) {
     <dhcp_options><type>set</type><option>66</option><interface>opt2</interface><value>tftp.example.com</value></dhcp_options>
     <dhcp_options uuid="00000000-0000-4000-8000-0000000000aa"><type>set</type><option>6</option><tag>11111111-1111-4111-8111-111111111111</tag><value>1.1.1.1</value></dhcp_options>
     <dhcp_options uuid="00000000-0000-4000-8000-0000000000bb"><type>set</type><option6>23</option6><value>[2001:db8::53]</value></dhcp_options>
-  </dnsmasq>`)
+  </dnsmasq>`, "")
 
 	require.Len(t, device.DHCP, 2)
 	lan, opt2 := device.DHCP[0], device.DHCP[1]
@@ -303,7 +306,7 @@ func TestConverter_Dnsmasq_Reservations(t *testing.T) {
     </hosts>
     <dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr><end_addr>192.168.1.199</end_addr></dhcp_ranges>
     <dhcp_ranges><interface>opt1</interface><start_addr>10.0.1.100</start_addr><end_addr>10.0.1.199</end_addr></dhcp_ranges>
-  </dnsmasq>`)
+  </dnsmasq>`, "")
 
 	require.Len(t, device.DHCP, 2)
 	assert.Equal(t, []common.DHCPStaticLease{
@@ -329,7 +332,7 @@ func TestConverter_Dnsmasq_ReservationFallsBackToOnlyScope(t *testing.T) {
 	t.Parallel()
 
 	device, warnings := parseDnsmasqConfig(t, dnsmasqFactoryDefault[:len(dnsmasqFactoryDefault)-len("</dnsmasq>")]+
-		`<hosts><host>laptop</host><hwaddr>aa:bb:cc:dd:ee:05</hwaddr></hosts></dnsmasq>`)
+		`<hosts><host>laptop</host><hwaddr>aa:bb:cc:dd:ee:05</hwaddr></hosts></dnsmasq>`, "")
 
 	assert.Empty(t, dnsmasqWarnings(warnings))
 	require.Len(t, device.DHCP, 1)
@@ -372,7 +375,7 @@ func TestConverter_Dnsmasq_HostOverrides(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			device, warnings := parseDnsmasqConfig(t, tt.dnsmasq)
+			device, warnings := parseDnsmasqConfig(t, tt.dnsmasq, "")
 			assert.Empty(t, dnsmasqWarnings(warnings))
 			assert.Equal(t, []common.DNSMasqHost{
 				{Host: "printer", Domain: "internal", IP: "192.168.1.50"},
@@ -394,7 +397,7 @@ func TestConverter_Dnsmasq_DomainOverrides(t *testing.T) {
 	device, _ := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
     <domainoverrides uuid="00000000-0000-4000-8000-000000000301"><sequence>1</sequence><domain>lab.example</domain><ipset/><srcip/><port/><ip>10.0.0.53</ip><descr>Lab</descr></domainoverrides>
     <domainoverrides uuid="00000000-0000-4000-8000-000000000302"><sequence>2</sequence><domain>corp.example</domain><ipset/><srcip>192.168.1.1</srcip><port>5353</port><ip>10.9.0.53</ip><descr>Corp DNS</descr></domainoverrides>
-  </dnsmasq>`)
+  </dnsmasq>`, "")
 
 	assert.Equal(t, []common.DomainOverride{
 		{Domain: "lab.example", IP: "10.0.0.53", Description: "Lab"},
@@ -404,12 +407,80 @@ func TestConverter_Dnsmasq_DomainOverrides(t *testing.T) {
 	legacy, _ := parseDnsmasqConfig(t, `<dnsmasq><enable>1</enable>
     <domainoverrides><domain>lab.example</domain><ip>10.0.0.53</ip><descr>Lab</descr></domainoverrides>
     <domainoverrides><domain>corp.example</domain><ip>10.9.0.53#5353@192.168.1.1</ip><descr>Corp DNS</descr></domainoverrides>
-  </dnsmasq>`)
+  </dnsmasq>`, "")
 
 	assert.Equal(t, []common.DomainOverride{
 		{Domain: "lab.example", IP: "10.0.0.53", Description: "Lab"},
 		{Domain: "corp.example", IP: "10.9.0.53#5353@192.168.1.1", Description: "Corp DNS"},
 	}, legacy.DNS.DNSMasq.DomainOverrides)
+}
+
+// TestConverter_Dnsmasq_DNSSEC reads <dnssec> the way each generation does:
+// the model compares the value with "1", the legacy page tested presence.
+func TestConverter_Dnsmasq_DNSSEC(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		dnsmasq string
+		want    bool
+	}{
+		{name: "model off", dnsmasq: `<dnsmasq version="1.0.9"><dnssec>0</dnssec></dnsmasq>`, want: false},
+		{name: "model on", dnsmasq: `<dnsmasq version="1.0.9"><dnssec>1</dnssec></dnsmasq>`, want: true},
+		{name: "model empty", dnsmasq: `<dnsmasq version="1.0.9"><dnssec/></dnsmasq>`, want: false},
+		{name: "model absent", dnsmasq: `<dnsmasq version="1.0.9"><enable>1</enable></dnsmasq>`, want: false},
+		{name: "legacy on", dnsmasq: `<dnsmasq><dnssec>1</dnssec></dnsmasq>`, want: true},
+		{name: "legacy empty element", dnsmasq: `<dnsmasq><dnssec/></dnsmasq>`, want: true},
+		{name: "legacy absent", dnsmasq: `<dnsmasq><enable>1</enable></dnsmasq>`, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, _ := parseDnsmasqConfig(t, tt.dnsmasq, "")
+			assert.Equal(t, tt.want, device.DNS.DNSMasq.DNSSEC)
+		})
+	}
+}
+
+// TestConverter_Dnsmasq_FIREWALL058 decides FIREWALL-058 on a box whose
+// resolver is dnsmasq. It failed whenever Unbound was off.
+func TestConverter_Dnsmasq_FIREWALL058(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		settings string
+		extra    string
+		wantPass bool
+	}{
+		{name: "dnsmasq on the default port with DNSSEC", settings: `<dnssec>1</dnssec>`, wantPass: true},
+		{name: "dnsmasq on port 53 with DNSSEC", settings: `<port>53</port><dnssec>1</dnssec>`, wantPass: true},
+		{name: "dnsmasq without DNSSEC", settings: `<dnssec>0</dnssec>`, wantPass: false},
+		{name: "dnsmasq on another port", settings: `<port>53053</port><dnssec>1</dnssec>`, wantPass: false},
+		{name: "dnsmasq DNS turned off", settings: `<port>0</port><dnssec>1</dnssec>`, wantPass: false},
+		{
+			name:     "Unbound decides when it is enabled",
+			settings: `<dnssec>1</dnssec>`,
+			extra:    `<unbound><enable>1</enable></unbound>`,
+			wantPass: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, _ := parseDnsmasqConfig(t,
+				`<dnsmasq version="1.0.9"><enable>1</enable>`+tt.settings+`</dnsmasq>`, tt.extra)
+			findings, evaluated, err := firewall.NewPlugin().RunChecks(device)
+			require.NoError(t, err)
+
+			assert.Contains(t, evaluated, "FIREWALL-058")
+			assert.Equal(t, !tt.wantPass, hasReference(findings, "FIREWALL-058"))
+		})
+	}
 }
 
 // TestConverter_Dnsmasq_ModelVersionPinned warns on a model version the
@@ -418,12 +489,12 @@ func TestConverter_Dnsmasq_ModelVersionPinned(t *testing.T) {
 	t.Parallel()
 
 	for _, version := range []string{"1.0.0", "1.0.5", "1.0.6", "1.0.7", "1.0.8", "1.0.9"} {
-		device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="`+version+`"><enable>1</enable></dnsmasq>`)
+		device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="`+version+`"><enable>1</enable></dnsmasq>`, "")
 		require.NotNil(t, device)
 		assert.Empty(t, dnsmasqWarnings(warnings), version)
 	}
 
-	_, warnings := parseDnsmasqConfig(t, `<dnsmasq version="2.0.0"><enable>1</enable></dnsmasq>`)
+	_, warnings := parseDnsmasqConfig(t, `<dnsmasq version="2.0.0"><enable>1</enable></dnsmasq>`, "")
 	got := dnsmasqWarnings(warnings)
 	require.Len(t, got, 1)
 	assert.Equal(t, "DNS.DNSMasq.Version", got[0].Field)

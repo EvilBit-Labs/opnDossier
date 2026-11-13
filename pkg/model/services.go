@@ -352,6 +352,13 @@ type DNSMasqConfig struct {
 	// Enabled indicates whether the dnsmasq forwarder is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
+	// DNSSEC indicates whether dnsmasq validates DNSSEC.
+	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
+
+	// Port is the DNS listen port as configured. Empty means the default of
+	// 53, and "0" means dnsmasq answers no DNS queries.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+
 	// Hosts contains static DNS host entries.
 	Hosts []DNSMasqHost `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 	// DomainOverrides contains DNS domain override entries.

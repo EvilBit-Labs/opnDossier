@@ -47,6 +47,9 @@ func TestDNSMasq_DecodesModelShape(t *testing.T) {
 	require.NoError(t, xml.Unmarshal([]byte(dnsmasqModelElement), &dm))
 
 	assert.Equal(t, "1.0.9", dm.Version)
+	require.NotNil(t, dm.Dnssec)
+	assert.Equal(t, "1", *dm.Dnssec)
+	assert.Equal(t, "53", dm.Port)
 	assert.Equal(t, "lan,opt1", dm.Interface)
 	require.NotNil(t, dm.DHCP)
 	assert.Equal(t, "opt2", dm.DHCP.NoInterface)

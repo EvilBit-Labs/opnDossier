@@ -58,10 +58,28 @@ func (c *converter) convertDNSMasq(doc *schema.OpnSenseDocument) common.DNSMasqC
 
 	return common.DNSMasqConfig{
 		Enabled:         bool(dm.Enable),
+		DNSSEC:          dnsmasqDNSSEC(dm),
+		Port:            strings.TrimSpace(dm.Port),
 		Hosts:           convertDnsmasqHosts(dm.Hosts),
 		DomainOverrides: convertDnsmasqDomainOverrides(dm.DomainOverrides),
 		Forwarders:      c.convertForwarders(dm.Forwarders),
 	}
+}
+
+// dnsmasqDNSSEC reports whether dnsmasq validates DNSSEC. The model's
+// template writes `dnssec` only when the value is exactly "1". The legacy
+// page, used up to 25.1.1, tested the element with isset(), so any
+// <dnssec> element turned validation on there; a config without a model
+// version attribute was written by that page.
+func dnsmasqDNSSEC(dm schema.DNSMasq) bool {
+	if dm.Dnssec == nil {
+		return false
+	}
+	if dm.Version == "" {
+		return true
+	}
+
+	return *dm.Dnssec == "1"
 }
 
 // convertDnsmasqHosts maps the <hosts> entries to DNS host overrides. Every

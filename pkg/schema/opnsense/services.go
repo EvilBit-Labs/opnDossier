@@ -90,6 +90,15 @@ type DNSMasq struct {
 	// Version is the Dnsmasq model version. It is empty on a legacy config.
 	Version string `xml:"version,attr,omitempty"`
 
+	// Dnssec is a pointer because the two generations read it differently:
+	// the legacy page tested the element with isset(), the model's template
+	// compares the value with "1" (GOTCHAS 3.2).
+	Dnssec *string `xml:"dnssec,omitempty"`
+
+	// Port is the DNS listen port as written. Empty means 53, and 0 turns
+	// the DNS function off.
+	Port string `xml:"port,omitempty"`
+
 	// Interface is the comma-separated list of interfaces dnsmasq listens on.
 	// Empty means every interface.
 	Interface string `xml:"interface,omitempty"`

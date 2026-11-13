@@ -350,11 +350,13 @@ DHCP scopes are a flat array with one entry per interface.
 
 The DHCP ranges dnsmasq serves are reported as `dhcp[]` scopes with `source` set to `dnsmasq`.
 
-| Field             | Type               | JSON Key                      | Description              |
-| ----------------- | ------------------ | ----------------------------- | ------------------------ |
-| `Enabled`         | `bool`             | `dns.dnsMasq.enabled`         | dnsmasq forwarder active |
-| `Hosts`           | `[]DNSMasqHost`    | `dns.dnsMasq.hosts`           | Host overrides           |
-| `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Per-domain DNS servers   |
+| Field             | Type               | JSON Key                      | Description                       |
+| ----------------- | ------------------ | ----------------------------- | --------------------------------- |
+| `Enabled`         | `bool`             | `dns.dnsMasq.enabled`         | dnsmasq forwarder active          |
+| `DNSSEC`          | `bool`             | `dns.dnsMasq.dnssec`          | DNSSEC validation enabled         |
+| `Port`            | `string`           | `dns.dnsMasq.port`            | DNS port; empty is 53, `0` is off |
+| `Hosts`           | `[]DNSMasqHost`    | `dns.dnsMasq.hosts`           | Host overrides                    |
+| `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Per-domain DNS servers            |
 
 ---
 
