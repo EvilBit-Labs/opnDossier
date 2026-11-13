@@ -63,7 +63,7 @@ The report metadata also lists the administration portals with their reachabilit
 
 Exploit notes describe impact and context only, never attack steps. `--audit-blackhat` sharpens their tone and is accepted only with `--mode red`.
 
-A service is reported as WAN-exposed when a pass rule on a WAN interface admits it. A port forward needs only to be on a WAN interface while any enabled pass rule on a WAN interface exists; that rule need not admit the forwarded traffic, so the report errs toward listing a forward rather than missing one. A WAN interface includes a second uplink on an `optN` key, and a rule or forward on an interface group counts when a member is a WAN interface; see [How WAN Interfaces Are Identified](../../firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
+A service is reported as WAN-exposed when it is enabled and a WAN pass rule permits its port. A port forward needs only to be on a WAN interface while any enabled pass rule on a WAN interface exists; that rule need not admit the forwarded traffic, so the report errs toward listing a forward rather than missing one. A WAN interface includes a second uplink on an `optN` key, and a rule or forward on an interface group counts when a member is a WAN interface; see [How WAN Interfaces Are Identified](../../firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
 
 ## Compliance Plugins
 
