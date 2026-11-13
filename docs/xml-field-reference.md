@@ -218,7 +218,7 @@ Valid NAT reflection modes: `enable`, `disable`, `purenat`
 
 ## Remote Logging and Retention
 
-From 20.1, OPNsense forwards logs only to the destinations of the Syslog model. A destination forwards when `<enabled>` is `1` and `<transport>` is one of `udp4`, `tcp4`, `udp6`, `tcp6`, `tls4` or `tls6`; `<program>`, `<level>` and `<facility>` are comma-separated filters that must all match, and an empty one matches every message. Remote servers left under the legacy `<syslog>` block (`<enable>`, `<remoteserver>`) are not read when the model is present, and opnDossier warns about them.
+From 20.1, OPNsense forwards logs only to the destinations of the Syslog model. A destination forwards when `<enabled>` is `1` and `<transport>` is one of `udp4`, `tcp4`, `udp6` or `tcp6`, or from 21.7 `tls4` or `tls6`; `<program>`, `<level>` and `<facility>` are comma-separated filters that must all match, and an empty one matches every message. Remote servers left under the legacy `<syslog>` block (`<enable>`, `<remoteserver>`) are not read when the model is present, and opnDossier warns about them.
 
 ```xml
 <OPNsense>
@@ -245,7 +245,7 @@ From 20.1, OPNsense forwards logs only to the destinations of the Syslog model. 
 </OPNsense>
 ```
 
-Local retention is read from where each release keeps it: `<syslog><logfilesize>` (bytes, default 511488) for the circular logs up to 21.7, `<syslog><preservelogs>` (days, default 31) and, on 24.1, `<syslog><maxfilesize>` (MB) for the daily archives up to 24.1, and `<general><maxpreserve>` and `<general><maxfilesize>` from 24.7.
+Local retention is read from where each release keeps it: `<syslog><logfilesize>` (bytes, default 511488) for the circular logs up to 21.7, `<syslog><preservelogs>` (days, default 31) and, on 24.1, `<syslog><maxfilesize>` (MB) for the daily archives up to 24.1, and `<general><maxpreserve>` and `<general><maxfilesize>` from 24.7. No retention is reported while local logging is off (`<syslog><disablelocallogging>` up to 24.1, `<general><loglocal>` other than `1` from 24.7), and the release defaults are filled in only when the config carries the Syslog model, whose version tells the releases apart.
 
 ## Related
 

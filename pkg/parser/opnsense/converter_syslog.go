@@ -14,15 +14,15 @@ import (
 // syslogModelVersions lists every <OPNsense><Syslog version="..."> this
 // converter has been checked against, in order: 1.0.0 from 19.7 to 21.7 (21.7
 // added the tls transports and the certificate without raising it), 1.0.1 from
-// 22.7 to 24.1, 1.0.2 from 24.7 to 26.1, which added the retention fields to
+// 22.1 to 24.1, 1.0.2 from 24.7 to 26.1, which added the retention fields to
 // general, and 1.0.3 in 26.7. The destination elements keep their names
 // across all of them.
 var syslogModelVersions = strings.Fields("1.0.0 1.0.1 1.0.2 1.0.3")
 
 // The retention eras, as indexes into syslogModelVersions.
 const (
-	syslogClogEra   = 0 // 1.0.0: circular logs, and from 20.7 daily archives too
-	syslogLegacyEra = 1 // 1.0.1: daily archives, set under <syslog>
+	syslogClogEra   = 0 // 1.0.0, 19.7 to 21.7: circular logs, and from 20.7 daily archives too
+	syslogLegacyEra = 1 // 1.0.1, 22.1 to 24.1: daily archives, set under <syslog>
 )
 
 // syslogClogDefaultSize is the size in bytes OPNsense gave a circular log
@@ -62,8 +62,10 @@ const (
 // From 20.1, OPNsense forwards only to <OPNsense><Syslog><destinations>; 19.7
 // was the last release to read the remote keys under <syslog>, and nothing
 // migrates or removes them, so an upgraded config can still carry them. They
-// are read only when the config has no Syslog model, which a config from 19.7
-// on carries once the model has been migrated or saved. That reading errs
+// are read only when the config has no Syslog model. A config of any release
+// can lack the model until something saves it (the 26.7.9 factory default
+// does), so that reading tells nothing about the release, and only what
+// <syslog> holds is reported. Ignoring the legacy keys beside the model errs
 // towards no remote logging for a 19.7 config that used both, the safe
 // direction for the checks that read it.
 func (c *converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogConfig {
@@ -95,26 +97,36 @@ func (c *converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogCon
 	return cfg
 }
 
-// applySyslogRetention sets the retention the release keeps local logs under,
-// a default included, since every release applies one: a circular log of
-// LogFileSize bytes up to 21.7, and RotateCount daily archives from 20.7, each
-// rotated early at LogFileSize bytes where set. A key the release no longer
-// reads is ignored with a warning. The model version tells the releases
-// apart; a model with no version is read as the current one.
+// applySyslogRetention sets the retention the release keeps local logs under.
+// With the model, the release is known from its version, so the defaults it
+// applies are reported too: a circular log of LogFileSize bytes up to 21.7,
+// and RotateCount daily archives from 20.7, each rotated early at LogFileSize
+// bytes where set. Without the model the release is not known, so only what
+// <syslog> holds is reported. A key the release no longer reads is ignored
+// with a warning, and nothing is reported while local logging is off, since
+// then no local log is kept. A model with no version is read as the current
+// one.
 func (c *converter) applySyslogRetention(cfg *common.SyslogConfig, legacy *schema.Syslog, model *schema.SyslogModel) {
-	era := -1
-	if model != nil {
-		era = slices.Index(syslogModelVersions, model.Version)
+	if model == nil {
+		if legacy.DisableLocalLogging == nil {
+			cfg.LogFileSize = legacy.LogFilesize
+			cfg.RotateCount = cmp.Or(legacy.PreserveLogs, legacy.RotateCount)
+		}
+
+		return
 	}
 
-	switch {
-	case model == nil, era == syslogClogEra:
-		// Before 20.7 only circular logs exist, and 20.7 to 21.7 keep them
-		// beside the archives unless disable_clog is set. The archives cannot
-		// be told from their absence on 19.7 and 20.1, so they count only when
-		// the config names them or disable_clog, which 20.7 added, is set.
-		// <rotatecount> is pfSense's key, read when the OPNsense one is absent.
-		clogOff := modelFlagSet(legacy.DisableClog)
+	switch slices.Index(syslogModelVersions, model.Version) {
+	case syslogClogEra:
+		// 19.7 to 21.7 keep circular logs, and from 20.7 daily archives beside
+		// them unless disable_clog is set. The archives cannot be told from
+		// their absence on 19.7 and 20.1, so they count only when the config
+		// names them or disable_clog, which 20.7 added, is set. <rotatecount>
+		// is pfSense's key, read when the OPNsense one is absent.
+		if legacy.DisableLocalLogging != nil {
+			return
+		}
+		clogOff := templateFlagSet(legacy.DisableClog)
 		if !clogOff {
 			cfg.LogFileSize = cmp.Or(legacy.LogFilesize, syslogClogDefaultSize)
 		}
@@ -122,19 +134,33 @@ func (c *converter) applySyslogRetention(cfg *common.SyslogConfig, legacy *schem
 		if clogOff {
 			cfg.RotateCount = cmp.Or(cfg.RotateCount, syslogArchiveDefault)
 		}
-	case era == syslogLegacyEra:
+	case syslogLegacyEra:
+		c.warnOnStaleSyslogRetention("logfilesize", legacy.LogFilesize, "")
+		if legacy.DisableLocalLogging != nil {
+			return
+		}
 		cfg.RotateCount = cmp.Or(legacy.PreserveLogs, syslogArchiveDefault)
 		cfg.LogFileSize = c.syslogMBToBytes(legacy.MaxFileSize)
-		c.warnOnStaleSyslogRetention("logfilesize", legacy.LogFilesize, "")
 	default:
-		cfg.RotateCount = cmp.Or(model.General.Maxpreserve, syslogArchiveDefault)
-		cfg.LogFileSize = c.syslogMBToBytes(model.General.Maxfilesize)
 		c.warnOnStaleSyslogRetention("logfilesize", legacy.LogFilesize, "")
 		// Migration M1_0_2 copies these into the model and leaves them, so
 		// they are worth a warning only once they disagree with it.
 		c.warnOnStaleSyslogRetention("preservelogs", legacy.PreserveLogs, model.General.Maxpreserve)
 		c.warnOnStaleSyslogRetention("maxfilesize", legacy.MaxFileSize, model.General.Maxfilesize)
+		// syslog-ng-local.conf writes local logs only when loglocal is 1.
+		if model.General.Loglocal != "1" {
+			return
+		}
+		cfg.RotateCount = cmp.Or(model.General.Maxpreserve, syslogArchiveDefault)
+		cfg.LogFileSize = c.syslogMBToBytes(model.General.Maxfilesize)
 	}
+}
+
+// templateFlagSet reads a legacy flag the way the syslog templates do: their
+// helpers.empty treats an absent or empty element as unset and any other
+// text, 0 included, as set.
+func templateFlagSet(value string) bool {
+	return value != ""
 }
 
 // warnOnStaleSyslogRetention reports a legacy retention key the release does
@@ -191,7 +217,7 @@ func applyLegacySyslogRemote(cfg *common.SyslogConfig, sl *schema.Syslog) {
 	cfg.IPProtocol = sl.IPProtocol
 
 	// logall sent every message to the servers, whatever the category flags.
-	if modelFlagSet(sl.LogAll) {
+	if templateFlagSet(sl.LogAll) {
 		setAllSyslogCategories(cfg)
 	}
 }

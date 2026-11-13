@@ -312,8 +312,15 @@ func TestConverter_Syslog_LegacyLogAll(t *testing.T) {
 	assert.True(t, sl.AuthLogging)
 	assert.True(t, sl.SystemLogging)
 
+	// The template tests logall with helpers.empty, so 0 counts as set and only
+	// an empty element is unset.
 	sl, _ = parseSyslogConfig(t,
 		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall>0</logall></syslog>`)
+
+	assert.True(t, sl.FilterLogging)
+
+	sl, _ = parseSyslogConfig(t,
+		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall/></syslog>`)
 
 	assert.False(t, sl.FilterLogging)
 }
@@ -461,16 +468,14 @@ func TestConverter_Syslog_Retention(t *testing.T) {
 			wantFileSize: "512000",
 		},
 		{
-			name:         "preservelogs wins over pfSense's rotatecount",
-			inner:        `<syslog><rotatecount>7</rotatecount><preservelogs>14</preservelogs></syslog>`,
-			wantRotate:   "14",
-			wantFileSize: "511488",
+			name:       "preservelogs wins over pfSense's rotatecount",
+			inner:      `<syslog><rotatecount>7</rotatecount><preservelogs>14</preservelogs></syslog>`,
+			wantRotate: "14",
 		},
 		{
-			name:         "rotatecount is read when preservelogs is absent",
-			inner:        `<syslog><rotatecount>7</rotatecount></syslog>`,
-			wantRotate:   "7",
-			wantFileSize: "511488",
+			name:       "rotatecount is read when preservelogs is absent",
+			inner:      `<syslog><rotatecount>7</rotatecount></syslog>`,
+			wantRotate: "7",
 		},
 	}
 
@@ -488,6 +493,41 @@ func TestConverter_Syslog_Retention(t *testing.T) {
 				got = append(got, w.Value)
 			}
 			assert.Equal(t, tt.wantWarnings, got)
+		})
+	}
+}
+
+// TestConverter_Syslog_NoRetentionReported leaves retention unset while no
+// local log is kept, and when a config without the Syslog model sets none:
+// syslog-ng-local.conf writes local logs only when loglocal is 1 from 24.7,
+// and up to 24.1 any <disablelocallogging>, 0 included, turns them off
+// (isset() in system.inc). Without the model the release, and so its
+// default, is unknown.
+func TestConverter_Syslog_NoRetentionReported(t *testing.T) {
+	t.Parallel()
+
+	model103 := strings.Replace(syslogModel("1.0.3", "45", ""), "<maxfilesize/>", "<maxfilesize>10</maxfilesize>", 1)
+	model101 := `<OPNsense><Syslog version="1.0.1"><general><enabled>1</enabled></general>` +
+		`<destinations/></Syslog></OPNsense>`
+	model100 := strings.Replace(model101, "1.0.1", "1.0.0", 1)
+
+	tests := map[string]string{
+		"26.7 with loglocal 0":        strings.Replace(model103, "<loglocal>1</loglocal>", "<loglocal>0</loglocal>", 1),
+		"26.7 without loglocal":       strings.Replace(model103, "<loglocal>1</loglocal>", "", 1),
+		"24.1 disabled":               `<syslog><disablelocallogging>1</disablelocallogging><preservelogs>14</preservelogs></syslog>` + model101,
+		"1.0.0 empty element":         `<syslog><disablelocallogging/></syslog>` + model100,
+		"no model invents no default": `<syslog><nologdefaultblock>1</nologdefaultblock></syslog>`,
+		"no model with 0 in it":       `<syslog><disablelocallogging>0</disablelocallogging><logfilesize>512000</logfilesize></syslog>`,
+	}
+
+	for name, inner := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			sl, _ := parseSyslogConfig(t, inner)
+
+			assert.Empty(t, sl.RotateCount)
+			assert.Empty(t, sl.LogFileSize)
 		})
 	}
 }
@@ -610,11 +650,12 @@ func TestSyslogLegacy_RetentionRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	rt := roundTripDocument(t, `<opnsense><syslog><preservelogs>14</preservelogs>`+
-		`<maxfilesize>10</maxfilesize><disable_clog>1</disable_clog><logall>1</logall></syslog></opnsense>`)
+		`<maxfilesize>10</maxfilesize><disable_clog>1</disable_clog><logall>1</logall><disablelocallogging/></syslog></opnsense>`)
 
 	assert.Equal(t, "14", rt.second.Syslog.PreserveLogs)
 	assert.Equal(t, "10", rt.second.Syslog.MaxFileSize)
 	assert.Equal(t, "1", rt.second.Syslog.DisableClog)
 	assert.Equal(t, "1", rt.second.Syslog.LogAll)
+	require.NotNil(t, rt.second.Syslog.DisableLocalLogging)
 	assert.Equal(t, rt.first.Syslog, rt.second.Syslog)
 }

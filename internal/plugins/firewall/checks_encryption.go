@@ -88,12 +88,20 @@ func (fp *Plugin) checkFirewallFilterLogging(device *common.CommonDevice) checkR
 }
 
 // checkLogRetention checks that local logs are kept under a size or archive
-// limit. The converter fills in the limit the platform applies by default,
-// so on OPNsense this passes whenever a limit is in effect, configured or
-// not, and fails only where the converter cannot attribute one.
+// limit. Where the OPNsense release is known from its Syslog model, the
+// converter fills in the limit the release applies by default, so this
+// passes whenever local logs are kept under a limit, configured or not. It
+// fails when local logging is off, or when a config without the model sets
+// no limit. It is unknown on pfSense, whose syslog settings are not read.
 func (fp *Plugin) checkLogRetention(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
+	}
+
+	// The pfSense converter does not read syslog settings yet (Syslog is a
+	// declared gap), so an empty retention says nothing about the firewall.
+	if device.DeviceType == common.DeviceTypePfSense {
+		return unknown
 	}
 
 	hasSize := device.Syslog.LogFileSize != ""

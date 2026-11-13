@@ -143,11 +143,17 @@ type Syslog struct {
 	// MaxFileSize is the size in MB at which 24.1 rotated a log early.
 	MaxFileSize string `xml:"maxfilesize,omitempty"`
 	// DisableClog turned off the circular logs from 20.7 to 21.7, leaving the
-	// daily archives log_archive prunes. OPNsense tests it with empty().
+	// daily archives log_archive prunes. The syslog template tests it with
+	// helpers.empty, where 0 counts as set, and system.inc with empty().
 	DisableClog string `xml:"disable_clog,omitempty"`
 	// LogAll made 19.7 forward every message to the legacy remote servers,
-	// whatever the category flags say. OPNsense tests it with empty().
+	// whatever the category flags say. The template tests it with
+	// helpers.empty, where 0 counts as set; the 19.1 page wrote it for isset().
 	LogAll string `xml:"logall,omitempty"`
+	// DisableLocalLogging turned local logs off up to 24.1. 19.1 and 19.7
+	// test it with isset(), so any element, 0 included, reads as off.
+	// Migration M1_0_2 inverts it into the model's loglocal.
+	DisableLocalLogging *string `xml:"disablelocallogging,omitempty"`
 }
 
 // Monit represents the Monit system monitoring daemon configuration, including
