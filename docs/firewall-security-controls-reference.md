@@ -430,7 +430,7 @@ The following controls are planned for future releases, organized by security do
 | ------------ | ------------------------ | -------- | ---------------------------------------------------------- |
 | FIREWALL-054 | Documented Port Forwards | Medium   | Every inbound NAT rule has a non-empty description         |
 | FIREWALL-055 | Outbound NAT Control     | Medium   | Outbound NAT mode is "Hybrid" or "Manual", not "Automatic" |
-| FIREWALL-056 | NAT Reflection Disabled  | Low      | NAT reflection disabled unless explicitly required         |
+| FIREWALL-056 | NAT Reflection Disabled  | Low      | Reflection off globally and on every port forward          |
 
 ### Service Hardening
 

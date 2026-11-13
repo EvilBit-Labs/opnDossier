@@ -216,6 +216,8 @@ The example is the shape written through 25.7. From 26.1 each rule also has a `u
 
 Valid NAT reflection modes: `enable`, `disable`, `purenat`
 
+A forward's `<natreflection>` decides reflection for that forward. An empty value takes the global `<system><disablenatreflection>` setting, `disable` turns reflection off, and `purenat` or `enable` turns it on even when reflection is disabled globally (OPNsense `ForwardRule.php`, pfSense `filter.inc`). OPNsense fills the global default into any value `empty()` accepts from 26.1, and only into an absent element up to 25.7; pfSense's GUI saves "Use system default" by removing the element. `nat.reflectionDisabled` in the export, which FIREWALL-056 and the NAT Summary read, is true only when reflection is disabled globally and no enabled, redirecting forward sets `purenat` or `enable`. Disabled and no-RDR forwards do not count. `system.disableNatReflection` reports the global setting as written.
+
 ## Related
 
 - [Configuration Reference](user-guide/configuration-reference.md) -- opnDossier flags and options
