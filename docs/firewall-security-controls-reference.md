@@ -26,6 +26,7 @@ Each firewall compliance check returns one of three states:
 | FIREWALL-006 | IPv6 Disablement                 | Network Configuration | Medium   | Implemented |
 | FIREWALL-007 | DNS Rebind Protection            | DNS Security          | Medium   | Implemented |
 | FIREWALL-008 | HTTPS Web Management             | Management Access     | High     | Implemented |
+| FIREWALL-036 | Valid Web GUI Certificate        | Encryption            | Medium   | Implemented |
 
 ---
 
@@ -310,9 +311,46 @@ Enable HTTPS for web management:
 
 1. Navigate to **System > Advanced > Admin Access**
 2. Set the protocol to HTTPS
-3. Ensure a valid TLS certificate is configured (self-signed at minimum, CA-signed preferred)
+3. Assign a TLS certificate issued by a trusted or internal CA (the self-signed certificate the firewall generates for itself fails FIREWALL-036)
 4. Consider restricting the management interface to a dedicated management VLAN
 5. Save and apply changes
+
+---
+
+## FIREWALL-036: Valid Web GUI Certificate
+
+| Field        | Value                                             |
+| ------------ | ------------------------------------------------- |
+| **ID**       | FIREWALL-036                                      |
+| **Category** | Encryption                                        |
+| **Severity** | Medium                                            |
+| **Status**   | Implemented                                       |
+| **Tags**     | `encryption`, `certificates`, `firewall-controls` |
+
+### Description
+
+The web GUI should serve a certificate issued by a trusted or internal CA, not a self-signed one.
+
+### Rationale
+
+Both OPNsense and pfSense generate a self-signed certificate for their own web GUI when it first starts over https, and again whenever the configured certificate is missing or unusable. A browser cannot authenticate that certificate, so administrators learn to click through warnings and an attacker on the management network can impersonate the GUI.
+
+### What opnDossier Checks
+
+Resolves `System.WebGUI.SSLCertRef` against `Certificates` by reference ID and decodes the stored certificate (the base64 of the PEM text). The control fails when any of these hold:
+
+- `System.WebGUI.Protocol` is not exactly `https`, so the GUI serves no certificate
+- the reference is empty or names no certificate in the store (the firewall then generates a self-signed one at start)
+- the certificate has no certificate data or no private key, so it cannot be served
+- the certificate is self-signed: its issuer equals its subject, the rule OPNsense applies when it imports a certificate
+
+A certificate issued by any CA, internal or public, passes. The signature and the trust chain are not verified. Certificate data that cannot be decoded, such as truncated or placeholder data, leaves the control unknown.
+
+### Recommended Action
+
+1. Navigate to **System > Trust > Certificates** (pfSense: **System > Certificates**)
+2. Issue a web GUI certificate from an internal CA, or import one issued by a public CA together with its private key
+3. Select it under **System > Settings > Administration** (pfSense: **System > Advanced > Admin Access**) and save
 
 ---
 
