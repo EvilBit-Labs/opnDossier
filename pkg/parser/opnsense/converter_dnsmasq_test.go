@@ -529,8 +529,9 @@ func TestConverter_Dnsmasq_Placeholders(t *testing.T) {
 	assert.Equal(t, []common.DNSMasqHost{{Host: "nas", IP: "192.168.1.10"}}, device.DNS.DNSMasq.Hosts)
 }
 
-// TestConverter_Dnsmasq_RangesThatServeNoPool keeps router-advertisement
-// entries out of the DHCP scopes and leaves a static range's pool empty.
+// TestConverter_Dnsmasq_RangesThatServeNoPool keeps router-advertisement-only
+// entries out of the DHCP scopes, keeps a stateless DHCPv6 entry as a scope
+// with no pool, and leaves a static range's pool empty.
 func TestConverter_Dnsmasq_RangesThatServeNoPool(t *testing.T) {
 	t.Parallel()
 
@@ -540,12 +541,18 @@ func TestConverter_Dnsmasq_RangesThatServeNoPool(t *testing.T) {
     <dhcp_ranges><interface>opt1</interface><start_addr>::</start_addr><constructor>opt1</constructor><ra_mode>ra-only</ra_mode></dhcp_ranges>
     <dhcp_ranges><interface>opt2</interface><start_addr>::</start_addr><constructor>opt2</constructor><ra_mode>ra-stateless</ra_mode></dhcp_ranges>
     <dhcp_ranges><interface>lan</interface><start_addr>::</start_addr><constructor>lan</constructor><ra_mode>slaac</ra_mode></dhcp_ranges>
+    <dhcp_ranges><interface>opt3</interface><start_addr>::</start_addr><constructor>opt3</constructor></dhcp_ranges>
   </dnsmasq>`, "")
 
 	assert.Empty(t, dnsmasqWarnings(warnings))
-	require.Len(t, device.DHCP, 1, "router advertisements alone are not DHCP")
+	require.Len(t, device.DHCP, 2, "ra-only and mode-less entries are router advertisements alone")
 	assert.Equal(t, "lan", device.DHCP[0].Interface)
 	assert.Nil(t, device.DHCP[0].RangeV6)
+	opt2 := device.DHCP[1]
+	assert.Equal(t, "opt2", opt2.Interface, "ra-stateless answers stateless DHCPv6")
+	assert.True(t, opt2.Enabled)
+	assert.Nil(t, opt2.RangeV6, "a stateless DHCPv6 service hands out no addresses")
+	assert.Equal(t, common.DHCPRange{}, opt2.Range)
 
 	stigFindings, _, err := stig.NewPlugin().RunChecks(device)
 	require.NoError(t, err)
@@ -730,4 +737,87 @@ func TestConverter_Dnsmasq_DiffClientIDReservation(t *testing.T) {
 	assert.Equal(t, "dhcpd.dnsmasq.lan.staticmap[id:01:02:03].ipaddr", changes[0].Path)
 	assert.Equal(t, "192.168.1.50", changes[0].OldValue)
 	assert.Equal(t, "192.168.1.60", changes[0].NewValue)
+}
+
+// TestConverter_Dnsmasq_ISCScopesStillCount keeps counting every ISC scope
+// toward V-206690, including one the factory default wrote as <enable/> up to
+// 25.1, while a disabled dnsmasq scope beside it does not count.
+func TestConverter_Dnsmasq_ISCScopesStillCount(t *testing.T) {
+	t.Parallel()
+
+	isc := `<dhcpd>
+    <lan><enable/><range><from>192.168.1.100</from><to>192.168.1.199</to></range></lan>
+    <opt1><enable>1</enable><range><from>10.0.1.100</from><to>10.0.1.199</to></range></opt1>
+    <opt2><enable>1</enable><range><from>10.0.2.100</from><to>10.0.2.199</to></range></opt2>
+  </dhcpd>`
+	device, _ := parseDnsmasqConfig(t, `<dnsmasq><enable>0</enable></dnsmasq>`, isc)
+	require.Len(t, device.DHCP, 3)
+	findings, _, err := stig.NewPlugin().RunChecks(device)
+	require.NoError(t, err)
+	assert.True(t, hasReference(findings, "V-206690"), "three ISC scopes exceed the limit")
+
+	// Two ISC scopes and a disabled dnsmasq scope stay under it.
+	twoISC := `<dhcpd>
+    <lan><enable/><range><from>192.168.1.100</from><to>192.168.1.199</to></range></lan>
+    <opt1><enable>1</enable><range><from>10.0.1.100</from><to>10.0.1.199</to></range></opt1>
+  </dhcpd>`
+	device, _ = parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>0</enable>`+
+		`<dhcp_ranges><interface>opt2</interface><start_addr>10.0.2.100</start_addr>`+
+		`<end_addr>10.0.2.199</end_addr></dhcp_ranges></dnsmasq>`, twoISC)
+	require.Len(t, device.DHCP, 3)
+	findings, _, err = stig.NewPlugin().RunChecks(device)
+	require.NoError(t, err)
+	assert.False(t, hasReference(findings, "V-206690"))
+}
+
+// TestConverter_Dnsmasq_StaticIPv6RangeWithoutEnd keeps an IPv6 static range,
+// which has no end address, as a scope that serves reservations only.
+func TestConverter_Dnsmasq_StaticIPv6RangeWithoutEnd(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
+    <dhcp_ranges><interface>opt1</interface><start_addr>::</start_addr><constructor>opt1</constructor><mode>static</mode></dhcp_ranges>
+  </dnsmasq>`, "")
+
+	assert.Empty(t, dnsmasqWarnings(warnings))
+	require.Len(t, device.DHCP, 1)
+	assert.Equal(t, "opt1", device.DHCP[0].Interface)
+	assert.True(t, device.DHCP[0].Enabled)
+	assert.Nil(t, device.DHCP[0].RangeV6)
+}
+
+// TestConverter_Dnsmasq_AnyScopeRejectsForeignAddress keeps a reservation
+// outside every network of the firewall out of a range that names no
+// interface.
+func TestConverter_Dnsmasq_AnyScopeRejectsForeignAddress(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>`+
+		`<dhcp_ranges><start_addr>10.0.2.100</start_addr><end_addr>10.0.2.199</end_addr></dhcp_ranges>`+
+		`<hosts><host>far</host><ip>172.31.9.9</ip><hwaddr>aa:bb:cc:dd:ee:30</hwaddr></hosts></dnsmasq>`, "")
+
+	require.Len(t, device.DHCP, 1)
+	assert.Empty(t, device.DHCP[0].StaticLeases)
+	got := dnsmasqWarnings(warnings)
+	require.Len(t, got, 1)
+	assert.Equal(t, "far", got[0].Value)
+}
+
+// TestConverter_Dnsmasq_DiffLeaseWithMACAndClientID keys a reservation that
+// has both a MAC address and a client id by its MAC.
+func TestConverter_Dnsmasq_DiffLeaseWithMACAndClientID(t *testing.T) {
+	t.Parallel()
+
+	config := func(ip string) string {
+		return `<dnsmasq version="1.0.9"><enable>1</enable>` +
+			`<hosts><host>a</host><ip>` + ip + `</ip><hwaddr>aa:bb:cc:dd:ee:40</hwaddr><client_id>01:02:05</client_id></hosts>` +
+			`<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr>` +
+			`<end_addr>192.168.1.199</end_addr></dhcp_ranges></dnsmasq>`
+	}
+	oldDevice, _ := parseDnsmasqConfig(t, config("192.168.1.50"), "")
+	newDevice, _ := parseDnsmasqConfig(t, config("192.168.1.60"), "")
+
+	changes := diff.NewAnalyzer().CompareDHCP(oldDevice.DHCP, newDevice.DHCP)
+	require.Len(t, changes, 1)
+	assert.Equal(t, "dhcpd.dnsmasq.lan.staticmap[aa:bb:cc:dd:ee:40].ipaddr", changes[0].Path)
 }

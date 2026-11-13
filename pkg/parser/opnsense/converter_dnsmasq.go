@@ -135,11 +135,13 @@ func convertDnsmasqDomainOverrides(overrides []schema.DomainOverride) []common.D
 // the interface: it is listed under <dhcp><no_interface>, or <interface>
 // limits dnsmasq to other interfaces.
 //
-// Two kinds of entry hand out no pool. A static range serves only the
+// Some entries hand out no pool. A static range serves only the
 // reservations, so its scope keeps an empty range. An IPv6 entry with no end
-// address only sends router advertisements and is not DHCP at all, so it
-// makes no scope (the range dialog's help, and Dnsmasq.php, which requires an
-// end address for every IPv4 range that is not static).
+// address hands out no addresses either (the range dialog's help; Dnsmasq.php
+// requires an end address only for an IPv4 range that is not static). With
+// ra-stateless in its RA mode it still answers stateless DHCPv6, so its scope
+// is kept with no RangeV6. With any other mode, or none, it only sends router
+// advertisements, which is not DHCP, and it makes no scope.
 func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	dm := doc.DNSMasquerade
 	if len(dm.DHCPRanges) == 0 {
@@ -173,8 +175,12 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 		_, static := csvSet(r.Mode)["static"]
 		// The template tells the families apart by a colon in start_addr.
 		v6 := strings.Contains(start, ":")
+		noPool := static
 		if v6 && end == "" && !static {
-			continue
+			if _, stateless := csvSet(r.RAMode)["ra-stateless"]; !stateless {
+				continue
+			}
+			noPool = true
 		}
 		if start == "" {
 			c.addWarning("dnsmasq.dhcp_ranges.start_addr", r.UUID,
@@ -196,7 +202,7 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 			})
 		}
 		scope := &scopes[i]
-		if static {
+		if noPool {
 			continue
 		}
 

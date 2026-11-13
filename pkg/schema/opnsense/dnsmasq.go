@@ -15,8 +15,9 @@ type DNSMasqDHCP struct {
 // DNSMasqDHCPRange is one <dhcp_ranges> entry of the Dnsmasq model. The
 // template treats a non-empty start address without a colon as an IPv4 range
 // and every other entry, an empty start among them, as IPv6. An IPv6 range
-// with no end address only sends router advertisements, and a range whose
-// Mode holds "static" serves reservations only. An IPv6 range usually holds
+// with no end address hands out no addresses: with ra-stateless in RAMode it
+// answers stateless DHCPv6, otherwise it only sends router advertisements. A
+// range whose Mode holds "static" serves reservations only. An IPv6 range usually holds
 // only the host part of the
 // address (::1000), which dnsmasq completes from the prefix of the interface
 // named in Constructor.
