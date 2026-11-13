@@ -308,8 +308,6 @@ The audit engine performs the following checks per plugin:
 
 3. **Service Hardening (V-206690)** - Checks for SNMP with community strings, Unbound DNS with DNSSEC stripping, more than 2 DHCP interfaces, and configured load balancer services.
 
-   A dnsmasq DHCP range counts toward the limit only while dnsmasq serves it.
-
 4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
 
 #### SANS Compliance Checks
