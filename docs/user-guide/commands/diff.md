@@ -64,6 +64,8 @@ opndossier diff --security old-config.xml new-config.xml
 | **MEDIUM** | Firewall rule removals, user account changes, NAT mode changes, port forwarding modifications, WebGUI protocol changes, interface enable/disable, an alias added, removed, disabled or changed in what it matches while an enabled rule or port forward uses it |
 | **LOW**    | New firewall rules, DNS server changes, user modifications, the same alias changes when no enabled rule or port forward uses the alias                                                                                                                          |
 
+Two system settings are rated by direction: packet filtering disabled is HIGH and re-enabled is MEDIUM; the anti-lockout rule re-enabled is MEDIUM and disabled is LOW.
+
 ## Normalization
 
 OPNsense configurations can contain cosmetic differences that are not meaningful -- extra whitespace or an IPv6 address written in its long form. The `--normalize` flag normalizes the values the diff displays and leaves out a change whose two values differ only in that formatting.

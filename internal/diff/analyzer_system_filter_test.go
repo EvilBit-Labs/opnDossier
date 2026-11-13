@@ -17,26 +17,32 @@ func TestCompareSystem_ImplicitFilterSettings(t *testing.T) {
 		name         string
 		old, newCfg  common.System
 		path, impact string
+		description  string
+		oldV, newV   string
 	}{
 		{
 			name:   "packet filtering disabled",
 			newCfg: common.System{PacketFilterDisabled: true},
 			path:   "system.disablefilter", impact: "high",
+			description: "Packet filtering disabled", oldV: "false", newV: "true",
 		},
 		{
 			name: "packet filtering enabled",
 			old:  common.System{PacketFilterDisabled: true},
 			path: "system.disablefilter", impact: "medium",
+			description: "Packet filtering enabled", oldV: "true", newV: "false",
 		},
 		{
 			name:   "anti-lockout disabled",
 			newCfg: common.System{WebGUI: common.WebGUI{NoAntiLockout: true}},
 			path:   "system.webgui.noantilockout", impact: "low",
+			description: "Anti-lockout rule disabled", oldV: "false", newV: "true",
 		},
 		{
 			name: "anti-lockout enabled",
 			old:  common.System{WebGUI: common.WebGUI{NoAntiLockout: true}},
 			path: "system.webgui.noantilockout", impact: "medium",
+			description: "Anti-lockout rule enabled", oldV: "true", newV: "false",
 		},
 	}
 
@@ -49,9 +55,12 @@ func TestCompareSystem_ImplicitFilterSettings(t *testing.T) {
 				t.Fatalf("changes = %+v, want one", changes)
 			}
 
-			if changes[0].Path != tt.path || changes[0].SecurityImpact != tt.impact {
-				t.Errorf("change = %s at %s, want %s at %s",
-					changes[0].SecurityImpact, changes[0].Path, tt.impact, tt.path)
+			got := changes[0]
+			if got.Path != tt.path || got.SecurityImpact != tt.impact || got.Description != tt.description ||
+				got.OldValue != tt.oldV || got.NewValue != tt.newV {
+				t.Errorf("change = %q %s at %s (%s -> %s), want %q %s at %s (%s -> %s)",
+					got.Description, got.SecurityImpact, got.Path, got.OldValue, got.NewValue,
+					tt.description, tt.impact, tt.path, tt.oldV, tt.newV)
 			}
 		})
 	}

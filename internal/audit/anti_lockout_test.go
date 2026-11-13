@@ -191,7 +191,7 @@ func antiLockoutShapes() []antiLockoutShape {
 // TestRedMode_AntiLockoutOnWAN_EndToEnd rewrites each vendor's fixture into the
 // interface shapes that decide where the anti-lockout rule goes and drives the
 // result through parse, convert and red mode. Both vendors put the rule on the
-// WAN of a firewall with no LAN, and red mode must then report the web GUI, and
+// WAN of a firewall with no LAN or OPT interface, and red mode must then report the web GUI, and
 // on OPNsense SSH, as WAN-exposed although no rule in the config passes them.
 // The fixtures hold no WAN pass rule to the firewall, so every other shape stays
 // LAN-only. SSH is enabled only on OPNsense, in the form its page writes: the

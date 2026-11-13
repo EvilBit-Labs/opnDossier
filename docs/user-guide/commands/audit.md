@@ -58,7 +58,7 @@ When no `--plugins` flag is specified, all available plugins are run by default.
 
 Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services.
 
-Two cases are reported as WAN-exposed without any pass rule in the config. With "Disable all packet filtering" (`<system><disablefilter>`) set, the firewall filters nothing, so every management service is reported as WAN-exposed and the setting itself is reported as an exposed weakness. When the anti-lockout rule lands on the WAN, which happens on a firewall with no LAN assigned unless `<system><webgui><noantilockout>` is set, the web GUI and, when enabled, SSH are reported as WAN-exposed. See [Firewall-Wide Settings](../../xml-field-reference.md#firewall-wide-settings).
+Two cases are reported as WAN-exposed without any pass rule in the config. With "Disable all packet filtering" (`<system><disablefilter>`) set, the firewall filters nothing, so every management service is reported as WAN-exposed and the setting itself is reported as an exposed weakness. When the anti-lockout rule lands on the WAN, which happens on a firewall with no LAN or OPT interface assigned unless `<system><webgui><noantilockout>` is set, the web GUI and, when enabled, SSH are reported as WAN-exposed. See [Firewall-Wide Settings](../../xml-field-reference.md#firewall-wide-settings).
 
 ## Compliance Plugins
 

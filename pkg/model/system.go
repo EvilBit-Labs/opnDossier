@@ -94,7 +94,8 @@ type WebGUI struct {
 
 	// NoAntiLockout reports that the anti-lockout rule is turned off. Without
 	// it, both vendors pass the web GUI and SSH ports on one interface ahead of
-	// every user rule, and that interface is the WAN on a firewall with no LAN.
+	// every user rule, and that interface is the WAN on a firewall with no LAN or
+	// OPT interface.
 	// Named for the setting so that the zero value is the common case.
 	NoAntiLockout bool `json:"noAntiLockout,omitempty" yaml:"noAntiLockout,omitempty"`
 
