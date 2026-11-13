@@ -28,9 +28,9 @@ const minimumNTPServers = 2
 
 // checkValidWebGUICertificate checks that the web GUI serves a certificate
 // that is not self-signed. One issued by an internal CA passes. A reference
-// alone proves nothing: every OPNsense and pfSense box that has started its
-// GUI over https holds one, to the self-signed certificate the firewall
-// generated for itself. A certificate with no private key cannot be served,
+// alone proves nothing: a box that has started its GUI over https holds one
+// even when no operator assigned a certificate, pointing at the self-signed
+// certificate the firewall generated for itself. A certificate with no private key cannot be served,
 // and pfSense replaces it with a self-signed one at start. Certificate data
 // that cannot be decoded, such as truncated or placeholder data, leaves the
 // control unknown.

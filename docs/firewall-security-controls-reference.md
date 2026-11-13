@@ -333,7 +333,7 @@ The web GUI should serve a certificate issued by a trusted or internal CA, not a
 
 ### Rationale
 
-Both OPNsense and pfSense generate a self-signed certificate for their own web GUI when it first starts over https, and again whenever the configured certificate is missing or unusable. A browser cannot authenticate that certificate, so administrators learn to click through warnings and an attacker on the management network can impersonate the GUI.
+OPNsense generates a self-signed certificate for its web GUI whenever the GUI starts over https and `ssl-certref` does not resolve to a certificate in the store, which is the case on first boot. pfSense does the same, and also when the referenced certificate has no certificate data or no private key. A browser cannot authenticate that certificate, so administrators learn to click through warnings and an attacker on the management network can impersonate the GUI.
 
 ### What opnDossier Checks
 

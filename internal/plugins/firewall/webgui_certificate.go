@@ -70,8 +70,9 @@ func parseStoredCertificate(data string) (*x509.Certificate, error) {
 // OPNsense applies when it imports a certificate (cert_import in certs.inc
 // links a CA only when issuer and subject differ). A certificate an internal
 // CA issued has the CA as issuer, so it is not self-signed. The signature is
-// not checked: Go refuses to verify many keys and algorithms the Trust pages
-// still create, such as RSA-512, DSA, Ed448 and MD5, and a refusal must not
+// not checked: Go refuses to verify many keys and algorithms the firewall can
+// still hold, such as RSA-512, which the OPNsense Trust pages still offer, and
+// DSA, Ed448 and MD5 certificates imported from elsewhere. A refusal must not
 // read as "signed by another key".
 func isSelfSigned(cert *x509.Certificate) bool {
 	return bytes.Equal(cert.RawIssuer, cert.RawSubject)
