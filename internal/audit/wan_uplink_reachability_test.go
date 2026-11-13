@@ -90,6 +90,19 @@ func guiRuleOn(iface string) string {
     </rule>`
 }
 
+// gatewayItem is a model gateway on opt1 at 198.51.100.1; defaultGW is the
+// <defaultgw> text.
+func gatewayItem(name, defaultGW string) string {
+	return `<gateway_item uuid="e5e5e5e5-0000-4000-8000-` + strings.Repeat("0", 12-len(name)) + name + `">
+      <disabled>0</disabled>
+      <name>` + name + `</name>
+      <interface>opt1</interface>
+      <ipprotocol>inet</ipprotocol>
+      <gateway>198.51.100.1</gateway>
+      <defaultgw>` + defaultGW + `</defaultgw>
+    </gateway_item>`
+}
+
 // uplinkCase fills uplinkConfig. Empty fields take a LAN-only default.
 type uplinkCase struct {
 	opt1     string
@@ -173,6 +186,61 @@ func TestWANReachability_UplinkShapes(t *testing.T) {
 			config:  uplinkCase{members: "lan,opt2", rules: guiRuleOn("UPLINKS")},
 			wantWAN: false,
 		},
+		{
+			name: "rule on a group whose second member is a second uplink",
+			config: uplinkCase{
+				members:  "lan,opt1",
+				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
+				gateways: gatewayItem("ISP2_GW", "0"),
+				rules:    guiRuleOn("UPLINKS"),
+			},
+			wantWAN: true,
+		},
+		{
+			name: "rule on a second uplink that selects its gateway",
+			config: uplinkCase{
+				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
+				gateways: gatewayItem("ISP2_GW", "0"),
+				rules:    guiRuleOn("opt1"),
+			},
+			wantWAN: true,
+		},
+		{
+			name: "rule on a second uplink that carries the default gateway",
+			config: uplinkCase{
+				gateways: gatewayItem("ISP2_GW", "1"),
+				rules:    guiRuleOn("opt1"),
+			},
+			wantWAN: true,
+		},
+		{
+			name:    "rule on a second uplink on PPPoE",
+			config:  uplinkCase{opt1: `<ipaddr>pppoe</ipaddr>`, rules: guiRuleOn("opt1")},
+			wantWAN: true,
+		},
+		{
+			name:    "rule on a second uplink on DHCPv6",
+			config:  uplinkCase{opt1: staticOpt1 + `<ipaddrv6>dhcp6</ipaddrv6>`, rules: guiRuleOn("opt1")},
+			wantWAN: true,
+		},
+		{
+			name: "rule on an inside interface holding a gateway that is not the default",
+			config: uplinkCase{
+				gateways: gatewayItem("CORE_GW", "0"),
+				rules:    guiRuleOn("opt1"),
+			},
+			wantWAN: false,
+		},
+		{
+			name:    "rule on an inside interface whose gateway selection is disabled",
+			config:  uplinkCase{opt1: staticOpt1 + `<gateway>none</gateway>`, rules: guiRuleOn("opt1")},
+			wantWAN: false,
+		},
+		{
+			name:    "rule on an inside interface that tracks the uplink's prefix",
+			config:  uplinkCase{opt1: staticOpt1 + `<ipaddrv6>track6</ipaddrv6>`, rules: guiRuleOn("opt1")},
+			wantWAN: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -192,6 +260,48 @@ func TestWANReachability_UplinkShapes(t *testing.T) {
 			failed := failedControls(t, config)
 			if got := slices.Contains(failed, "FIREWALL-023"); got != tt.wantWAN {
 				t.Errorf("FIREWALL-023 failed = %v, want %v; failed controls: %v", got, tt.wantWAN, failed)
+			}
+		})
+	}
+}
+
+// TestWANReachability_SecondUplinkFiltering covers the interface-level
+// controls. A second uplink without Block private networks and Block bogon
+// networks fails them, as wan would; an inside interface without them does not.
+func TestWANReachability_SecondUplinkFiltering(t *testing.T) {
+	t.Parallel()
+
+	controls := []string{"FIREWALL-029", "FIREWALL-030", "SANS-FW-012"}
+
+	tests := []struct {
+		name     string
+		config   uplinkCase
+		wantFail bool
+	}{
+		{
+			name: "second uplink selecting its gateway",
+			config: uplinkCase{
+				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
+				gateways: gatewayItem("ISP2_GW", "1"),
+			},
+			wantFail: true,
+		},
+		{
+			name:     "inside interface with static addressing",
+			config:   uplinkCase{},
+			wantFail: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			failed := failedControls(t, tt.config.config())
+			for _, control := range controls {
+				if got := slices.Contains(failed, control); got != tt.wantFail {
+					t.Errorf("%s failed = %v, want %v; failed controls: %v", control, got, tt.wantFail, failed)
+				}
 			}
 		})
 	}

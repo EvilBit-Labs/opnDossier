@@ -29,6 +29,18 @@ func (r Reachability) String() string {
 	return string(r)
 }
 
+// dynamicIPv4Types are the <ipaddr> values that obtain an address and a router
+// from upstream. OPNsense writes them from interfaces.php (dhcp, l2tp, ppp,
+// pppoe, pptp), and pfSense's interface_has_gateway treats the same five as an
+// interface with a gateway.
+var dynamicIPv4Types = []string{"dhcp", "l2tp", "ppp", "pppoe", "pptp"}
+
+// dynamicIPv6Types are the <ipaddrv6> values for which both vendors create an
+// upstream gateway on the interface (OPNsense Gateways::getGateways,
+// pfSense interface_has_gatewayv6). track6 is deliberately absent: it is how a
+// LAN takes a prefix delegated from the uplink.
+var dynamicIPv6Types = []string{"6rd", "6to4", "dhcp6", "slaac"}
+
 // IsWANInterface reports whether the interface or interface group named name
 // faces the WAN on device.
 //
@@ -37,9 +49,27 @@ func (r Reachability) String() string {
 // member does. Group membership comes from device.InterfaceGroups; a name that
 // no group lists is classified as an interface.
 //
-// An interface faces the WAN when its key starts with "wan".
+// An interface faces the WAN when OPNsense or pfSense would treat it as an
+// uplink. The interface key alone is not enough: the first uplink is "wan",
+// but every further one keeps the optN key the assignments page gave it. The
+// signals, in addition to a "wan" key prefix, are the ones both vendors use to
+// decide that an interface has an upstream gateway (reply-to, force-gw and
+// automatic outbound NAT on OPNsense; interface_has_gateway on pfSense):
+//   - dynamic addressing, which learns a router from upstream (dynamicIPv4Types,
+//     dynamicIPv6Types);
+//   - a gateway selected on the interface (<gateway> or <gatewayv6> other than
+//     "none"), which the interface page describes as typically disabled on
+//     LAN-type interfaces;
+//   - an enabled gateway on the interface marked as the default gateway, which
+//     makes the interface carry the default route.
 //
-// A nil device has no groups, so only the "wan" key prefix applies.
+// A static gateway on a LAN that is not the default, as used for a route to
+// another internal network, does not count: neither vendor treats it as an
+// upstream unless the interface selects it. Tunnel interfaces (OpenVPN client,
+// IPsec, GIF, GRE) are not classified as WAN by their device name alone.
+//
+// A nil device has no interfaces, groups or gateways, so only the "wan" key
+// prefix applies.
 func IsWANInterface(device *common.CommonDevice, name string) bool {
 	if members, ok := interfaceGroupMembers(device, name); ok {
 		return slices.ContainsFunc(members, func(member string) bool {
@@ -66,22 +96,74 @@ func interfaceGroupMembers(device *common.CommonDevice, name string) ([]string, 
 	return nil, false
 }
 
-// isUplinkName classifies the interface keyed name.
-func isUplinkName(_ *common.CommonDevice, name string) bool {
-	return hasWANKey(name)
+// isUplinkName classifies the interface keyed name. A name the device does not
+// define is still classified by its key and by the gateways that name it, so a
+// rule bound to an interface missing from the interface list keeps working.
+func isUplinkName(device *common.CommonDevice, name string) bool {
+	if hasWANKey(name) || hasDefaultGateway(device, name) {
+		return true
+	}
+
+	if device == nil {
+		return false
+	}
+
+	for _, iface := range device.Interfaces {
+		if iface.Name == name {
+			return hasUpstreamAddressing(iface)
+		}
+	}
+
+	return false
 }
 
-// isUplinkInterface classifies iface. It does not expand interface groups:
-// an entry OPNsense writes for a group under <interfaces> is not an interface
-// of its own.
-func isUplinkInterface(_ *common.CommonDevice, iface common.Interface) bool {
-	return hasWANKey(iface.Name)
+// isUplinkInterface classifies iface from its own settings and the gateways
+// that name it. It does not expand interface groups: an entry OPNsense writes
+// for a group under <interfaces> carries none of these settings.
+func isUplinkInterface(device *common.CommonDevice, iface common.Interface) bool {
+	return hasWANKey(iface.Name) || hasUpstreamAddressing(iface) || hasDefaultGateway(device, iface.Name)
 }
 
 // hasWANKey reports whether name is a "wan"-prefixed interface key, matched
 // case-insensitively (e.g. "wan", "WAN", "wan2").
 func hasWANKey(name string) bool {
 	return strings.HasPrefix(strings.ToLower(name), "wan")
+}
+
+// hasUpstreamAddressing reports whether iface learns its addressing from
+// upstream or selects an upstream gateway.
+func hasUpstreamAddressing(iface common.Interface) bool {
+	if slices.Contains(dynamicIPv4Types, strings.ToLower(strings.TrimSpace(iface.IPAddress))) ||
+		slices.Contains(dynamicIPv6Types, strings.ToLower(strings.TrimSpace(iface.IPv6Address))) {
+		return true
+	}
+
+	return selectsGateway(iface.Gateway) || selectsGateway(iface.GatewayV6)
+}
+
+// selectsGateway reports whether an interface <gateway> or <gatewayv6> value
+// names a gateway. interfaces.php stores nothing for "Disabled", but a
+// hand-edited or older config can carry the option's value "none".
+func selectsGateway(value string) bool {
+	value = strings.TrimSpace(value)
+
+	return value != "" && !strings.EqualFold(value, "none")
+}
+
+// hasDefaultGateway reports whether an enabled gateway on the interface keyed
+// name is marked as the default gateway. The OPNsense converter reduces the
+// flag to "1" or empty; pfSense passes the stored text through, so "0" is read
+// as unset too.
+func hasDefaultGateway(device *common.CommonDevice, name string) bool {
+	if device == nil {
+		return false
+	}
+
+	return slices.ContainsFunc(device.Routing.Gateways, func(gw common.Gateway) bool {
+		flag := strings.TrimSpace(gw.DefaultGW)
+
+		return !gw.Disabled && gw.Interface == name && flag != "" && flag != "0"
+	})
 }
 
 // isLoopbackInterfaceName reports whether name looks like a loopback
@@ -93,8 +175,8 @@ func isLoopbackInterfaceName(name string) bool {
 }
 
 // InterfaceReachability classifies a single interface of device as
-// WAN-reachable, LAN-only, or local, based on its administrative state and
-// name.
+// WAN-reachable, LAN-only, or local, based on its administrative state and the
+// uplink signals IsWANInterface describes.
 func InterfaceReachability(iface common.Interface, device *common.CommonDevice) Reachability {
 	if !iface.Enabled || isLoopbackInterfaceName(iface.Name) {
 		return Local
@@ -108,7 +190,7 @@ func InterfaceReachability(iface common.Interface, device *common.CommonDevice) 
 }
 
 // RuleReachability classifies a firewall rule's reachability using its bound
-// interfaces and the interface groups of device.
+// interfaces and the interfaces, interface groups and gateways of device.
 //
 // A rule counts as WAN-reachable when it applies to any WAN interface. This
 // includes:
