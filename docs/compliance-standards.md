@@ -39,7 +39,7 @@ STIGs are cybersecurity methodologies for standardizing security configuration w
 
 The [SANS SCORE Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf) (prepared by Krishni Naidu) is a practical security audit checklist containing 24 numbered security elements for firewall configuration and management. It covers ruleset management, application-layer controls, logging, patching, DMZ architecture, anti-spoofing, port security, remote access, traffic filtering, and availability.
 
-The SANS plugin defines SANS-FW-001 to SANS-FW-025. The four controls in the table below were implemented first; the sections after it map the rest of the checklist. SANS-FW-010 and SANS-FW-011 cannot be decided from config.xml and always report Unknown.
+The SANS plugin defines SANS-FW-001 to SANS-FW-025. The four controls in the table below were implemented first; the sections after it map the rest of the checklist. Some controls, such as SANS-FW-010 and SANS-FW-011, cannot be decided from config.xml and report Unknown.
 
 #### Implemented SANS Controls
 
