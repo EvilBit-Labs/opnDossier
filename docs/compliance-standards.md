@@ -208,12 +208,12 @@ The following controls are organized by security domain and represent the full p
 
 ##### Logging and Monitoring
 
-| Control ID   | Title                        | Severity | Implementability | Description                                                                                                                                                                          |
-| ------------ | ---------------------------- | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| FIREWALL-039 | Remote Syslog Configured     | High     | Full             | Logs forwarded to remote syslog/SIEM server (`Syslog.RemoteServer` non-empty)                                                                                                        |
-| FIREWALL-040 | Authentication Event Logging | Medium   | Full             | Auth logging enabled (`Syslog.AuthLogging`)                                                                                                                                          |
-| FIREWALL-041 | Firewall Filter Logging      | Medium   | Full             | Firewall filter logging enabled (`Syslog.FilterLogging`)                                                                                                                             |
-| FIREWALL-042 | Log Retention Configuration  | Low      | Full             | A local log size or archive limit is in effect, configured or the release default; fails while local logging is off; Unknown on pfSense (`Syslog.LogFileSize`, `Syslog.RotateCount`) |
+| Control ID   | Title                        | Severity | Implementability | Description                                                                                                                                                      |
+| ------------ | ---------------------------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIREWALL-039 | Remote Syslog Configured     | High     | Full             | Logs forwarded to remote syslog/SIEM server (`Syslog.RemoteServer` non-empty)                                                                                    |
+| FIREWALL-040 | Authentication Event Logging | Medium   | Full             | Auth logging enabled (`Syslog.AuthLogging`)                                                                                                                      |
+| FIREWALL-041 | Firewall Filter Logging      | Medium   | Full             | Firewall filter logging enabled (`Syslog.FilterLogging`)                                                                                                         |
+| FIREWALL-042 | Log Retention Configuration  | Info     | Full             | A local log size or archive limit is in effect, configured or the release default; fails while local logging is off (`Syslog.LogFileSize`, `Syslog.RotateCount`) |
 
 ##### Time Synchronization
 

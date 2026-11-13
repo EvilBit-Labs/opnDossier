@@ -312,12 +312,12 @@ func TestConverter_Syslog_LegacyLogAll(t *testing.T) {
 	assert.True(t, sl.AuthLogging)
 	assert.True(t, sl.SystemLogging)
 
-	// The template tests logall with helpers.empty, so 0 counts as set and only
-	// an empty element is unset.
+	// 19.7 tests logall with helpers.empty, which reads 0 and an empty element
+	// as unset.
 	sl, _ = parseSyslogConfig(t,
 		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall>0</logall></syslog>`)
 
-	assert.True(t, sl.FilterLogging)
+	assert.False(t, sl.FilterLogging)
 
 	sl, _ = parseSyslogConfig(t,
 		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall/></syslog>`)
@@ -499,8 +499,9 @@ func TestConverter_Syslog_Retention(t *testing.T) {
 
 // TestConverter_Syslog_NoRetentionReported leaves retention unset while no
 // local log is kept, and when a config without the Syslog model sets none:
-// syslog-ng-local.conf writes local logs only when loglocal is 1 from 24.7,
-// and up to 24.1 any <disablelocallogging>, 0 included, turns them off
+// syslog-ng-local.conf writes local logs only when loglocal is 1 from 24.7;
+// on 22.1 to 24.1 a <disablelocallogging> that helpers.empty reads as set
+// turns them off, and up to 21.7 any <disablelocallogging>, 0 included, does
 // (isset() in system.inc). Without the model the release, and so its
 // default, is unknown.
 func TestConverter_Syslog_NoRetentionReported(t *testing.T) {
@@ -516,6 +517,8 @@ func TestConverter_Syslog_NoRetentionReported(t *testing.T) {
 		"26.7 without loglocal":       strings.Replace(model103, "<loglocal>1</loglocal>", "", 1),
 		"24.1 disabled":               `<syslog><disablelocallogging>1</disablelocallogging><preservelogs>14</preservelogs></syslog>` + model101,
 		"1.0.0 empty element":         `<syslog><disablelocallogging/></syslog>` + model100,
+		"1.0.0 with 0 in it":          `<syslog><disablelocallogging>0</disablelocallogging></syslog>` + model100,
+		"no model empty element":      `<syslog><disablelocallogging/><logfilesize>512000</logfilesize></syslog>`,
 		"no model invents no default": `<syslog><nologdefaultblock>1</nologdefaultblock></syslog>`,
 		"no model with 0 in it":       `<syslog><disablelocallogging>0</disablelocallogging><logfilesize>512000</logfilesize></syslog>`,
 	}
@@ -528,6 +531,61 @@ func TestConverter_Syslog_NoRetentionReported(t *testing.T) {
 
 			assert.Empty(t, sl.RotateCount)
 			assert.Empty(t, sl.LogFileSize)
+		})
+	}
+}
+
+// TestConverter_Syslog_LegacyFlagsReadAsTheReleaseDoes pins the flags that
+// helpers.empty or PHP empty() read: an empty element and 0 are unset there,
+// unlike the isset() tests of 21.7 and earlier.
+func TestConverter_Syslog_LegacyFlagsReadAsTheReleaseDoes(t *testing.T) {
+	t.Parallel()
+
+	model101 := `<OPNsense><Syslog version="1.0.1"><general><enabled>1</enabled></general>` +
+		`<destinations/></Syslog></OPNsense>`
+	model100 := strings.Replace(model101, "1.0.1", "1.0.0", 1)
+
+	tests := []struct {
+		name         string
+		inner        string
+		wantRotate   string
+		wantFileSize string
+	}{
+		{
+			name:       "24.1 disablelocallogging 0 keeps local logs",
+			inner:      `<syslog><disablelocallogging>0</disablelocallogging></syslog>` + model101,
+			wantRotate: "31",
+		},
+		{
+			name:       "24.1 empty disablelocallogging keeps local logs",
+			inner:      `<syslog><disablelocallogging/></syslog>` + model101,
+			wantRotate: "31",
+		},
+		{
+			name:       "24.1 disablelocallogging 0 with spaces keeps local logs",
+			inner:      `<syslog><disablelocallogging> 0 </disablelocallogging></syslog>` + model101,
+			wantRotate: "31",
+		},
+		{
+			name:         "1.0.0 disable_clog 0 keeps circular logs",
+			inner:        `<syslog><disable_clog>0</disable_clog></syslog>` + model100,
+			wantFileSize: "511488",
+		},
+		{
+			name:         "1.0.0 empty disable_clog keeps circular logs",
+			inner:        `<syslog><disable_clog/></syslog>` + model100,
+			wantFileSize: "511488",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sl, _ := parseSyslogConfig(t, tt.inner)
+
+			assert.Equal(t, tt.wantRotate, sl.RotateCount)
+			assert.Equal(t, tt.wantFileSize, sl.LogFileSize)
 		})
 	}
 }

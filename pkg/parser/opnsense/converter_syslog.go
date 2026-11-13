@@ -126,7 +126,7 @@ func (c *converter) applySyslogRetention(cfg *common.SyslogConfig, legacy *schem
 		if legacy.DisableLocalLogging != nil {
 			return
 		}
-		clogOff := templateFlagSet(legacy.DisableClog)
+		clogOff := modelFlagSet(legacy.DisableClog)
 		if !clogOff {
 			cfg.LogFileSize = cmp.Or(legacy.LogFilesize, syslogClogDefaultSize)
 		}
@@ -136,7 +136,9 @@ func (c *converter) applySyslogRetention(cfg *common.SyslogConfig, legacy *schem
 		}
 	case syslogLegacyEra:
 		c.warnOnStaleSyslogRetention("logfilesize", legacy.LogFilesize, "")
-		if legacy.DisableLocalLogging != nil {
+		// 22.1 to 24.1 gate local logs in syslog-ng-local.conf, whose
+		// helpers.empty reads an empty element and 0 as unset.
+		if legacy.DisableLocalLogging != nil && templateFlagSet(*legacy.DisableLocalLogging) {
 			return
 		}
 		cfg.RotateCount = cmp.Or(legacy.PreserveLogs, syslogArchiveDefault)
@@ -157,10 +159,10 @@ func (c *converter) applySyslogRetention(cfg *common.SyslogConfig, legacy *schem
 }
 
 // templateFlagSet reads a legacy flag the way the syslog templates do: their
-// helpers.empty treats an absent or empty element as unset and any other
-// text, 0 included, as set.
+// helpers.empty treats an absent element, and one that holds nothing or 0
+// once trimmed, as unset (template_helpers.py).
 func templateFlagSet(value string) bool {
-	return value != ""
+	return modelFlagSet(strings.TrimSpace(value))
 }
 
 // warnOnStaleSyslogRetention reports a legacy retention key the release does
@@ -217,7 +219,9 @@ func applyLegacySyslogRemote(cfg *common.SyslogConfig, sl *schema.Syslog) {
 	cfg.IPProtocol = sl.IPProtocol
 
 	// logall sent every message to the servers, whatever the category flags.
-	if templateFlagSet(sl.LogAll) {
+	// 19.7 tests it with helpers.empty, which reads 0 as unset; 19.1 used
+	// isset().
+	if modelFlagSet(sl.LogAll) {
 		setAllSyslogCategories(cfg)
 	}
 }

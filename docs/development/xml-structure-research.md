@@ -335,8 +335,8 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | MonitService  | Enabled      | `string` | MVC field, value-based                      |
 | Syslog        | PreserveLogs | `string` | Daily archives kept, 20.7 to 24.1           |
 | Syslog        | MaxFileSize  | `string` | MB; 24.1, then the model's maxfilesize      |
-| Syslog        | DisableClog  | `string` | Template helpers.empty: 0 counts as set     |
-| Syslog        | LogAll       | `string` | Template helpers.empty: 0 counts as set     |
+| Syslog        | DisableClog  | `string` | empty() and helpers.empty: 0 reads unset    |
+| Syslog        | LogAll       | `string` | 19.7 helpers.empty: 0 reads unset           |
 
 ### 5c. OPNsense module (opnsense.go) — value-based, kept as string
 
@@ -480,7 +480,7 @@ Gateways use a chosen store, not a merge. OPNsense 24.1 migration `M1_0_0` copie
 
 The model writes its flags as `0` or `1` where the 23.7 page wrote `1` or left the element out. From 24.1 `defaultgw` and `monitor_disable` read with `!empty()` in both stores. `monitor_disable` is a `*string` because an absent element means `1` in the model and `0` under `<gateways>`. `fargw` reads with `isset()` up to 24.1.7 and `!empty()` from 24.1.8. From 24.1 `disabled` reads with `!empty()` in both stores too. In the model it is a `*string` on `GatewayModelItem`, read the same way; under `<gateways>` it stays a `BoolFlag`, on a type pfSense shares.
 
-Remote logging uses a chosen store as well. From 20.1 OPNsense forwards only to `<OPNsense><Syslog><destinations>`; 19.7 also read the remote keys under `<syslog>`, and no migration removes them. The converter reads the destinations whenever the config carries the model, and the legacy keys, as written, only when it does not, warning when it ignores a legacy server. Retention follows the model version: the legacy keys up to 1.0.1, which the converter reads with the defaults the release applies, and `<general>` from 1.0.2, which migration `M1_0_2` fills from them. Local logging gates it: `<syslog><disablelocallogging>`, tested with `isset()` and bound as a `*string`, up to 1.0.1, and `<general><loglocal>` from 1.0.2. Without the model the release is unknown, since a config of any release lacks the node until something saves it, so no default is filled in.
+Remote logging uses a chosen store as well. From 20.1 OPNsense forwards only to `<OPNsense><Syslog><destinations>`; 19.7 also read the remote keys under `<syslog>`, and no migration removes them. The converter reads the destinations whenever the config carries the model, and the legacy keys, as written, only when it does not, warning when it ignores a legacy server. Retention follows the model version: the legacy keys up to 1.0.1, which the converter reads with the defaults the release applies, and `<general>` from 1.0.2, which migration `M1_0_2` fills from them. Local logging gates it: `<syslog><disablelocallogging>`, bound as a `*string`, tested with `isset()` up to 21.7 and, for model 1.0.1 (22.1 to 24.1), with `helpers.empty` in `syslog-ng-local.conf`, which reads an empty element and `0` as unset; and `<general><loglocal>` from 1.0.2. Without the model the release is unknown, since a config of any release lacks the node until something saves it, so no default is filled in.
 
 ---
 
