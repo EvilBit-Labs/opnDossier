@@ -59,7 +59,8 @@ The security score provides a 0-100 rating based on configuration analysis. Ever
 | Management on WAN        | -30      | Exposing management interfaces (SSH, HTTP, HTTPS) to the internet is the single most common way firewalls get compromised. Attackers scan for these ports continuously. Even with strong credentials, the attack surface is unnecessary. |
 | Insecure Sysctl Settings | -5 each  | Kernel tunables control low-level network behavior. Misconfigured tunables can allow IP spoofing, enable packet forwarding when it should be disabled, or make the firewall respond to port scans.                                       |
 | Default User Accounts    | -15 each | Default accounts (`admin`, `root`, `user`) with unchanged names are predictable targets for brute-force attacks. Renaming or removing default accounts is a basic hardening step.                                                        |
-| Packet Filter Disabled   | Cap 50   | Packet filtering is off, so no rule loads and every service is reachable from the WAN: the two penalties above apply in full, once. The score before the sysctl and user penalties is at most 50.                                        |
+
+With packet filtering disabled the firewall loads no rule and every service is reachable from the WAN, so the No Firewall Rules and Management on WAN penalties apply in full, counted once: the score before the sysctl and user penalties is at most 50.
 
 ### Interpreting the Score
 

@@ -20,18 +20,6 @@ Firewall compliance checks use a three-state `checkResult` pattern:
 
 The "Unknown" state prevents false positives. Some settings (e.g., SSH banners, MOTD) are OS-level configurations stored outside `config.xml` and cannot be assessed from the exported configuration alone. When a check returns Unknown, opnDossier does not report a finding rather than guessing.
 
-### Packet Filtering Disabled
-
-When `<system><disablefilter>` ("Disable all packet filtering") is set, the firewall loads no rule, block option or NAT. Each plugin then reports the controls below as non-compliant with a "Packet Filtering Disabled" finding, whatever their own checks found, because a pass verdict on any of them means pf restricts, separates, inspects, logs or translates traffic. A control that already fails keeps its own finding. Every other control is evaluated as usual.
-
-| Plugin   | Controls that fail with packet filtering disabled                                                                                                   |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Firewall | FIREWALL-022, -023, -024, -027, -028, -029, -030, -032, -041                                                                                        |
-| SANS     | SANS-FW-001, -002, -003, -007, -009, -012, -014, -015, -017 to -022, -024; SANS-FW-016 only when the config holds an FTP port forward, else Unknown |
-| STIG     | V-206694, V-206674, V-206701, V-206682                                                                                                              |
-
-The shared engine also raises a critical "Packet Filtering Disabled" finding, which red mode reports as an exposed weakness, and red mode reports every management service as reachable from the WAN.
-
 ## Supported Standards
 
 ### STIG (Security Technical Implementation Guide)
@@ -348,6 +336,18 @@ All four SANS checks currently use placeholder logic:
 7. **DNS Rebind Check (FIREWALL-007)** - Always returns Unknown. The CommonDevice model does not yet expose this setting (tracked in [#296](https://github.com/EvilBit-Labs/opnDossier/issues/296)).
 
 8. **HTTPS Web Management (FIREWALL-008)** - Checks `System.WebGUI.Protocol` for case-insensitive match against "https".
+
+### Packet Filtering Disabled
+
+When `<system><disablefilter>` ("Disable all packet filtering") is set, the firewall loads no rule, block option or NAT. Each plugin then reports the controls below as non-compliant with a "Packet Filtering Disabled" finding, whatever their own checks found, because a pass verdict on any of them means pf restricts, separates, inspects, logs or translates traffic. A control that already fails keeps its own finding. Every other control is evaluated as usual.
+
+| Plugin   | Controls that fail with packet filtering disabled                                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Firewall | FIREWALL-022, -023, -024, -027, -028, -029, -030, -032, -041                                                                                        |
+| SANS     | SANS-FW-001, -002, -003, -007, -009, -012, -014, -015, -017 to -022, -024; SANS-FW-016 only when the config holds an FTP port forward, else Unknown |
+| STIG     | V-206694, V-206674, V-206701, V-206682                                                                                                              |
+
+The shared engine also raises a critical "Packet Filtering Disabled" finding, which red mode reports as an exposed weakness, and red mode reports every management service as reachable from the WAN.
 
 ### Blue Team Reports
 
