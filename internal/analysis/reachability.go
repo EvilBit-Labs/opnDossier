@@ -247,8 +247,8 @@ func RuleReachability(rule common.FirewallRule, device *common.CommonDevice) Rea
 //
 // A NAT rule is WAN-reachable only when it is enabled, applies to a WAN
 // interface or an interface group with a WAN member, AND at least one enabled
-// pass rule in device.FirewallRules also applies to one. NAT presence alone —
-// with no matching enabled pass rule — is never WAN-reachable: OPNsense and
+// pass rule in device.FirewallRules also applies to one. NAT presence alone,
+// with no matching enabled pass rule, is never WAN-reachable: OPNsense and
 // pfSense both require an explicit pass rule (or an auto-added "filter rule
 // association") to actually allow the forwarded traffic through the firewall;
 // a port-forward with no corresponding pass rule is inert.
