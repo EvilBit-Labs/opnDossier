@@ -306,7 +306,9 @@ type UnboundConfig struct {
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// DNSSEC enables DNSSEC validation.
 	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
-	// DNSSECStripped enables DNSSEC stripped mode.
+	// DNSSECStripped is "Harden DNSSEC Data": Unbound runs with
+	// harden-dnssec-stripped, so it refuses an answer for a signed zone that
+	// arrives with its DNSSEC records removed. It is the secure setting.
 	DNSSECStripped bool `json:"dnssecStripped,omitempty" yaml:"dnssecStripped,omitempty"`
 
 	// -- MVC <OPNsense><unboundplus><advanced> --

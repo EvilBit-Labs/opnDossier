@@ -343,7 +343,7 @@ DHCP scopes are a flat array with one entry per interface.
 | ---------------- | ------ | ---------------------------- | ------------------------- |
 | `Enabled`        | `bool` | `dns.unbound.enabled`        | Unbound resolver active   |
 | `DNSSEC`         | `bool` | `dns.unbound.dnssec`         | DNSSEC validation enabled |
-| `DNSSECStripped` | `bool` | `dns.unbound.dnssecStripped` | DNSSEC stripped mode      |
+| `DNSSECStripped` | `bool` | `dns.unbound.dnssecStripped` | Harden DNSSEC data on     |
 
 ### DNS (dnsmasq)
 
