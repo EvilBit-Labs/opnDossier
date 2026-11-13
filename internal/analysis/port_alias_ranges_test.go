@@ -1,6 +1,7 @@
 package analysis_test
 
 import (
+	"cmp"
 	"context"
 	"strings"
 	"testing"
@@ -200,12 +201,29 @@ func TestDetectShadowedRules_DisabledPortAlias(t *testing.T) {
 	tests := []struct {
 		name        string
 		port0       string
+		port1       string
 		innerEnable string
 		outerEnable string
 		wantShadow  bool
 	}{
 		{name: "disabled alias", port0: "Inner", innerEnable: "0", outerEnable: "1"},
 		{name: "disabled alias nested in an enabled one", port0: "Outer", innerEnable: "0", outerEnable: "1"},
+		{
+			name:  "disabled alias above an any-port block",
+			port0: "Inner", port1: "any", innerEnable: "0", outerEnable: "0",
+		},
+		{
+			name:  "pass above a block to a disabled alias",
+			port0: "8050", port1: "Inner", innerEnable: "0", outerEnable: "0",
+		},
+		{
+			name:  "any-port pass above a block to a disabled alias",
+			port0: "any", port1: "Inner", innerEnable: "0", outerEnable: "0",
+		},
+		{
+			name:  "any-port pass above a block to an enabled alias",
+			port0: "any", port1: "Inner", innerEnable: "1", outerEnable: "0", wantShadow: true,
+		},
 		{
 			name:        "enabled alias nested in an enabled one",
 			port0:       "Outer",
@@ -237,8 +255,8 @@ Inner</content><description>outer</description>
 			xmlData := strings.NewReplacer(
 				"{{ACTION0}}", "pass",
 				"{{ACTION1}}", "block",
-				"{{PORT0}}", tt.port0,
-				"{{PORT1}}", "8050",
+				"{{PORT0}}", portOrAny(tt.port0),
+				"{{PORT1}}", portOrAny(cmp.Or(tt.port1, "8050")),
 			).Replace(config)
 
 			factory := parser.NewFactory(cfgparser.NewXMLParser())
@@ -252,6 +270,41 @@ Inner</content><description>outer</description>
 			assert.Equal(t, tt.wantShadow, ok)
 		})
 	}
+}
+
+// TestDetectShadowedRules_EmptyPortAlias pins that a block to an enabled
+// port alias with no members, which the ruleset does not load, is shadowed by
+// nothing, not even an any-port pass.
+func TestDetectShadowedRules_EmptyPortAlias(t *testing.T) {
+	t.Parallel()
+
+	xmlData := strings.NewReplacer(
+		"{{CONTENT}}", "",
+		"{{ACTION0}}", "pass",
+		"{{ACTION1}}", "block",
+		"{{PORT0}}", "",
+		"{{PORT1}}", "Ports",
+	).Replace(portAliasOPNsenseConfig)
+
+	factory := parser.NewFactory(cfgparser.NewXMLParser())
+	device, _, err := factory.CreateDevice(
+		context.Background(), strings.NewReader(xmlData), common.DeviceTypeOPNsense, false,
+	)
+	require.NoError(t, err)
+	require.Empty(t, device.NamedObjects["Ports"].Members)
+
+	_, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
+	assert.False(t, ok)
+}
+
+// portOrAny maps the "any" of a test table to the empty port element, the
+// any-port form the filter model writes.
+func portOrAny(port string) string {
+	if port == "any" {
+		return ""
+	}
+
+	return port
 }
 
 // TestDetectShadowedRules_UnreadablePortWording pins the advisory text when
@@ -288,6 +341,47 @@ func TestDetectShadowedRules_UnreadablePortWording(t *testing.T) {
 			assert.Equal(t, common.ConfidenceLow, finding.Confidence)
 			assert.True(t, strings.HasPrefix(finding.Description, "(unconfirmed, unreadable port value)"))
 			assert.NotContains(t, finding.Recommendation, "alias")
+		})
+	}
+}
+
+// TestDetectShadowedRules_MixedCausesNameTheAlias pins that an advisory with
+// both an unresolved alias and an unreadable value behind it keeps the alias
+// wording: the value text is only for a pair where every alias resolved. The
+// alias names itself, which is a cycle, beside a service name the analysis
+// does not know. Both paths are covered: the advisory scan, where nothing
+// readable overlaps, and a confirmed overlap whose readable part covers the
+// block.
+func TestDetectShadowedRules_MixedCausesNameTheAlias(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{name: "advisory", content: "syslog\nPorts"},
+		{name: "readable part covers the block", content: "8000:8100\nsyslog\nPorts"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			xmlData := strings.NewReplacer(
+				"{{CONTENT}}", tt.content,
+				"{{ACTION0}}", "pass",
+				"{{ACTION1}}", "block",
+				"{{PORT0}}", "Ports",
+				"{{PORT1}}", "8050",
+			).Replace(portAliasOPNsenseConfig)
+
+			device := parsePortAliasDevice(t, xmlData, common.DeviceTypeOPNsense)
+
+			finding, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
+			require.True(t, ok)
+			assert.Equal(t, common.ConfidenceLow, finding.Confidence)
+			assert.NotContains(t, finding.Description, "unreadable port value")
+			assert.Contains(t, finding.Recommendation, "alias")
 		})
 	}
 }

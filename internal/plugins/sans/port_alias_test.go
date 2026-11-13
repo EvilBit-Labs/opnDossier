@@ -388,75 +388,7 @@ type sansLiteralRule struct {
 func TestSANSChecks_LiteralPorts(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		a, b sansLiteralRule
-		want map[string]string
-	}{
-		{
-			name: "telnet as the source port on WAN",
-			a:    sansLiteralRule{iface: "wan", sport: "23", dst: "any", port: "8443"},
-			want: map[string]string{"SANS-FW-014": statusFail},
-		},
-		{
-			name: "DNS on WAN from any source",
-			a:    sansLiteralRule{iface: "wan", dst: "any", port: "53"},
-			want: map[string]string{"SANS-FW-020": statusFail},
-		},
-		{
-			name: "DNS on WAN from one source",
-			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "53"},
-			want: map[string]string{"SANS-FW-020": statusPass},
-		},
-		{
-			name: "a range holding DNS on WAN from any source",
-			a:    sansLiteralRule{iface: "wan", dst: "any", port: "50-60"},
-			want: map[string]string{"SANS-FW-020": statusFail},
-		},
-		{
-			name: "SMTPS to any destination",
-			a:    sansLiteralRule{dst: "any", port: "465"},
-			want: map[string]string{"SANS-FW-017": statusFail},
-		},
-		{
-			name: "a range holding telnet and SMTP",
-			a:    sansLiteralRule{dst: "any", port: "20-25"},
-			want: map[string]string{"SANS-FW-015": statusFail, "SANS-FW-017": statusFail},
-		},
-		{
-			name: "every port written as a range on LAN",
-			a:    sansLiteralRule{dst: "any", port: "1-65535"},
-			want: map[string]string{},
-		},
-		{
-			name: "every port written from zero on LAN",
-			a:    sansLiteralRule{dst: "any", port: "0-65535"},
-			want: map[string]string{},
-		},
-		{
-			name: "every port written as a range on WAN still names the dangerous ones",
-			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "1-65535"},
-			want: map[string]string{"SANS-FW-014": statusFail},
-		},
-		{
-			name: "a range of two service names on WAN",
-			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "http-https"},
-			want: map[string]string{"SANS-FW-014": statusFail},
-		},
-		{
-			name: "a restricted SMTP rule decides SANS-FW-017",
-			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
-			want: map[string]string{"SANS-FW-017": statusPass},
-		},
-		{
-			name: "an unreadable rule to any destination leaves SANS-FW-017 undecided",
-			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
-			b:    sansLiteralRule{dst: "any", port: "syslog"},
-			want: map[string]string{"SANS-FW-015": statusUnknown, "SANS-FW-017": statusUnknown},
-		},
-	}
-
-	for _, tt := range tests {
+	for _, tt := range sansLiteralPortCases() {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -505,5 +437,91 @@ func TestSANSChecks_LiteralPorts(t *testing.T) {
 				assert.Equal(t, want, got[id], id)
 			}
 		})
+	}
+}
+
+// sansLiteralPortCase is one row of TestSANSChecks_LiteralPorts.
+type sansLiteralPortCase struct {
+	name string
+	a, b sansLiteralRule
+	want map[string]string
+}
+
+// sansLiteralPortCases lists the rows of TestSANSChecks_LiteralPorts, kept
+// apart so the test function stays readable.
+func sansLiteralPortCases() []sansLiteralPortCase {
+	return []sansLiteralPortCase{
+		{
+			name: "telnet as the source port on WAN",
+			a:    sansLiteralRule{iface: "wan", sport: "23", dst: "any", port: "8443"},
+			want: map[string]string{"SANS-FW-014": statusFail},
+		},
+		{
+			name: "DNS on WAN from any source",
+			a:    sansLiteralRule{iface: "wan", dst: "any", port: "53"},
+			want: map[string]string{"SANS-FW-020": statusFail},
+		},
+		{
+			name: "DNS on WAN from one source",
+			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "53"},
+			want: map[string]string{"SANS-FW-020": statusPass},
+		},
+		{
+			name: "a range holding DNS on WAN from any source",
+			a:    sansLiteralRule{iface: "wan", dst: "any", port: "50-60"},
+			want: map[string]string{"SANS-FW-020": statusFail},
+		},
+		{
+			name: "MS RPC on WAN",
+			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "135"},
+			want: map[string]string{"SANS-FW-014": statusFail},
+		},
+		{
+			name: "SMTPS to any destination",
+			a:    sansLiteralRule{dst: "any", port: "465"},
+			want: map[string]string{"SANS-FW-017": statusFail},
+		},
+		{
+			name: "a range holding telnet and SMTP",
+			a:    sansLiteralRule{dst: "any", port: "20-25"},
+			want: map[string]string{"SANS-FW-015": statusFail, "SANS-FW-017": statusFail},
+		},
+		{
+			name: "every port written as a range on LAN",
+			a:    sansLiteralRule{dst: "any", port: "1-65535"},
+			want: map[string]string{},
+		},
+		{
+			name: "every port written from zero on LAN",
+			a:    sansLiteralRule{dst: "any", port: "0-65535"},
+			want: map[string]string{},
+		},
+		{
+			name: "every port written as a range on WAN still names the dangerous ones",
+			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "1-65535"},
+			want: map[string]string{"SANS-FW-014": statusFail},
+		},
+		{
+			name: "a range of two service names on WAN",
+			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "http-https"},
+			want: map[string]string{"SANS-FW-014": statusFail},
+		},
+		{
+			name: "a restricted SMTP rule decides SANS-FW-017",
+			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
+			want: map[string]string{"SANS-FW-017": statusPass},
+		},
+		{
+			name: "an unreadable rule to one host leaves SANS-FW-017 decided",
+			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
+			b:    sansLiteralRule{dst: "192.168.1.26", port: "syslog"},
+			want: map[string]string{"SANS-FW-015": statusUnknown, "SANS-FW-017": statusPass},
+		},
+		{
+			name: "an unreadable rule to any destination leaves SANS-FW-017 undecided",
+			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
+			b:    sansLiteralRule{dst: "any", port: "syslog"},
+			want: map[string]string{"SANS-FW-015": statusUnknown, "SANS-FW-017": statusUnknown},
+		},
 	}
 }

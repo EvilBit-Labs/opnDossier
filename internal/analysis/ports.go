@@ -138,6 +138,12 @@ func (v portValues) complete() bool {
 	return v.cause == 0
 }
 
+// matchesNothing reports whether the set was read in full and holds no port,
+// as a disabled or empty port alias does.
+func (v portValues) matchesNothing() bool {
+	return v.complete() && !v.every && len(v.ranges) == 0
+}
+
 // resolvePorts reads the ports an endpoint matches. A literal port is parsed
 // as a rule port. A port alias is expanded as the ruleset loader expands it
 // (filter.lib.inc filter_core_get_port_alias): a disabled alias, at any depth,

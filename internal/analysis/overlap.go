@@ -89,21 +89,30 @@ func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Cover
 	dstPortCov, dstPortCause := portCoverage(earlier.Destination, later.Destination, no)
 	protoCov := protocolCoverage(earlier.Protocol, later.Protocol)
 
+	// proven says a CoverNone in that dimension shows the rules cannot
+	// overlap. Ports read in full and single protocols are compared exactly;
+	// protocolCoverage reads tcp/udp against tcp as CoverNone although the
+	// two overlap, so a combined protocol proves nothing. An address
+	// CoverNone is proof only when both sides are literal addresses or
+	// networks: addressRelation also returns CoverNone for values it cannot
+	// compare, such as an interface network like lan, (self), a hostname or
+	// a negated endpoint.
 	dims := []struct {
-		cov   Coverage
-		cause blockCause
+		cov    Coverage
+		cause  blockCause
+		proven bool
 	}{
-		{srcAddrCov, aliasCause(srcAddrBlocked)},
-		{dstAddrCov, aliasCause(dstAddrBlocked)},
-		{srcPortCov, srcPortCause},
-		{dstPortCov, dstPortCause},
-		{protoCov, 0},
+		{srcAddrCov, aliasCause(srcAddrBlocked), addressesComparable(earlier.Source, later.Source, no)},
+		{dstAddrCov, aliasCause(dstAddrBlocked), addressesComparable(earlier.Destination, later.Destination, no)},
+		{srcPortCov, srcPortCause, true},
+		{dstPortCov, dstPortCause, true},
+		{protoCov, 0, singleProtocol(earlier.Protocol) && singleProtocol(later.Protocol)},
 	}
 
 	var cause blockCause
 
 	for _, d := range dims {
-		if d.cov == CoverNone && d.cause == 0 {
+		if d.cov == CoverNone && d.cause == 0 && d.proven {
 			return CoverNone, 0
 		}
 
@@ -119,6 +128,36 @@ func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Cover
 	}
 
 	return raw, cause
+}
+
+// addressesComparable reports whether every address both endpoints resolve
+// to is a literal IP address or network and neither endpoint is negated, so
+// that addressRelation's answer for the pair is exact.
+func addressesComparable(a, b common.RuleEndpoint, no common.NamedObjects) bool {
+	if a.Negated || b.Negated {
+		return false
+	}
+
+	for _, ep := range []common.RuleEndpoint{a, b} {
+		vals, blocked := resolveAddressValues(ep, no)
+		if blocked {
+			return false
+		}
+
+		for _, v := range vals {
+			if _, err := ParsePrefixOrAddr(v); err != nil {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// singleProtocol reports whether p names one protocol, not a combination
+// such as tcp/udp.
+func singleProtocol(p string) bool {
+	return !strings.Contains(p, "/")
 }
 
 // aliasCause maps an address dimension's blocked flag to its cause.
@@ -379,6 +418,14 @@ type portRange struct {
 func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (Coverage, blockCause) {
 	earlierVals := resolvePorts(earlier, no)
 	laterVals := resolvePorts(later, no)
+
+	// A set read in full that holds no port matches no traffic: a disabled
+	// alias loads as { 0 <> 65535 } (filter.inc L607-L611), and the ruleset
+	// skips a rule whose port alias has no content (Rule.php). Such a rule
+	// neither covers another nor is covered by one, any-port rules included.
+	if earlierVals.matchesNothing() || laterVals.matchesNothing() {
+		return CoverNone, 0
+	}
 
 	if earlierVals.every {
 		return CoverFull, 0

@@ -182,9 +182,15 @@ func TestPortCoverage_PartialSets(t *testing.T) {
 	objects := common.NamedObjects{
 		"Odd":  {Name: "Odd", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
 		"Feed": {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
+		"Off": {
+			Name: "Off", Type: common.NamedObjectTypePort, Members: []string{"23"}, Disabled: true,
+		},
+		"Empty": {Name: "Empty", Type: common.NamedObjectTypePort},
 	}
 	odd := common.RuleEndpoint{Port: "Odd", PortRef: &common.ObjectRef{Name: "Odd"}}
 	feed := common.RuleEndpoint{Port: "Feed", PortRef: &common.ObjectRef{Name: "Feed"}}
+	off := common.RuleEndpoint{Port: "Off", PortRef: &common.ObjectRef{Name: "Off"}}
+	empty := common.RuleEndpoint{Port: "Empty", PortRef: &common.ObjectRef{Name: "Empty"}}
 
 	tests := []struct {
 		name      string
@@ -235,6 +241,27 @@ func TestPortCoverage_PartialSets(t *testing.T) {
 			want:    CoverFull,
 		},
 		{name: "any port covers a set known in part", earlier: common.RuleEndpoint{}, later: odd, want: CoverFull},
+		{
+			name:    "a disabled alias is covered by nothing",
+			earlier: common.RuleEndpoint{Port: "23"},
+			later:   off,
+			want:    CoverNone,
+		},
+		{
+			name:    "a disabled alias is not covered by any port",
+			earlier: common.RuleEndpoint{},
+			later:   off,
+			want:    CoverNone,
+		},
+		{
+			name:    "a disabled alias covers nothing",
+			earlier: off,
+			later:   common.RuleEndpoint{Port: "23"},
+			want:    CoverNone,
+		},
+		{name: "a disabled alias does not cover any port", earlier: off, later: common.RuleEndpoint{}, want: CoverNone},
+		{name: "an empty alias is covered by nothing", earlier: common.RuleEndpoint{}, later: empty, want: CoverNone},
+		{name: "an empty alias covers nothing", earlier: empty, later: feed, want: CoverNone},
 	}
 
 	for _, tt := range tests {
@@ -249,42 +276,98 @@ func TestPortCoverage_PartialSets(t *testing.T) {
 	}
 }
 
-// TestCoverage_DisjointDimensionWins pins that a dimension proven
+// TestCoverage_DisjointDimensionWins pins that only a dimension proven
 // disjoint outweighs a blocked one: a pass to an unreadable port over a block
-// on another protocol or another host raises no advisory.
+// on another single protocol or another literal host raises no advisory, but
+// an address the analysis cannot compare, such as an interface network, a
+// negated network, (self) or a hostname, or a combined protocol, proves
+// nothing and leaves the advisory standing.
 func TestCoverage_DisjointDimensionWins(t *testing.T) {
 	t.Parallel()
 
-	pass := common.FirewallRule{
-		Type: common.RuleTypePass, Protocol: "tcp",
-		Destination: common.RuleEndpoint{Address: "10.0.0.1", Port: "no-such-service"},
+	objects := common.NamedObjects{
+		"Feed":  {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
+		"LoopA": {Name: "LoopA", Type: common.NamedObjectTypePort, Members: []string{"LoopB"}},
+		"LoopB": {Name: "LoopB", Type: common.NamedObjectTypePort, Members: []string{"LoopA"}},
 	}
+	alias := func(name string) common.RuleEndpoint {
+		return common.RuleEndpoint{Port: name, PortRef: &common.ObjectRef{Name: name}}
+	}
+	withAddress := func(ep common.RuleEndpoint, address string) common.RuleEndpoint {
+		ep.Address = address
+		return ep
+	}
+	pass := func(proto string, src, dst common.RuleEndpoint) common.FirewallRule {
+		return common.FirewallRule{Type: common.RuleTypePass, Protocol: proto, Source: src, Destination: dst}
+	}
+	block := func(proto string, src, dst common.RuleEndpoint) common.FirewallRule {
+		return common.FirewallRule{Type: common.RuleTypeBlock, Protocol: proto, Source: src, Destination: dst}
+	}
+	unreadable := common.RuleEndpoint{Address: "10.0.0.1", Port: "no-such-service"}
+	host := common.RuleEndpoint{Address: "10.0.0.1", Port: "8050"}
+	client := common.RuleEndpoint{Address: "192.168.1.50"}
 
 	tests := []struct {
 		name      string
-		block     common.FirewallRule
+		earlier   common.FirewallRule
+		later     common.FirewallRule
 		wantCause blockCause
 	}{
 		{
-			name: "other protocol",
-			block: common.FirewallRule{
-				Type: common.RuleTypeBlock, Protocol: "udp",
-				Destination: common.RuleEndpoint{Address: "10.0.0.1", Port: "8050"},
-			},
+			name:    "other protocol",
+			earlier: pass("tcp", common.RuleEndpoint{}, unreadable),
+			later:   block("udp", common.RuleEndpoint{}, host),
 		},
 		{
-			name: "other host",
-			block: common.FirewallRule{
-				Type: common.RuleTypeBlock, Protocol: "tcp",
-				Destination: common.RuleEndpoint{Address: "10.0.0.2", Port: "8050"},
-			},
+			name:    "other literal host",
+			earlier: pass("tcp", common.RuleEndpoint{}, unreadable),
+			later:   block("tcp", common.RuleEndpoint{}, withAddress(host, "10.0.0.2")),
 		},
 		{
-			name: "same protocol and host",
-			block: common.FirewallRule{
-				Type: common.RuleTypeBlock, Protocol: "tcp",
-				Destination: common.RuleEndpoint{Address: "10.0.0.1", Port: "8050"},
-			},
+			name:    "other literal network",
+			earlier: pass("tcp", common.RuleEndpoint{Address: "10.0.0.0/8"}, unreadable),
+			later:   block("tcp", client, host),
+		},
+		{
+			name:      "same protocol and host",
+			earlier:   pass("tcp", common.RuleEndpoint{}, unreadable),
+			later:     block("tcp", common.RuleEndpoint{}, host),
+			wantCause: causeValue,
+		},
+		{
+			name:      "interface network as the source",
+			earlier:   pass("tcp", common.RuleEndpoint{Address: "lan"}, withAddress(alias("Feed"), "10.0.0.1")),
+			later:     block("tcp", client, withAddress(host, "10.0.0.1")),
+			wantCause: causeAlias,
+		},
+		{
+			name:      "interface network beside a cyclic alias",
+			earlier:   pass("tcp", common.RuleEndpoint{Address: "lan"}, withAddress(alias("LoopA"), "10.0.0.1")),
+			later:     block("tcp", client, host),
+			wantCause: causeAlias,
+		},
+		{
+			name:      "negated network as the source",
+			earlier:   pass("tcp", common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true}, unreadable),
+			later:     block("tcp", client, host),
+			wantCause: causeValue,
+		},
+		{
+			name:      "the firewall itself as the destination",
+			earlier:   pass("tcp", common.RuleEndpoint{}, withAddress(unreadable, "(self)")),
+			later:     block("tcp", common.RuleEndpoint{}, host),
+			wantCause: causeValue,
+		},
+		{
+			name:      "hostname as the destination",
+			earlier:   pass("tcp", common.RuleEndpoint{}, withAddress(unreadable, "fw.example.org")),
+			later:     block("tcp", common.RuleEndpoint{}, host),
+			wantCause: causeValue,
+		},
+		{
+			name:      "combined protocol",
+			earlier:   pass("tcp/udp", common.RuleEndpoint{}, unreadable),
+			later:     block("tcp", common.RuleEndpoint{}, host),
 			wantCause: causeValue,
 		},
 	}
@@ -293,7 +376,7 @@ func TestCoverage_DisjointDimensionWins(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, cause := coverage(pass, tt.block, nil)
+			got, cause := coverage(tt.earlier, tt.later, objects)
 
 			assert.Equal(t, CoverNone, got)
 			assert.Equal(t, tt.wantCause, cause)
