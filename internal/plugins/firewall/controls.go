@@ -285,7 +285,7 @@ func newControlDefinitions() []compliance.Control {
 		{
 			ID:          "FIREWALL-036",
 			Title:       "Valid Web GUI Certificate",
-			Description: "Web GUI should have a valid TLS certificate configured",
+			Description: "Web GUI should serve a certificate issued by a trusted or internal CA, not a self-signed one",
 			Category:    "Encryption",
 			Severity:    "medium",
 			Rationale:   "A valid certificate ensures encrypted management traffic and prevents MITM attacks",

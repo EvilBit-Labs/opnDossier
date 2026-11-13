@@ -175,9 +175,9 @@ func (fp *Plugin) newChecksTable() []newCheckEntry {
 		{
 			controlID:      "FIREWALL-036",
 			checkFn:        (*Plugin).checkValidWebGUICertificate,
-			title:          "No Web GUI Certificate",
-			description:    "Web GUI does not have a TLS certificate reference configured",
-			recommendation: "Configure a valid TLS certificate for the web GUI",
+			title:          "No Valid Web GUI Certificate",
+			description:    "Web GUI serves plain HTTP or a self-signed certificate, or its certificate reference does not resolve",
+			recommendation: "Assign the web GUI a certificate issued by a trusted or internal CA",
 			component:      "web-gui-cert",
 			tags:           []string{"encryption", "certificates", "firewall-controls"},
 		},
