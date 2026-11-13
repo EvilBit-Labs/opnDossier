@@ -29,7 +29,8 @@ func pfSenseReflectionForward(extra string) string {
 // setting each pfSense port forward carries. filter.inc reflects a forward set
 // to enable (NAT + proxy) or purenat whatever the global mode, never one set
 // to disable, and gives any other value, default included, the global mode.
-// ReflectionDisabled was read from the global setting alone.
+// ReflectionDisabled was read from the global setting alone. It now holds only
+// when reflection is off globally and no forward turns it back on.
 func TestConverter_NATReflection_PerForwardOverride(t *testing.T) {
 	t.Parallel()
 
@@ -87,13 +88,13 @@ func TestConverter_NATReflection_PerForwardOverride(t *testing.T) {
 			wantDisabled: true,
 		},
 		{
-			name:          "every forward set to Disable overrides a global on",
+			name:          "a global on is not disabled when every forward is set to Disable",
 			systemElement: "",
 			forwards: []string{
 				pfSenseReflectionForward("<natreflection>disable</natreflection>"),
 				pfSenseReflectionForward("<natreflection>disable</natreflection>"),
 			},
-			wantDisabled: true,
+			wantDisabled: false,
 		},
 		{
 			name:          "forward on the system default follows a global on",

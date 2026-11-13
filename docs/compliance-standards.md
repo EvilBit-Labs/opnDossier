@@ -240,11 +240,11 @@ The following controls are organized by security domain and represent the full p
 
 ##### NAT Security
 
-| Control ID   | Title                    | Severity | Implementability | Description                                                                                      |
-| ------------ | ------------------------ | -------- | ---------------- | ------------------------------------------------------------------------------------------------ |
-| FIREWALL-054 | Documented Port Forwards | Medium   | Full             | Every inbound NAT rule has a non-empty description                                               |
-| FIREWALL-055 | Outbound NAT Control     | Medium   | Full             | Outbound NAT mode is "Hybrid" or "Manual", not "Automatic" for production environments           |
-| FIREWALL-056 | NAT Reflection Disabled  | Low      | Full             | No port forward reflected (hairpin NAT); a forward's own setting wins (`NAT.ReflectionDisabled`) |
+| Control ID   | Title                    | Severity | Implementability | Description                                                                              |
+| ------------ | ------------------------ | -------- | ---------------- | ---------------------------------------------------------------------------------------- |
+| FIREWALL-054 | Documented Port Forwards | Medium   | Full             | Every inbound NAT rule has a non-empty description                                       |
+| FIREWALL-055 | Outbound NAT Control     | Medium   | Full             | Outbound NAT mode is "Hybrid" or "Manual", not "Automatic" for production environments   |
+| FIREWALL-056 | NAT Reflection Disabled  | Low      | Full             | Reflection off globally, and no port forward turns it back on (`NAT.ReflectionDisabled`) |
 
 ##### Service Hardening
 

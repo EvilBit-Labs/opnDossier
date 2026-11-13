@@ -212,7 +212,7 @@ func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "HTTPS Web GUI")
 	}
 	// The NAT setting, not the System one: a port forward can turn reflection
-	// on or off for itself, whatever the global setting says.
+	// back on for itself under a global disable.
 	if cfg.NAT.ReflectionDisabled {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "NAT Reflection Disabled")
 	}

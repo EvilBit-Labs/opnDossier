@@ -90,23 +90,19 @@ func parseReflectionConfig(t *testing.T, systemElement string, forwards ...strin
 	return device
 }
 
-// TestConverter_NATReflection_PerForwardOverride covers the reflection
-// setting each port forward carries. OPNsense gives a forward with an empty
-// <natreflection> the global default and reflects one that ends up with
-// purenat or enable (Plugin.php, ForwardRule.php), so a forward can turn
-// reflection on while the global setting is off, and off while it is on.
-// ReflectionDisabled was read from the global setting alone.
-func TestConverter_NATReflection_PerForwardOverride(t *testing.T) {
-	t.Parallel()
+// reflectionCase is one config of TestConverter_NATReflection_PerForwardOverride.
+type reflectionCase struct {
+	name          string
+	systemElement string
+	forwards      []string
+	wantDisabled  bool
+}
 
+// reflectionCases returns the cases of TestConverter_NATReflection_PerForwardOverride.
+func reflectionCases() []reflectionCase {
 	const globalOff = `<disablenatreflection>yes</disablenatreflection>`
 
-	tests := []struct {
-		name          string
-		systemElement string
-		forwards      []string
-		wantDisabled  bool
-	}{
+	return []reflectionCase{
 		{
 			name:          "forward set to Enable reflects while the global setting is off",
 			systemElement: globalOff,
@@ -147,13 +143,30 @@ func TestConverter_NATReflection_PerForwardOverride(t *testing.T) {
 			wantDisabled: true,
 		},
 		{
-			name:          "every forward set to Disable overrides a global on",
+			name:          "a global on is not disabled when every forward is set to Disable",
 			systemElement: "",
 			forwards: []string{
 				reflectionForward("9", "0", "0", "disable"),
 				reflectionForward("a", "0", "0", "disable"),
 			},
+			wantDisabled: false,
+		},
+		{
+			// From 26.1 the firewall gives "0" the global default, as it gives
+			// an empty value.
+			name:          "forward with 0 follows a global off",
+			systemElement: globalOff,
+			forwards: []string{
+				reflectionForward("e", "0", "0", ""),
+				reflectionForward("f", "0", "0", "0"),
+			},
 			wantDisabled: true,
+		},
+		{
+			name:          "forward with 0 under a global on",
+			systemElement: "",
+			forwards:      []string{reflectionForward("e", "0", "0", "0")},
+			wantDisabled:  false,
 		},
 		{
 			name:          "forward on the system default follows a global on",
@@ -196,6 +209,20 @@ func TestConverter_NATReflection_PerForwardOverride(t *testing.T) {
 			wantDisabled:  true,
 		},
 	}
+}
+
+// TestConverter_NATReflection_PerForwardOverride covers the reflection
+// setting each port forward carries. OPNsense gives a forward with an empty
+// <natreflection> the global default and reflects one that ends up with
+// purenat or enable (Plugin.php, ForwardRule.php), so a forward can turn
+// reflection on while the global setting is off. ReflectionDisabled was read
+// from the global setting alone. It now holds only when reflection is off
+// globally and no forward turns it back on; a global on is never disabled,
+// since the next forward added would reflect.
+func TestConverter_NATReflection_PerForwardOverride(t *testing.T) {
+	t.Parallel()
+
+	tests := reflectionCases()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

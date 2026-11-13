@@ -66,7 +66,8 @@ func TestFirewallPlugin_NATReflection_ReadsEachPortForward(t *testing.T) {
 	}{
 		{"global off, forward on Enable", globalOff, "purenat", true},
 		{"global off, forward on the default", globalOff, "", false},
-		{"global on, forward on Disable", "", "disable", false},
+		// The next forward added would reflect, so the control still fails.
+		{"global on, forward on Disable", "", "disable", true},
 		{"global on, forward on the default", "", "", true},
 	}
 
