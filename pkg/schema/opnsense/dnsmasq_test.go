@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"encoding/xml"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -136,4 +137,70 @@ func TestDNSMasqHostAliases_Empty(t *testing.T) {
 	out, err := xml.Marshal(h)
 	require.NoError(t, err)
 	assert.NotContains(t, string(out), "aliases")
+}
+
+// dnsmasqPlaceholderTypes lists the dnsmasq item types with an IsPlaceholder
+// guard. Each carries a uuid attribute, which does not make an item real, so
+// they have their own every-field test rather than the shared one.
+var dnsmasqPlaceholderTypes = []struct {
+	name string
+	zero placeholderReporter
+}{
+	{name: "DNSMasqHost", zero: DNSMasqHost{}},
+	{name: "DomainOverride", zero: DomainOverride{}},
+	{name: "DNSMasqDHCPRange", zero: DNSMasqDHCPRange{}},
+	{name: "DNSMasqDHCPOption", zero: DNSMasqDHCPOption{}},
+}
+
+// TestDNSMasq_IsPlaceholder_EveryFieldDefeatsIt sets each field but XMLName
+// and UUID alone and requires the item to survive, so a field left out of a
+// predicate fails here instead of dropping real config.
+func TestDNSMasq_IsPlaceholder_EveryFieldDefeatsIt(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range dnsmasqPlaceholderTypes {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			typ := reflect.TypeOf(tt.zero)
+			require.True(t, tt.zero.IsPlaceholder(), "zero value is a placeholder")
+
+			withUUID := reflect.New(typ).Elem()
+			withUUID.FieldByName("UUID").SetString("00000000-0000-4000-8000-000000000001")
+			reporter, ok := withUUID.Interface().(placeholderReporter)
+			require.True(t, ok)
+			assert.True(t, reporter.IsPlaceholder(), "a uuid alone does not make an item real")
+
+			for i := range typ.NumField() {
+				field := typ.Field(i)
+				if field.Name == xmlNameField || field.Name == "UUID" {
+					continue
+				}
+				populated := reflect.New(typ).Elem()
+				require.True(t, populateField(populated.Field(i)), "cannot populate %s.%s", tt.name, field.Name)
+				reporter, ok := populated.Interface().(placeholderReporter)
+				require.True(t, ok)
+				assert.False(t, reporter.IsPlaceholder(),
+					"%s with only %s set must not be a placeholder", tt.name, field.Name)
+			}
+		})
+	}
+}
+
+// TestDNSMasq_IsPlaceholder_DecodedEmptyElement decodes the self-closing
+// elements the legacy pages leave behind.
+func TestDNSMasq_IsPlaceholder_DecodedEmptyElement(t *testing.T) {
+	t.Parallel()
+
+	var dm DNSMasq
+	require.NoError(t, xml.Unmarshal([]byte(`<dnsmasq><hosts/><domainoverrides/>`+
+		`<dhcp_ranges uuid="u1"/><dhcp_options uuid="u2"/></dnsmasq>`), &dm))
+	require.Len(t, dm.Hosts, 1)
+	require.Len(t, dm.DomainOverrides, 1)
+	require.Len(t, dm.DHCPRanges, 1)
+	require.Len(t, dm.DHCPOptions, 1)
+	assert.True(t, dm.Hosts[0].IsPlaceholder())
+	assert.True(t, dm.DomainOverrides[0].IsPlaceholder())
+	assert.True(t, dm.DHCPRanges[0].IsPlaceholder())
+	assert.True(t, dm.DHCPOptions[0].IsPlaceholder())
 }

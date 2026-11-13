@@ -13,8 +13,11 @@ type DNSMasqDHCP struct {
 }
 
 // DNSMasqDHCPRange is one <dhcp_ranges> entry of the Dnsmasq model. The
-// template treats a start address holding a colon as an IPv6 range and every
-// other one as IPv4. An IPv6 range usually holds only the host part of the
+// template treats a non-empty start address without a colon as an IPv4 range
+// and every other entry, an empty start among them, as IPv6. An IPv6 range
+// with no end address only sends router advertisements, and a range whose
+// Mode holds "static" serves reservations only. An IPv6 range usually holds
+// only the host part of the
 // address (::1000), which dnsmasq completes from the prefix of the interface
 // named in Constructor.
 type DNSMasqDHCPRange struct {
@@ -127,4 +130,40 @@ func (a DNSMasqHostAliases) MarshalXML(e *xml.Encoder, start xml.StartElement) e
 	}
 
 	return e.EncodeElement(strings.Join(a, ","), start)
+}
+
+// The IsPlaceholder methods below report an empty item. The legacy pages
+// leave one self-closing <hosts/> or <domainoverrides/> once the last entry
+// is deleted, and the model loader skips any item without child elements,
+// whatever its attributes, so the uuid is left out of the comparison
+// (GOTCHAS 3.4). The test is on content: an item whose only children are
+// empty is taken for a placeholder too, although OPNsense loads it.
+
+// IsPlaceholder reports whether h is a <hosts> element with no content.
+func (h DNSMasqHost) IsPlaceholder() bool {
+	return len(h.Aliases) == 0 && h.Host == "" && h.Domain == "" && h.IP == "" && h.Descr == "" &&
+		h.ClientID == "" && h.HWAddr == "" && h.LeaseTime == "" && h.Ignore == ""
+}
+
+// IsPlaceholder reports whether o is a <domainoverrides> element with no
+// content.
+func (o DomainOverride) IsPlaceholder() bool {
+	o.XMLName, o.UUID = xml.Name{}, ""
+
+	return o == DomainOverride{}
+}
+
+// IsPlaceholder reports whether r is a <dhcp_ranges> element with no content.
+func (r DNSMasqDHCPRange) IsPlaceholder() bool {
+	r.UUID = ""
+
+	return r == DNSMasqDHCPRange{}
+}
+
+// IsPlaceholder reports whether o is a <dhcp_options> element with no
+// content.
+func (o DNSMasqDHCPOption) IsPlaceholder() bool {
+	o.UUID = ""
+
+	return o == DNSMasqDHCPOption{}
 }

@@ -335,6 +335,9 @@ type DNSMasqDHCPOption struct {
     holds a DHCPv4 option number and Option6 a DHCPv6 one; the template uses
     Option6 when both are set. Type is "set" (the default) or "match".
 
+func (o DNSMasqDHCPOption) IsPlaceholder() bool
+    IsPlaceholder reports whether o is a <dhcp_options> element with no content.
+
 type DNSMasqDHCPRange struct {
 	UUID        string `xml:"uuid,attr,omitempty"`
 	Interface   string `xml:"interface,omitempty"`
@@ -352,10 +355,15 @@ type DNSMasqDHCPRange struct {
 	Description string `xml:"description,omitempty"`
 }
     DNSMasqDHCPRange is one <dhcp_ranges> entry of the Dnsmasq model. The
-    template treats a start address holding a colon as an IPv6 range and every
-    other one as IPv4. An IPv6 range usually holds only the host part of the
-    address (::1000), which dnsmasq completes from the prefix of the interface
-    named in Constructor.
+    template treats a non-empty start address without a colon as an IPv4 range
+    and every other entry, an empty start among them, as IPv6. An IPv6 range
+    with no end address only sends router advertisements, and a range whose
+    Mode holds "static" serves reservations only. An IPv6 range usually holds
+    only the host part of the address (::1000), which dnsmasq completes from the
+    prefix of the interface named in Constructor.
+
+func (r DNSMasqDHCPRange) IsPlaceholder() bool
+    IsPlaceholder reports whether r is a <dhcp_ranges> element with no content.
 
 type DNSMasqHost struct {
 	XMLName xml.Name           `xml:"hosts"`
@@ -377,6 +385,9 @@ type DNSMasqHost struct {
 func NewDNSMasqHost() DNSMasqHost
     NewDNSMasqHost returns a DNSMasqHost instance with an initialized empty
     Aliases slice.
+
+func (h DNSMasqHost) IsPlaceholder() bool
+    IsPlaceholder reports whether h is a <hosts> element with no content.
 
 type DNSMasqHostAliases []string
     DNSMasqHostAliases holds the extra names of a dnsmasq host override,
@@ -578,6 +589,10 @@ type DomainOverride struct {
     DomainOverride represents one <domainoverrides> entry, forwarding queries
     for a domain to a designated DNS server. The legacy page packed the port and
     source address into IP as ip#port@srcip; the model stores them apart.
+
+func (o DomainOverride) IsPlaceholder() bool
+    IsPlaceholder reports whether o is a <domainoverrides> element with no
+    content.
 
 type Filter struct {
 	Rule []Rule `xml:"rule"`

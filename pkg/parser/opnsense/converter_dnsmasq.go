@@ -12,7 +12,7 @@ import (
 // knownDnsmasqVersions lists the Dnsmasq model versions whose element names
 // the schema was checked against. The model arrived in 25.1.2 at 1.0.0, and
 // the releases since wrote 1.0.5 (25.1.6), 1.0.6 (25.1.8), 1.0.7 (25.1.10 to
-// 25.7), 1.0.8 (25.7.11 to 26.1) and 1.0.9 (26.7). Each of those versions
+// 25.7.1), 1.0.8 (25.7.2 to 26.1.4) and 1.0.9 (26.1.5 on). Each of those versions
 // only added fields, and the model has a single migration, M1_0_0, which
 // renames nothing. A version not listed here may have moved an element the
 // converter reads (GOTCHAS 3.7, 18.1).
@@ -69,8 +69,10 @@ func (c *converter) convertDNSMasq(doc *schema.OpnSenseDocument) common.DNSMasqC
 // dnsmasqDNSSEC reports whether dnsmasq validates DNSSEC. The model's
 // template writes `dnssec` only when the value is exactly "1". The legacy
 // page, used up to 25.1.1, tested the element with isset(), so any
-// <dnssec> element turned validation on there; a config without a model
-// version attribute was written by that page.
+// <dnssec> element turned validation on there. A config without a model
+// version attribute was written either by that page or by a writer that
+// leaves <dnssec> out, such as the factory default and the console's
+// set-IP flow, so reading presence is right for all of them.
 func dnsmasqDNSSEC(dm schema.DNSMasq) bool {
 	if dm.Dnssec == nil {
 		return false
@@ -84,17 +86,25 @@ func dnsmasqDNSSEC(dm schema.DNSMasq) bool {
 
 // convertDnsmasqHosts maps the <hosts> entries to DNS host overrides. Every
 // entry is kept, including those that are only DHCP reservations, since the
-// firewall writes each one with an address into its hosts file.
+// firewall writes each one with an address into its hosts file. An empty
+// placeholder is dropped (GOTCHAS 3.4).
+//
+// The legacy page let an entry name only a domain and answered for the
+// domain itself; migration M1_0_0 moves such a domain into <host>, and the
+// same is done here so that both generations read alike.
 func convertDnsmasqHosts(hosts []schema.DNSMasqHost) []common.DNSMasqHost {
-	if len(hosts) == 0 {
-		return nil
-	}
-
-	result := make([]common.DNSMasqHost, 0, len(hosts))
+	var result []common.DNSMasqHost
 	for _, h := range hosts {
+		if h.IsPlaceholder() {
+			continue
+		}
+		host, domain := h.Host, h.Domain
+		if host == "" {
+			host, domain = domain, ""
+		}
 		result = append(result, common.DNSMasqHost{
-			Host:        h.Host,
-			Domain:      h.Domain,
+			Host:        host,
+			Domain:      domain,
 			IP:          h.IP,
 			Description: h.Descr,
 			Aliases:     []string(h.Aliases),
@@ -104,14 +114,14 @@ func convertDnsmasqHosts(hosts []schema.DNSMasqHost) []common.DNSMasqHost {
 	return result
 }
 
-// convertDnsmasqDomainOverrides maps the <domainoverrides> entries.
+// convertDnsmasqDomainOverrides maps the <domainoverrides> entries, dropping
+// an empty placeholder (GOTCHAS 3.4).
 func convertDnsmasqDomainOverrides(overrides []schema.DomainOverride) []common.DomainOverride {
-	if len(overrides) == 0 {
-		return nil
-	}
-
-	result := make([]common.DomainOverride, 0, len(overrides))
+	var result []common.DomainOverride
 	for _, o := range overrides {
+		if o.IsPlaceholder() {
+			continue
+		}
 		result = append(result, common.DomainOverride{
 			Domain:      o.Domain,
 			IP:          o.IP,
@@ -132,6 +142,12 @@ func convertDnsmasqDomainOverrides(overrides []schema.DomainOverride) []common.D
 // A scope is enabled when dnsmasq is, unless dnsmasq does not serve DHCP on
 // the interface: it is listed under <dhcp><no_interface>, or <interface>
 // limits dnsmasq to other interfaces.
+//
+// Two kinds of entry hand out no pool. A static range serves only the
+// reservations, so its scope keeps an empty range. An IPv6 entry with no end
+// address only sends router advertisements and is not DHCP at all, so it
+// makes no scope (the range dialog's help, and Dnsmasq.php, which requires an
+// end address for every IPv4 range that is not static).
 func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	dm := doc.DNSMasquerade
 	if len(dm.DHCPRanges) == 0 {
@@ -157,7 +173,17 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 	var scopes []common.DHCPScope
 	index := make(map[string]int)
 	for _, r := range dm.DHCPRanges {
+		if r.IsPlaceholder() {
+			continue
+		}
 		start := strings.TrimSpace(r.StartAddr)
+		end := strings.TrimSpace(r.EndAddr)
+		_, static := csvSet(r.Mode)["static"]
+		// The template tells the families apart by a colon in start_addr.
+		v6 := strings.Contains(start, ":")
+		if v6 && end == "" && !static {
+			continue
+		}
 		if start == "" {
 			c.addWarning("dnsmasq.dhcp_ranges.start_addr", r.UUID,
 				"dnsmasq DHCP range has no start address; dnsmasq does not serve it",
@@ -178,13 +204,15 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 			})
 		}
 		scope := &scopes[i]
+		if static {
+			continue
+		}
 
-		rng := common.DHCPRange{From: start, To: strings.TrimSpace(r.EndAddr)}
-		// The template tells the families apart by a colon in start_addr.
+		rng := common.DHCPRange{From: start, To: end}
 		switch {
-		case strings.Contains(start, ":") && scope.RangeV6 == nil:
+		case v6 && scope.RangeV6 == nil:
 			scope.RangeV6 = &rng
-		case !strings.Contains(start, ":") && scope.Range == (common.DHCPRange{}):
+		case !v6 && scope.Range == (common.DHCPRange{}):
 			scope.Range = rng
 		default:
 			c.addWarning("dnsmasq.dhcp_ranges", fmt.Sprintf("%s - %s", rng.From, rng.To),
@@ -210,6 +238,9 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 func (c *converter) mappableDnsmasqOptions(options []schema.DNSMasqDHCPOption) []schema.DNSMasqDHCPOption {
 	var result []schema.DNSMasqDHCPOption
 	for _, o := range options {
+		if o.IsPlaceholder() {
+			continue
+		}
 		kind := strings.TrimSpace(o.Type)
 		if (kind != "" && kind != dnsmasqOptionSet) || strings.TrimSpace(o.Tag) != "" ||
 			strings.TrimSpace(o.Option6) != "" || strings.TrimSpace(o.Option) == "" {
@@ -270,9 +301,11 @@ func applyDnsmasqOptions(scope *common.DHCPScope, options []schema.DNSMasqDHCPOp
 //
 // A host entry names no interface; dnsmasq applies it on the range whose
 // network holds its address. The lease goes to the scope whose interface
-// network holds the entry's first IPv4 address. Failing that it goes to the
-// only scope with an IPv4 range, or to the scope that names no interface,
-// and an entry with no home is reported rather than dropped silently.
+// network holds the entry's first IPv4 address, or to the scope that names
+// no interface when the address lies in some interface's network. An entry
+// with no IPv4 address goes to the only scope with an IPv4 range, or to the
+// scope that names no interface. An entry with no home is reported rather
+// than dropped silently.
 func (c *converter) attachDnsmasqReservations(doc *schema.OpnSenseDocument, scopes []common.DHCPScope) {
 	fallback := -1
 	v4Scopes := 0
@@ -309,8 +342,11 @@ func (c *converter) attachDnsmasqReservations(doc *schema.OpnSenseDocument, scop
 			continue
 		}
 
-		target := dnsmasqScopeFor(doc, scopes, h.IP)
-		if target < 0 {
+		addr, hasV4 := firstIPv4(h.IP)
+		var target int
+		if hasV4 {
+			target = dnsmasqScopeFor(doc, scopes, addr)
+		} else {
 			target = fallback
 		}
 		if target < 0 {
@@ -330,31 +366,49 @@ func (c *converter) attachDnsmasqReservations(doc *schema.OpnSenseDocument, scop
 	}
 }
 
-// dnsmasqScopeFor returns the index of the scope whose interface network
-// holds the first IPv4 address in ips, or -1.
-func dnsmasqScopeFor(doc *schema.OpnSenseDocument, scopes []common.DHCPScope, ips string) int {
-	var addr netip.Addr
+// firstIPv4 returns the first IPv4 address in a comma-separated list.
+func firstIPv4(ips string) (netip.Addr, bool) {
 	for entry := range strings.SplitSeq(ips, ",") {
 		if a, err := netip.ParseAddr(strings.TrimSpace(entry)); err == nil && a.Is4() {
-			addr = a
-			break
+			return a, true
 		}
-	}
-	if !addr.IsValid() {
-		return -1
 	}
 
+	return netip.Addr{}, false
+}
+
+// interfaceNetworkHolds reports whether the IPv4 network of the named
+// interface holds addr.
+func interfaceNetworkHolds(doc *schema.OpnSenseDocument, name string, addr netip.Addr) bool {
+	iface, ok := doc.Interfaces.Items[name]
+	if !ok {
+		return false
+	}
+	prefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddr) + "/" + strings.TrimSpace(iface.Subnet))
+
+	return err == nil && prefix.Contains(addr)
+}
+
+// dnsmasqScopeFor returns the index of the scope that serves addr, or -1: the
+// scope whose interface network holds it, else the scope that names no
+// interface when some interface's network holds it.
+func dnsmasqScopeFor(doc *schema.OpnSenseDocument, scopes []common.DHCPScope, addr netip.Addr) int {
+	anyScope := -1
 	for i := range scopes {
-		if scopes[i].Interface == "" || scopes[i].Range.From == "" {
+		if scopes[i].Interface == "" {
+			anyScope = i
 			continue
 		}
-		iface, ok := doc.Interfaces.Items[scopes[i].Interface]
-		if !ok {
-			continue
-		}
-		prefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddr) + "/" + strings.TrimSpace(iface.Subnet))
-		if err == nil && prefix.Contains(addr) {
+		if interfaceNetworkHolds(doc, scopes[i].Interface, addr) {
 			return i
+		}
+	}
+	if anyScope < 0 {
+		return -1
+	}
+	for name := range doc.Interfaces.Items {
+		if interfaceNetworkHolds(doc, name, addr) {
+			return anyScope
 		}
 	}
 
