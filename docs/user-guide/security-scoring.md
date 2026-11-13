@@ -69,6 +69,8 @@ The security score provides a 0-100 rating based on configuration analysis. Ever
 | 50-69       | Multiple security concerns that should be addressed       |
 | Below 50    | Significant hardening needed -- review findings carefully |
 
+The score in the `convert` and `audit` exports, `statistics.summary.securityScore` and `securityAssessment.overallScore`, is computed differently. It starts at 0 and adds points: 10 for each detected security feature (Block Private Networks, Block Bogon Networks, HTTPS Web GUI, NAT Reflection Disabled), 20 when any firewall rule exists, 15 for an HTTPS web GUI, 10 when an SSH group is set, 15 when IDS is enabled and 10 more in IPS mode, capped at 100. Block Private Networks and Block Bogon Networks count only when every WAN interface blocks them, including a second uplink (see [How WAN Interfaces Are Identified](../firewall-security-controls-reference.md#how-wan-interfaces-are-identified)).
+
 ### Sysctl Security Checks
 
 The following kernel tunables are evaluated. These are set under **System > Settings > Tunables** in OPNsense.
