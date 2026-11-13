@@ -430,7 +430,7 @@ func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
 // both Unbound and dnsmasq, whatever the private-address list holds, so with
 // it set the check fails whenever either resolver is enabled. Otherwise it
 // returns Known=true only when Unbound is active AND the MVC <privateaddress>
-// element was present in config.xml — and Unknown so the control is not
+// element was present in config.xml, and Unknown so the control is not
 // evaluated against:
 //   - nil devices (pipeline error)
 //   - non-Unbound configurations (DNSMasq-only installs)

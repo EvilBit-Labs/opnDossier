@@ -267,7 +267,7 @@ The check evaluates whether DNS rebind protection is configured:
 
 - **Pass**: rebind checks are not disabled AND Unbound is enabled AND the MVC `<privateaddress>` element was configured AND the list contains at least one valid entry.
 - **Fail**: rebind checks are disabled while Unbound or dnsmasq is enabled; or Unbound is enabled AND the MVC `<privateaddress>` element was configured, but the list is empty (operator explicitly cleared it, or every entry failed CIDR/IP validation).
-- **Unknown**: Any of (a) neither resolver is enabled while rebind checks are disabled; (b) Unbound is disabled — the install may be using DNSMasq, which has its own rebind-protection mechanism; (c) the MVC `<privateaddress>` element was never configured — common on older installs, on pfSense, or on minimal setups that have not touched the Unbound advanced block.
+- **Unknown**: Any of (a) neither resolver is enabled while rebind checks are disabled; (b) Unbound is disabled, and the install may be using DNSMasq, which has its own rebind-protection mechanism; (c) the MVC `<privateaddress>` element was never configured, which is common on older installs, on pfSense, or on minimal setups that have not touched the Unbound advanced block.
 
 A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal/plugins/firewall/firewall.go`).
 
