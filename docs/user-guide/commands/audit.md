@@ -58,6 +58,8 @@ When no `--plugins` flag is specified, all available plugins are run by default.
 
 Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services.
 
+A service or port forward is reported as WAN-exposed when a pass rule on a WAN interface admits it. That includes a second uplink on an `optN` key and a rule on an interface group with a WAN member; see [How WAN Interfaces Are Identified](../../firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
+
 ## Compliance Plugins
 
 opnDossier ships with three **built-in compliance plugins** that are compiled directly into the `opndossier` binary. They are always available — no separate install, download, or configuration — and the `--plugin-dir` flag does **not** affect them.
