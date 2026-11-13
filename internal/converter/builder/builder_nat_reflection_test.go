@@ -11,7 +11,9 @@ import (
 // TestNATSummary_ReflectionLabelMatchesValue pins the NAT Summary line to the
 // value it prints. It printed ReflectionDisabled under the label "NAT
 // Reflection", so a firewall with reflection off showed a tick next to "NAT
-// Reflection", and the note below it said the opposite.
+// Reflection", and the note below it said the opposite. The label also names
+// what it covers, so it does not read as a synonym of the System section's
+// "Disable NAT Reflection", which is the global flag alone.
 func TestNATSummary_ReflectionLabelMatchesValue(t *testing.T) {
 	t.Parallel()
 
@@ -41,7 +43,7 @@ func TestNATSummary_ReflectionLabelMatchesValue(t *testing.T) {
 				t.Fatalf("BuildStandardReport() error = %v", err)
 			}
 
-			wantLine := "**NAT Reflection Disabled**: " + formatters.FormatBool(tt.disabled)
+			wantLine := "**NAT Reflection Disabled (global and port forwards)**: " + formatters.FormatBool(tt.disabled)
 			if !strings.Contains(report, wantLine) {
 				t.Errorf("report does not contain %q", wantLine)
 			}

@@ -23,7 +23,7 @@ func (b *MarkdownBuilder) writeSecuritySection(md *markdown.Markdown, data *comm
 			mode = data.NAT.OutboundMode
 		}
 		md.PlainTextf("%s: %s", markdown.Bold("NAT Mode"), formatters.EscapeMarkdownValue(string(mode))).LF().
-			PlainTextf("%s: %s", markdown.Bold("NAT Reflection Disabled"), formatters.FormatBool(natSummary.ReflectionDisabled)).
+			PlainTextf("%s: %s", markdown.Bold("NAT Reflection Disabled (global and port forwards)"), formatters.FormatBool(natSummary.ReflectionDisabled)).
 			LF().
 			PlainTextf(
 				"%s: %s",

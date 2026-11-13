@@ -187,7 +187,7 @@
 #### NAT Summary
 **NAT Mode**: automatic
   
-**NAT Reflection Disabled**: ✗
+**NAT Reflection Disabled (global and port forwards)**: ✗
   
 **Port Forward State Sharing**: ✗
   
