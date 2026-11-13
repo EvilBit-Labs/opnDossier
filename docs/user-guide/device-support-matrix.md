@@ -33,7 +33,7 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 | Certificate authorities | Supported |     Supported     |
 | High availability       | Supported | Not yet supported |
 | IDS/IPS                 | Supported | Not yet supported |
-| Remote syslog           | Supported |     Supported     |
+| Remote syslog           | Supported | Not yet supported |
 | Users                   | Supported |     Supported     |
 | Groups                  | Supported |     Supported     |
 | System tunables         | Supported | Not yet supported |
@@ -57,7 +57,7 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 
 When you process an **OPNsense** configuration, you can expect the broadest coverage across system, networking, security, and service sections.
 
-When you process a **pfSense** configuration, you can still rely on opnDossier for the major day-to-day areas most operators care about, including interfaces, VLANs, firewall rules, NAT, DHCP, DNS, VPN, routing, certificates, users, groups, syslog, cron jobs, and revision history.
+When you process a **pfSense** configuration, you can still rely on opnDossier for the major day-to-day areas most operators care about, including interfaces, VLANs, firewall rules, NAT, DHCP, DNS, VPN, routing, certificates, users, groups, cron jobs, and revision history.
 
 For pfSense areas marked **Not yet supported**, opnDossier warns during processing so you can distinguish between:
 

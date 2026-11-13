@@ -1,5 +1,20 @@
 package opnsense
 
+// SyslogModel is the Syslog model, <OPNsense><Syslog>: general logging
+// settings and, from 20.1, the only remote log targets OPNsense reads.
+type SyslogModel struct {
+	Text    string `xml:",chardata"    json:"text,omitempty"`
+	Version string `xml:"version,attr" json:"version,omitempty"`
+	General struct {
+		Text        string `xml:",chardata"   json:"text,omitempty"`
+		Enabled     string `xml:"enabled"`
+		Loglocal    string `xml:"loglocal"`
+		Maxpreserve string `xml:"maxpreserve"`
+		Maxfilesize string `xml:"maxfilesize"`
+	} `xml:"general"      json:"general"`
+	Destinations SyslogDestinations `xml:"destinations" json:"destinations"`
+}
+
 // SyslogDestinations is the <destinations> container of the Syslog model
 // (<OPNsense><Syslog>). From 20.1 it is the only place OPNsense reads remote
 // log targets from.

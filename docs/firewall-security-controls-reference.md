@@ -391,12 +391,12 @@ The following controls are planned for future releases, organized by security do
 
 ### Logging and Monitoring
 
-| Control ID   | Title                       | Severity | Description                                                            |
-| ------------ | --------------------------- | -------- | ---------------------------------------------------------------------- |
-| FIREWALL-039 | Remote Syslog Configured    | High     | Logs forwarded to remote syslog/SIEM (`Syslog.RemoteServer` non-empty) |
-| FIREWALL-040 | Authentication Event Log    | Medium   | Auth logging enabled (`Syslog.AuthLogging`)                            |
-| FIREWALL-041 | Firewall Filter Logging     | Medium   | Firewall filter logging enabled (`Syslog.FilterLogging`)               |
-| FIREWALL-042 | Log Retention Configuration | Info     | Local log rotation and size limits configured                          |
+| Control ID   | Title                       | Severity | Description                                                                        |
+| ------------ | --------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| FIREWALL-039 | Remote Syslog Configured    | High     | Logs forwarded to remote syslog/SIEM (`Syslog.RemoteServer` non-empty)             |
+| FIREWALL-040 | Authentication Event Log    | Medium   | Auth logging enabled (`Syslog.AuthLogging`)                                        |
+| FIREWALL-041 | Firewall Filter Logging     | Medium   | Firewall filter logging enabled (`Syslog.FilterLogging`)                           |
+| FIREWALL-042 | Log Retention Configuration | Info     | A local log size or archive limit is in effect, configured or the platform default |
 
 ### Time Synchronization
 

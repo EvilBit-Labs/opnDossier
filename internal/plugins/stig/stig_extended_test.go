@@ -594,6 +594,7 @@ func TestComplexScenarios(t *testing.T) {
 			RemoteServer:  "10.0.0.50",
 			SystemLogging: true,
 			AuthLogging:   true,
+			FilterLogging: true,
 		},
 		// IDS enabled for DoS alerting
 		IDS: &common.IDSConfig{Enabled: true},

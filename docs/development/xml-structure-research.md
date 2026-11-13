@@ -353,6 +353,9 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | UnboundPlus.Dnsbl      | Safesearch          | `string` | MVC field, value-based |
 | UnboundPlus.Forwarding | Enabled             | `string` | MVC field, value-based |
 | SyslogInternal.General | Enabled             | `string` | MVC field, value-based |
+| SyslogDestination      | Enabled             | `string` | MVC field, value-based |
+| SyslogDestination      | RFC5424             | `string` | MVC field, value-based |
+| SyslogDestination      | Suppress            | `string` | MVC field, value-based |
 | Netflow.Capture        | EgressOnly          | `string` | MVC field, value-based |
 | Netflow.Collect        | Enable              | `string` | MVC field, value-based |
 | Interfaces.Settings    | DisableIPv6         | `string` | MVC field, inverted    |

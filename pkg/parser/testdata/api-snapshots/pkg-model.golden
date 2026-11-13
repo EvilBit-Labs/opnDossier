@@ -2715,7 +2715,7 @@ type SyslogConfig struct {
 	SourceIP string `json:"sourceIp,omitempty" yaml:"sourceIp,omitempty"`
 	// IPProtocol is the IP protocol for syslog transport (e.g., "ipv4", "ipv6").
 	IPProtocol string `json:"ipProtocol,omitempty" yaml:"ipProtocol,omitempty"`
-	// LogFileSize is the maximum log file size.
+	// LogFileSize is the maximum log file size in bytes.
 	LogFileSize string `json:"logFileSize,omitempty" yaml:"logFileSize,omitempty"`
 	// RotateCount is the number of rotated log files to retain.
 	RotateCount string `json:"rotateCount,omitempty" yaml:"rotateCount,omitempty"`

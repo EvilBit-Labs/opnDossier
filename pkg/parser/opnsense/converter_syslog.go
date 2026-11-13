@@ -2,7 +2,9 @@ package opnsense
 
 import (
 	"cmp"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -10,14 +12,30 @@ import (
 )
 
 // syslogModelVersions lists every <OPNsense><Syslog version="..."> this
-// converter has been checked against: 1.0.0 (19.7 to 20.7), 1.0.1 (24.1),
-// 1.0.2 (24.7 and 25.1, which added the retention fields to general) and 1.0.3
-// (26.7). Each later version only adds elements.
+// converter has been checked against, in order: 1.0.0 from 19.7 to 21.7 (21.7
+// added the tls transports and the certificate without raising it), 1.0.1 from
+// 22.7 to 24.1, 1.0.2 from 24.7 to 26.1, which added the retention fields to
+// general, and 1.0.3 in 26.7. The destination elements keep their names
+// across all of them.
 var syslogModelVersions = strings.Fields("1.0.0 1.0.1 1.0.2 1.0.3")
 
-// syslogLegacyRetentionVersions are the model versions whose general block does
-// not hold retention yet, so the legacy <syslog> keys still set it.
-var syslogLegacyRetentionVersions = strings.Fields("1.0.0 1.0.1")
+// The retention eras, as indexes into syslogModelVersions.
+const (
+	syslogClogEra   = 0 // 1.0.0: circular logs, and from 20.7 daily archives too
+	syslogLegacyEra = 1 // 1.0.1: daily archives, set under <syslog>
+)
+
+// syslogClogDefaultSize is the size in bytes OPNsense gave a circular log
+// whose <logfilesize> was unset, up to 21.7 (system.inc).
+const syslogClogDefaultSize = "511488"
+
+// syslogArchiveDefault is the number of daily archives log_archive keeps when
+// none is set, from 20.7 under <syslog> and from 24.7 as the model's default.
+const syslogArchiveDefault = "31"
+
+// bytesPerMB converts maxfilesize, which log_archive compares with the file
+// size divided by 1024 twice.
+const bytesPerMB = 1024 * 1024
 
 // syslogTransports are the transports for which syslog-ng-destinations.conf
 // writes a network target. Any other value yields an empty destination block,
@@ -25,9 +43,18 @@ var syslogLegacyRetentionVersions = strings.Fields("1.0.0 1.0.1")
 var syslogTransports = strings.Fields("udp4 tcp4 udp6 tcp6 tls4 tls6")
 
 // syslogEventLevels are the levels a destination's level filter must keep for
-// its events to count as forwarded. Leaving out debug alone loses none of the
-// events the logging checks ask about; 20.1 wrote this list as the default.
+// the categories other than filter logging to count as forwarded. Leaving out
+// debug alone loses none of their events; 20.1 wrote this list as the default.
 var syslogEventLevels = strings.Fields("info notice warn err crit alert emerg")
+
+// filterlog writes every entry as program filterlog, facility local0, level
+// info (filterlog.c: openlog("filterlog", LOG_NDELAY, LOG_LOCAL0) and
+// syslog(LOG_INFO, ...)).
+const (
+	filterlogProgram  = "filterlog"
+	filterlogFacility = "local0"
+	filterlogLevel    = "info"
+)
 
 // convertSyslog maps the remote logging and retention settings to
 // common.SyslogConfig.
@@ -41,16 +68,13 @@ var syslogEventLevels = strings.Fields("info notice warn err crit alert emerg")
 // direction for the checks that read it.
 func (c *converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogConfig {
 	legacy := doc.Syslog
-	model := &doc.OPNsense.SyslogInternal
+	model := doc.OPNsense.SyslogInternal
 
-	cfg := common.SyslogConfig{
-		LogFileSize: legacy.LogFilesize,
-		RotateCount: cmp.Or(legacy.RotateCount, legacy.PreserveLogs),
-		Format:      legacy.Format,
-	}
+	cfg := common.SyslogConfig{Format: legacy.Format}
 
-	if model.XMLName.Local == "" {
+	if model == nil {
 		applyLegacySyslogRemote(&cfg, &legacy)
+		c.applySyslogRetention(&cfg, &legacy, nil)
 
 		return cfg
 	}
@@ -66,16 +90,83 @@ func (c *converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogCon
 
 	c.warnOnIgnoredLegacySyslogRemote(&legacy)
 	c.applySyslogDestinations(&cfg, model.Destinations.Destination)
-
-	// From 24.7 (model 1.0.2) log_archive reads retention from the model alone,
-	// and migration M1_0_2 leaves the legacy keys behind.
-	if !slices.Contains(syslogLegacyRetentionVersions, model.Version) &&
-		(model.Version != "" || model.General.Maxpreserve != "") {
-		cfg.LogFileSize = ""
-		cfg.RotateCount = model.General.Maxpreserve
-	}
+	c.applySyslogRetention(&cfg, &legacy, model)
 
 	return cfg
+}
+
+// applySyslogRetention sets the retention the release keeps local logs under,
+// a default included, since every release applies one: a circular log of
+// LogFileSize bytes up to 21.7, and RotateCount daily archives from 20.7, each
+// rotated early at LogFileSize bytes where set. A key the release no longer
+// reads is ignored with a warning. The model version tells the releases
+// apart; a model with no version is read as the current one.
+func (c *converter) applySyslogRetention(cfg *common.SyslogConfig, legacy *schema.Syslog, model *schema.SyslogModel) {
+	era := -1
+	if model != nil {
+		era = slices.Index(syslogModelVersions, model.Version)
+	}
+
+	switch {
+	case model == nil, era == syslogClogEra:
+		// Before 20.7 only circular logs exist, and 20.7 to 21.7 keep them
+		// beside the archives unless disable_clog is set. The archives cannot
+		// be told from their absence on 19.7 and 20.1, so they count only when
+		// the config names them or disable_clog, which 20.7 added, is set.
+		// <rotatecount> is pfSense's key, read when the OPNsense one is absent.
+		clogOff := modelFlagSet(legacy.DisableClog)
+		if !clogOff {
+			cfg.LogFileSize = cmp.Or(legacy.LogFilesize, syslogClogDefaultSize)
+		}
+		cfg.RotateCount = cmp.Or(legacy.PreserveLogs, legacy.RotateCount)
+		if clogOff {
+			cfg.RotateCount = cmp.Or(cfg.RotateCount, syslogArchiveDefault)
+		}
+	case era == syslogLegacyEra:
+		cfg.RotateCount = cmp.Or(legacy.PreserveLogs, syslogArchiveDefault)
+		cfg.LogFileSize = c.syslogMBToBytes(legacy.MaxFileSize)
+		c.warnOnStaleSyslogRetention("logfilesize", legacy.LogFilesize, "")
+	default:
+		cfg.RotateCount = cmp.Or(model.General.Maxpreserve, syslogArchiveDefault)
+		cfg.LogFileSize = c.syslogMBToBytes(model.General.Maxfilesize)
+		c.warnOnStaleSyslogRetention("logfilesize", legacy.LogFilesize, "")
+		// Migration M1_0_2 copies these into the model and leaves them, so
+		// they are worth a warning only once they disagree with it.
+		c.warnOnStaleSyslogRetention("preservelogs", legacy.PreserveLogs, model.General.Maxpreserve)
+		c.warnOnStaleSyslogRetention("maxfilesize", legacy.MaxFileSize, model.General.Maxfilesize)
+	}
+}
+
+// warnOnStaleSyslogRetention reports a legacy retention key the release does
+// not read, unless it holds the value the release reads instead.
+func (c *converter) warnOnStaleSyslogRetention(key, value, current string) {
+	if value == "" || value == current {
+		return
+	}
+
+	c.addWarning(
+		"Syslog.Retention",
+		key+"="+value,
+		"legacy log retention setting ignored: this OPNsense release does not read <syslog><"+key+">",
+		common.SeverityLow,
+	)
+}
+
+// syslogMBToBytes converts a maxfilesize in MB to bytes, the unit LogFileSize
+// holds for the circular logs.
+func (c *converter) syslogMBToBytes(value string) string {
+	if value == "" {
+		return ""
+	}
+
+	mb, err := strconv.ParseUint(strings.TrimSpace(value), 10, 32)
+	if err != nil {
+		c.addWarning("Syslog.MaxFileSize", value, "log file size is not a whole number of MB", common.SeverityLow)
+
+		return ""
+	}
+
+	return strconv.FormatUint(mb*bytesPerMB, 10)
 }
 
 // applyLegacySyslogRemote copies the remote keys of a config that predates the
@@ -98,6 +189,26 @@ func applyLegacySyslogRemote(cfg *common.SyslogConfig, sl *schema.Syslog) {
 	cfg.RemoteServer3 = sl.Remoteserver3
 	cfg.SourceIP = sl.Sourceip
 	cfg.IPProtocol = sl.IPProtocol
+
+	// logall sent every message to the servers, whatever the category flags.
+	if modelFlagSet(sl.LogAll) {
+		setAllSyslogCategories(cfg)
+	}
+}
+
+// setAllSyslogCategories marks every logging category as forwarded.
+func setAllSyslogCategories(cfg *common.SyslogConfig) {
+	cfg.SystemLogging = true
+	cfg.AuthLogging = true
+	cfg.FilterLogging = true
+	cfg.DHCPLogging = true
+	cfg.VPNLogging = true
+	cfg.PortalAuthLogging = true
+	cfg.DPingerLogging = true
+	cfg.HostapdLogging = true
+	cfg.ResolverLogging = true
+	cfg.PPPLogging = true
+	cfg.IGMPProxyLogging = true
 }
 
 // warnOnIgnoredLegacySyslogRemote reports legacy remote keys left beside the
@@ -107,7 +218,8 @@ func (c *converter) warnOnIgnoredLegacySyslogRemote(sl *schema.Syslog) {
 		[]string{sl.Remoteserver, sl.Remoteserver2, sl.Remoteserver3},
 		func(s string) bool { return s == "" },
 	)
-	if len(servers) == 0 && !bool(sl.Enable) {
+	// <enable> alone names no server, so 19.7 forwarded nowhere from it either.
+	if len(servers) == 0 {
 		return
 	}
 
@@ -131,7 +243,8 @@ func (c *converter) applySyslogDestinations(cfg *common.SyslogConfig, items []sc
 		}
 
 		// The template forwards only when enabled is exactly 1; an absent
-		// element reads as 0 there, unlike the model's default.
+		// element reads as 0 there, unlike the model's default. It does not
+		// test the hostname, but an empty one names no server to send to.
 		enabled := item.Enabled == "1"
 		cfg.Destinations = append(cfg.Destinations, common.SyslogDestination{
 			Enabled:     enabled,
@@ -171,11 +284,17 @@ func (c *converter) applySyslogDestinations(cfg *common.SyslogConfig, items []sc
 	}
 }
 
-// applySyslogCoverage sets the logging flags a forwarding destination provably
-// covers. The template ANDs the program, level and facility filters, and
-// syslog-ng matches program() as a pattern, so only a filter that cannot drop
-// a category's events counts; anything else leaves the flag as it is.
+// applySyslogCoverage sets the logging flags a forwarding destination
+// covers. The template ANDs the program, level and facility filters. Filter
+// logging is decided from the program, facility and level filterlog writes;
+// the other categories come from many programs and levels, so only a filter
+// that cannot drop their events counts, and anything else leaves the flag as
+// it is.
 func applySyslogCoverage(cfg *common.SyslogConfig, d *schema.SyslogDestination) {
+	if admitsFilterlog(d) {
+		cfg.FilterLogging = true
+	}
+
 	if d.Facility != "" {
 		return
 	}
@@ -190,17 +309,7 @@ func applySyslogCoverage(cfg *common.SyslogConfig, d *schema.SyslogDestination) 
 	}
 
 	if d.Program == "" {
-		cfg.SystemLogging = true
-		cfg.AuthLogging = true
-		cfg.FilterLogging = true
-		cfg.DHCPLogging = true
-		cfg.VPNLogging = true
-		cfg.PortalAuthLogging = true
-		cfg.DPingerLogging = true
-		cfg.HostapdLogging = true
-		cfg.ResolverLogging = true
-		cfg.PPPLogging = true
-		cfg.IGMPProxyLogging = true
+		setAllSyslogCategories(cfg)
 
 		return
 	}
@@ -210,8 +319,6 @@ func applySyslogCoverage(cfg *common.SyslogConfig, d *schema.SyslogDestination) 
 	// so no program list proves them.
 	for _, program := range splitNonEmpty(d.Program, listSeparator) {
 		switch program {
-		case "filterlog":
-			cfg.FilterLogging = true
 		case "dhcpd", "dhcrelay":
 			cfg.DHCPLogging = true
 		case "unbound", "dnsmasq":
@@ -226,4 +333,29 @@ func applySyslogCoverage(cfg *common.SyslogConfig, d *schema.SyslogDestination) 
 			cfg.HostapdLogging = true
 		}
 	}
+}
+
+// admitsFilterlog reports whether every filter of the destination lets
+// filterlog's entries through. syslog-ng matches each program entry as an
+// unanchored pattern, so an entry such as "filter" admits filterlog too; an
+// entry that is not a valid pattern admits nothing. The model accepts only
+// names from its application list, so that takes a hand edit.
+func admitsFilterlog(d *schema.SyslogDestination) bool {
+	if d.Level != "" && !slices.Contains(splitNonEmpty(d.Level, listSeparator), filterlogLevel) {
+		return false
+	}
+
+	if d.Facility != "" && !slices.Contains(splitNonEmpty(d.Facility, listSeparator), filterlogFacility) {
+		return false
+	}
+
+	if d.Program == "" {
+		return true
+	}
+
+	return slices.ContainsFunc(splitNonEmpty(d.Program, listSeparator), func(entry string) bool {
+		pattern, err := regexp.Compile(entry)
+
+		return err == nil && pattern.MatchString(filterlogProgram)
+	})
 }

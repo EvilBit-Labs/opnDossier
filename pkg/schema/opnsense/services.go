@@ -140,6 +140,14 @@ type Syslog struct {
 	// PreserveLogs is the number of log archives OPNsense 20.7 to 24.1 kept.
 	// Migration M1_0_2 (24.7) copies it into the Syslog model's maxpreserve.
 	PreserveLogs string `xml:"preservelogs,omitempty"`
+	// MaxFileSize is the size in MB at which 24.1 rotated a log early.
+	MaxFileSize string `xml:"maxfilesize,omitempty"`
+	// DisableClog turned off the circular logs from 20.7 to 21.7, leaving the
+	// daily archives log_archive prunes. OPNsense tests it with empty().
+	DisableClog string `xml:"disable_clog,omitempty"`
+	// LogAll made 19.7 forward every message to the legacy remote servers,
+	// whatever the category flags say. OPNsense tests it with empty().
+	LogAll string `xml:"logall,omitempty"`
 }
 
 // Monit represents the Monit system monitoring daemon configuration, including

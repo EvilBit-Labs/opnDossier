@@ -1679,22 +1679,11 @@ type OPNsense struct {
 		ActiveTimeout   string `xml:"activeTimeout"`
 	} `xml:"Netflow" json:"netflow"`
 
-	SyslogInternal struct {
-		// XMLName is set only when the config carries the Syslog model, which
-		// tells the converter the legacy <syslog> remote keys are not the ones
-		// the firewall reads.
-		XMLName xml.Name `xml:"Syslog" json:"-"`
-		Text    string   `xml:",chardata" json:"text,omitempty"`
-		Version string   `xml:"version,attr" json:"version,omitempty"`
-		General struct {
-			Text        string `xml:",chardata" json:"text,omitempty"`
-			Enabled     string `xml:"enabled"`
-			Loglocal    string `xml:"loglocal"`
-			Maxpreserve string `xml:"maxpreserve"`
-			Maxfilesize string `xml:"maxfilesize"`
-		} `xml:"general" json:"general"`
-		Destinations SyslogDestinations `xml:"destinations" json:"destinations"`
-	} `xml:"Syslog" json:"syslog_internal"`
+	// SyslogInternal is nil when the config has no Syslog model, which tells
+	// the converter the legacy <syslog> remote keys are the ones the firewall
+	// reads. It is a pointer so that an encode writes no empty model a second
+	// decode would take for a real one.
+	SyslogInternal *SyslogModel `xml:"Syslog,omitempty" json:"syslog_internal,omitempty"`
 
 	TrafficShaper struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`
@@ -2427,6 +2416,14 @@ type Syslog struct {
 	// PreserveLogs is the number of log archives OPNsense 20.7 to 24.1 kept.
 	// Migration M1_0_2 (24.7) copies it into the Syslog model's maxpreserve.
 	PreserveLogs string `xml:"preservelogs,omitempty"`
+	// MaxFileSize is the size in MB at which 24.1 rotated a log early.
+	MaxFileSize string `xml:"maxfilesize,omitempty"`
+	// DisableClog turned off the circular logs from 20.7 to 21.7, leaving the
+	// daily archives log_archive prunes. OPNsense tests it with empty().
+	DisableClog string `xml:"disable_clog,omitempty"`
+	// LogAll made 19.7 forward every message to the legacy remote servers,
+	// whatever the category flags say. OPNsense tests it with empty().
+	LogAll string `xml:"logall,omitempty"`
 }
     Syslog represents system logging configuration, including remote syslog
     servers, per-facility enable flags (firewall, DHCP, auth, VPN, etc.),
@@ -2465,6 +2462,21 @@ type SyslogDestinations struct {
     SyslogDestinations is the <destinations> container of the Syslog model
     (<OPNsense><Syslog>). From 20.1 it is the only place OPNsense reads remote
     log targets from.
+
+type SyslogModel struct {
+	Text    string `xml:",chardata"    json:"text,omitempty"`
+	Version string `xml:"version,attr" json:"version,omitempty"`
+	General struct {
+		Text        string `xml:",chardata"   json:"text,omitempty"`
+		Enabled     string `xml:"enabled"`
+		Loglocal    string `xml:"loglocal"`
+		Maxpreserve string `xml:"maxpreserve"`
+		Maxfilesize string `xml:"maxfilesize"`
+	} `xml:"general"      json:"general"`
+	Destinations SyslogDestinations `xml:"destinations" json:"destinations"`
+}
+    SyslogModel is the Syslog model, <OPNsense><Syslog>: general logging
+    settings and, from 20.1, the only remote log targets OPNsense reads.
 
 type System struct {
 	Optimization                  string       `xml:"optimization"                  json:"optimization,omitempty"                  yaml:"optimization,omitempty"                  validate:"omitempty,oneof=normal high-latency conservative aggressive"`

@@ -233,8 +233,10 @@ func TestConverter_Syslog_DestinationsThatForwardNothing(t *testing.T) {
 }
 
 // TestConverter_Syslog_DestinationFilters checks which logging flags a
-// filtered target proves. The template ANDs the filters, so a facility filter,
-// or a level filter that drops more than debug, proves no category.
+// filtered target proves. Filter logging follows what filterlog writes:
+// program filterlog, facility local0, level info. The other categories count
+// only when no facility filter is set and the level filter drops at most
+// debug.
 func TestConverter_Syslog_DestinationFilters(t *testing.T) {
 	t.Parallel()
 
@@ -251,15 +253,32 @@ func TestConverter_Syslog_DestinationFilters(t *testing.T) {
 			level: "info,notice,warn,err,crit,alert,emerg",
 			want:  flags{true, true, true, true, true},
 		},
-		{name: "level filter dropping info proves nothing", level: "warn,err,crit,alert,emerg"},
-		{name: "facility filter proves nothing", facility: "auth,authpriv"},
+		{
+			name:  "level filter without emerg keeps filterlog's info entries",
+			level: "info,notice,warn,err,crit,alert",
+			want:  flags{filter: true},
+		},
+		{name: "level filter dropping info drops filterlog", level: "warn,err,crit,alert,emerg"},
+		{name: "emerg alone drops filterlog", level: "emerg"},
+		{name: "facility filter without local0 drops filterlog", facility: "auth,authpriv"},
+		{name: "local0 facility keeps filterlog", facility: "local0", want: flags{filter: true}},
 		{name: "filterlog program proves filter logging only", program: "filterlog", want: flags{filter: true}},
+		{name: "other program drops filterlog", program: "ntpd"},
+		{name: "program entry matches as a pattern", program: "ntpd,filter", want: flags{filter: true}},
+		{name: "invalid pattern admits nothing", program: "filter(log"},
 		{
 			name:    "program list maps each entry",
 			program: "dhcpd,openvpn",
 			want:    flags{dhcp: true, vpn: true},
 		},
-		{name: "program with facility filter proves nothing", program: "filterlog", facility: "local0"},
+		{name: "every filter must admit filterlog", program: "filterlog", facility: "local0", level: "err"},
+		{
+			name:     "filterlog through all three filters",
+			program:  "filterlog",
+			facility: "local0",
+			level:    "info",
+			want:     flags{filter: true},
+		},
 	}
 
 	for _, tt := range tests {
@@ -276,6 +295,52 @@ func TestConverter_Syslog_DestinationFilters(t *testing.T) {
 			assert.Equal(t, "10.0.0.50", sl.RemoteServer)
 			got := flags{sl.SystemLogging, sl.AuthLogging, sl.FilterLogging, sl.DHCPLogging, sl.VPNLogging}
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestConverter_Syslog_LegacyLogAll covers 19.7's logall, which forwarded every
+// message whatever the category flags held.
+func TestConverter_Syslog_LegacyLogAll(t *testing.T) {
+	t.Parallel()
+
+	sl, _ := parseSyslogConfig(t,
+		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall>1</logall></syslog>`)
+
+	assert.True(t, sl.Enabled)
+	assert.True(t, sl.FilterLogging)
+	assert.True(t, sl.AuthLogging)
+	assert.True(t, sl.SystemLogging)
+
+	sl, _ = parseSyslogConfig(t,
+		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall>0</logall></syslog>`)
+
+	assert.False(t, sl.FilterLogging)
+}
+
+// TestConverter_Syslog_LegacyRemoteWarning warns only for legacy keys that
+// name a server: <enable> alone forwarded nowhere, even on 19.7.
+func TestConverter_Syslog_LegacyRemoteWarning(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		legacy string
+		want   int
+	}{
+		{name: "nothing set", legacy: `<syslog><nologdefaultpass>1</nologdefaultpass></syslog>`},
+		{name: "enable without a server", legacy: `<syslog><enable>1</enable></syslog>`},
+		{name: "server without enable", legacy: `<syslog><remoteserver2>10.0.0.8</remoteserver2></syslog>`, want: 1},
+		{name: "enable switched off", legacy: `<syslog><enable>0</enable></syslog>`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, warnings := parseSyslogConfig(t, tt.legacy+syslogModel("1.0.3", "31", ""))
+
+			assert.Len(t, syslogWarnings(warnings), tt.want)
 		})
 	}
 }
@@ -299,41 +364,113 @@ func TestConverter_Syslog_FourDestinations(t *testing.T) {
 	assert.Equal(t, "10.0.0.4", sl.Destinations[3].Hostname)
 }
 
-// TestConverter_Syslog_Retention reads retention from where each release keeps
-// it: the legacy <syslog> keys up to 24.1 (model 1.0.0 and 1.0.1), the model's
-// maxpreserve from 24.7, which leaves the legacy keys behind.
+// TestConverter_Syslog_Retention reads the retention each release applies,
+// defaults included: a circular log of 511488 bytes unless <logfilesize> says
+// otherwise up to 21.7 (no model, or model 1.0.0), 31 daily archives unless
+// <preservelogs> says otherwise from 20.7 to 24.1, and the model's maxpreserve
+// and maxfilesize from 24.7. A key the release does not read draws a Low
+// warning.
 func TestConverter_Syslog_Retention(t *testing.T) {
 	t.Parallel()
 
-	const legacyRetention = `<syslog><logfilesize>512000</logfilesize><preservelogs>14</preservelogs></syslog>`
+	model101 := `<OPNsense><Syslog version="1.0.1"><general><enabled>1</enabled></general>` +
+		`<destinations/></Syslog></OPNsense>`
+	model100 := strings.Replace(model101, "1.0.1", "1.0.0", 1)
+	model103 := func(maxpreserve, maxfilesize string) string {
+		return strings.Replace(syslogModel("1.0.3", maxpreserve, ""), "<maxfilesize/>",
+			"<maxfilesize>"+maxfilesize+"</maxfilesize>", 1)
+	}
 
 	tests := []struct {
 		name         string
 		inner        string
 		wantRotate   string
 		wantFileSize string
+		wantWarnings []string
 	}{
 		{
-			name:       "24.7 and later read maxpreserve and ignore the legacy keys",
-			inner:      legacyRetention + syslogModel("1.0.3", "31", ""),
+			name:         "26.7 reads maxpreserve and maxfilesize in MB",
+			inner:        model103("45", "10"),
+			wantRotate:   "45",
+			wantFileSize: "10485760",
+		},
+		{
+			name:       "26.7 empty maxpreserve takes the model default",
+			inner:      model103("", ""),
 			wantRotate: "31",
 		},
 		{
+			name: "26.7 ignores a stale clog size and a legacy value it migrated",
+			inner: `<syslog><logfilesize>512000</logfilesize><preservelogs>45</preservelogs></syslog>` + model103(
+				"45",
+				"",
+			),
+			wantRotate:   "45",
+			wantWarnings: []string{"logfilesize=512000"},
+		},
+		{
+			name: "26.7 reports a legacy value that disagrees with the model",
+			inner: `<syslog><preservelogs>14</preservelogs><maxfilesize>5</maxfilesize></syslog>` + model103(
+				"45",
+				"10",
+			),
+			wantRotate:   "45",
+			wantFileSize: "10485760",
+			wantWarnings: []string{"preservelogs=14", "maxfilesize=5"},
+		},
+		{
 			name:       "1.0.2 is the first model version with retention",
-			inner:      legacyRetention + syslogModel("1.0.2", "60", ""),
+			inner:      syslogModel("1.0.2", "60", ""),
 			wantRotate: "60",
 		},
 		{
-			name:         "24.1 reads the legacy keys",
-			inner:        legacyRetention + `<OPNsense><Syslog version="1.0.1"><general><enabled>1</enabled></general><destinations/></Syslog></OPNsense>`,
+			name:       "24.1 with nothing set keeps 31 archives",
+			inner:      `<syslog><nologdefaultblock>1</nologdefaultblock></syslog>` + model101,
+			wantRotate: "31",
+		},
+		{
+			name:         "24.1 reads preservelogs and maxfilesize",
+			inner:        `<syslog><preservelogs>14</preservelogs><maxfilesize>10</maxfilesize></syslog>` + model101,
 			wantRotate:   "14",
+			wantFileSize: "10485760",
+		},
+		{
+			name:         "24.1 ignores a stale clog size",
+			inner:        `<syslog><logfilesize>512000</logfilesize></syslog>` + model101,
+			wantRotate:   "31",
+			wantWarnings: []string{"logfilesize=512000"},
+		},
+		{
+			name:         "1.0.0 reads the circular log size",
+			inner:        `<syslog><logfilesize>512000</logfilesize></syslog>` + model100,
 			wantFileSize: "512000",
 		},
 		{
-			name:         "no model reads the legacy keys",
-			inner:        legacyRetention,
-			wantRotate:   "14",
+			name:         "1.0.0 without a size takes the circular log default",
+			inner:        model100,
+			wantFileSize: "511488",
+		},
+		{
+			name:       "1.0.0 with circular logs off keeps 31 archives",
+			inner:      `<syslog><disable_clog>1</disable_clog><logfilesize>512000</logfilesize></syslog>` + model100,
+			wantRotate: "31",
+		},
+		{
+			name:         "no model reads the circular log size",
+			inner:        `<syslog><logfilesize>512000</logfilesize></syslog>`,
 			wantFileSize: "512000",
+		},
+		{
+			name:         "preservelogs wins over pfSense's rotatecount",
+			inner:        `<syslog><rotatecount>7</rotatecount><preservelogs>14</preservelogs></syslog>`,
+			wantRotate:   "14",
+			wantFileSize: "511488",
+		},
+		{
+			name:         "rotatecount is read when preservelogs is absent",
+			inner:        `<syslog><rotatecount>7</rotatecount></syslog>`,
+			wantRotate:   "7",
+			wantFileSize: "511488",
 		},
 	}
 
@@ -341,11 +478,37 @@ func TestConverter_Syslog_Retention(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			sl, _ := parseSyslogConfig(t, tt.inner)
+			sl, warnings := parseSyslogConfig(t, tt.inner)
 
 			assert.Equal(t, tt.wantRotate, sl.RotateCount)
 			assert.Equal(t, tt.wantFileSize, sl.LogFileSize)
+
+			var got []string
+			for _, w := range syslogWarnings(warnings) {
+				got = append(got, w.Value)
+			}
+			assert.Equal(t, tt.wantWarnings, got)
 		})
+	}
+}
+
+// TestConverter_Syslog_ModelWithoutVersion reads a model with no version
+// attribute as the current one: destinations count, retention comes from the
+// model, and no version warning is raised.
+func TestConverter_Syslog_ModelWithoutVersion(t *testing.T) {
+	t.Parallel()
+
+	inner := strings.Replace(
+		syslogModel("", "45", syslogDestination("b2", "1", "udp4", "", "", "", "10.0.0.50")),
+		` version=""`, "", 1,
+	)
+	sl, warnings := parseSyslogConfig(t, `<syslog><preservelogs>14</preservelogs></syslog>`+inner)
+
+	assert.True(t, sl.Enabled)
+	assert.Equal(t, "10.0.0.50", sl.RemoteServer)
+	assert.Equal(t, "45", sl.RotateCount)
+	for _, w := range syslogWarnings(warnings) {
+		assert.NotEqual(t, "Syslog.Version", w.Field)
 	}
 }
 
@@ -380,33 +543,78 @@ func TestConverter_Syslog_SampleConfig5(t *testing.T) {
 	assert.Empty(t, syslogWarnings(warnings))
 }
 
+// roundTrip holds a document as first decoded and as decoded again after an
+// encode.
+type roundTrip struct {
+	first, second schema.OpnSenseDocument
+}
+
+// roundTripDocument decodes, encodes and decodes a document again.
+func roundTripDocument(t *testing.T, input string) roundTrip {
+	t.Helper()
+
+	var rt roundTrip
+	require.NoError(t, xml.Unmarshal([]byte(input), &rt.first))
+
+	encoded, err := xml.Marshal(&rt.first)
+	require.NoError(t, err)
+	require.NoError(t, xml.Unmarshal(encoded, &rt.second))
+
+	return rt
+}
+
 // TestSyslogModel_RoundTrip keeps every destination element through a decode,
 // an encode and a second decode.
 func TestSyslogModel_RoundTrip(t *testing.T) {
 	t.Parallel()
 
-	input := `<opnsense>` + syslogModel("1.0.3", "31",
+	rt := roundTripDocument(t, `<opnsense>`+syslogModel("1.0.3", "31",
 		syslogDestination("a1", "0", "udp6", "filterlog,openvpn", "info,notice", "auth", "fd00::9")+
 			syslogDestination("b2", "1", "tls4", "", "", "", "10.0.0.50"),
-	) + `</opnsense>`
+	)+`</opnsense>`)
 
-	var first schema.OpnSenseDocument
-	require.NoError(t, xml.Unmarshal([]byte(input), &first))
-
-	encoded, err := xml.Marshal(&first)
-	require.NoError(t, err)
-
-	var second schema.OpnSenseDocument
-	require.NoError(t, xml.Unmarshal(encoded, &second))
-
-	want := first.OPNsense.SyslogInternal
-	got := second.OPNsense.SyslogInternal
+	want := rt.first.OPNsense.SyslogInternal
+	got := rt.second.OPNsense.SyslogInternal
+	require.NotNil(t, got)
 	require.Len(t, got.Destinations.Destination, 2)
-	assert.Equal(t, want.Version, got.Version)
-	assert.Equal(t, want.General.Maxpreserve, got.General.Maxpreserve)
-	assert.Equal(t, want.Destinations, got.Destinations)
+	assert.Equal(t, want, got)
 	assert.Equal(t, schema.SyslogDestination{
 		UUID: "a1", Enabled: "0", Transport: "udp6", Program: "filterlog,openvpn", Level: "info,notice",
 		Facility: "auth", Hostname: "fd00::9", Port: "6514", RFC5424: "0", Suppress: "0", Description: "siem",
 	}, got.Destinations.Destination[0])
+}
+
+// TestSyslogModel_LegacyOnlyRoundTrip keeps a config with no Syslog model
+// without one after an encode, so the legacy remote keys stay the ones read.
+func TestSyslogModel_LegacyOnlyRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	rt := roundTripDocument(t, `<opnsense>`+legacyRemoteSyslog+
+		`</opnsense>`)
+
+	assert.Nil(t, rt.first.OPNsense.SyslogInternal)
+	assert.Nil(t, rt.second.OPNsense.SyslogInternal)
+	assert.Equal(t, rt.first.Syslog.Remoteserver, rt.second.Syslog.Remoteserver)
+
+	encoded, err := xml.Marshal(&rt.second)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "<Syslog")
+
+	sl, _ := parseSyslogConfig(t, legacyRemoteSyslog)
+	assert.True(t, sl.Enabled)
+}
+
+// TestSyslogLegacy_RetentionRoundTrip keeps the legacy retention keys through
+// an encode.
+func TestSyslogLegacy_RetentionRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	rt := roundTripDocument(t, `<opnsense><syslog><preservelogs>14</preservelogs>`+
+		`<maxfilesize>10</maxfilesize><disable_clog>1</disable_clog><logall>1</logall></syslog></opnsense>`)
+
+	assert.Equal(t, "14", rt.second.Syslog.PreserveLogs)
+	assert.Equal(t, "10", rt.second.Syslog.MaxFileSize)
+	assert.Equal(t, "1", rt.second.Syslog.DisableClog)
+	assert.Equal(t, "1", rt.second.Syslog.LogAll)
+	assert.Equal(t, rt.first.Syslog, rt.second.Syslog)
 }
