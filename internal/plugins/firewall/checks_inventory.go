@@ -48,7 +48,7 @@ func (fp *Plugin) runInventoryChecks(device *common.CommonDevice) []compliance.F
 	return findings
 }
 
-// checkDHCPInventory reports whether any DHCP scopes (ISC or Kea) are configured.
+// checkDHCPInventory reports whether any DHCP scopes (ISC, Kea or dnsmasq) are configured.
 func (fp *Plugin) checkDHCPInventory(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
@@ -58,13 +58,13 @@ func (fp *Plugin) checkDHCPInventory(device *common.CommonDevice) checkResult {
 }
 
 // dhcpInventoryDescription builds a human-readable description of configured DHCP scopes,
-// distinguishing ISC vs Kea sources when both are present.
+// grouped by the DHCP server that serves them.
 func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
 	if device == nil || len(device.DHCP) == 0 {
 		return "No DHCP scopes configured"
 	}
 
-	var iscLabels, keaLabels []string
+	var iscLabels, keaLabels, dnsmasqLabels []string
 	for _, scope := range device.DHCP {
 		label := scope.Interface
 		if label == "" {
@@ -77,6 +77,8 @@ func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
 		switch scope.Source {
 		case common.DHCPSourceKea:
 			keaLabels = append(keaLabels, label)
+		case common.DHCPSourceDnsmasq:
+			dnsmasqLabels = append(dnsmasqLabels, label)
 		default:
 			iscLabels = append(iscLabels, label)
 		}
@@ -90,6 +92,10 @@ func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
 	if len(keaLabels) > 0 {
 		parts = append(parts, fmt.Sprintf("%d Kea subnet(s): %s",
 			len(keaLabels), strings.Join(keaLabels, ", ")))
+	}
+	if len(dnsmasqLabels) > 0 {
+		parts = append(parts, fmt.Sprintf("%d dnsmasq DHCP scope(s) on: %s",
+			len(dnsmasqLabels), strings.Join(dnsmasqLabels, ", ")))
 	}
 
 	return strings.Join(parts, "; ")

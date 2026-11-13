@@ -5,6 +5,51 @@ import (
 	"strings"
 )
 
+// DNSMasqDHCP holds the <dnsmasq><dhcp> settings block of the Dnsmasq model.
+type DNSMasqDHCP struct {
+	// NoInterface is the comma-separated list of interfaces dnsmasq serves
+	// DNS on but not DHCP.
+	NoInterface string `xml:"no_interface,omitempty"`
+}
+
+// DNSMasqDHCPRange is one <dhcp_ranges> entry of the Dnsmasq model. The
+// template treats a start address holding a colon as an IPv6 range and every
+// other one as IPv4. An IPv6 range usually holds only the host part of the
+// address (::1000), which dnsmasq completes from the prefix of the interface
+// named in Constructor.
+type DNSMasqDHCPRange struct {
+	UUID        string `xml:"uuid,attr,omitempty"`
+	Interface   string `xml:"interface,omitempty"`
+	SetTag      string `xml:"set_tag,omitempty"`
+	StartAddr   string `xml:"start_addr,omitempty"`
+	EndAddr     string `xml:"end_addr,omitempty"`
+	SubnetMask  string `xml:"subnet_mask,omitempty"`
+	Constructor string `xml:"constructor,omitempty"`
+	Mode        string `xml:"mode,omitempty"`
+	PrefixLen   string `xml:"prefix_len,omitempty"`
+	LeaseTime   string `xml:"lease_time,omitempty"`
+	DomainType  string `xml:"domain_type,omitempty"`
+	Domain      string `xml:"domain,omitempty"`
+	RAMode      string `xml:"ra_mode,omitempty"`
+	Description string `xml:"description,omitempty"`
+}
+
+// DNSMasqDHCPOption is one <dhcp_options> entry of the Dnsmasq model. Option
+// holds a DHCPv4 option number and Option6 a DHCPv6 one; the template uses
+// Option6 when both are set. Type is "set" (the default) or "match".
+type DNSMasqDHCPOption struct {
+	UUID        string `xml:"uuid,attr,omitempty"`
+	Type        string `xml:"type,omitempty"`
+	Option      string `xml:"option,omitempty"`
+	Option6     string `xml:"option6,omitempty"`
+	Interface   string `xml:"interface,omitempty"`
+	Tag         string `xml:"tag,omitempty"`
+	SetTag      string `xml:"set_tag,omitempty"`
+	Value       string `xml:"value,omitempty"`
+	Force       string `xml:"force,omitempty"`
+	Description string `xml:"description,omitempty"`
+}
+
 // DNSMasqHostAliases holds the extra names of a dnsmasq host override, each
 // a full name such as files.example.com.
 //

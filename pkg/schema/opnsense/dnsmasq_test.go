@@ -10,17 +10,31 @@ import (
 )
 
 // dnsmasqModelElement is a <dnsmasq> element in the shape the 26.7.9 model
-// writes, one entry of each repeated item this schema binds.
+// writes, one entry of each repeated item.
 const dnsmasqModelElement = `<dnsmasq version="1.0.9">
   <enable>1</enable>
   <dnssec>1</dnssec>
+  <interface>lan,opt1</interface>
+  <port>53</port>
+  <dhcp><no_interface>opt2</no_interface></dhcp>
   <hosts uuid="00000000-0000-4000-8000-000000000001">
     <host>nas</host><domain>internal</domain><ip>192.168.1.10</ip>
+    <client_id>01:02:f3</client_id><hwaddr>aa:bb:cc:dd:ee:01</hwaddr><lease_time>3600</lease_time><ignore>0</ignore>
     <descr>NAS</descr><aliases>files.internal,backup.internal</aliases>
   </hosts>
   <domainoverrides uuid="00000000-0000-4000-8000-000000000002">
     <domain>corp.example</domain><srcip>192.168.1.1</srcip><port>5353</port><ip>10.9.0.53</ip><descr>Corp</descr>
   </domainoverrides>
+  <dhcp_ranges uuid="00000000-0000-4000-8000-000000000003">
+    <interface>lan</interface><set_tag>t1</set_tag><start_addr>::1000</start_addr><end_addr>::2000</end_addr>
+    <subnet_mask>255.255.255.0</subnet_mask><constructor>lan</constructor><mode>static</mode><prefix_len>64</prefix_len>
+    <lease_time>86400</lease_time><domain_type>range</domain_type><domain>lan.example</domain>
+    <ra_mode>slaac</ra_mode><description>LAN v6</description>
+  </dhcp_ranges>
+  <dhcp_options uuid="00000000-0000-4000-8000-000000000004">
+    <type>set</type><option>6</option><option6>23</option6><interface>lan</interface><tag>t1</tag><set_tag>t2</set_tag>
+    <value>9.9.9.9</value><force>1</force><description>DNS</description>
+  </dhcp_options>
 </dnsmasq>`
 
 // TestDNSMasq_DecodesModelShape pins the element names the Dnsmasq model
@@ -33,15 +47,34 @@ func TestDNSMasq_DecodesModelShape(t *testing.T) {
 	require.NoError(t, xml.Unmarshal([]byte(dnsmasqModelElement), &dm))
 
 	assert.Equal(t, "1.0.9", dm.Version)
+	assert.Equal(t, "lan,opt1", dm.Interface)
+	require.NotNil(t, dm.DHCP)
+	assert.Equal(t, "opt2", dm.DHCP.NoInterface)
 
 	require.Len(t, dm.Hosts, 1)
 	h := dm.Hosts[0]
 	assert.Equal(t, "nas", h.Host)
+	assert.Equal(t, "aa:bb:cc:dd:ee:01", h.HWAddr)
+	assert.Equal(t, "01:02:f3", h.ClientID)
 	assert.Equal(t, DNSMasqHostAliases{"files.internal", "backup.internal"}, h.Aliases)
 
 	require.Len(t, dm.DomainOverrides, 1)
 	assert.Equal(t, "5353", dm.DomainOverrides[0].Port)
 	assert.Equal(t, "192.168.1.1", dm.DomainOverrides[0].SrcIP)
+
+	require.Len(t, dm.DHCPRanges, 1)
+	assert.Equal(t, DNSMasqDHCPRange{
+		UUID: "00000000-0000-4000-8000-000000000003", Interface: "lan", SetTag: "t1",
+		StartAddr: "::1000", EndAddr: "::2000", SubnetMask: "255.255.255.0", Constructor: "lan",
+		Mode: "static", PrefixLen: "64", LeaseTime: "86400", DomainType: "range", Domain: "lan.example",
+		RAMode: "slaac", Description: "LAN v6",
+	}, dm.DHCPRanges[0])
+
+	require.Len(t, dm.DHCPOptions, 1)
+	assert.Equal(t, DNSMasqDHCPOption{
+		UUID: "00000000-0000-4000-8000-000000000004", Type: "set", Option: "6", Option6: "23",
+		Interface: "lan", Tag: "t1", SetTag: "t2", Value: "9.9.9.9", Force: "1", Description: "DNS",
+	}, dm.DHCPOptions[0])
 }
 
 // TestDNSMasq_RoundTrip encodes a decoded element and decodes it again.

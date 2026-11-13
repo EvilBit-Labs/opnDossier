@@ -98,6 +98,18 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 			})
 		}
 
+		// A dnsmasq scope also carries a DHCPv6 range.
+		if oldV6, newV6 := formatOptionalRange(oldDHCP.RangeV6), formatOptionalRange(newDHCP.RangeV6); oldV6 != newV6 {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionDHCP,
+				Path:        fmt.Sprintf("dhcpd.%s.rangeV6", name),
+				Description: "DHCPv6 range changed for " + name,
+				OldValue:    oldV6,
+				NewValue:    newV6,
+			})
+		}
+
 		// Compare enable state
 		if oldDHCP.Enabled != newDHCP.Enabled {
 			changes = append(changes, Change{
@@ -222,4 +234,14 @@ func formatStaticLease(lease common.DHCPStaticLease) string {
 		parts = append(parts, "descr="+lease.Description)
 	}
 	return strings.Join(parts, ", ")
+}
+
+// formatOptionalRange renders a range that may be absent; an absent range is
+// the empty string.
+func formatOptionalRange(r *common.DHCPRange) string {
+	if r == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%s - %s", r.From, r.To)
 }

@@ -168,13 +168,16 @@ const (
 	DHCPSourceISC DHCPSource = "isc"
 	// DHCPSourceKea indicates a Kea DHCP4 scope.
 	DHCPSourceKea DHCPSource = "kea"
+	// DHCPSourceDnsmasq indicates a scope served by dnsmasq.
+	DHCPSourceDnsmasq DHCPSource = "dnsmasq"
 )
 
 // DHCPScope represents DHCP server configuration for a single interface or subnet.
 type DHCPScope struct {
 	// Interface is the logical interface name this DHCP scope is bound to.
 	Interface string `json:"interface,omitempty" yaml:"interface,omitempty"`
-	// Source identifies which DHCP server produced this scope ("isc" or "kea").
+	// Source identifies which DHCP server produced this scope ("isc", "kea"
+	// or "dnsmasq").
 	// Empty string is treated as "isc" for backward compatibility.
 	Source DHCPSource `json:"source,omitempty" yaml:"source,omitempty"`
 	// Description is a human-readable label for the scope (Kea subnets have descriptions; ISC scopes use the interface name).
@@ -210,6 +213,12 @@ type DHCPScope struct {
 	// AdvancedV6 contains advanced DHCPv6 configuration (tracking, identity association, auth, overrides).
 	// Nil when no advanced DHCPv6 config is present.
 	AdvancedV6 *DHCPAdvancedV6 `json:"advancedV6,omitempty" yaml:"advancedV6,omitempty"`
+
+	// RangeV6 is the DHCPv6 address range served on the interface, as
+	// written. Only dnsmasq scopes set it, and a dnsmasq range usually holds
+	// only the host part of each address (::1000), completed from the
+	// interface prefix. Nil when the scope serves no DHCPv6 range.
+	RangeV6 *DHCPRange `json:"rangeV6,omitempty" yaml:"rangeV6,omitempty"`
 }
 
 // SetDNSServers records the DNS servers advertised to this scope, keeping the
@@ -337,7 +346,8 @@ type UnboundConfig struct {
 	Prefetch bool `json:"prefetch,omitempty" yaml:"prefetch,omitempty"`
 }
 
-// DNSMasqConfig contains dnsmasq forwarder configuration.
+// DNSMasqConfig contains dnsmasq forwarder configuration. The DHCP ranges
+// dnsmasq serves are reported as DHCP scopes with Source "dnsmasq".
 type DNSMasqConfig struct {
 	// Enabled indicates whether the dnsmasq forwarder is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`

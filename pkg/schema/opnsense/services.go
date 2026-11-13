@@ -62,9 +62,9 @@ type Ntpd struct {
 	Prefer string `xml:"prefer"`
 }
 
-// DNSMasq represents the dnsmasq DNS forwarder configuration, including host
-// overrides, domain overrides, forwarder groups, DHCP registration, and custom
-// options.
+// DNSMasq represents the dnsmasq DNS forwarder and DHCP server configuration,
+// including host overrides, domain overrides, DHCP ranges and options, and
+// forwarder settings.
 //
 // From 25.1.2 OPNsense keeps this element as the Dnsmasq MVC model (mount
 // /dnsmasq) and writes the model version as an attribute. Earlier releases
@@ -89,9 +89,18 @@ type DNSMasq struct {
 
 	// Version is the Dnsmasq model version. It is empty on a legacy config.
 	Version string `xml:"version,attr,omitempty"`
+
+	// Interface is the comma-separated list of interfaces dnsmasq listens on.
+	// Empty means every interface.
+	Interface string `xml:"interface,omitempty"`
+
+	DHCP        *DNSMasqDHCP        `xml:"dhcp,omitempty"`
+	DHCPRanges  []DNSMasqDHCPRange  `xml:"dhcp_ranges,omitempty"`
+	DHCPOptions []DNSMasqDHCPOption `xml:"dhcp_options,omitempty"`
 }
 
-// DNSMasqHost represents one <hosts> entry, a static DNS host override.
+// DNSMasqHost represents one <hosts> entry: a DNS host override, and a DHCP
+// reservation as well when it carries a hardware address or client id.
 type DNSMasqHost struct {
 	XMLName xml.Name           `xml:"hosts"`
 	Host    string             `xml:"host,omitempty"`
@@ -100,7 +109,11 @@ type DNSMasqHost struct {
 	Descr   string             `xml:"descr,omitempty"`
 	Aliases DNSMasqHostAliases `xml:"aliases,omitempty"`
 
-	UUID string `xml:"uuid,attr,omitempty"`
+	UUID      string `xml:"uuid,attr,omitempty"`
+	ClientID  string `xml:"client_id,omitempty"`
+	HWAddr    string `xml:"hwaddr,omitempty"`
+	LeaseTime string `xml:"lease_time,omitempty"`
+	Ignore    string `xml:"ignore,omitempty"`
 }
 
 // DomainOverride represents one <domainoverrides> entry, forwarding queries

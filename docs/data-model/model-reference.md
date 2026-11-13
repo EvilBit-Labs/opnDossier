@@ -319,6 +319,8 @@ DHCP scopes are a flat array with one entry per interface.
 | `NTPServer`    | `string`            | `dhcp[].ntpServer`    | NTP server for clients          |
 | `WINSServer`   | `string`            | `dhcp[].winsServer`   | WINS server for clients         |
 | `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Fixed MAC-to-IP mappings        |
+| `Source`       | `DHCPSource`        | `dhcp[].source`       | `isc`, `kea` or `dnsmasq`       |
+| `RangeV6`      | `*DHCPRange`        | `dhcp[].rangeV6`      | DHCPv6 range (dnsmasq only)     |
 
 ### DHCPRange
 
@@ -345,6 +347,8 @@ DHCP scopes are a flat array with one entry per interface.
 | `DNSSECStripped` | `bool` | `dns.unbound.dnssecStripped` | DNSSEC stripped mode      |
 
 ### DNS (dnsmasq)
+
+The DHCP ranges dnsmasq serves are reported as `dhcp[]` scopes with `source` set to `dnsmasq`.
 
 | Field             | Type               | JSON Key                      | Description              |
 | ----------------- | ------------------ | ----------------------------- | ------------------------ |
