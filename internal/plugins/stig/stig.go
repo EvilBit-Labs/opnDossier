@@ -583,15 +583,18 @@ var broadNetworks = []string{
 	constants.NetworkAny, // Any network
 }
 
-// enabledDHCPScopes counts the DHCP scopes a server actually serves. A
-// disabled scope, such as the ISC entry an upgraded box keeps beside the
-// server that replaced it, is configuration, not a running service.
+// enabledDHCPScopes counts the DHCP scopes toward the limit. Every ISC and Kea
+// scope counts, as it always has. A dnsmasq scope counts only while dnsmasq
+// serves it: its ranges stay in the config when dnsmasq is turned off or
+// stops serving DHCP on the interface, and the 26.7.9 factory default keeps
+// them beside whichever server the operator picks.
 func enabledDHCPScopes(scopes []common.DHCPScope) int {
 	count := 0
 	for _, scope := range scopes {
-		if scope.Enabled {
-			count++
+		if scope.Source == common.DHCPSourceDnsmasq && !scope.Enabled {
+			continue
 		}
+		count++
 	}
 
 	return count
