@@ -47,7 +47,7 @@ The current SANS plugin defines 4 controls with placeholder check logic. The che
 | ----------- | ------ | ---------------------- | --------------------------- | -------- | ----------- |
 | SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Placeholder |
 | SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
-| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Placeholder |
+| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Implemented |
 | SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Placeholder |
 
 #### Planned SANS Controls
@@ -316,7 +316,7 @@ All four SANS checks currently use placeholder logic:
 
 1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
 2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
-3. **Network Zone Separation (SANS-FW-003)** - Placeholder: always returns compliant
+3. **Network Zone Separation (SANS-FW-003)** - Compliant when at least two enabled network interfaces exist. Loopback devices, interface groups and the VPN pseudo-interfaces OPNsense registers do not count.
 4. **Comprehensive Logging (SANS-FW-004)** - Placeholder: always returns compliant
 
 #### Firewall Security Compliance Checks

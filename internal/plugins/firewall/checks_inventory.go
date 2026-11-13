@@ -113,5 +113,5 @@ func (fp *Plugin) interfaceInventoryDescription(device *common.CommonDevice) str
 		return "No interfaces configured"
 	}
 
-	return fmt.Sprintf("%d enabled interface(s)", analysis.CountNetworkZones(device))
+	return fmt.Sprintf("%d enabled network interface(s)", analysis.CountNetworkZones(device))
 }

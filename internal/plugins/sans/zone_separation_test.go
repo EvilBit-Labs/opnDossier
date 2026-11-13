@@ -86,6 +86,13 @@ func TestSANSPlugin_ZoneSeparation_PseudoInterfacesAreNotZones(t *testing.T) {
       <type>none</type>
     </ipsec1>`
 
+	// assigned is an interface the operator assigned to device, as
+	// interfaces_assign.php writes it.
+	assigned := func(device string) string {
+		return "<opt1>\n      <if>" + device + "</if>\n      <descr>extra</descr>\n" +
+			"      <enable>1</enable>\n      <ipaddr>10.9.9.1</ipaddr>\n      <subnet>24</subnet>\n    </opt1>"
+	}
+
 	tests := []struct {
 		name   string
 		cfg    []byte
@@ -102,6 +109,18 @@ func TestSANSPlugin_ZoneSeparation_PseudoInterfacesAreNotZones(t *testing.T) {
 		// An IPsec VTI is a routed interface to a remote network and is not
 		// marked virtual, so it counts.
 		{name: "wan and an IPsec VTI", cfg: withInterfaces(lanDisabled, vti)},
+		// A loopback device the operator created and assigned carries no
+		// virtual flag, but reaches no network beyond the firewall.
+		{name: "wan and an assigned loopback", cfg: withInterfaces(lanDisabled, assigned("lo1")), failed: true},
+	}
+
+	// Devices assigned as an interface carry a network of their own.
+	for _, dev := range []string{"vtnet0_vlan10", "bridge0", "lagg0", "ovpns1", "wg0"} {
+		tests = append(tests, struct {
+			name   string
+			cfg    []byte
+			failed bool
+		}{name: "wan and an assigned " + dev, cfg: withInterfaces(lanDisabled, assigned(dev))})
 	}
 
 	for _, tt := range tests {

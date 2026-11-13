@@ -28,7 +28,7 @@ func TestFirewallPlugin_InterfaceInventory_SkipsPseudoInterfaces(t *testing.T) {
 
 		f := inventoryFindingByRef(findings, controlInterfaceInventory)
 		require.NotNil(t, f)
-		assert.Contains(t, f.Description, "1 enabled interface(s)")
+		assert.Contains(t, f.Description, "1 enabled network interface(s)")
 	})
 
 	t.Run("no finding with pseudo-interfaces only", func(t *testing.T) {
