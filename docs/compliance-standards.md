@@ -52,7 +52,7 @@ The SANS plugin defines SANS-FW-001 to SANS-FW-025. The four controls in the tab
 
 #### Planned SANS Controls
 
-The following controls map to specific SANS SCORE Firewall Checklist items and are planned for implementation. "Implementability" indicates whether the control can be evaluated from config.xml data alone.
+The following sections map each remaining control to its SANS SCORE Firewall Checklist item. "Implementability" indicates whether the control can be evaluated from config.xml data alone.
 
 ##### Ruleset and Filtering (SANS Checklist #1, #2, #3)
 
