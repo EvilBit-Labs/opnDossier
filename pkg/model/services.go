@@ -292,12 +292,15 @@ type DNSConfig struct {
 	DNSMasq DNSMasqConfig `json:"dnsMasq" yaml:"dnsMasq,omitempty"`
 }
 
-// UnboundConfig contains Unbound DNS resolver configuration. The first three
-// fields (Enabled, DNSSEC, DNSSECStripped) are sourced from the legacy <unbound>
-// element. The remaining fields are sourced from the MVC <OPNsense><unboundplus>
-// element; the OPNsense-specific converter handles the split.
+// UnboundConfig contains Unbound DNS resolver configuration. On OPNsense the
+// first three fields (Enabled, DNSSEC, DNSSECStripped) come from the MVC
+// <OPNsense><unboundplus> model once its migrations have moved them there
+// (DNSSECStripped from model 1.0.3, the other two from 1.0.5, OPNsense 23.7),
+// and from the legacy <unbound> element before that. The remaining fields are
+// sourced from the MVC <OPNsense><unboundplus><advanced> element; the
+// OPNsense-specific converter handles the split.
 type UnboundConfig struct {
-	// -- Legacy <unbound> (canonical) --
+	// -- Service state: <unboundplus><general>/<advanced>, or legacy <unbound> --
 
 	// Enabled indicates whether the Unbound resolver is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
