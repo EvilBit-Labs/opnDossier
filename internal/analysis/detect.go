@@ -377,11 +377,17 @@ func DetectPerformanceIssues(cfg *common.CommonDevice) []common.PerformanceFindi
 // OPNsense and pfSense store the selected gateway's name in <gateway>, not an
 // address: the interface page offers the gateways defined on that interface
 // and saves the chosen name (OPNsense interfaces.php). A literal address, which
-// older configs can hold, is accepted as it stands. A name is a problem only
-// when no gateway in the config has it, or when every gateway that has it is
-// on another interface; the firewall then applies no gateway for the
-// interface (Gateways::getInterfaceGateway). "none" is the page's value for no
-// gateway.
+// older configs can hold, is accepted as it stands, and "none" is the page's
+// value for no gateway.
+//
+// A name no gateway in the config has is reported on either vendor: neither
+// can resolve it. A name defined only on other interfaces is reported on
+// OPNsense alone. OPNsense ignores such a selection, since
+// Gateways::getInterfaceGateway matches only a gateway on the interface, so
+// the interface gets no reply-to gateway and automatic outbound NAT skips it
+// (filter.lib.inc). pfSense looks the name up among every gateway, whatever
+// its interface (gwlb.inc get_interface_gateway), and uses it, so there the
+// selection is not a fault.
 func interfaceGatewayFinding(cfg *common.CommonDevice, iface common.Interface) (common.ConsistencyFinding, bool) {
 	name := strings.TrimSpace(iface.Gateway)
 	if name == "" || strings.EqualFold(name, "none") || iface.IPAddress == "" || iface.Subnet == "" ||
@@ -419,9 +425,14 @@ func interfaceGatewayFinding(cfg *common.CommonDevice, iface common.Interface) (
 		return finding, true
 	}
 
+	if cfg.DeviceType != common.DeviceTypeOPNsense {
+		return common.ConsistencyFinding{}, false
+	}
+
 	finding.Issue = "Interface Gateway on Another Interface"
 	finding.Description = fmt.Sprintf(
-		"Interface %s selects gateway %s, which is defined on %s, so the firewall applies no gateway for %s",
+		"Interface %s selects gateway %s, which is defined on %s; OPNsense ignores the selection, "+
+			"so %s gets no reply-to gateway and automatic outbound NAT skips it",
 		iface.Name, name, strings.Join(elsewhere, ", "), iface.Name,
 	)
 	finding.Recommendation = "Select a gateway defined on this interface, or clear the selection"

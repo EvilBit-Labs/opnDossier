@@ -62,3 +62,46 @@ func TestDetectConsistency_InterfaceGatewayByName(t *testing.T) {
 		})
 	}
 }
+
+// TestDetectConsistency_InterfaceGatewayPfSense drives pfSense's 2.7 fixture
+// with lan rewritten to select GW_WAN, which the fixture defines on wan.
+// pfSense resolves the name among every gateway, so that is not a fault there;
+// a name no gateway defines still is.
+func TestDetectConsistency_InterfaceGatewayPfSense(t *testing.T) {
+	t.Parallel()
+
+	const lan = "<ipaddr>10.0.0.1</ipaddr>\n      <subnet>24</subnet>\n    </lan>"
+
+	raw := readFixture(t, "pfsense/config-2.7.x.xml")
+	requireFixtureHolds(t, raw, map[string]int{lan: 1, "<name>GW_WAN</name>": 1})
+
+	selecting := func(gateway string) string {
+		return strings.Replace(raw, lan,
+			"<ipaddr>10.0.0.1</ipaddr>\n      <subnet>24</subnet>\n      <gateway>"+gateway+"</gateway>\n    </lan>", 1)
+	}
+
+	for _, tt := range []struct {
+		name   string
+		config string
+		want   []string
+	}{
+		{name: "selects a gateway defined on another interface", config: selecting("GW_WAN")},
+		{name: "selects a name no gateway defines", config: selecting("GONE_GW"), want: []string{"Undefined Interface Gateway"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got []string
+
+			for _, finding := range analysis.DetectConsistency(parseConfig(t, tt.config)) {
+				if finding.Component == "interfaces.lan.gateway" {
+					got = append(got, finding.Issue)
+				}
+			}
+
+			if strings.Join(got, "|") != strings.Join(tt.want, "|") {
+				t.Errorf("lan gateway findings = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
