@@ -18,7 +18,7 @@ Firewall compliance checks use a three-state `checkResult` pattern:
 | **Non-Compliant** (`Known=true, Result=fail`) | The check failed                 | Finding emitted with remediation guidance |
 | **Unknown** (`Known=false`)                   | Data not available in config.xml | Check skipped entirely                    |
 
-The "Unknown" state prevents false positives. Some settings (e.g., SSH banners, MOTD) are OS-level configurations stored outside `config.xml` and cannot be assessed from the exported configuration alone. When a check returns Unknown, opnDossier does not report a finding rather than guessing.
+The "Unknown" state prevents false positives. Some settings (e.g., SSH banners, MOTD) are OS-level configurations stored outside `config.xml` and cannot be assessed from the exported configuration alone. When a check returns Unknown, opnDossier does not report a finding rather than guessing. The port controls SANS-FW-014, SANS-FW-015, SANS-FW-017 and SANS-FW-020 also return Unknown when a rule's port cannot be fully read (an alias whose ports are fetched at runtime, a cyclic alias, or a service name opnDossier does not know) and the part that can be read does not already decide the control.
 
 ## Supported Standards
 
@@ -80,13 +80,13 @@ The following controls map to specific SANS SCORE Firewall Checklist items and a
 
 ##### Port and Service Filtering (SANS Checklist #11, #12, #14, #15, #17)
 
-| Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                                               |
-| ----------- | ------ | ------------------------------- | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| SANS-FW-014 | 11     | Dangerous Service Port Blocking | High     | Full             | Scan WAN pass rules for dangerous ports: NetBIOS (135-139, 445), SNMP (161-162), NFS (2049), X11 (6000-6255), Telnet (23) |
-| SANS-FW-015 | 12     | Secure Remote Access            | High     | Full             | Verify SSH is used instead of Telnet; check for Telnet-related pass rules on WAN; verify `System.SSH.Enabled`             |
-| SANS-FW-017 | 14     | Mail Traffic Restriction        | Medium   | Full             | Check SMTP (TCP 25) and submission (TCP 587) pass rules target specific mail relay IPs, not "any" destination             |
-| SANS-FW-018 | 15     | ICMP Filtering                  | Medium   | Full             | Verify ICMP echo requests blocked on WAN; check for type-specific ICMP rules                                              |
-| SANS-FW-020 | 17     | DNS Zone Transfer Restriction   | High     | Full             | Verify TCP 53 pass rules on WAN are restricted to authorized secondary DNS server IPs, not "any" source                   |
+| Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                                                                                                                                                                                                                                                                |
+| ----------- | ------ | ------------------------------- | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SANS-FW-014 | 11     | Dangerous Service Port Blocking | High     | Full             | Scan the source and destination ports of WAN pass rules for dangerous ports: Telnet (23), MS RPC and NetBIOS (135-139), SNMP (161-162), SMB (445), NFS (2049). A port counts as a number, a service name, a range that holds it (`1-65535` included) or a member of a port alias, nested aliases expanded and disabled aliases adding none |
+| SANS-FW-015 | 12     | Secure Remote Access            | High     | Full             | Verify `System.SSH.Enabled`, and that no enabled pass rule on any interface has a destination port naming Telnet (23) as a number, a service name, a range that holds it or a port alias member. A rule to every port (`any` or `1-65535`) is not counted                                                                                  |
+| SANS-FW-017 | 14     | Mail Traffic Restriction        | Medium   | Full             | Check that pass rules whose destination port names SMTP (25), submission (587) or SMTPS (465), as a number, a range or a port alias member, target specific mail relay IPs, not "any" destination. A rule to every port is not counted                                                                                                     |
+| SANS-FW-018 | 15     | ICMP Filtering                  | Medium   | Full             | Verify ICMP echo requests blocked on WAN; check for type-specific ICMP rules                                                                                                                                                                                                                                                               |
+| SANS-FW-020 | 17     | DNS Zone Transfer Restriction   | High     | Full             | Verify no TCP pass rule on WAN from "any" source has a destination port naming 53, as a number, a range that holds it or a port alias member. A rule to every port is not counted                                                                                                                                                          |
 
 ##### Network Architecture (SANS Checklist #6, #13, #16)
 

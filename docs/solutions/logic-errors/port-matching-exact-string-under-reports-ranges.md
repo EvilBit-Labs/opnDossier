@@ -83,6 +83,8 @@ func rulePortPermits(rulePort string, servicePort int) bool {
 
 The repo already had a numeric-range parse precedent to mirror — `portMatchesDangerous` in `internal/plugins/sans/checks.go` splits `N-M` the same way.
 
+> **Update (2026-11-13):** `portMatchesDangerous` has since been removed. The SANS port controls read ports through `analysis.EndpointPorts`, which expands port aliases, and `RulePortPermits` now shares the shadow analysis's `parsePortPart`, which also reads the `N:M` range a port alias member writes and service names such as `https`. An alias name is still treated as permitting the port here. See GOTCHAS.md section 3.5.
+
 ## Why This Works
 
 The exposure signal is now computed over the *actual* port grammar the vendor config uses, not a lexical string. Crucially, every ambiguous case resolves toward **over-report**: empty/`any` matches, ranges/lists match by containment, and an unresolvable alias is assumed to permit the port. A security audit that must not miss a real exposure should prefer a false positive (a LAN-only service flagged) over a false negative (an internet-facing service hidden). The prior string-equality biased the wrong way while claiming the right one.
