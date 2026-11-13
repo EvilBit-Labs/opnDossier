@@ -54,6 +54,15 @@ func snmpAgentConfig(topLevel, model string) string {
 }
 
 const (
+	// snmpStaleLegacy is the factory default's legacy block, which starts no
+	// agent on any release.
+	snmpStaleLegacy = `
+  <snmpd>
+    <syslocation/>
+    <syscontact/>
+    <rocommunity>public</rocommunity>
+  </snmpd>`
+
 	snmpNetsnmpDisabled = `
     <netsnmp>
       <general version="1.0.7">
@@ -99,8 +108,9 @@ const (
 
 // TestSNMPAgent_ControlsFollowTheAgentTheConfigStarts drives OPNsense configs
 // through parse, convert, the FIREWALL and STIG plugins and red mode. The
-// verdicts follow the os-net-snmp agent, including one that answers only
-// SNMPv3 users and so has no community.
+// verdicts follow the agent the config starts: the os-net-snmp model when it
+// is enabled, and never the legacy <snmpd> block the factory default left
+// behind without <enable>.
 func TestSNMPAgent_ControlsFollowTheAgentTheConfigStarts(t *testing.T) {
 	t.Parallel()
 
@@ -113,7 +123,8 @@ func TestSNMPAgent_ControlsFollowTheAgentTheConfigStarts(t *testing.T) {
 		running          bool
 		defaultCommunity bool
 	}{
-		{name: "net-snmp disabled", model: snmpNetsnmpDisabled},
+		{name: "stale legacy block only", topLevel: snmpStaleLegacy},
+		{name: "stale legacy block and net-snmp disabled", topLevel: snmpStaleLegacy, model: snmpNetsnmpDisabled},
 		{name: "net-snmp enabled with public", model: snmpNetsnmpPublic, running: true, defaultCommunity: true},
 		{name: "net-snmp enabled with SNMPv3 users only", model: snmpNetsnmpV3Only, running: true},
 	}

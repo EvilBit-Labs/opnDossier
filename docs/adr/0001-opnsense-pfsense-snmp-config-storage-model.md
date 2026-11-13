@@ -56,6 +56,13 @@ Scope opnDossier's SNMP credential handling to what the vendor source actually p
 
 - **Schema version drift.** The plugin model element names/versions can change across OPNsense releases (general v1.0.5, user v1.0.1 at time of writing). Re-verify against a real `config.xml` when implementing ingestion (cf. GOTCHAS §18.1 version-pinning).
 
+## Update (2026-11-13)
+
+Two findings above were incomplete, and the parser now reads the plugin namespace.
+
+- OPNsense core has not run an SNMP agent since 17.1. From 17.1 to 18.7 the `os-snmp` plugin (`net-mgmt/snmp`, removed in 19.1) ran `bsnmpd` from the legacy `<snmpd>` block, and like core before it, only when `<snmpd><enable>` was set. From 19.1 the only agent is `os-net-snmp`. Factory defaults kept writing `<snmpd><rocommunity>public</rocommunity></snmpd>` without `<enable>` up to 25.7, so upgraded configs carry a block no agent reads.
+- opnDossier now parses `<OPNsense><netsnmp>` (`pkg/schema/opnsense/netsnmp.go`), pins general model versions 1.0.0 to 1.0.7 (the plugin never used 1.0.2) and user model versions 1.0.0 and 1.0.1, and maps an enabled agent into `SNMPConfig`, including SNMPv3 usernames and read-write access. The `password` and `enckey` elements are not bound in the schema, so model-based features never see them.
+
 ## Sources
 
 - `opnsense/plugins` — `net-mgmt/net-snmp/src/opnsense/mvc/app/models/OPNsense/Netsnmp/General.xml`, `.../User.xml`; template target `snmpd_usercredentials.conf`

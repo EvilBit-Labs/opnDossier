@@ -74,3 +74,37 @@ func TestNetsnmp_RoundTrip(t *testing.T) {
 	require.NoError(t, xml.Unmarshal(out, &second))
 	assert.Equal(t, first, second)
 }
+
+// TestSnmpd_EnableRoundTrip keeps an absent <enable> apart from an empty one,
+// since an empty one starts the legacy agent.
+func TestSnmpd_EnableRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, input := range []string{
+		`<snmpd><rocommunity>public</rocommunity></snmpd>`,
+		`<snmpd><rocommunity>public</rocommunity><enable/></snmpd>`,
+		`<snmpd><rocommunity>public</rocommunity><enable>yes</enable></snmpd>`,
+	} {
+		var first Snmpd
+		require.NoError(t, xml.Unmarshal([]byte(input), &first))
+
+		out, err := xml.Marshal(struct {
+			Snmpd
+
+			XMLName xml.Name `xml:"snmpd"`
+		}{Snmpd: first})
+		require.NoError(t, err)
+
+		var second Snmpd
+		require.NoError(t, xml.Unmarshal(out, &second))
+		assert.Equal(t, first, second, input)
+		assert.Equal(t, first.Enable == nil, second.Enable == nil, input)
+	}
+
+	var absent, empty Snmpd
+	require.NoError(t, xml.Unmarshal([]byte(`<snmpd/>`), &absent))
+	require.NoError(t, xml.Unmarshal([]byte(`<snmpd><enable/></snmpd>`), &empty))
+	assert.Nil(t, absent.Enable)
+	require.NotNil(t, empty.Enable)
+	assert.Empty(t, *empty.Enable)
+}

@@ -399,7 +399,8 @@ type SNMPConfig struct {
 	SysContact string `json:"sysContact,omitempty" yaml:"sysContact,omitempty"`
 
 	// Enabled reports that the config starts an SNMP agent. The OPNsense
-	// converter sets it for an enabled os-net-snmp agent. The pfSense
+	// converter sets it, and fills the other fields only when it does, so a
+	// settings block no agent reads leaves the whole struct empty. The pfSense
 	// converter leaves it false and reports the agent through ROCommunity;
 	// use IsEnabled rather than this field to ask whether an agent runs.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`

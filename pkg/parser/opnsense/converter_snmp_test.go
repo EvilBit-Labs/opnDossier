@@ -13,6 +13,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// staleLegacySNMP is the block OPNsense factory defaults wrote from 16.7 to
+// 25.7. It has no <enable>, so no release starts an agent from it.
+const staleLegacySNMP = `
+  <snmpd>
+    <syslocation/>
+    <syscontact/>
+    <rocommunity>public</rocommunity>
+  </snmpd>`
+
 // netsnmpBlock renders <OPNsense><netsnmp> as the os-net-snmp plugin saves
 // it, with the general model's enabled and community values and the given
 // user items.
@@ -102,8 +111,8 @@ func TestConverter_SNMP_AgentTheConfigStarts(t *testing.T) {
 		wantWarnings []string
 	}{
 		{
-			name: "net-snmp enabled",
-			body: netsnmpBlock("1.0.7", "1", "public", "192.0.2.1, 2001:db8::1", snmpUsers),
+			name: "net-snmp enabled beside the stale legacy block",
+			body: staleLegacySNMP + netsnmpBlock("1.0.7", "1", "public", "192.0.2.1, 2001:db8::1", snmpUsers),
 			want: enabledAgent,
 		},
 		{
@@ -117,9 +126,46 @@ func TestConverter_SNMP_AgentTheConfigStarts(t *testing.T) {
 			},
 		},
 		{
+			name: "net-snmp disabled beside the stale legacy block",
+			body: staleLegacySNMP + netsnmpBlock("1.0.7", "0", "public", "", snmpUsers),
+			want: common.SNMPConfig{},
+		},
+		{
 			name: "net-snmp enabled element empty",
 			body: netsnmpBlock("1.0.7", "", "public", "", ""),
 			want: common.SNMPConfig{},
+		},
+		{
+			name: "stale legacy block alone",
+			body: staleLegacySNMP,
+			want: common.SNMPConfig{},
+		},
+		{
+			name: "legacy block with an empty enable element",
+			body: `
+  <snmpd>
+    <syslocation>closet</syslocation>
+    <syscontact>ops</syscontact>
+    <rocommunity>s3cretcomm</rocommunity>
+    <enable/>
+  </snmpd>`,
+			want: common.SNMPConfig{
+				Enabled:     true,
+				ROCommunity: "s3cretcomm",
+				SysLocation: "closet",
+				SysContact:  "ops",
+			},
+			wantWarnings: []string{"SNMP.Snmpd.Enable"},
+		},
+		{
+			name: "legacy enable beside an enabled net-snmp agent",
+			body: `
+  <snmpd>
+    <rocommunity>legacycomm</rocommunity>
+    <enable>1</enable>
+  </snmpd>` + netsnmpBlock("1.0.7", "1", "public", "192.0.2.1,2001:db8::1", snmpUsers),
+			want:         enabledAgent,
+			wantWarnings: []string{"SNMP.Snmpd.Enable"},
 		},
 		{
 			name:         "unrecognized general model version",

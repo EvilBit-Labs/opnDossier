@@ -338,7 +338,7 @@ DHCP scopes are a flat array with one entry per interface.
 
 ### SNMP
 
-The OPNsense converter reads the os-net-snmp plugin when `<OPNsense><netsnmp><general><enabled>` is `1`, and otherwise the legacy `<snmpd>` block. The pfSense converter reports its `<snmpd>` block through the first three fields and leaves `Enabled` false. `SNMPConfig.IsEnabled()` reports a running agent for either.
+The OPNsense converter fills these fields only for an agent the config starts: the os-net-snmp plugin when `<OPNsense><netsnmp><general><enabled>` is `1`, otherwise a legacy `<snmpd>` block that carries `<enable>`. A legacy block without `<enable>`, which factory defaults wrote up to 25.7, starts no agent and leaves the struct empty. The pfSense converter reports its `<snmpd>` block through the first three fields and leaves `Enabled` false. `SNMPConfig.IsEnabled()` reports a running agent for either.
 
 | Field             | Type         | JSON Key               | Description                                                      |
 | ----------------- | ------------ | ---------------------- | ---------------------------------------------------------------- |

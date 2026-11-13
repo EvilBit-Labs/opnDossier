@@ -17,32 +17,66 @@ var netsnmpGeneralVersions = strings.Fields("1.0.0 1.0.1 1.0.3 1.0.4 1.0.5 1.0.6
 // added <readwrite>.
 var netsnmpUserVersions = strings.Fields("1.0.0 1.0.1")
 
-// netsnmpOn is the value the plugin's templates and netsnmp_enabled() compare
-// <enabled> and <readwrite> with. They read the raw config, so an absent
-// element is off, and so is an empty one.
-const netsnmpOn = "1"
+const (
+	// netsnmpOn is the value the plugin's templates and netsnmp_enabled()
+	// compare <enabled> and <readwrite> with. They read the raw config, so an
+	// absent element is off, and so is an empty one.
+	netsnmpOn = "1"
 
-const snmpNetsnmpPath = "SNMP.Netsnmp"
+	snmpLegacyPath  = "SNMP.Snmpd"
+	snmpNetsnmpPath = "SNMP.Netsnmp"
+)
 
-// convertSNMP reports the SNMP agent the config starts. From 19.1 the only
-// agent OPNsense ships is the os-net-snmp plugin, which reads
-// <OPNsense><netsnmp> and starts only when <general><enabled> is 1. Without
-// one, the legacy top-level <snmpd> is mapped as before.
+// convertSNMP reports the SNMP agent the config starts, or an empty
+// SNMPConfig when it starts none.
+//
+// OPNsense has had three agents. Core ran bsnmpd from the legacy top-level
+// <snmpd> up to 16.7, and the os-snmp plugin did the same from 17.1 to 18.7,
+// both only when <snmpd><enable> was set (isset()). The plugin was removed in
+// 19.1, leaving os-net-snmp, which reads <OPNsense><netsnmp> and starts only
+// when <general><enabled> is 1. The factory default shipped
+// <snmpd><rocommunity>public</rocommunity></snmpd> without <enable> through
+// 25.7, and no migration removes it, so most upgraded configs carry a legacy
+// block that starts nothing.
+//
+// The config does not record the release, so a legacy block with <enable> is
+// reported as running unless net-snmp is enabled: on 19.1 and later that
+// over-reports an agent, which is the safe direction.
 func (c *converter) convertSNMP(doc *schema.OpnSenseDocument) common.SNMPConfig {
+	legacy := doc.Snmpd
 	netsnmp := doc.OPNsense.Netsnmp
 	if netsnmp != nil {
 		c.checkNetsnmpVersions(netsnmp)
+	}
 
-		if netsnmp.General.Enabled == netsnmpOn {
-			return netsnmpConfig(netsnmp)
+	if netsnmp != nil && netsnmp.General.Enabled == netsnmpOn {
+		if legacy.Enable != nil {
+			c.addWarning(snmpLegacyPath+".Enable", *legacy.Enable,
+				"legacy <snmpd> agent not reported: the os-net-snmp agent is enabled, "+
+					"and OPNsense 19.1 and later run no agent from <snmpd>",
+				common.SeverityLow)
+		}
+
+		return netsnmpConfig(netsnmp)
+	}
+
+	if legacy.Enable != nil {
+		c.addWarning(snmpLegacyPath+".Enable", *legacy.Enable,
+			"legacy <snmpd> agent reported as running: OPNsense up to 18.7 starts it, "+
+				"OPNsense 19.1 and later do not",
+			common.SeverityLow)
+
+		return common.SNMPConfig{
+			Enabled:     true,
+			ROCommunity: legacy.ROCommunity,
+			SysLocation: legacy.SysLocation,
+			SysContact:  legacy.SysContact,
 		}
 	}
 
-	return common.SNMPConfig{
-		ROCommunity: doc.Snmpd.ROCommunity,
-		SysLocation: doc.Snmpd.SysLocation,
-		SysContact:  doc.Snmpd.SysContact,
-	}
+	// A legacy block without <enable> starts nothing on any release, so
+	// leaving it out needs no warning: it is the factory default's leftover.
+	return common.SNMPConfig{}
 }
 
 // netsnmpConfig maps an enabled os-net-snmp agent. A disabled user is left

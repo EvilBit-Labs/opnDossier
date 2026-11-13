@@ -948,13 +948,17 @@ func TestConverter_SNMP(t *testing.T) {
 	t.Parallel()
 
 	doc := schema.NewOpnSenseDocument()
+	enable := ""
+	doc.Snmpd.Enable = &enable
 	doc.Snmpd.ROCommunity = "public"
 	doc.Snmpd.SysLocation = "Server Room"
 	doc.Snmpd.SysContact = "admin@example.com"
 
 	device, warnings, err := opnsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Empty(t, warnings)
+	require.Len(t, warnings, 1)
+	assert.Equal(t, "SNMP.Snmpd.Enable", warnings[0].Field)
+	assert.True(t, device.SNMP.Enabled)
 	assert.Equal(t, "public", device.SNMP.ROCommunity)
 	assert.Equal(t, "Server Room", device.SNMP.SysLocation)
 	assert.Equal(t, "admin@example.com", device.SNMP.SysContact)
