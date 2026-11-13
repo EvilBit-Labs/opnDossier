@@ -558,7 +558,7 @@ func newControlDefinitions() []compliance.Control {
 		{
 			ID:          "FIREWALL-063",
 			Title:       "Active Interface Summary",
-			Description: "Reports enabled interfaces and their types",
+			Description: "Reports how many network interfaces are enabled",
 			Category:    "Configuration Inventory",
 			Severity:    "info",
 			Rationale:   "Interface inventory enables network topology documentation",
