@@ -35,14 +35,17 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 
 	var changes []Change
 
-	// Build maps keyed by interface name
+	// Build maps keyed by server and interface. ISC and dnsmasq can both
+	// hold a scope for one interface, as on a box upgraded to dnsmasq that
+	// keeps its disabled ISC entry, and keying on the interface alone let
+	// the later scope hide the earlier one.
 	oldByIface := make(map[string]common.DHCPScope, len(old))
 	for _, scope := range old {
-		oldByIface[scope.Interface] = scope
+		oldByIface[dhcpScopeKey(scope)] = scope
 	}
 	newByIface := make(map[string]common.DHCPScope, len(newCfg))
 	for _, scope := range newCfg {
-		newByIface[scope.Interface] = scope
+		newByIface[dhcpScopeKey(scope)] = scope
 	}
 
 	// Collect and sort names for deterministic output
@@ -126,19 +129,40 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	return changes
 }
 
+// dhcpScopeKey names a scope in diff paths and descriptions. An ISC scope
+// keeps the bare interface name, as before; a scope of another server is
+// prefixed with the server, such as dnsmasq.lan.
+func dhcpScopeKey(scope common.DHCPScope) string {
+	if scope.Source == "" || scope.Source == common.DHCPSourceISC {
+		return scope.Interface
+	}
+
+	return string(scope.Source) + "." + scope.Interface
+}
+
+// staticLeaseKey identifies a reservation: its MAC address, or its client id
+// when it has none, as a dnsmasq reservation can.
+func staticLeaseKey(lease common.DHCPStaticLease) string {
+	if lease.MAC == "" && lease.CID != "" {
+		return "id:" + lease.CID
+	}
+
+	return lease.MAC
+}
+
 // compareStaticMappings compares DHCP static reservations between two configs.
 func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.DHCPStaticLease) []Change {
 	var changes []Change
 
-	// Build maps by MAC address (unique identifier for reservations)
+	// Build maps by MAC address, or client id (unique identifier for reservations)
 	oldByMAC := make(map[string]common.DHCPStaticLease, len(old))
 	newByMAC := make(map[string]common.DHCPStaticLease, len(newCfg))
 
 	for _, lease := range old {
-		oldByMAC[lease.MAC] = lease
+		oldByMAC[staticLeaseKey(lease)] = lease
 	}
 	for _, lease := range newCfg {
-		newByMAC[lease.MAC] = lease
+		newByMAC[staticLeaseKey(lease)] = lease
 	}
 
 	// Sort keys for deterministic output
@@ -221,12 +245,15 @@ func staticLeaseLabel(lease common.DHCPStaticLease) string {
 	if lease.Description != "" {
 		return lease.Description
 	}
-	return lease.MAC
+	return staticLeaseKey(lease)
 }
 
 // formatStaticLease returns a formatted string for a static lease.
 func formatStaticLease(lease common.DHCPStaticLease) string {
 	parts := []string{"ip=" + lease.IPAddress, "mac=" + lease.MAC}
+	if lease.CID != "" {
+		parts = append(parts, "cid="+lease.CID)
+	}
 	if lease.Hostname != "" {
 		parts = append(parts, "hostname="+lease.Hostname)
 	}

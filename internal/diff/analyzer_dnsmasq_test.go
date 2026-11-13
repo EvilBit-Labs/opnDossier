@@ -49,7 +49,7 @@ func TestCompareDHCP_DnsmasqRangeV6(t *testing.T) {
 				[]common.DHCPScope{scope(tt.old)}, []common.DHCPScope{scope(tt.new)})
 			require.Len(t, changes, 1)
 			assert.Equal(t, ChangeModified, changes[0].Type)
-			assert.Equal(t, "dhcpd.lan.rangeV6", changes[0].Path)
+			assert.Equal(t, "dhcpd.dnsmasq.lan.rangeV6", changes[0].Path)
 			assert.Equal(t, tt.wantOld, changes[0].OldValue)
 			assert.Equal(t, tt.wantNew, changes[0].NewValue)
 		})
