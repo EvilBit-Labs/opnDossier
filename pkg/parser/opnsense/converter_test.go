@@ -80,7 +80,7 @@ func TestConverter_System(t *testing.T) {
 	assert.Equal(t, "https", sys.WebGUI.Protocol)
 	assert.Equal(t, "cert-abc", sys.WebGUI.SSLCertRef)
 	assert.Equal(t, "admins", sys.SSH.Group)
-	assert.Equal(t, "24.7", sys.Firmware.Version)
+	assert.Empty(t, sys.Firmware.Version, "the firmware version attribute is a model version, not a release")
 	assert.Equal(t, "https://mirror.example.com", sys.Firmware.Mirror)
 	assert.Equal(t, []string{"test note"}, sys.Notes)
 }

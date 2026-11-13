@@ -75,6 +75,13 @@ type sansCheckEntry struct {
 // intentionally absent — they never return Known=true and therefore produce
 // neither findings nor evaluated entries.
 //
+// SANS-FW-008 (Firmware Currency) is absent for the same reason. config.xml
+// does not record the installed release: the version attribute on an OPNsense
+// <system><firmware> element is the schema version of the Firmware model
+// (1.0.0, 1.0.1), and pfSense's top-level <version> is the config format
+// version. Treating either as proof of a known release passed the control on
+// every config that carried one.
+//
 //nolint:funlen // declarative control table; length is data, not branching
 func (sp *Plugin) sansChecks() []sansCheckEntry {
 	return []sansCheckEntry{
@@ -127,13 +134,6 @@ func (sp *Plugin) sansChecks() []sansCheckEntry {
 			description:    "TCP pass rules exist without stateful inspection enabled",
 			recommendation: "Set StateType to 'keep state' on all TCP pass rules",
 			component:      "firewall-rules",
-		},
-		{
-			controlID: "SANS-FW-008", checkFn: sp.checkFirmwareCurrency,
-			title:          "Firmware Version Not Identified",
-			description:    "Firmware version is not set in the device configuration",
-			recommendation: "Ensure firmware is updated and version is recorded in configuration",
-			component:      "system-firmware",
 		},
 		{
 			controlID: "SANS-FW-009", checkFn: sp.checkDMZConfiguration,
