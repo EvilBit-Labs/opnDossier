@@ -252,6 +252,23 @@ func (s PortSet) Complete() bool {
 	return s.values.complete()
 }
 
+// CoversEveryPort reports whether the set matches every port: the any-port
+// wildcard, or ranges that span 1 to 65535. pfSense writes no port statement
+// at all for a rule to 1-65535.
+func (s PortSet) CoversEveryPort() bool {
+	if s.values.every {
+		return true
+	}
+
+	for _, r := range s.values.ranges {
+		if r.lo <= 1 && r.hi >= maxPort {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ContainsAny reports whether the part of the set that could be read names any
 // of ports. The any-port wildcard does not count: a caller looking for a rule
 // aimed at a service reads a rule open to every port separately, if at all.

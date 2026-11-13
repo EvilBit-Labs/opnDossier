@@ -424,6 +424,21 @@ func TestSANSChecks_LiteralPorts(t *testing.T) {
 			want: map[string]string{"SANS-FW-015": statusFail, "SANS-FW-017": statusFail},
 		},
 		{
+			name: "every port written as a range on LAN",
+			a:    sansLiteralRule{dst: "any", port: "1-65535"},
+			want: map[string]string{},
+		},
+		{
+			name: "every port written from zero on LAN",
+			a:    sansLiteralRule{dst: "any", port: "0-65535"},
+			want: map[string]string{},
+		},
+		{
+			name: "every port written as a range on WAN still names the dangerous ones",
+			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "1-65535"},
+			want: map[string]string{"SANS-FW-014": statusFail},
+		},
+		{
 			name: "a range of two service names on WAN",
 			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "http-https"},
 			want: map[string]string{"SANS-FW-014": statusFail},

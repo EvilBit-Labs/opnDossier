@@ -88,6 +88,19 @@ const (
 	portUnknown
 )
 
+// fullRange says how endpointPortMatch reads a set that spans every port.
+type fullRange int
+
+const (
+	// fullRangeNamesPort: a range such as 1-65535 names every port in it, as
+	// SANS-FW-014 has always read it.
+	fullRangeNamesPort fullRange = iota
+	// fullRangeIsAnyPort: a set spanning every port reads as the any-port
+	// wildcard, which the check does not count. pfSense writes no port
+	// statement at all for 1-65535, so the two are the same rule.
+	fullRangeIsAnyPort
+)
+
 // endpointPortMatch reports whether an endpoint's port names any of ports, as
 // a number, a range or a service name. A port alias is resolved through the
 // device's named objects, nested aliases included, since a rule in either
@@ -98,9 +111,14 @@ const (
 func endpointPortMatch(
 	ep common.RuleEndpoint,
 	objects common.NamedObjects,
+	full fullRange,
 	ports ...int,
 ) portMatch {
 	set := analysis.EndpointPorts(ep, objects)
+
+	if full == fullRangeIsAnyPort && set.CoversEveryPort() {
+		return portNotNamed
+	}
 
 	switch {
 	case set.ContainsAny(ports...):
@@ -421,7 +439,7 @@ func (sp *Plugin) checkDangerousPorts(device *common.CommonDevice) checkResult {
 		}
 
 		for _, ep := range []common.RuleEndpoint{r.Destination, r.Source} {
-			switch endpointPortMatch(ep, device.NamedObjects, dangerousPorts...) {
+			switch endpointPortMatch(ep, device.NamedObjects, fullRangeNamesPort, dangerousPorts...) {
 			case portNamed:
 				return checkResult{Result: true, Known: true}
 			case portUnknown:
@@ -454,7 +472,7 @@ func (sp *Plugin) checkSecureRemoteAccess(device *common.CommonDevice) checkResu
 	unresolved := false
 
 	for _, r := range enabledPassRules(device) {
-		switch endpointPortMatch(r.Destination, device.NamedObjects, telnetPort) {
+		switch endpointPortMatch(r.Destination, device.NamedObjects, fullRangeIsAnyPort, telnetPort) {
 		case portNamed:
 			return checkResult{Result: false, Known: true}
 		case portUnknown:
@@ -514,7 +532,7 @@ func (sp *Plugin) checkMailRestriction(device *common.CommonDevice) checkResult 
 	unresolvedOpen := false
 
 	for _, r := range enabledPassRules(device) {
-		switch endpointPortMatch(r.Destination, device.NamedObjects, smtpPorts...) {
+		switch endpointPortMatch(r.Destination, device.NamedObjects, fullRangeIsAnyPort, smtpPorts...) {
 		case portNamed:
 			hasSMTPRules = true
 			if analysis.IsAnyEndpoint(r.Destination) {
@@ -582,7 +600,7 @@ func (sp *Plugin) checkDNSZoneTransfer(device *common.CommonDevice) checkResult 
 			continue
 		}
 
-		switch endpointPortMatch(r.Destination, device.NamedObjects, dnsPort) {
+		switch endpointPortMatch(r.Destination, device.NamedObjects, fullRangeIsAnyPort, dnsPort) {
 		case portNamed:
 			return checkResult{Result: true, Known: true}
 		case portUnknown:

@@ -141,6 +141,7 @@ func TestEndpointPorts_PartialSets(t *testing.T) {
 		ep           common.RuleEndpoint
 		wantTelnet   bool
 		wantComplete bool
+		wantEvery    bool
 	}{
 		{name: "disabled alias", ep: ref("Off"), wantComplete: true},
 		{name: "disabled alias nested", ep: ref("OuterOff"), wantComplete: true},
@@ -152,11 +153,11 @@ func TestEndpointPorts_PartialSets(t *testing.T) {
 		{name: "empty alias matches no port", ep: ref("Empty"), wantComplete: true},
 		{name: "names are case sensitive", ep: ref("Upper")},
 		{name: "service name", ep: ref("Telnet"), wantTelnet: true, wantComplete: true},
-		{name: "full range", ep: ref("FullRange"), wantTelnet: true, wantComplete: true},
+		{name: "full range", ep: ref("FullRange"), wantTelnet: true, wantComplete: true, wantEvery: true},
 		{name: "missing alias", ep: ref("Nowhere")},
 		{name: "literal with no alias", ep: common.RuleEndpoint{Port: "syslog"}},
 		{name: "literal range", ep: common.RuleEndpoint{Port: "20-25"}, wantTelnet: true, wantComplete: true},
-		{name: "any port", ep: common.RuleEndpoint{}, wantComplete: true},
+		{name: "any port", ep: common.RuleEndpoint{}, wantComplete: true, wantEvery: true},
 	}
 
 	for _, tt := range tests {
@@ -167,6 +168,7 @@ func TestEndpointPorts_PartialSets(t *testing.T) {
 
 			assert.Equal(t, tt.wantTelnet, set.ContainsAny(23), "names telnet")
 			assert.Equal(t, tt.wantComplete, set.Complete(), "complete")
+			assert.Equal(t, tt.wantEvery, set.CoversEveryPort(), "covers every port")
 		})
 	}
 }
