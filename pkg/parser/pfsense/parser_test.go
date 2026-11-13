@@ -1180,7 +1180,8 @@ func TestParser_ParseFixture_2_7_x(t *testing.T) {
 	assert.True(t, device.DNS.Unbound.Enabled)
 	assert.True(t, device.DNS.Unbound.DNSSEC)
 	assert.NotNil(t, device.Cron)
-	assert.Equal(t, "public", device.SNMP.ROCommunity)
+	// The fixture's <snmpd> has a community but no <enable>, so no agent runs.
+	assert.False(t, device.SNMP.IsEnabled())
 }
 
 func TestConverter_VLANs(t *testing.T) {
@@ -1205,14 +1206,17 @@ func TestConverter_SNMP(t *testing.T) {
 	t.Parallel()
 
 	doc := pfsenseSchema.NewDocument()
+	enable := ""
 	doc.Snmpd = opnsense.Snmpd{
 		ROCommunity: "public",
 		SysLocation: "Server Room",
 		SysContact:  "admin@test.local",
+		Enable:      &enable,
 	}
 
 	device, _, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
+	assert.True(t, device.SNMP.Enabled)
 	assert.Equal(t, "public", device.SNMP.ROCommunity)
 	assert.Equal(t, "Server Room", device.SNMP.SysLocation)
 	assert.Equal(t, "admin@test.local", device.SNMP.SysContact)
@@ -1347,8 +1351,8 @@ func TestParser_ParseFixture_ConfigPfSense(t *testing.T) {
 	require.NotNil(t, device.Cron)
 	assert.NotEmpty(t, device.Cron.Jobs)
 
-	// SNMP
-	assert.Equal(t, "public", device.SNMP.ROCommunity)
+	// SNMP: the fixture's <snmpd> has a community but no <enable>.
+	assert.False(t, device.SNMP.IsEnabled())
 
 	// Revision
 	assert.Contains(t, device.Revision.Username, "admin")

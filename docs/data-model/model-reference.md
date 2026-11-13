@@ -338,16 +338,18 @@ DHCP scopes are a flat array with one entry per interface.
 
 ### SNMP
 
-The OPNsense converter fills these fields only for an agent the config starts: the os-net-snmp plugin when `<OPNsense><netsnmp><general><enabled>` is `1`, otherwise a legacy `<snmpd>` block that carries `<enable>`. A legacy block without `<enable>`, which factory defaults wrote up to 25.7, starts no agent and leaves the struct empty. The pfSense converter reports its `<snmpd>` block through the first three fields and leaves `Enabled` false. `SNMPConfig.IsEnabled()` reports a running agent for either.
+Both converters fill these fields only for an agent the config starts, and leave the struct empty otherwise. On OPNsense that is the os-net-snmp plugin when `<OPNsense><netsnmp><general><enabled>` is `1`, and otherwise a legacy `<snmpd>` block that carries `<enable>`; a legacy block without `<enable>`, which factory defaults wrote up to 25.7, starts no agent. On pfSense it is an `<snmpd>` block that carries `<enable>`. `SNMPConfig.IsEnabled()` also counts a community alone, for a hand-built device that sets only `ROCommunity`.
 
 | Field             | Type         | JSON Key               | Description                                                      |
 | ----------------- | ------------ | ---------------------- | ---------------------------------------------------------------- |
-| `ROCommunity`     | `string`     | `snmp.roCommunity`     | Read-only community (v1/v2c); redacted on export                 |
+| `ROCommunity`     | `string`     | `snmp.roCommunity`     | Read-only community (v1/v2c); redacted with `--redact`           |
 | `SysLocation`     | `string`     | `snmp.sysLocation`     | System location                                                  |
 | `SysContact`      | `string`     | `snmp.sysContact`      | System contact                                                   |
-| `Enabled`         | `bool`       | `snmp.enabled`         | An SNMP agent runs (OPNsense)                                    |
+| `Enabled`         | `bool`       | `snmp.enabled`         | An SNMP agent runs                                               |
 | `ListenAddresses` | `[]string`   | `snmp.listenAddresses` | Bound addresses; empty means the agent default (all IPv4)        |
 | `Users`           | `[]SNMPUser` | `snmp.users`           | SNMPv3 users the agent loads; passwords and keys are not carried |
+
+#### SNMPUser
 
 | Field       | Type     | JSON Key                 | Description       |
 | ----------- | -------- | ------------------------ | ----------------- |

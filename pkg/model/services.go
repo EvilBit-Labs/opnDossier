@@ -398,11 +398,11 @@ type SNMPConfig struct {
 	// SysContact is the SNMP system contact.
 	SysContact string `json:"sysContact,omitempty" yaml:"sysContact,omitempty"`
 
-	// Enabled reports that the config starts an SNMP agent. The OPNsense
-	// converter sets it, and fills the other fields only when it does, so a
-	// settings block no agent reads leaves the whole struct empty. The pfSense
-	// converter leaves it false and reports the agent through ROCommunity;
-	// use IsEnabled rather than this field to ask whether an agent runs.
+	// Enabled reports that the config starts an SNMP agent. Both converters
+	// set it, and fill the other fields only when they do, so a settings
+	// block no agent reads leaves the whole struct empty. A hand-built device
+	// may set only ROCommunity; use IsEnabled rather than this field to ask
+	// whether an agent runs.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
 	// ListenAddresses lists the addresses the agent binds; empty means the
@@ -415,8 +415,7 @@ type SNMPConfig struct {
 }
 
 // IsEnabled reports whether an SNMP agent runs: Enabled is set, or a
-// community is configured, which is how the pfSense converter and a
-// hand-built device report one.
+// community is configured, which is how a hand-built device may report one.
 func (c SNMPConfig) IsEnabled() bool {
 	return c.Enabled || c.ROCommunity != ""
 }

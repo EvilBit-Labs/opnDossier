@@ -27,10 +27,9 @@ type Snmpd struct {
 	SysContact  string `xml:"syscontact"`
 	ROCommunity string `xml:"rocommunity"`
 
-	// Enable is nil when the element is absent. OPNsense up to 18.7 tests it
-	// with isset(), so any <enable> element, empty or not, starts the agent
-	// (GOTCHAS 3.2). pfSense also gates its agent on this element; the pfSense
-	// converter does not read it.
+	// Enable is nil when the element is absent. pfSense, and OPNsense up to
+	// 18.7, test it with isset(), so any <enable> element, empty or not,
+	// starts the agent (GOTCHAS 3.2).
 	Enable *string `xml:"enable,omitempty"`
 }
 

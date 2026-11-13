@@ -180,9 +180,18 @@ func (c *converter) convertDNS(doc *pfsense.Document) common.DNSConfig {
 	}
 }
 
-// convertSNMP maps doc.Snmpd to common.SNMPConfig.
+// convertSNMP maps doc.Snmpd to common.SNMPConfig when it starts an agent.
+// services_snmpd_configure starts bsnmpd only when config_path_enabled('snmpd')
+// holds, which is isset() on <snmpd><enable>, so any <enable> element counts
+// and a block without one, like the default's community "public", starts
+// nothing.
 func (c *converter) convertSNMP(doc *pfsense.Document) common.SNMPConfig {
+	if doc.Snmpd.Enable == nil {
+		return common.SNMPConfig{}
+	}
+
 	return common.SNMPConfig{
+		Enabled:     true,
 		ROCommunity: doc.Snmpd.ROCommunity,
 		SysLocation: doc.Snmpd.SysLocation,
 		SysContact:  doc.Snmpd.SysContact,
