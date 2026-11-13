@@ -599,7 +599,6 @@ The `<system>` section has many fields beyond what is currently implemented. Not
 | `maximumstates`       | Max firewall states            |
 | `maximumtableentries` | Max pf table entries           |
 | `maximumfrags`        | Max fragment entries           |
-| `disablefilter`       | Disable firewall entirely      |
 | `scrubnodf`           | Clear DF bit                   |
 | `scrubrnid`           | Randomize IP ID                |
 | `disablescrub`        | Disable scrub                  |

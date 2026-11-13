@@ -47,6 +47,12 @@ type System struct {
 	// IPv6Allow enables IPv6 traffic on the device.
 	IPv6Allow bool `json:"ipv6Allow,omitempty" yaml:"ipv6Allow,omitempty"`
 
+	// PacketFilterDisabled reports "Disable all packet filtering": pf is turned
+	// off, so the firewall enforces no rule, no block option and no NAT, and every
+	// service it runs is reachable from every interface. Named for the disabled
+	// state so that the zero value is the common case.
+	PacketFilterDisabled bool `json:"packetFilterDisabled,omitempty" yaml:"packetFilterDisabled,omitempty"`
+
 	// PowerdACMode is the power management mode when on AC power.
 	PowerdACMode string `json:"powerdAcMode,omitempty" yaml:"powerdAcMode,omitempty"`
 	// PowerdBatteryMode is the power management mode when on battery.

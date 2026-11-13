@@ -41,6 +41,12 @@ type System struct {
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
 	} `xml:"bogons"                                  json:"bogons"                                  yaml:"bogons,omitempty"`
+
+	// DisableFilter is "Disable all packet filtering" under System > Advanced >
+	// Firewall & NAT. filter.inc tests it with config_path_enabled, which is
+	// isset(), and turns pf off before any rule or NAT is loaded, so any body
+	// counts.
+	DisableFilter *string `xml:"disablefilter,omitempty" json:"disableFilter,omitempty" yaml:"disableFilter,omitempty"`
 }
 
 // Group represents a pfSense group.

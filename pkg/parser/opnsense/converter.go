@@ -157,6 +157,7 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		PowerdNormalMode:              sys.PowerdNormalMode,
 		Bogons:                        common.Bogons{Interval: sys.Bogons.Interval},
 		Notes:                         sys.Notes,
+		PacketFilterDisabled:          sys.DisableFilter != nil,
 		WebGUI: common.WebGUI{
 			Protocol:          sys.WebGUI.Protocol,
 			Port:              sys.WebGUI.Port,

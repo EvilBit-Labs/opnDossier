@@ -194,6 +194,7 @@ func (c *converter) convertSystem(doc *pfsense.Document) common.System {
 		PowerdBatteryMode:             sys.PowerdBatteryMode,
 		PowerdNormalMode:              sys.PowerdNormalMode,
 		Bogons:                        common.Bogons{Interval: sys.Bogons.Interval},
+		PacketFilterDisabled:          sys.DisableFilter != nil,
 		WebGUI: common.WebGUI{
 			Protocol:          sys.WebGUI.Protocol,
 			Port:              sys.WebGUI.Port,

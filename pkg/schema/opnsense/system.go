@@ -218,6 +218,12 @@ type System struct {
 
 	// System notes for additional configuration information
 	Notes []string `xml:"notes>note" json:"notes,omitempty" yaml:"notes,omitempty"`
+
+	// DisableFilter is "Disable all packet filtering" under Firewall > Settings >
+	// Advanced. The page writes "enabled", but filter.inc tests the element with
+	// isset() and then turns pf off before any rule or NAT is loaded, so any body,
+	// an empty element included, disables filtering (GOTCHAS 3.2).
+	DisableFilter *string `xml:"disablefilter,omitempty" json:"disableFilter,omitempty" yaml:"disableFilter,omitempty"`
 }
 
 // Widgets represents the OPNsense dashboard widgets layout configuration,

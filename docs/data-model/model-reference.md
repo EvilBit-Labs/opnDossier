@@ -94,6 +94,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | `DisableNATReflection` | `bool`     | `system.disableNatReflection` | Disable hairpin NAT                  |
 | `DisableConsoleMenu`   | `bool`     | `system.disableConsoleMenu`   | Disable console menu                 |
 | `IPv6Allow`            | `bool`     | `system.ipv6Allow`            | Enable IPv6 traffic                  |
+| `PacketFilterDisabled` | `bool`     | `system.packetFilterDisabled` | Packet filtering off; no rules apply |
 | `Notes`                | `[]string` | `system.notes`                | Operator notes                       |
 
 ### SSH
