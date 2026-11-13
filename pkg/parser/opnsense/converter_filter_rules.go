@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
@@ -118,6 +117,24 @@ var unrepresentedRuleElements = []struct {
 		"ReplyTo", func(r schema.FirewallFilterRule) string { return r.ReplyTo },
 		"the rule routes replies through this gateway, which is not reported",
 	},
+}
+
+// wellKnownPorts maps the service names the filter model accepts as a port to
+// their numbers, as OPNsense does when it builds the ruleset. The shadow
+// analysis keeps its own copy, wellKnownServicePorts in internal/analysis,
+// since pkg/ must not import internal/; both are pinned against PortField.php,
+// so change them together.
+var wellKnownPorts = map[string]string{
+	"afs3-fileserver": "7000", "aol": "5190", "auth": "113", "avt-profile-1": "5004", "cvsup": "5999",
+	"domain": "53", "domain-s": "853", "ftp": "21", "hbci": "3000", "http": "80", "https": "443",
+	"igmpv3lite": "465", "imap": "143", "imaps": "993", "ipsec-msft": "10000", "ipsec-nat-t": "4500",
+	"isakmp": "500", "l2f": "1701", "ldap": "389", "ldaps": "636", "microsoft-ds": "445",
+	"ms-streaming": "1755", "ms-wbt-server": "3389", "msnp": "1863", "nat-stun-port": "3478",
+	"netbios-dgm": "138", "netbios-ns": "137", "netbios-ssn": "139", "nntp": "119", "ntp": "123",
+	"openvpn": "1194", "pop3": "110", "pop3s": "995", "pptp": "1723", "radius": "1812",
+	"radius-acct": "1813", "rfb": "5900", "sip": "5060", "sip-tls": "5061", "smtp": "25", "snmp": "161",
+	"snmptrap": "162", "ssh": "22", "submission": "587", "submissions": "465", "telnet": "23",
+	"teredo": "3544", "tftp": "69", "urd": "465", "wins": "1512",
 }
 
 // icmp6TypeNames maps the ICMPv6 type numbers the filter model stores to the
@@ -711,7 +728,7 @@ func (c *converter) legacyListRefs(address string) []common.ObjectRef {
 // and the legacy store holds only those; OPNsense resolves the name before it
 // looks for an alias.
 func (c *converter) modelRulePort(port string) (string, *common.ObjectRef) {
-	if number, ok := analysis.ServicePort(port); ok {
+	if number, ok := wellKnownPorts[strings.ToLower(port)]; ok {
 		return number, nil
 	}
 

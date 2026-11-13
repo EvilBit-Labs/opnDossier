@@ -305,10 +305,10 @@ func TestCoverage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotCoverage, gotAliasBlocked := coverage(tt.earlier, tt.later, tt.namedObjects)
+			gotCoverage, gotCause := coverage(tt.earlier, tt.later, tt.namedObjects)
 
 			assert.Equal(t, tt.wantCoverage, gotCoverage, "coverage mismatch")
-			assert.Equal(t, tt.wantAliasBlocked, gotAliasBlocked, "aliasBlocked mismatch")
+			assert.Equal(t, tt.wantAliasBlocked, gotCause != 0, "aliasBlocked mismatch")
 		})
 	}
 }

@@ -9,7 +9,8 @@ import (
 )
 
 // TestServicePortTable pins the table against the service names of
-// PortField.php in OPNsense 26.7.5.
+// PortField.php in OPNsense 26.7.5, the same list pkg/parser/opnsense pins for
+// its own copy, and pins the names FreeBSD's /etc/services lacks.
 func TestServicePortTable(t *testing.T) {
 	t.Parallel()
 
@@ -21,6 +22,9 @@ func TestServicePortTable(t *testing.T) {
 		radius 1812 radius-acct 1813 rfb 5900 sip 5060 sip-tls 5061 smtp 25 snmp 161 snmptrap 162
 		ssh 22 submission 587 submissions 465 telnet 23 teredo 3544 tftp 69 urd 465 wins 1512`
 
+	const missingFromServices = `aol avt-profile-1 hbci ipsec-msft ms-streaming msnp nat-stun-port
+		radius-acct rfb teredo wins`
+
 	fields := strings.Fields(services)
 	table := make(map[string]string, len(fields)/2)
 
@@ -28,17 +32,24 @@ func TestServicePortTable(t *testing.T) {
 		table[fields[i]] = fields[i+1]
 	}
 
+	missing := make(map[string]struct{})
+	for _, name := range strings.Fields(missingFromServices) {
+		missing[name] = struct{}{}
+	}
+
 	assert.Equal(t, table, wellKnownServicePorts)
+	assert.Equal(t, missing, notInServices)
 }
 
-// TestParsePortPart_VendorForms covers the forms a port alias member and a rule
-// port take: the colon range only an alias can hold, service names, and the
-// dash range of a rule port.
+// TestParsePortPart_VendorForms covers the forms a rule port and a port alias
+// member take: the colon range only an alias can hold, the dash range of a
+// rule port, service names and ranges of two.
 func TestParsePortPart_VendorForms(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		part   string
+		vocab  portVocab
 		want   portRange
 		wantOK bool
 	}{
@@ -47,14 +58,20 @@ func TestParsePortPart_VendorForms(t *testing.T) {
 		{part: "8000-8100", want: portRange{lo: 8000, hi: 8100}, wantOK: true},
 		{part: " 8000 : 8100 ", want: portRange{lo: 8000, hi: 8100}, wantOK: true},
 		{part: "https", want: portRange{lo: 443, hi: 443}, wantOK: true},
-		{part: "HTTPS", want: portRange{lo: 443, hi: 443}, wantOK: true},
 		{part: "netbios-ns", want: portRange{lo: 137, hi: 137}, wantOK: true},
 		{part: "ms-wbt-server", want: portRange{lo: 3389, hi: 3389}, wantOK: true},
 		{part: "http:https", want: portRange{lo: 80, hi: 443}, wantOK: true},
+		{part: "http-https", want: portRange{lo: 80, hi: 443}, wantOK: true},
+		{part: "netbios-ns-netbios-ssn", want: portRange{lo: 137, hi: 139}, wantOK: true},
 		{part: "netbios-ns:netbios-ssn", want: portRange{lo: 137, hi: 139}, wantOK: true},
+		{part: "ssh-25", want: portRange{lo: 22, hi: 25}, wantOK: true},
+		{part: "rfb", want: portRange{lo: 5900, hi: 5900}, wantOK: true},
+		{part: "rfb", vocab: aliasVocab, wantOK: false},
+		{part: "telnet", vocab: aliasVocab, want: portRange{lo: 23, hi: 23}, wantOK: true},
+		{part: "HTTPS", wantOK: false},
+		{part: "TELNET", vocab: aliasVocab, wantOK: false},
 		{part: "100:http", wantOK: false},
 		{part: "8100:8000", wantOK: false},
-		{part: "ssh-25", wantOK: false},
 		{part: "1:2:3", wantOK: false},
 		{part: "65536", wantOK: false},
 		{part: "+80", wantOK: false},
@@ -65,10 +82,15 @@ func TestParsePortPart_VendorForms(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.part, func(t *testing.T) {
+		name := tt.part
+		if tt.vocab == aliasVocab {
+			name += " as alias member"
+		}
+
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, ok := parsePortPart(tt.part)
+			got, ok := parsePortPart(tt.part, tt.vocab)
 
 			assert.Equal(t, tt.wantOK, ok)
 
@@ -79,50 +101,189 @@ func TestParsePortPart_VendorForms(t *testing.T) {
 	}
 }
 
-// TestPortCoverage_UnknownMemberIsBlocked pins the safe direction: a port
-// value that cannot be parsed makes the dimension unknown, not disjoint, so a
-// Security pair still surfaces as the R8 advisory. Identical strings stay a
-// confident match, and an any-port covering endpoint covers whatever it meets.
-func TestPortCoverage_UnknownMemberIsBlocked(t *testing.T) {
+// TestEndpointPorts_PartialSets pins how an alias tree reads: a disabled alias
+// at any depth adds no port and leaves the set complete, as the loader skips
+// it; a cycle, a non-port alias, a missing alias or a member the analysis
+// cannot read leaves the set incomplete but keeps what could be read.
+func TestEndpointPorts_PartialSets(t *testing.T) {
+	t.Parallel()
+
+	port := func(name string, members ...string) common.NamedObject {
+		return common.NamedObject{Name: name, Type: common.NamedObjectTypePort, Members: members}
+	}
+	disabled := func(obj common.NamedObject) common.NamedObject {
+		obj.Disabled = true
+		return obj
+	}
+
+	objects := common.NamedObjects{
+		"Off":       disabled(port("Off", "23")),
+		"OuterOff":  port("OuterOff", "443", "Off"),
+		"CycleA":    port("CycleA", "23", "CycleB"),
+		"CycleB":    port("CycleB", "CycleA"),
+		"WithHost":  port("WithHost", "23", "Servers"),
+		"Servers":   {Name: "Servers", Type: common.NamedObjectTypeHost, Members: []string{"10.0.0.1"}},
+		"Feed":      {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
+		"WithFeed":  port("WithFeed", "23", "Feed"),
+		"Syslog":    port("Syslog", "23", "syslog"),
+		"Empty":     port("Empty"),
+		"Upper":     port("Upper", "TELNET"),
+		"Telnet":    port("Telnet", "telnet"),
+		"FullRange": port("FullRange", "1:65535"),
+	}
+
+	ref := func(name string) common.RuleEndpoint {
+		return common.RuleEndpoint{Port: name, PortRef: &common.ObjectRef{Name: name}}
+	}
+
+	tests := []struct {
+		name         string
+		ep           common.RuleEndpoint
+		wantTelnet   bool
+		wantComplete bool
+	}{
+		{name: "disabled alias", ep: ref("Off"), wantComplete: true},
+		{name: "disabled alias nested", ep: ref("OuterOff"), wantComplete: true},
+		{name: "cycle keeps the rest", ep: ref("CycleA"), wantTelnet: true},
+		{name: "host alias member keeps the rest", ep: ref("WithHost"), wantTelnet: true},
+		{name: "dynamic alias member keeps the rest", ep: ref("WithFeed"), wantTelnet: true},
+		{name: "dynamic alias", ep: ref("Feed")},
+		{name: "unknown service name keeps the rest", ep: ref("Syslog"), wantTelnet: true},
+		{name: "empty alias matches no port", ep: ref("Empty"), wantComplete: true},
+		{name: "names are case sensitive", ep: ref("Upper")},
+		{name: "service name", ep: ref("Telnet"), wantTelnet: true, wantComplete: true},
+		{name: "full range", ep: ref("FullRange"), wantTelnet: true, wantComplete: true},
+		{name: "missing alias", ep: ref("Nowhere")},
+		{name: "literal with no alias", ep: common.RuleEndpoint{Port: "syslog"}},
+		{name: "literal range", ep: common.RuleEndpoint{Port: "20-25"}, wantTelnet: true, wantComplete: true},
+		{name: "any port", ep: common.RuleEndpoint{}, wantComplete: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			set := EndpointPorts(tt.ep, objects)
+
+			assert.Equal(t, tt.wantTelnet, set.ContainsAny(23), "names telnet")
+			assert.Equal(t, tt.wantComplete, set.Complete(), "complete")
+		})
+	}
+}
+
+// TestPortCoverage_PartialSets pins the safe direction: a port set known only
+// in part is unknown rather than disjoint, so a Security pair still surfaces as
+// the R8 advisory, and what could be read still proves an overlap.
+func TestPortCoverage_PartialSets(t *testing.T) {
 	t.Parallel()
 
 	objects := common.NamedObjects{
-		"Odd": {Name: "Odd", Type: common.NamedObjectTypePort, Members: []string{"443", "no-such-service"}},
+		"Odd":  {Name: "Odd", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
+		"Feed": {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
 	}
-	alias := common.RuleEndpoint{Port: "Odd", PortRef: &common.ObjectRef{Name: "Odd"}}
+	odd := common.RuleEndpoint{Port: "Odd", PortRef: &common.ObjectRef{Name: "Odd"}}
+	feed := common.RuleEndpoint{Port: "Feed", PortRef: &common.ObjectRef{Name: "Feed"}}
 
 	tests := []struct {
-		name        string
-		earlier     common.RuleEndpoint
-		later       common.RuleEndpoint
-		want        Coverage
-		wantBlocked bool
+		name      string
+		earlier   common.RuleEndpoint
+		later     common.RuleEndpoint
+		want      Coverage
+		wantCause blockCause
 	}{
 		{
-			name:        "alias with an unknown member over a port",
-			earlier:     alias,
-			later:       common.RuleEndpoint{Port: "8050"},
-			want:        CoverNone,
-			wantBlocked: true,
+			name:      "readable part covers the later port",
+			earlier:   odd,
+			later:     common.RuleEndpoint{Port: "8050"},
+			want:      CoverFull,
+			wantCause: causeValue,
 		},
 		{
-			name:        "port over an alias with an unknown member",
-			earlier:     common.RuleEndpoint{Port: "443"},
-			later:       alias,
-			want:        CoverNone,
-			wantBlocked: true,
+			name:      "readable part misses the later port",
+			earlier:   odd,
+			later:     common.RuleEndpoint{Port: "9000"},
+			want:      CoverNone,
+			wantCause: causeValue,
 		},
 		{
-			name:    "identical unparseable strings still match",
-			earlier: common.RuleEndpoint{Port: "Undefined"},
-			later:   common.RuleEndpoint{Port: "Undefined"},
+			name:      "a later set known in part is never covered in full",
+			earlier:   common.RuleEndpoint{Port: "8000-8100"},
+			later:     odd,
+			want:      CoverPartial,
+			wantCause: causeValue,
+		},
+		{
+			name:      "unresolvable alias",
+			earlier:   feed,
+			later:     common.RuleEndpoint{Port: "443"},
+			want:      CoverNone,
+			wantCause: causeAlias,
+		},
+		{
+			name:      "the same unresolvable alias matches itself",
+			earlier:   feed,
+			later:     feed,
+			want:      CoverFull,
+			wantCause: causeAlias,
+		},
+		{
+			name:    "identical unreadable literals match",
+			earlier: common.RuleEndpoint{Port: "x"},
+			later:   common.RuleEndpoint{Port: "x"},
 			want:    CoverFull,
 		},
+		{name: "any port covers a set known in part", earlier: common.RuleEndpoint{}, later: odd, want: CoverFull},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, cause := portCoverage(tt.earlier, tt.later, objects)
+
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.wantCause, cause)
+		})
+	}
+}
+
+// TestCoverage_DisjointDimensionWins pins that a dimension proven
+// disjoint outweighs a blocked one: a pass to an unreadable port over a block
+// on another protocol or another host raises no advisory.
+func TestCoverage_DisjointDimensionWins(t *testing.T) {
+	t.Parallel()
+
+	pass := common.FirewallRule{
+		Type: common.RuleTypePass, Protocol: "tcp",
+		Destination: common.RuleEndpoint{Address: "10.0.0.1", Port: "no-such-service"},
+	}
+
+	tests := []struct {
+		name      string
+		block     common.FirewallRule
+		wantCause blockCause
+	}{
 		{
-			name:    "any port covers an alias with an unknown member",
-			earlier: common.RuleEndpoint{},
-			later:   alias,
-			want:    CoverFull,
+			name: "other protocol",
+			block: common.FirewallRule{
+				Type: common.RuleTypeBlock, Protocol: "udp",
+				Destination: common.RuleEndpoint{Address: "10.0.0.1", Port: "8050"},
+			},
+		},
+		{
+			name: "other host",
+			block: common.FirewallRule{
+				Type: common.RuleTypeBlock, Protocol: "tcp",
+				Destination: common.RuleEndpoint{Address: "10.0.0.2", Port: "8050"},
+			},
+		},
+		{
+			name: "same protocol and host",
+			block: common.FirewallRule{
+				Type: common.RuleTypeBlock, Protocol: "tcp",
+				Destination: common.RuleEndpoint{Address: "10.0.0.1", Port: "8050"},
+			},
+			wantCause: causeValue,
 		},
 	}
 
@@ -130,10 +291,10 @@ func TestPortCoverage_UnknownMemberIsBlocked(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, blocked := portCoverage(tt.earlier, tt.later, objects)
+			got, cause := coverage(pass, tt.block, nil)
 
-			assert.Equal(t, tt.want, got)
-			assert.Equal(t, tt.wantBlocked, blocked)
+			assert.Equal(t, CoverNone, got)
+			assert.Equal(t, tt.wantCause, cause)
 		})
 	}
 }

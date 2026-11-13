@@ -83,24 +83,30 @@ const (
 	portNotNamed portMatch = iota
 	// portNamed: the ports include at least one of those asked about.
 	portNamed
-	// portUnknown: the ports cannot be read, so the answer is not known.
+	// portUnknown: the ports that could be read include none of those asked
+	// about, and some could not be read, so the answer is not known.
 	portUnknown
 )
 
 // endpointPortMatch reports whether an endpoint's port names any of ports, as
 // a number, a range or a service name. A port alias is resolved through the
 // device's named objects, nested aliases included, since a rule in either
-// store can name one and the alias then decides what the rule passes. The
-// ports cannot be read when the alias does not resolve or a value is not a
-// port. An any-port endpoint names no port in particular.
-func endpointPortMatch(ep common.RuleEndpoint, objects common.NamedObjects, ports ...int) portMatch {
-	set, known := analysis.EndpointPorts(ep, objects)
+// store can name one and the alias then decides what the rule passes. A port
+// the readable part names decides the answer even when another part cannot be
+// read, such as a cyclic member or a service name the analysis does not know.
+// An any-port endpoint names no port in particular.
+func endpointPortMatch(
+	ep common.RuleEndpoint,
+	objects common.NamedObjects,
+	ports ...int,
+) portMatch {
+	set := analysis.EndpointPorts(ep, objects)
 
 	switch {
-	case !known:
-		return portUnknown
 	case set.ContainsAny(ports...):
 		return portNamed
+	case !set.Complete():
+		return portUnknown
 	default:
 		return portNotNamed
 	}

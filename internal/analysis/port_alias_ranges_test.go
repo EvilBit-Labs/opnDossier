@@ -162,7 +162,7 @@ func TestDetectShadowedRules_PortAliasVendorForms(t *testing.T) {
 					want = v.wantConfidence
 				}
 
-				finding, ok := findShadow(analysis.DetectShadowedRules(device), 1, 0)
+				finding, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
 				require.True(t, ok, "the block below the pass must be reported as shadowed")
 				assert.Equal(t, common.ImpactClassSecurity, finding.ImpactClass)
 				assert.Equal(t, want, finding.Confidence)
@@ -186,8 +186,110 @@ func TestDetectShadowedRules_PortAliasOutsideRange(t *testing.T) {
 
 	device := parsePortAliasDevice(t, xmlData, common.DeviceTypeOPNsense)
 
-	_, ok := findShadow(analysis.DetectShadowedRules(device), 1, 0)
+	_, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
 	assert.False(t, ok, "8101 lies outside 8000:8100")
+}
+
+// TestDetectShadowedRules_DisabledPortAlias drives a disabled port alias
+// through parse, convert and the shadow analysis. OPNsense loads a disabled
+// alias with no members, at any depth (filter.lib.inc L153), so a pass to it
+// passes nothing and shadows no block. The enabled twin is the control.
+func TestDetectShadowedRules_DisabledPortAlias(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		port0       string
+		innerEnable string
+		outerEnable string
+		wantShadow  bool
+	}{
+		{name: "disabled alias", port0: "Inner", innerEnable: "0", outerEnable: "1"},
+		{name: "disabled alias nested in an enabled one", port0: "Outer", innerEnable: "0", outerEnable: "1"},
+		{
+			name:        "enabled alias nested in an enabled one",
+			port0:       "Outer",
+			innerEnable: "1",
+			outerEnable: "1",
+			wantShadow:  true,
+		},
+		{name: "enabled alias", port0: "Inner", innerEnable: "1", outerEnable: "0", wantShadow: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			aliases := `<alias uuid="a0000000-0000-4000-8000-000000000001">
+            <enabled>` + tt.innerEnable + `</enabled><name>Inner</name><type>port</type>
+            <content>8000:8100</content><description>inner</description>
+          </alias>
+          <alias uuid="a0000000-0000-4000-8000-000000000002">
+            <enabled>` + tt.outerEnable + `</enabled><name>Outer</name><type>port</type>
+            <content>443
+Inner</content><description>outer</description>
+          </alias>`
+
+			start := strings.Index(portAliasOPNsenseConfig, "<alias uuid")
+			end := strings.Index(portAliasOPNsenseConfig, "</aliases>")
+			config := portAliasOPNsenseConfig[:start] + aliases + "\n        " + portAliasOPNsenseConfig[end:]
+
+			xmlData := strings.NewReplacer(
+				"{{ACTION0}}", "pass",
+				"{{ACTION1}}", "block",
+				"{{PORT0}}", tt.port0,
+				"{{PORT1}}", "8050",
+			).Replace(config)
+
+			factory := parser.NewFactory(cfgparser.NewXMLParser())
+			device, _, err := factory.CreateDevice(
+				context.Background(), strings.NewReader(xmlData), common.DeviceTypeOPNsense, false,
+			)
+			require.NoError(t, err)
+			require.Equal(t, tt.innerEnable == "0", device.NamedObjects["Inner"].Disabled)
+
+			_, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
+			assert.Equal(t, tt.wantShadow, ok)
+		})
+	}
+}
+
+// TestDetectShadowedRules_UnreadablePortWording pins the advisory text when
+// the only thing the analysis could not read is a port value: it must name
+// the value and not send the reader looking for an alias.
+func TestDetectShadowedRules_UnreadablePortWording(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		content string
+		port0   string
+	}{
+		{name: "literal rule port", content: "443", port0: "syslog"},
+		{name: "alias member", content: "443\nsyslog", port0: "Ports"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			xmlData := strings.NewReplacer(
+				"{{CONTENT}}", tt.content,
+				"{{ACTION0}}", "pass",
+				"{{ACTION1}}", "block",
+				"{{PORT0}}", tt.port0,
+				"{{PORT1}}", "8050",
+			).Replace(portAliasOPNsenseConfig)
+
+			device := parsePortAliasDevice(t, xmlData, common.DeviceTypeOPNsense)
+
+			finding, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
+			require.True(t, ok, "an unreadable port is unknown, not disjoint")
+			assert.Equal(t, common.ConfidenceLow, finding.Confidence)
+			assert.True(t, strings.HasPrefix(finding.Description, "(unconfirmed, unreadable port value)"))
+			assert.NotContains(t, finding.Recommendation, "alias")
+		})
+	}
 }
 
 func parsePortAliasDevice(t *testing.T, xmlData string, deviceType common.DeviceType) *common.CommonDevice {
@@ -202,9 +304,11 @@ func parsePortAliasDevice(t *testing.T, xmlData string, deviceType common.Device
 	return device
 }
 
-func findShadow(findings []common.ShadowedRuleFinding, rule, by int) (common.ShadowedRuleFinding, bool) {
+// findSecondShadowedByFirst returns the finding that the first rule shadows
+// the second, the pair every config in this file is built around.
+func findSecondShadowedByFirst(findings []common.ShadowedRuleFinding) (common.ShadowedRuleFinding, bool) {
 	for _, f := range findings {
-		if f.RuleIndex == rule && f.ShadowedByIndex == by {
+		if f.RuleIndex == 1 && f.ShadowedByIndex == 0 {
 			return f, true
 		}
 	}

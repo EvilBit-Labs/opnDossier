@@ -67,7 +67,7 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 		Direction:       pair.Direction,
 		Port:            eclipsedPort(pair, kind),
 		Description:     buildShadowDescription(pair, kind, pair.AliasBlocked),
-		Recommendation:  recommendationFor(impactClass, pair.AliasBlocked),
+		Recommendation:  recommendationFor(impactClass, pair),
 	}, true
 }
 
@@ -207,6 +207,13 @@ func buildShadowDescription(pair PrecedencePair, kind common.ShadowKind, advisor
 		loserType,
 	)
 
+	if advisory && pair.ValueBlocked {
+		return fmt.Sprintf(
+			"(unconfirmed, unreadable port value) %s A port in this overlap is a value the analysis cannot read, such as a service name it does not know, so the shadow could not be confirmed with certainty.",
+			desc,
+		)
+	}
+
 	if advisory {
 		return fmt.Sprintf(
 			"(unconfirmed — unresolved alias) %s This overlap involves a named object (alias) that could not be fully resolved, so the shadow could not be confirmed with certainty.",
@@ -217,11 +224,15 @@ func buildShadowDescription(pair PrecedencePair, kind common.ShadowKind, advisor
 	return desc
 }
 
-// recommendationFor suggests a corrective action for impactClass.
-func recommendationFor(impactClass common.ImpactClass, advisory bool) string {
+// recommendationFor suggests a corrective action for pair's impactClass.
+func recommendationFor(impactClass common.ImpactClass, pair PrecedencePair) string {
 	switch impactClass {
 	case common.ImpactClassSecurity:
-		if advisory {
+		if pair.AliasBlocked && pair.ValueBlocked {
+			return "Check which port the unreadable value stands for, or write it as a number, to confirm whether this deny rule is bypassed; reorder or narrow the covering pass rule if confirmed."
+		}
+
+		if pair.AliasBlocked {
 			return "Resolve the alias reference and re-run analysis to confirm whether this deny rule is bypassed; reorder or narrow the covering pass rule if confirmed."
 		}
 
@@ -313,9 +324,9 @@ func resolveAliasBlockedAdvisoryPair(
 	earlier, later IndexedRule,
 	no common.NamedObjects,
 ) (PrecedencePair, bool) {
-	wl, cov, aliasBlocked := derivePairWinnerLoser(earlier, later, no)
+	wl, cov, cause := derivePairWinnerLoser(earlier, later, no)
 
-	if !aliasBlocked || cov != CoverNone {
+	if cause == 0 || cov != CoverNone {
 		return PrecedencePair{}, false
 	}
 
@@ -330,6 +341,7 @@ func resolveAliasBlockedAdvisoryPair(
 		Loser:        wl.loser,
 		Extent:       CoverFull,
 		AliasBlocked: true,
+		ValueBlocked: cause == causeValue,
 	}, true
 }
 

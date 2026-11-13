@@ -114,7 +114,7 @@ func RulePortPermits(rulePort string, servicePort int) bool {
 			continue
 		}
 
-		r, ok := parsePortPart(token)
+		r, ok := parsePortPart(token, ruleVocab)
 		if !ok {
 			return true
 		}

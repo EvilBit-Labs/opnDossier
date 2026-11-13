@@ -8,24 +8,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestVendorTables pins the ICMPv6 types of the filter model against the names
-// OPNsense 26.7.5's list_legacy_rules.php gives them. The service name table
-// moved to internal/analysis and is pinned there.
+// TestVendorTables pins the two tables against the values OPNsense 26.7.5
+// holds: the service names of PortField.php, and the ICMPv6 types of the filter
+// model with the names list_legacy_rules.php gives them.
 func TestVendorTables(t *testing.T) {
 	t.Parallel()
+
+	const services = `afs3-fileserver 7000 aol 5190 auth 113 avt-profile-1 5004 cvsup 5999 domain 53
+		domain-s 853 ftp 21 hbci 3000 http 80 https 443 igmpv3lite 465 imap 143 imaps 993
+		ipsec-msft 10000 ipsec-nat-t 4500 isakmp 500 l2f 1701 ldap 389 ldaps 636 microsoft-ds 445
+		ms-streaming 1755 ms-wbt-server 3389 msnp 1863 nat-stun-port 3478 netbios-dgm 138
+		netbios-ns 137 netbios-ssn 139 nntp 119 ntp 123 openvpn 1194 pop3 110 pop3s 995 pptp 1723
+		radius 1812 radius-acct 1813 rfb 5900 sip 5060 sip-tls 5061 smtp 25 snmp 161 snmptrap 162
+		ssh 22 submission 587 submissions 465 telnet 23 teredo 3544 tftp 69 urd 465 wins 1512`
 
 	const icmp6Types = `1 unreach 2 toobig 3 timex 4 paramprob 128 echoreq 129 echorep 130 listqry
 		131 listenrep 132 listendone 133 routersol 134 routeradv 135 neighbrsol 136 neighbradv
 		137 redir 138 routrrenum 139 niqry 140 nirep 200 mtraceresp 201 mtrace`
 
-	fields := strings.Fields(icmp6Types)
-	table := make(map[string]string, len(fields)/2)
+	pairs := func(list string) map[string]string {
+		fields := strings.Fields(list)
+		table := make(map[string]string, len(fields)/2)
 
-	for i := 0; i < len(fields); i += 2 {
-		table[fields[i]] = fields[i+1]
+		for i := 0; i < len(fields); i += 2 {
+			table[fields[i]] = fields[i+1]
+		}
+
+		return table
 	}
 
-	assert.Equal(t, table, icmp6TypeNames)
+	assert.Equal(t, pairs(services), wellKnownPorts)
+	assert.Equal(t, pairs(icmp6Types), icmp6TypeNames)
 }
 
 // TestModelRuleSortKey pins the shape of the key: a number is padded on the
