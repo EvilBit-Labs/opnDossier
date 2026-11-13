@@ -2,26 +2,37 @@ package sans
 
 import (
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
+// Service ports the checks look for.
+const (
+	telnetPort     = 23
+	dnsPort        = 53
+	smtpPort       = 25
+	submissionPort = 587
+	smtpsPort      = 465
+)
+
 // dangerousPorts lists service ports that should never be exposed on WAN.
-var dangerousPorts = []string{
-	"23",   // Telnet
-	"135",  // MS RPC
-	"136",  // Profile Naming System
-	"137",  // NetBIOS Name Service
-	"138",  // NetBIOS Datagram Service
-	"139",  // NetBIOS Session Service
-	"161",  // SNMP
-	"162",  // SNMP Trap
-	"445",  // SMB/CIFS
-	"2049", // NFS
+var dangerousPorts = []int{
+	telnetPort,
+	135,  // MS RPC
+	136,  // Profile Naming System
+	137,  // NetBIOS Name Service
+	138,  // NetBIOS Datagram Service
+	139,  // NetBIOS Session Service
+	161,  // SNMP
+	162,  // SNMP Trap
+	445,  // SMB/CIFS
+	2049, // NFS
 }
+
+// smtpPorts lists the mail submission and relay ports.
+var smtpPorts = []int{smtpPort, submissionPort, smtpsPort}
 
 // defaultUsernames contains factory-default account names that indicate
 // credentials have not been customized. Comparisons are case-insensitive.
@@ -64,28 +75,35 @@ func ruleAppliesToWAN(rule common.FirewallRule, ifaces []common.Interface) bool 
 	return analysis.RuleReachability(rule, ifaces) == analysis.WANReachable
 }
 
-// portMatchesDangerous checks whether a port specification matches any dangerous port.
-// Handles exact matches and simple ranges (e.g., "135-139").
-func portMatchesDangerous(port string) bool {
-	if port == "" {
-		return false
+// portMatch is what endpointPortMatch finds out about an endpoint's ports.
+type portMatch int
+
+const (
+	// portNotNamed: the ports are known and include none of those asked about.
+	portNotNamed portMatch = iota
+	// portNamed: the ports include at least one of those asked about.
+	portNamed
+	// portUnknown: the ports cannot be read, so the answer is not known.
+	portUnknown
+)
+
+// endpointPortMatch reports whether an endpoint's port names any of ports, as
+// a number, a range or a service name. A port alias is resolved through the
+// device's named objects, nested aliases included, since a rule in either
+// store can name one and the alias then decides what the rule passes. The
+// ports cannot be read when the alias does not resolve or a value is not a
+// port. An any-port endpoint names no port in particular.
+func endpointPortMatch(ep common.RuleEndpoint, objects common.NamedObjects, ports ...int) portMatch {
+	set, known := analysis.EndpointPorts(ep, objects)
+
+	switch {
+	case !known:
+		return portUnknown
+	case set.ContainsAny(ports...):
+		return portNamed
+	default:
+		return portNotNamed
 	}
-	for _, dp := range dangerousPorts {
-		if port == dp {
-			return true
-		}
-		// Check if the dangerous port falls within a range like "135-139".
-		//nolint:mnd // 2 is the expected number of parts in a port range "start-end"
-		if parts := strings.SplitN(port, "-", 2); len(parts) == 2 {
-			dpNum, errDP := strconv.Atoi(dp)
-			low, errLow := strconv.Atoi(parts[0])
-			high, errHigh := strconv.Atoi(parts[1])
-			if errDP == nil && errLow == nil && errHigh == nil && dpNum >= low && dpNum <= high {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // checkDefaultDeny verifies the firewall has a default deny policy.
@@ -389,13 +407,28 @@ func (sp *Plugin) checkDangerousPorts(device *common.CommonDevice) checkResult {
 		return checkResult{Result: false, Known: true}
 	}
 
+	unresolved := false
+
 	for _, r := range enabledPassRules(device) {
 		if !ruleAppliesToWAN(r, device.Interfaces) {
 			continue
 		}
-		if portMatchesDangerous(r.Destination.Port) || portMatchesDangerous(r.Source.Port) {
-			return checkResult{Result: true, Known: true}
+
+		for _, ep := range []common.RuleEndpoint{r.Destination, r.Source} {
+			switch endpointPortMatch(ep, device.NamedObjects, dangerousPorts...) {
+			case portNamed:
+				return checkResult{Result: true, Known: true}
+			case portUnknown:
+				unresolved = true
+			case portNotNamed:
+			}
 		}
+	}
+
+	// A port that cannot be read may hold a dangerous one, so the control is
+	// not decided rather than passed.
+	if unresolved {
+		return unknown
 	}
 
 	return checkResult{Result: false, Known: true}
@@ -412,10 +445,20 @@ func (sp *Plugin) checkSecureRemoteAccess(device *common.CommonDevice) checkResu
 	}
 
 	// Check for telnet pass rules (port 23).
+	unresolved := false
+
 	for _, r := range enabledPassRules(device) {
-		if r.Destination.Port == "23" {
+		switch endpointPortMatch(r.Destination, device.NamedObjects, telnetPort) {
+		case portNamed:
 			return checkResult{Result: false, Known: true}
+		case portUnknown:
+			unresolved = true
+		case portNotNamed:
 		}
+	}
+
+	if unresolved {
+		return unknown
 	}
 
 	return checkResult{Result: true, Known: true}
@@ -460,17 +503,24 @@ func (sp *Plugin) checkMailRestriction(device *common.CommonDevice) checkResult 
 	}
 
 	hasSMTPRules := false
+	// unresolvedOpen records a rule to any destination whose ports cannot be
+	// read: it may be an unrestricted SMTP rule.
+	unresolvedOpen := false
+
 	for _, r := range enabledPassRules(device) {
-		if r.Destination.Port == "25" || r.Destination.Port == "587" ||
-			r.Destination.Port == "465" {
+		switch endpointPortMatch(r.Destination, device.NamedObjects, smtpPorts...) {
+		case portNamed:
 			hasSMTPRules = true
 			if analysis.IsAnyEndpoint(r.Destination) {
 				return checkResult{Result: false, Known: true}
 			}
+		case portUnknown:
+			unresolvedOpen = unresolvedOpen || analysis.IsAnyEndpoint(r.Destination)
+		case portNotNamed:
 		}
 	}
 
-	if !hasSMTPRules {
+	if !hasSMTPRules || unresolvedOpen {
 		return unknown
 	}
 
@@ -516,17 +566,27 @@ func (sp *Plugin) checkDNSZoneTransfer(device *common.CommonDevice) checkResult 
 		return checkResult{Result: false, Known: true}
 	}
 
+	unresolved := false
+
 	for _, r := range enabledPassRules(device) {
 		if !ruleAppliesToWAN(r, device.Interfaces) {
 			continue
 		}
-		if !strings.EqualFold(r.Protocol, "tcp") {
+		if !strings.EqualFold(r.Protocol, "tcp") || !analysis.IsAnyEndpoint(r.Source) {
 			continue
 		}
-		if r.Destination.Port == "53" &&
-			analysis.IsAnyEndpoint(r.Source) {
+
+		switch endpointPortMatch(r.Destination, device.NamedObjects, dnsPort) {
+		case portNamed:
 			return checkResult{Result: true, Known: true}
+		case portUnknown:
+			unresolved = true
+		case portNotNamed:
 		}
+	}
+
+	if unresolved {
+		return unknown
 	}
 
 	return checkResult{Result: false, Known: true}

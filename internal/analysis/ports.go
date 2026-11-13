@@ -3,6 +3,8 @@ package analysis
 import (
 	"strconv"
 	"strings"
+
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // maxPort is the highest TCP/UDP port number.
@@ -69,4 +71,46 @@ func parsePortDigits(s string) (int, bool) {
 	}
 
 	return n, true
+}
+
+// PortSet is the set of ports a rule endpoint matches once its port alias,
+// nested aliases included, is expanded.
+type PortSet struct {
+	ranges []portRange
+}
+
+// EndpointPorts resolves an endpoint's port through NamedObjects and parses
+// the result. The second return is false when the set cannot be known: the
+// port names an alias that does not resolve (unknown, dynamic, cyclic or too
+// large), or a value is not a port, a range or a known service name. Callers
+// must not read an unknown set as matching nothing.
+func EndpointPorts(ep common.RuleEndpoint, no common.NamedObjects) (PortSet, bool) {
+	vals, blocked := resolvePortValues(ep, no)
+	if blocked {
+		return PortSet{}, false
+	}
+
+	// parsePortMembers leaves the intervals empty for the any-port wildcard,
+	// so ContainsAny reads it as naming no port in particular.
+	ranges, _, ok := parsePortMembers(vals)
+	if !ok {
+		return PortSet{}, false
+	}
+
+	return PortSet{ranges: ranges}, true
+}
+
+// ContainsAny reports whether the set names any of ports explicitly. The
+// any-port wildcard does not count: callers looking for a rule aimed at a
+// service read a rule open to every port separately, if at all.
+func (s PortSet) ContainsAny(ports ...int) bool {
+	for _, r := range s.ranges {
+		for _, port := range ports {
+			if r.lo <= port && port <= r.hi {
+				return true
+			}
+		}
+	}
+
+	return false
 }
