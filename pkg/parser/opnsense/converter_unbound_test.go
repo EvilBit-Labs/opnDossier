@@ -2,6 +2,7 @@ package opnsense_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/cfgparser"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	"github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -106,6 +108,35 @@ func TestConverter_Unbound_ServiceFlagsFollowModelVersion(t *testing.T) {
 			wantStripped: true,
 		},
 		{
+			name:        "1.0.5 is the first model to hold enabled",
+			body:        unboundPlus("1.0.5", `<enabled>1</enabled>`, ``),
+			wantEnabled: true,
+		},
+		{
+			name:         "1.0.3 is the first model to hold dnssecstripped",
+			body:         unboundPlus("1.0.3", ``, `<dnssecstripped>1</dnssecstripped>`),
+			wantStripped: true,
+		},
+		{
+			// The firewall reads only the model from 1.0.5 on, so the stale
+			// legacy element counts for nothing and the model default applies.
+			name: "1.0.15 without enabled ignores a stale legacy enable",
+			body: `<unbound><enable>1</enable></unbound>` + unboundPlus("1.0.15", `<port>53</port>`, ``),
+		},
+		{
+			name: "1.0.4 legacy elements count whatever they hold",
+			body: `<unbound><enable>on</enable><dnssec>yes</dnssec></unbound>` +
+				unboundPlus("1.0.4", ``, ``),
+			wantEnabled: true,
+			wantDNSSEC:  true,
+		},
+		{
+			name: "a later minor version reads the model",
+			body: `<unbound><enable>1</enable><dnssec>1</dnssec></unbound>` +
+				unboundPlus("1.1.0", `<enabled>0</enabled><dnssec>1</dnssec>`, ``),
+			wantDNSSEC: true,
+		},
+		{
 			name:        "no version attribute reads the model when it holds the value",
 			body:        `<OPNsense><unboundplus><general><enabled>1</enabled><dnssec>1</dnssec></general></unboundplus></OPNsense>`,
 			wantEnabled: true,
@@ -126,15 +157,24 @@ func TestConverter_Unbound_ServiceFlagsFollowModelVersion(t *testing.T) {
 	}
 }
 
-// TestConverter_Unbound_KnownModelVersions checks that every model version up
-// to 26.7's is accepted, and that a later one still warns.
+// TestConverter_Unbound_KnownModelVersions checks that every model version
+// from 1.0.0 to 26.7's 1.0.15 converts without a warning, that the accepted set
+// holds nothing else, and that a later version still warns.
 func TestConverter_Unbound_KnownModelVersions(t *testing.T) {
 	t.Parallel()
 
-	for _, version := range []string{"1.0.3", "1.0.5", "1.0.9", "1.0.15"} {
+	const lastCheckedPatch = 15
+
+	want := map[string]struct{}{"": {}}
+	for patch := 0; patch <= lastCheckedPatch; patch++ {
+		version := fmt.Sprintf("1.0.%d", patch)
+		want[version] = struct{}{}
+
 		_, warnings := parseUnboundXML(t, unboundPlus(version, `<enabled>1</enabled>`, ``))
 		assert.Nil(t, findWarning(warnings, unboundVersionWarningField, version), "version %s", version)
 	}
+
+	assert.Equal(t, want, opnsense.KnownUnboundPlusVersions)
 
 	_, warnings := parseUnboundXML(t, unboundPlus("1.0.16", `<enabled>1</enabled>`, ``))
 	assert.NotNil(t, findWarning(warnings, unboundVersionWarningField, "1.0.16"))

@@ -20,7 +20,9 @@ const (
 )
 
 // unboundServiceFlags is what the running firewall reads for whether Unbound is
-// enabled, validates DNSSEC and strips DNSSEC records. A config whose model has
+// enabled, validates DNSSEC and hardens DNSSEC data (harden-dnssec-stripped,
+// which refuses a signed zone's answer with its DNSSEC records removed). A
+// config whose model has
 // been migrated holds them only in <OPNsense><unboundplus>, so reading the
 // legacy <unbound> element alone reports Unbound as off on every config written
 // by 23.7 or later.
@@ -51,10 +53,11 @@ func readUnboundServiceFlags(doc *schema.OpnSenseDocument) unboundServiceFlags {
 		flags.dnssec = legacy.Dnssec != ""
 	}
 
-	// M1_0_3 carried dnssecstripped over with empty(), so the legacy value
-	// reads the same way as the model's.
+	// dnssecstripped is "Harden DNSSEC Data". The model's value reaches
+	// unbound.conf through the template's set_boolean, which writes yes only
+	// for "1". Before 1.0.3 unbound.inc tested the legacy key with !empty().
 	if unboundModelHolds(plus.Version, unboundAdvancedSincePatch, plus.Advanced.Dnssecstripped != "") {
-		flags.stripped = modelFlagSet(plus.Advanced.Dnssecstripped)
+		flags.stripped = plus.Advanced.Dnssecstripped == xmlBoolTrue
 	} else {
 		flags.stripped = modelFlagSet(legacy.Dnssecstripped)
 	}
