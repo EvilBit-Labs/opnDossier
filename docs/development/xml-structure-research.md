@@ -53,6 +53,7 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<nottagged/>`              | `<rule>` (filter)                            | Match packets NOT tagged                                                                                                                                 |
 | `<trigger_initial_wizard/>` | `<opnsense>` (root)                          | First-boot wizard trigger                                                                                                                                |
 | `<ipv6allow/>`              | `<system>`                                   | `isset($config['system']['ipv6allow'])`, before 26.1                                                                                                     |
+| `<nodnsrebindcheck/>`       | `<system><webgui>`                           | `isset($config['system']['webgui']['nodnsrebindcheck'])` in unbound.inc; pfSense `config_path_enabled()`                                                 |
 | `<enable/>`                 | `<interfaces><wan>`                          | Interface enabled (pfSense uses BoolFlag)                                                                                                                |
 | `<enable/>`                 | `<dhcpd><lan>`                               | DHCP scope enabled (pfSense uses BoolFlag)                                                                                                               |
 
@@ -280,6 +281,7 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 **Converted to `*string` (presence only, the body is ignored):**
 
 - System: IPv6Allow (system.go, and pfSense system.go)
+- WebGUIConfig: NoDNSRebindCheck (system.go), and pfSense WebGUI: NoDNSRebindCheck (system.go)
 - FilterRule: Floating, Quick, Disabled (pfSense security.go). The direction check also reads `Floating`'s body (section 1a)
 - Rule: Floating (security.go)
 
@@ -326,7 +328,7 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 
 | Struct        | Field        | Type     | Rationale                                   |
 | ------------- | ------------ | -------- | ------------------------------------------- |
-| Unbound       | Enable       | `string` | Heavily used with `== "1"` across 10+ files |
+| Unbound       | Enable       | `string` | Legacy; read as set for any body, `isset()` |
 | Monit.General | Enabled      | `string` | MVC field, value-based                      |
 | Monit.General | Ssl          | `string` | MVC field, value-based                      |
 | Monit.General | Sslverify    | `string` | MVC field, value-based                      |
