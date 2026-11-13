@@ -956,14 +956,14 @@ func TestDetectConsistency(t *testing.T) {
 			wantCount: 0,
 		},
 		{
-			name: "invalid gateway format",
+			name: "undefined gateway name",
 			cfg: &common.CommonDevice{
 				Interfaces: []common.Interface{
 					{Name: "wan", IPAddress: "1.2.3.4", Subnet: "24", Gateway: "invalid-gw"},
 				},
 			},
 			wantCount:  1,
-			wantIssues: []string{"Invalid Gateway Format"},
+			wantIssues: []string{"Undefined Interface Gateway"},
 		},
 		{
 			name: "valid gateway not flagged",

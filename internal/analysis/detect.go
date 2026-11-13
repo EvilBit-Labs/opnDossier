@@ -373,6 +373,62 @@ func DetectPerformanceIssues(cfg *common.CommonDevice) []common.PerformanceFindi
 	return findings
 }
 
+// interfaceGatewayFinding checks the gateway a static interface selects.
+// OPNsense and pfSense store the selected gateway's name in <gateway>, not an
+// address: the interface page offers the gateways defined on that interface
+// and saves the chosen name (OPNsense interfaces.php). A literal address, which
+// older configs can hold, is accepted as it stands. A name is a problem only
+// when no gateway in the config has it, or when every gateway that has it is
+// on another interface; the firewall then applies no gateway for the
+// interface (Gateways::getInterfaceGateway). "none" is the page's value for no
+// gateway.
+func interfaceGatewayFinding(cfg *common.CommonDevice, iface common.Interface) (common.ConsistencyFinding, bool) {
+	name := strings.TrimSpace(iface.Gateway)
+	if name == "" || strings.EqualFold(name, "none") || iface.IPAddress == "" || iface.Subnet == "" ||
+		net.ParseIP(name) != nil {
+		return common.ConsistencyFinding{}, false
+	}
+
+	var elsewhere []string
+
+	for _, gw := range cfg.Routing.Gateways {
+		if gw.Name != name {
+			continue
+		}
+
+		if gw.Interface == iface.Name {
+			return common.ConsistencyFinding{}, false
+		}
+
+		elsewhere = append(elsewhere, gw.Interface)
+	}
+
+	finding := common.ConsistencyFinding{
+		Component: fmt.Sprintf("interfaces.%s.gateway", iface.Name),
+		Severity:  common.SeverityMedium,
+	}
+
+	if len(elsewhere) == 0 {
+		finding.Issue = "Undefined Interface Gateway"
+		finding.Description = fmt.Sprintf(
+			"Interface %s selects gateway %s, which no gateway in the configuration defines",
+			iface.Name, name,
+		)
+		finding.Recommendation = "Select a gateway defined on this interface, or clear the selection"
+
+		return finding, true
+	}
+
+	finding.Issue = "Interface Gateway on Another Interface"
+	finding.Description = fmt.Sprintf(
+		"Interface %s selects gateway %s, which is defined on %s, so the firewall applies no gateway for %s",
+		iface.Name, name, strings.Join(elsewhere, ", "), iface.Name,
+	)
+	finding.Recommendation = "Select a gateway defined on this interface, or clear the selection"
+
+	return finding, true
+}
+
 // DetectConsistency detects configuration consistency issues.
 // Returns nil when no consistency issues are found.
 func DetectConsistency(cfg *common.CommonDevice) []common.ConsistencyFinding {
@@ -382,21 +438,10 @@ func DetectConsistency(cfg *common.CommonDevice) []common.ConsistencyFinding {
 
 	var findings []common.ConsistencyFinding
 
-	// Gateway format consistency.
+	// Interface gateway references.
 	for _, iface := range cfg.Interfaces {
-		if iface.Gateway != "" && iface.IPAddress != "" && iface.Subnet != "" {
-			if net.ParseIP(iface.Gateway) == nil {
-				findings = append(findings, common.ConsistencyFinding{
-					Component: fmt.Sprintf("interfaces.%s.gateway", iface.Name),
-					Issue:     "Invalid Gateway Format",
-					Severity:  common.SeverityMedium,
-					Description: fmt.Sprintf(
-						"Gateway %s for interface %s appears to be invalid",
-						iface.Gateway, iface.Name,
-					),
-					Recommendation: "Verify gateway IP address format and reachability",
-				})
-			}
+		if finding, ok := interfaceGatewayFinding(cfg, iface); ok {
+			findings = append(findings, finding)
 		}
 	}
 
