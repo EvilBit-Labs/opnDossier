@@ -86,10 +86,11 @@ type reflectionEntry struct{ old, new string }
 
 // TestCompare_NATReflection_GlobalAndPerForward covers the two diff entries
 // for NAT reflection. nat.reflectionDisabled combines the global flag with the
-// port forwards, so it does not move when the global flag is toggled while a
-// forward sets purenat or enable; system.disableNatReflection reports the
-// global flag itself, which CompareSystem does not compare. Removing forwards
-// set to disable or to the default leaves both unchanged.
+// port forwards, so it does not move when the global flag is toggled while an
+// enabled, redirecting forward sets purenat or enable;
+// system.disableNatReflection reports the global flag itself, which
+// CompareSystem does not compare. Removing forwards set to disable or to the
+// default leaves both unchanged.
 func TestCompare_NATReflection_GlobalAndPerForward(t *testing.T) {
 	t.Parallel()
 

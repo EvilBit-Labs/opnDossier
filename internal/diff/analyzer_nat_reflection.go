@@ -9,11 +9,11 @@ import (
 // compareGlobalNATReflection reports a change to <system><disablenatreflection>
 // itself, in the NAT section.
 //
-// nat.reflectionDisabled is false whenever an enabled port forward sets
-// purenat or enable, whatever the global flag says, so a toggle of the flag on
-// such a firewall leaves it unchanged. The flag still decides what every
-// forward on the system default does, and CompareSystem does not compare it,
-// so it gets its own entry.
+// nat.reflectionDisabled is false whenever an enabled, redirecting port
+// forward sets purenat or enable, whatever the global flag says, so a toggle
+// of the flag on such a firewall leaves it unchanged. The flag still decides
+// what every forward on the system default does, and CompareSystem does not
+// compare it, so it gets its own entry.
 func compareGlobalNATReflection(old, newCfg *common.System) []Change {
 	if old == nil || newCfg == nil || old.DisableNATReflection == newCfg.DisableNATReflection {
 		return nil
