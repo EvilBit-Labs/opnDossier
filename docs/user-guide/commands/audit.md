@@ -56,14 +56,14 @@ When no `--plugins` flag is specified, all available plugins are run by default.
 Attacker-focused recon mode highlighting attack surfaces, pivot points, and exposed services. It reports:
 
 - **WAN-exposed services**: the web GUI, SSH and SNMP, each when it is enabled and a WAN pass rule permits its port.
-- **WAN-reachable port forwards**: enabled inbound NAT rules on a WAN interface with a WAN pass rule.
+- **WAN-reachable port forwards**: enabled port forwards on a WAN interface, reported whenever any enabled pass rule on a WAN interface exists.
 - **Exposed weaknesses**: configuration issues, such as an overly permissive WAN rule, that are reachable from the WAN.
 
 The report metadata also lists the administration portals with their reachability and a reconnaissance summary of the device (interface, WAN interface, rule, port forward, user and group counts). These are inventory, not findings.
 
 Exploit notes describe impact and context only, never attack steps. `--audit-blackhat` sharpens their tone and is accepted only with `--mode red`.
 
-A service or port forward is reported as WAN-exposed when a pass rule on a WAN interface admits it. That includes a second uplink on an `optN` key and a rule on an interface group with a WAN member; see [How WAN Interfaces Are Identified](../../firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
+A service is reported as WAN-exposed when a pass rule on a WAN interface admits it. A port forward needs only to be on a WAN interface while any enabled pass rule on a WAN interface exists; that rule need not admit the forwarded traffic, so the report errs toward listing a forward rather than missing one. A WAN interface includes a second uplink on an `optN` key, and a rule or forward on an interface group counts when a member is a WAN interface; see [How WAN Interfaces Are Identified](../../firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
 
 ## Compliance Plugins
 

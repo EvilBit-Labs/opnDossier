@@ -495,10 +495,10 @@ Path: `ifgroups/ifgroupentry[]`
 | Field     | Type   | Description                |
 | --------- | ------ | -------------------------- |
 | `ifname`  | string | Group name                 |
-| `members` | string | Comma-separated interfaces |
+| `members` | string | Space-separated interfaces |
 | `descr`   | string | Description                |
 
-Reusable: identical to OPNsense.
+Same elements as OPNsense, but pfSense writes `members` space-separated (`interfaces_groups_edit.php`) and splits it on spaces (`interfaces.inc` `interface_group_setup`), where the OPNsense Group model writes commas. The pfSense converter does not read interface groups yet.
 
 ##### `<qinqs>` -- QinQ (802.1ad)
 

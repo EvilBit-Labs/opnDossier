@@ -16,16 +16,16 @@ Each firewall compliance check returns one of three states:
 
 ## How WAN Interfaces Are Identified
 
-Every control, finding and red-mode exposure that refers to the WAN uses one definition of a WAN interface. The interface's key alone does not decide it: OPNsense gives only the first uplink the `wan` key, and every further uplink keeps the `optN` key the assignments page gave it.
+Whether a firewall rule, a port forward or an interface faces the WAN is decided by one definition of a WAN interface, which the WAN controls, the security score and red mode share. The interface's key alone does not decide it: OPNsense gives only the first uplink the `wan` key, and every further uplink keeps the `optN` key the assignments page gave it.
 
 An interface counts as a WAN interface when any of these holds:
 
 - Its key starts with `wan`, such as `wan` or `wan2`.
 - It takes its address dynamically: `<ipaddr>` is `dhcp`, `pppoe`, `pptp`, `l2tp` or `ppp`, or `<ipaddrv6>` is `dhcp6`, `slaac`, `6rd` or `6to4`. `track6` does not count; it is how an inside interface takes a prefix delegated from the uplink.
-- It selects an upstream gateway: `<gateway>` or `<gatewayv6>` names a gateway defined on that interface, or a name the config does not define. A selection that names a gateway defined on another interface does not count, because the firewall ignores it.
+- It selects an upstream gateway: `<gateway>` or `<gatewayv6>` holds a name other than `none`. On pfSense any name counts, since pfSense resolves it among every gateway. On OPNsense it counts when it names a gateway defined on that interface, or a name the config does not define; a selection naming a gateway defined on another interface does not count, because OPNsense ignores it.
 - An enabled gateway on the interface has its per-gateway default flag set. pfSense from 2.4.5 records the default gateway in `<gateways><defaultgw4>` and `<defaultgw6>` instead, which opnDossier does not read yet.
 
-The first three follow the test OPNsense and pfSense use for an interface with an upstream gateway. A static gateway on an inside interface that is not the default, as for a route to another internal network, does not make it a WAN interface. A LAN that is itself a DHCP client does, as it does on the firewall.
+The `wan` key prefix is opnDossier's own convention, not a vendor test. Dynamic addressing and the gateway selection follow the test OPNsense and pfSense use for an interface with an upstream gateway, with the vendor difference noted above, and the default flag is opnDossier's own addition. A static gateway on an inside interface that is not the default, as for a route to another internal network, does not make it a WAN interface. A LAN that is itself a DHCP client does, as it does on the firewall.
 
 A rule or port forward on an interface group applies on every member of the group, so it is WAN-reachable when any member is a WAN interface. The members decide, not the group's name. The entry OPNsense writes under `<interfaces>` for each group is never a WAN interface itself, so the interface-level controls such as FIREWALL-029 and FIREWALL-030 check the members, not the group. Interface groups are read from OPNsense configs only; the pfSense converter does not read them yet.
 
