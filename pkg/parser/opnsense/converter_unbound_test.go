@@ -118,6 +118,13 @@ func TestConverter_Unbound_ServiceFlagsFollowModelVersion(t *testing.T) {
 			wantStripped: true,
 		},
 		{
+			// The unbound.conf template's set_boolean writes yes only for "1",
+			// so any other non-empty value leaves the hardening off.
+			name:        "model dnssecstripped counts only as 1",
+			body:        unboundPlus("1.0.15", `<enabled>1</enabled>`, `<dnssecstripped>yes</dnssecstripped>`),
+			wantEnabled: true,
+		},
+		{
 			// The firewall reads only the model from 1.0.5 on, so the stale
 			// legacy element counts for nothing and the model default applies.
 			name: "1.0.15 without enabled ignores a stale legacy enable",
