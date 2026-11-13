@@ -510,7 +510,7 @@ func newControlDefinitions() []compliance.Control {
 			Category:    "DNS Security",
 			Severity:    "medium",
 			Rationale:   "DNSSEC prevents DNS spoofing by cryptographically verifying DNS responses",
-			Remediation: "Enable DNSSEC in Services > Unbound DNS > General",
+			Remediation: "Enable DNSSEC in Services > Unbound DNS > General, or in Services > Dnsmasq DNS & DHCP > General when dnsmasq is the resolver",
 			Tags:        []string{"dns-security", "dnssec", "firewall-controls"},
 		},
 		{

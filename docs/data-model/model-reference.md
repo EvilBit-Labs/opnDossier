@@ -358,6 +358,16 @@ The DHCP ranges dnsmasq serves are reported as `dhcp[]` scopes with `source` set
 | `Hosts`           | `[]DNSMasqHost`    | `dns.dnsMasq.hosts`           | Host overrides                    |
 | `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Per-domain DNS servers            |
 
+### DomainOverride
+
+| Field         | Type     | JSON Key                                    | Description                                                        |
+| ------------- | -------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| `Domain`      | `string` | `dns.dnsMasq.domainOverrides[].domain`      | Domain forwarded                                                   |
+| `IP`          | `string` | `dns.dnsMasq.domainOverrides[].ip`          | DNS server address; on a legacy config as written, `ip#port@srcip` |
+| `Description` | `string` | `dns.dnsMasq.domainOverrides[].description` | Description                                                        |
+| `Port`        | `string` | `dns.dnsMasq.domainOverrides[].port`        | DNS server port, when not 53                                       |
+| `SourceIP`    | `string` | `dns.dnsMasq.domainOverrides[].sourceIp`    | Local address queries are sent from                                |
+
 ---
 
 ## VPN Configuration

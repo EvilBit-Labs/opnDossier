@@ -248,11 +248,11 @@ The following controls are organized by security domain and represent the full p
 
 ##### Service Hardening
 
-| Control ID   | Title                           | Severity | Implementability | Description                                                               |
-| ------------ | ------------------------------- | -------- | ---------------- | ------------------------------------------------------------------------- |
-| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | Partial          | UPnP and NAT-PMP disabled (automatic port forwarding is a security risk)  |
-| FIREWALL-058 | DNSSEC Validation               | Medium   | Full             | Unbound DNS resolver has DNSSEC validation enabled (`DNS.Unbound.DNSSEC`) |
-| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | Partial          | DNS resolver serves only internal networks, not WAN-facing                |
+| Control ID   | Title                           | Severity | Implementability | Description                                                                                                                                                            |
+| ------------ | ------------------------------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | Partial          | UPnP and NAT-PMP disabled (automatic port forwarding is a security risk)                                                                                               |
+| FIREWALL-058 | DNSSEC Validation               | Medium   | Full             | The DNS resolver has DNSSEC validation enabled: Unbound when it is enabled (`DNS.Unbound.DNSSEC`), otherwise dnsmasq when it answers on port 53 (`DNS.DNSMasq.DNSSEC`) |
+| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | Partial          | DNS resolver serves only internal networks, not WAN-facing                                                                                                             |
 
 ##### Change Management and Backup
 
@@ -306,7 +306,7 @@ The audit engine performs the following checks per plugin:
 
 2. **Packet Filtering (V-206674)** - Scans pass rules for overly broad source/destination addresses (any, 0.0.0.0/0, ::/0, RFC 1918 ranges) and flags rules without specific port restrictions.
 
-3. **Service Hardening (V-206690)** - Checks for SNMP with community strings, Unbound DNS with DNSSEC stripping, more than 2 DHCP interfaces, and configured load balancer services.
+3. **Service Hardening (V-206690)** - Checks for SNMP with community strings, Unbound DNS with DNSSEC stripping, more than 2 enabled DHCP scopes (ISC, Kea or dnsmasq; disabled scopes do not count), and configured load balancer services.
 
 4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
 

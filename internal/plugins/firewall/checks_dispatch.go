@@ -302,10 +302,13 @@ func (fp *Plugin) newChecksTable() []newCheckEntry {
 		},
 		// 057: returns unknown — not in table
 		{
-			controlID: "FIREWALL-058", checkFn: (*Plugin).checkDNSSECValidation,
-			title: "DNSSEC Not Enabled", description: "DNSSEC validation is not enabled on the DNS resolver",
-			recommendation: "Enable DNSSEC in Services > Unbound DNS > General",
-			component:      "dns-config", tags: []string{"dns-security", "dnssec", "firewall-controls"},
+			controlID:      "FIREWALL-058",
+			checkFn:        (*Plugin).checkDNSSECValidation,
+			title:          "DNSSEC Not Enabled",
+			description:    "DNSSEC validation is not enabled on the DNS resolver",
+			recommendation: "Enable DNSSEC in Services > Unbound DNS > General, or in Services > Dnsmasq DNS & DHCP > General when dnsmasq is the resolver",
+			component:      "dns-config",
+			tags:           []string{"dns-security", "dnssec", "firewall-controls"},
 		},
 		// 059, 060: return unknown — not in table
 		{
