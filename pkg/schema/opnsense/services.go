@@ -136,6 +136,10 @@ type Syslog struct {
 	IgmpProxy     BoolFlag `xml:"igmpproxy,omitempty"`
 	Created       string   `xml:"created,omitempty"`
 	Updated       string   `xml:"updated,omitempty"`
+
+	// PreserveLogs is the number of log archives OPNsense 20.7 to 24.1 kept.
+	// Migration M1_0_2 (24.7) copies it into the Syslog model's maxpreserve.
+	PreserveLogs string `xml:"preservelogs,omitempty"`
 }
 
 // Monit represents the Monit system monitoring daemon configuration, including

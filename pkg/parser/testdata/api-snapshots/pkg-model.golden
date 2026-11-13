@@ -2721,8 +2721,33 @@ type SyslogConfig struct {
 	RotateCount string `json:"rotateCount,omitempty" yaml:"rotateCount,omitempty"`
 	// Format is the syslog message format.
 	Format string `json:"format,omitempty" yaml:"format,omitempty"`
+
+	// Destinations lists the remote log targets of the OPNsense Syslog model,
+	// disabled ones included. Enabled, the logging flags and RemoteServer to
+	// RemoteServer3 above summarize the targets that forward.
+	Destinations []SyslogDestination `json:"destinations,omitempty" yaml:"destinations,omitempty"`
 }
     SyslogConfig contains remote syslog configuration.
+
+type SyslogDestination struct {
+	// Enabled reports whether the target is switched on.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	// Transport is the protocol and address family, such as udp4 or tls6.
+	Transport string `json:"transport,omitempty" yaml:"transport,omitempty"`
+	// Hostname is the address or name of the receiving server.
+	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
+	// Port is the receiving port.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+	// Programs limits forwarding to these applications; empty forwards every one.
+	Programs []string `json:"programs,omitempty" yaml:"programs,omitempty"`
+	// Levels limits forwarding to these severities; empty forwards every one.
+	Levels []string `json:"levels,omitempty" yaml:"levels,omitempty"`
+	// Facilities limits forwarding to these facilities; empty forwards every one.
+	Facilities []string `json:"facilities,omitempty" yaml:"facilities,omitempty"`
+	// Description is the operator's label for the target.
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+    SyslogDestination is one remote log target.
 
 type System struct {
 	// Hostname is the device hostname.

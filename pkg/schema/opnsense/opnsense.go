@@ -159,8 +159,12 @@ type OPNsense struct {
 	} `xml:"Netflow" json:"netflow"`
 
 	SyslogInternal struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
+		// XMLName is set only when the config carries the Syslog model, which
+		// tells the converter the legacy <syslog> remote keys are not the ones
+		// the firewall reads.
+		XMLName xml.Name `xml:"Syslog" json:"-"`
+		Text    string   `xml:",chardata" json:"text,omitempty"`
+		Version string   `xml:"version,attr" json:"version,omitempty"`
 		General struct {
 			Text        string `xml:",chardata" json:"text,omitempty"`
 			Enabled     string `xml:"enabled"`
@@ -168,7 +172,7 @@ type OPNsense struct {
 			Maxpreserve string `xml:"maxpreserve"`
 			Maxfilesize string `xml:"maxfilesize"`
 		} `xml:"general" json:"general"`
-		Destinations string `xml:"destinations"`
+		Destinations SyslogDestinations `xml:"destinations" json:"destinations"`
 	} `xml:"Syslog" json:"syslog_internal"`
 
 	TrafficShaper struct {
