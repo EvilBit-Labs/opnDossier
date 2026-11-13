@@ -45,6 +45,7 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 | Cron jobs               | Supported |     Supported     |
 | Trust settings          | Supported | Not yet supported |
 | Kea DHCP                | Supported | Not yet supported |
+| dnsmasq DHCP            | Supported |  Not applicable   |
 | Revision history        | Supported |     Supported     |
 | Theme settings          | Supported | Not yet supported |
 
@@ -52,6 +53,7 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 
 - **Supported** — opnDossier currently includes this area in parsing, reporting, and related analysis when it exists in the source configuration.
 - **Not yet supported** — opnDossier does not currently include this area for that platform.
+- **Not applicable** -- the platform has no such feature. pfSense's DNS Forwarder runs dnsmasq for DNS only.
 
 ## What this means in practice
 

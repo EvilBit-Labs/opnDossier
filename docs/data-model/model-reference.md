@@ -306,7 +306,7 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 
 ### DHCPScope
 
-DHCP scopes are a flat array with one entry per interface.
+DHCP scopes are a flat array with one entry per DHCP server and interface. An interface can have an ISC and a dnsmasq scope at once, typically a disabled ISC scope left beside the dnsmasq one; `source` tells them apart.
 
 | Field          | Type                | JSON Key              | Description                     |
 | -------------- | ------------------- | --------------------- | ------------------------------- |
