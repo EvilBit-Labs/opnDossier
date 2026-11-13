@@ -9,8 +9,9 @@ import (
 )
 
 // netsnmpGeneralVersions lists every version Netsnmp/General.xml has carried
-// in the os-net-snmp plugin, 1.0.0 (2018) to 1.0.7 (26.7); the plugin's
-// history skips 1.0.2. The elements convertSNMP reads kept their names in each.
+// in the os-net-snmp plugin, from 1.0.0 (2018) to 1.0.7 as of 26.7.9; the
+// plugin's history skips 1.0.2. The elements convertSNMP reads kept their
+// names in each.
 var netsnmpGeneralVersions = strings.Fields("1.0.0 1.0.1 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7")
 
 // netsnmpUserVersions lists every version Netsnmp/User.xml has carried; 1.0.1
