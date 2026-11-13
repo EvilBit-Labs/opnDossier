@@ -5,8 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/firewall"
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/sans"
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
 // uplinkConfig is an OPNsense 26.7 config with the two shapes a WAN can take
@@ -14,7 +16,9 @@ import (
 // under <ifgroups>, comma-separated, and registers it under <interfaces> with
 // type group) and a second uplink, which always keeps an optN key. wan is
 // blocked and filtered, so any WAN finding below comes from the other shapes.
-// {OPT1}, {GATEWAYS}, {MEMBERS}, {RULES} and {NAT} are filled per case.
+// {OPT1}, {GROUP}, {GATEWAYS}, {MEMBERS}, {RULES} and {NAT} are filled per
+// case. The group's entry under <interfaces> carries its name as descr, as
+// pf.inc pf_interfaces writes it.
 const uplinkConfig = `<?xml version="1.0"?>
 <opnsense>
   <system>
@@ -49,18 +53,18 @@ const uplinkConfig = `<?xml version="1.0"?>
       <ipaddr>10.0.2.1</ipaddr>
       <subnet>24</subnet>
     </opt2>
-    <UPLINKS>
+    <{GROUP}>
       <internal_dynamic>1</internal_dynamic>
-      <descr>Uplinks</descr>
-      <if>UPLINKS</if>
+      <descr>{GROUP}</descr>
+      <if>{GROUP}</if>
       <virtual>1</virtual>
       <enable>1</enable>
       <type>group</type>
-    </UPLINKS>
+    </{GROUP}>
   </interfaces>
   <ifgroups version="1.0.0">
     <ifgroupentry uuid="d4d4d4d4-0000-4000-8000-000000000001">
-      <ifname>UPLINKS</ifname>
+      <ifname>{GROUP}</ifname>
       <members>{MEMBERS}</members>
       <nogroup>0</nogroup>
       <sequence>0</sequence>
@@ -90,13 +94,13 @@ func guiRuleOn(iface string) string {
     </rule>`
 }
 
-// gatewayItem is a model gateway on opt1 at 198.51.100.1; defaultGW is the
+// gatewayItem is a model gateway on iface at 198.51.100.1; defaultGW is the
 // <defaultgw> text.
-func gatewayItem(name, defaultGW string) string {
+func gatewayItem(name, iface, defaultGW string) string {
 	return `<gateway_item uuid="e5e5e5e5-0000-4000-8000-` + strings.Repeat("0", 12-len(name)) + name + `">
       <disabled>0</disabled>
       <name>` + name + `</name>
-      <interface>opt1</interface>
+      <interface>` + iface + `</interface>
       <ipprotocol>inet</ipprotocol>
       <gateway>198.51.100.1</gateway>
       <defaultgw>` + defaultGW + `</defaultgw>
@@ -106,6 +110,7 @@ func gatewayItem(name, defaultGW string) string {
 // uplinkCase fills uplinkConfig. Empty fields take a LAN-only default.
 type uplinkCase struct {
 	opt1     string
+	group    string
 	gateways string
 	members  string
 	rules    string
@@ -123,8 +128,14 @@ func (c uplinkCase) config() string {
 		members = "lan,opt2"
 	}
 
+	group := c.group
+	if group == "" {
+		group = "UPLINKS"
+	}
+
 	return strings.NewReplacer(
 		"{OPT1}", opt1,
+		"{GROUP}", group,
 		"{GATEWAYS}", c.gateways,
 		"{MEMBERS}", members,
 		"{RULES}", c.rules,
@@ -170,6 +181,10 @@ func TestWANReachability_UplinkShapes(t *testing.T) {
 		name    string
 		config  uplinkCase
 		wantWAN bool
+		// wantUplinks is the WAN interface count red mode enumerates: wan,
+		// plus opt1 when the case makes it an uplink. A group entry is
+		// never counted.
+		wantUplinks int
 	}{
 		{
 			name:    "rule on a group whose second member is wan",
@@ -191,42 +206,47 @@ func TestWANReachability_UplinkShapes(t *testing.T) {
 			config: uplinkCase{
 				members:  "lan,opt1",
 				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
-				gateways: gatewayItem("ISP2_GW", "0"),
+				gateways: gatewayItem("ISP2_GW", "opt1", "0"),
 				rules:    guiRuleOn("UPLINKS"),
 			},
-			wantWAN: true,
+			wantWAN:     true,
+			wantUplinks: 2,
 		},
 		{
 			name: "rule on a second uplink that selects its gateway",
 			config: uplinkCase{
 				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
-				gateways: gatewayItem("ISP2_GW", "0"),
+				gateways: gatewayItem("ISP2_GW", "opt1", "0"),
 				rules:    guiRuleOn("opt1"),
 			},
-			wantWAN: true,
+			wantWAN:     true,
+			wantUplinks: 2,
 		},
 		{
 			name: "rule on a second uplink that carries the default gateway",
 			config: uplinkCase{
-				gateways: gatewayItem("ISP2_GW", "1"),
+				gateways: gatewayItem("ISP2_GW", "opt1", "1"),
 				rules:    guiRuleOn("opt1"),
 			},
-			wantWAN: true,
+			wantWAN:     true,
+			wantUplinks: 2,
 		},
 		{
-			name:    "rule on a second uplink on PPPoE",
-			config:  uplinkCase{opt1: `<ipaddr>pppoe</ipaddr>`, rules: guiRuleOn("opt1")},
-			wantWAN: true,
+			name:        "rule on a second uplink on PPPoE",
+			config:      uplinkCase{opt1: `<ipaddr>pppoe</ipaddr>`, rules: guiRuleOn("opt1")},
+			wantWAN:     true,
+			wantUplinks: 2,
 		},
 		{
-			name:    "rule on a second uplink on DHCPv6",
-			config:  uplinkCase{opt1: staticOpt1 + `<ipaddrv6>dhcp6</ipaddrv6>`, rules: guiRuleOn("opt1")},
-			wantWAN: true,
+			name:        "rule on a second uplink on DHCPv6",
+			config:      uplinkCase{opt1: staticOpt1 + `<ipaddrv6>dhcp6</ipaddrv6>`, rules: guiRuleOn("opt1")},
+			wantWAN:     true,
+			wantUplinks: 2,
 		},
 		{
 			name: "rule on an inside interface holding a gateway that is not the default",
 			config: uplinkCase{
-				gateways: gatewayItem("CORE_GW", "0"),
+				gateways: gatewayItem("CORE_GW", "opt1", "0"),
 				rules:    guiRuleOn("opt1"),
 			},
 			wantWAN: false,
@@ -241,27 +261,84 @@ func TestWANReachability_UplinkShapes(t *testing.T) {
 			config:  uplinkCase{opt1: staticOpt1 + `<ipaddrv6>track6</ipaddrv6>`, rules: guiRuleOn("opt1")},
 			wantWAN: false,
 		},
+		{
+			name: "rule on an inside interface left selecting a gateway that is on wan",
+			config: uplinkCase{
+				opt1:     staticOpt1 + `<gateway>WAN_GW</gateway>`,
+				gateways: gatewayItem("WAN_GW", "wan", "0"),
+				rules:    guiRuleOn("opt1"),
+			},
+			wantWAN: false,
+		},
+		{
+			name:        "rule on an interface selecting a gateway the config does not define",
+			config:      uplinkCase{opt1: staticOpt1 + `<gateway>GONE_GW</gateway>`, rules: guiRuleOn("opt1")},
+			wantWAN:     true,
+			wantUplinks: 2,
+		},
+		{
+			name:    "rule on a wan-prefixed group whose members are both inside",
+			config:  uplinkCase{group: "WAN_ALL", members: "lan,opt2", rules: guiRuleOn("WAN_ALL")},
+			wantWAN: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := tt.config.config()
-
-			report := newRedReport(parseConfig(t, config))
-			runRedAnalysis(report)
-
-			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: Web Administration")
-			if exposed != tt.wantWAN {
-				t.Errorf("web GUI WAN-exposed = %v, want %v; findings: %+v", exposed, tt.wantWAN, report.Findings)
+			wantUplinks := 1
+			if tt.wantUplinks != 0 {
+				wantUplinks = tt.wantUplinks
 			}
 
-			failed := failedControls(t, config)
-			if got := slices.Contains(failed, "FIREWALL-023"); got != tt.wantWAN {
-				t.Errorf("FIREWALL-023 failed = %v, want %v; failed controls: %v", got, tt.wantWAN, failed)
-			}
+			assertUplinkVerdicts(t, tt.config.config(), tt.wantWAN, wantUplinks)
 		})
+	}
+}
+
+// assertUplinkVerdicts checks every consumer that reads a rule's or an
+// interface's WAN reachability on config: red mode's web GUI exposure, its
+// Overly Permissive WAN Rule weakness and its WAN interface count, blue mode's
+// Overly Permissive WAN Rule finding, and FIREWALL-023.
+func assertUplinkVerdicts(t *testing.T, config string, wantWAN bool, wantUplinks int) {
+	t.Helper()
+
+	report := newRedReport(parseConfig(t, config))
+	runRedAnalysis(report)
+
+	_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: Web Administration")
+	if exposed != wantWAN {
+		t.Errorf("web GUI WAN-exposed = %v, want %v; findings: %+v", exposed, wantWAN, report.Findings)
+	}
+
+	_, weakness := findingByTitlePrefix(report.Findings, "Exposed Weakness: Overly Permissive WAN Rule")
+	if weakness != wantWAN {
+		t.Errorf("red Overly Permissive WAN Rule = %v, want %v; findings: %+v", weakness, wantWAN, report.Findings)
+	}
+
+	data, ok := report.Metadata["enumeration_data"].(enumerationData)
+	if !ok {
+		t.Fatalf("enumeration_data = %T, want enumerationData", report.Metadata["enumeration_data"])
+	}
+
+	if data.WANInterfaces != wantUplinks {
+		t.Errorf("enumeration_data.WANInterfaces = %d, want %d", data.WANInterfaces, wantUplinks)
+	}
+
+	blue := slices.ContainsFunc(
+		analysis.DetectSecurityIssues(parseConfig(t, config)),
+		func(f common.SecurityFinding) bool {
+			return f.Issue == "Overly Permissive WAN Rule"
+		},
+	)
+	if blue != wantWAN {
+		t.Errorf("blue Overly Permissive WAN Rule = %v, want %v", blue, wantWAN)
+	}
+
+	failed := failedControls(t, config)
+	if got := slices.Contains(failed, "FIREWALL-023"); got != wantWAN {
+		t.Errorf("FIREWALL-023 failed = %v, want %v; failed controls: %v", got, wantWAN, failed)
 	}
 }
 
@@ -279,16 +356,34 @@ func TestWANReachability_SecondUplinkFiltering(t *testing.T) {
 		wantFail bool
 	}{
 		{
-			name: "second uplink selecting its gateway",
+			name: "second uplink selecting a gateway that is not the default",
 			config: uplinkCase{
 				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
-				gateways: gatewayItem("ISP2_GW", "1"),
+				gateways: gatewayItem("ISP2_GW", "opt1", "0"),
 			},
+			wantFail: true,
+		},
+		{
+			name:     "second uplink carrying the default gateway without selecting it",
+			config:   uplinkCase{gateways: gatewayItem("ISP2_GW", "opt1", "1")},
 			wantFail: true,
 		},
 		{
 			name:     "inside interface with static addressing",
 			config:   uplinkCase{},
+			wantFail: false,
+		},
+		{
+			name: "inside interface left selecting a gateway that is on wan",
+			config: uplinkCase{
+				opt1:     staticOpt1 + `<gateway>WAN_GW</gateway>`,
+				gateways: gatewayItem("WAN_GW", "wan", "0"),
+			},
+			wantFail: false,
+		},
+		{
+			name:     "wan-prefixed group whose members are both inside",
+			config:   uplinkCase{group: "WANS", members: "lan,opt2"},
 			wantFail: false,
 		},
 	}

@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestIsWANInterfaceName_Characterization pins the case-insensitive "wan" key
+// TestIsWANInterface_KeyPrefixWithoutDevice pins the case-insensitive "wan" key
 // prefix that previously lived, duplicated, in internal/plugins/sans and
 // internal/plugins/firewall. With no device there are no gateways or groups
 // to consult, so the prefix is all that decides. This characterization test is
 // the baseline the U1 consolidation must not regress. Covers AE5.
-func TestIsWANInterfaceName_Characterization(t *testing.T) {
+func TestIsWANInterface_KeyPrefixWithoutDevice(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

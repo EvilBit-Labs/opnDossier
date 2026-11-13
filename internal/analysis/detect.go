@@ -275,6 +275,12 @@ func DetectUnusedInterfaces(cfg *common.CommonDevice) []common.UnusedInterfaceFi
 
 	var findings []common.UnusedInterfaceFinding
 	for _, iface := range cfg.Interfaces {
+		// The entry OPNsense writes under <interfaces> for an interface group
+		// is not an interface that could be disabled; its members are.
+		if isGroupEntry(iface) {
+			continue
+		}
+
 		if iface.Enabled && !used[iface.Name] {
 			findings = append(findings, common.UnusedInterfaceFinding{
 				InterfaceName: iface.Name,

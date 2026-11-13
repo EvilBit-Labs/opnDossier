@@ -49,19 +49,25 @@ var dynamicIPv6Types = []string{"6rd", "6to4", "dhcp6", "slaac"}
 // member does. Group membership comes from device.InterfaceGroups; a name that
 // no group lists is classified as an interface.
 //
-// An interface faces the WAN when OPNsense or pfSense would treat it as an
-// uplink. The interface key alone is not enough: the first uplink is "wan",
-// but every further one keeps the optN key the assignments page gave it. The
-// signals, in addition to a "wan" key prefix, are the ones both vendors use to
-// decide that an interface has an upstream gateway (reply-to, force-gw and
-// automatic outbound NAT on OPNsense; interface_has_gateway on pfSense):
+// An interface faces the WAN when it is an uplink. The interface key alone is
+// not enough: the first uplink is "wan", but every further one keeps the optN
+// key the assignments page gave it. Besides a "wan" key prefix, two signals
+// come from the vendors' own test for an interface with an upstream gateway
+// (OPNsense filter.lib.inc reply-to and force-gw, Gateways::getInterfaceGateway;
+// pfSense interface_has_gateway):
 //   - dynamic addressing, which learns a router from upstream (dynamicIPv4Types,
 //     dynamicIPv6Types);
 //   - a gateway selected on the interface (<gateway> or <gatewayv6> other than
 //     "none"), which the interface page describes as typically disabled on
-//     LAN-type interfaces;
-//   - an enabled gateway on the interface marked as the default gateway, which
-//     makes the interface carry the default route.
+//     LAN-type interfaces. It counts only when it names a gateway on that
+//     interface, as getInterfaceGateway requires, or a name the config does not
+//     define, such as a dynamic gateway, so a dangling name still over-reports.
+//
+// A third signal is opnDossier's own, not either vendor's: an enabled gateway
+// on the interface whose per-gateway default flag is set, since the interface
+// then carries the default route. pfSense from 2.4.5 keeps its default in
+// <gateways><defaultgw4>/<defaultgw6> instead, which this does not read, so on
+// pfSense the signal rarely fires.
 //
 // A static gateway on a LAN that is not the default, as used for a route to
 // another internal network, does not count: neither vendor treats it as an
@@ -110,7 +116,7 @@ func isUplinkName(device *common.CommonDevice, name string) bool {
 
 	for _, iface := range device.Interfaces {
 		if iface.Name == name {
-			return hasUpstreamAddressing(iface)
+			return hasUpstreamAddressing(device, iface)
 		}
 	}
 
@@ -118,10 +124,22 @@ func isUplinkName(device *common.CommonDevice, name string) bool {
 }
 
 // isUplinkInterface classifies iface from its own settings and the gateways
-// that name it. It does not expand interface groups: an entry OPNsense writes
-// for a group under <interfaces> carries none of these settings.
+// that name it. It does not expand interface groups, and the entry OPNsense
+// writes for each group under <interfaces> (pf.inc pf_interfaces: virtual, type
+// group) is never an uplink of its own, whatever its name: OPNsense gives no
+// virtual interface a gateway (Gateways.php getDefinedInterfaces).
 func isUplinkInterface(device *common.CommonDevice, iface common.Interface) bool {
-	return hasWANKey(iface.Name) || hasUpstreamAddressing(iface) || hasDefaultGateway(device, iface.Name)
+	if iface.Virtual || isGroupEntry(iface) {
+		return false
+	}
+
+	return hasWANKey(iface.Name) || hasUpstreamAddressing(device, iface) || hasDefaultGateway(device, iface.Name)
+}
+
+// isGroupEntry reports whether iface is the entry OPNsense writes under
+// <interfaces> for an interface group.
+func isGroupEntry(iface common.Interface) bool {
+	return strings.EqualFold(strings.TrimSpace(iface.Type), "group")
 }
 
 // hasWANKey reports whether name is a "wan"-prefixed interface key, matched
@@ -132,26 +150,51 @@ func hasWANKey(name string) bool {
 
 // hasUpstreamAddressing reports whether iface learns its addressing from
 // upstream or selects an upstream gateway.
-func hasUpstreamAddressing(iface common.Interface) bool {
+func hasUpstreamAddressing(device *common.CommonDevice, iface common.Interface) bool {
 	if slices.Contains(dynamicIPv4Types, strings.ToLower(strings.TrimSpace(iface.IPAddress))) ||
 		slices.Contains(dynamicIPv6Types, strings.ToLower(strings.TrimSpace(iface.IPv6Address))) {
 		return true
 	}
 
-	return selectsGateway(iface.Gateway) || selectsGateway(iface.GatewayV6)
+	return selectsGateway(device, iface.Name, iface.Gateway) || selectsGateway(device, iface.Name, iface.GatewayV6)
 }
 
 // selectsGateway reports whether an interface <gateway> or <gatewayv6> value
-// names a gateway. interfaces.php stores nothing for "Disabled", but a
-// hand-edited or older config can carry the option's value "none".
-func selectsGateway(value string) bool {
+// selects an upstream gateway for the interface keyed name. interfaces.php
+// stores nothing for "Disabled", but a hand-edited or older config can carry
+// the option's value "none". A name the config defines only on other
+// interfaces is a stale selection the firewall ignores (getInterfaceGateway
+// matches only a gateway on the interface), so it does not count; a name the
+// config does not define at all still does.
+func selectsGateway(device *common.CommonDevice, name, value string) bool {
 	value = strings.TrimSpace(value)
+	if value == "" || strings.EqualFold(value, "none") {
+		return false
+	}
 
-	return value != "" && !strings.EqualFold(value, "none")
+	if device == nil {
+		return true
+	}
+
+	defined := false
+
+	for _, gw := range device.Routing.Gateways {
+		if gw.Name != value {
+			continue
+		}
+
+		if gw.Interface == name {
+			return true
+		}
+
+		defined = true
+	}
+
+	return !defined
 }
 
 // hasDefaultGateway reports whether an enabled gateway on the interface keyed
-// name is marked as the default gateway. The OPNsense converter reduces the
+// name has its per-gateway default flag set. The OPNsense converter reduces the
 // flag to "1" or empty; pfSense passes the stored text through, so "0" is read
 // as unset too.
 func hasDefaultGateway(device *common.CommonDevice, name string) bool {
