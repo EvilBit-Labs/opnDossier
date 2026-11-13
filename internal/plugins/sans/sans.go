@@ -429,12 +429,12 @@ func allControls() []compliance.Control {
 		{
 			ID:          "SANS-FW-008",
 			Title:       "Firmware Currency",
-			Description: "Firewall firmware version should be identifiable for currency verification",
+			Description: "Firewall firmware should be kept current with vendor security releases",
 			Category:    "Maintenance",
 			Severity:    "high",
 			Rationale:   "Current firmware ensures known vulnerabilities are patched",
-			Remediation: "Ensure firmware is updated and version is recorded in configuration",
-			Tags:        []string{"firmware", "patching", "maintenance"},
+			Remediation: "Check the installed release on the device against the vendor's current release; the configuration does not record it",
+			Tags:        []string{"firmware", "patching", "maintenance", "advisory"},
 		},
 		{
 			ID:          "SANS-FW-009",

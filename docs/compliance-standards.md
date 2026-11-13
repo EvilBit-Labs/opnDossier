@@ -419,7 +419,7 @@ FIREWALL-018 (least privilege), FIREWALL-054-056 (NAT controls), FIREWALL-032 (V
 
 Controls requiring deeper algorithmic analysis or external data:
 
-SANS-FW-008 (firmware version comparison), FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filtering)
+FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filtering)
 
 ## Benefits
 
