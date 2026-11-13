@@ -1,6 +1,7 @@
 package analysis_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 // member of each group is listed second.
 func uplinkDevice() *common.CommonDevice {
 	return &common.CommonDevice{
+		DeviceType: common.DeviceTypeOPNsense,
 		Interfaces: []common.Interface{
 			{Name: "wan", Enabled: true, IPAddress: "dhcp"},
 			{Name: "lan", Enabled: true, IPAddress: "192.168.1.1"},
@@ -199,21 +201,60 @@ func TestRuleReachability_FloatingRuleOnSecondUplinkOnly(t *testing.T) {
 }
 
 // TestComputeStatistics_SecondUplinkBlockingFlags covers the security
-// features list, which reports Block Private and Block Bogon networks when an
-// uplink has them. The only uplink here is opt1.
+// features list, which reports Block Private and Block Bogon networks only
+// when every uplink has them, as FIREWALL-029 and FIREWALL-030 require. The
+// uplinks here are wan and opt1, a PPPoE second uplink.
 func TestComputeStatistics_SecondUplinkBlockingFlags(t *testing.T) {
 	t.Parallel()
 
-	device := &common.CommonDevice{
-		Interfaces: []common.Interface{
-			{Name: "lan", Enabled: true, IPAddress: "192.168.1.1"},
-			{Name: "opt1", Enabled: true, IPAddress: "pppoe", BlockPrivate: true, BlockBogons: true},
+	for _, tt := range []struct {
+		name     string
+		wan      common.Interface
+		opt1     common.Interface
+		wantFlag bool
+	}{
+		{
+			name:     "only uplink is opt1 and it blocks",
+			opt1:     common.Interface{Name: "opt1", Enabled: true, IPAddress: "pppoe", BlockPrivate: true, BlockBogons: true},
+			wantFlag: true,
 		},
-	}
+		{
+			name:     "wan blocks nothing beside a blocking opt1",
+			wan:      common.Interface{Name: "wan", Enabled: true, IPAddress: "dhcp"},
+			opt1:     common.Interface{Name: "opt1", Enabled: true, IPAddress: "pppoe", BlockPrivate: true, BlockBogons: true},
+			wantFlag: false,
+		},
+		{
+			name:     "opt1 blocks nothing beside a blocking wan",
+			wan:      common.Interface{Name: "wan", Enabled: true, IPAddress: "dhcp", BlockPrivate: true, BlockBogons: true},
+			opt1:     common.Interface{Name: "opt1", Enabled: true, IPAddress: "pppoe"},
+			wantFlag: false,
+		},
+		{
+			name:     "both uplinks block",
+			wan:      common.Interface{Name: "wan", Enabled: true, IPAddress: "dhcp", BlockPrivate: true, BlockBogons: true},
+			opt1:     common.Interface{Name: "opt1", Enabled: true, IPAddress: "pppoe", BlockPrivate: true, BlockBogons: true},
+			wantFlag: true,
+		},
+		{
+			name:     "no uplink at all",
+			opt1:     common.Interface{Name: "opt1", Enabled: true, IPAddress: "10.0.1.1", BlockPrivate: true, BlockBogons: true},
+			wantFlag: false,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	features := analysis.ComputeStatistics(device).SecurityFeatures
-	assert.Contains(t, features, "Block Private Networks")
-	assert.Contains(t, features, "Block Bogon Networks")
+			ifaces := []common.Interface{{Name: "lan", Enabled: true, IPAddress: "192.168.1.1"}, tt.opt1}
+			if tt.wan.Name != "" {
+				ifaces = append(ifaces, tt.wan)
+			}
+
+			features := analysis.ComputeStatistics(&common.CommonDevice{Interfaces: ifaces}).SecurityFeatures
+			assert.Equal(t, tt.wantFlag, slices.Contains(features, "Block Private Networks"), "Block Private Networks")
+			assert.Equal(t, tt.wantFlag, slices.Contains(features, "Block Bogon Networks"), "Block Bogon Networks")
+		})
+	}
 }
 
 // groupDevice holds a pass-any rule above a block of SSH from 10.0.0.0/8,
@@ -297,5 +338,39 @@ func TestDetectUnusedInterfaces_SkipsGroupEntries(t *testing.T) {
 
 	for _, finding := range analysis.DetectUnusedInterfaces(device) {
 		assert.NotEqual(t, "UPLINKS", finding.InterfaceName)
+	}
+}
+
+// TestInterfaceReachability_GatewaySelectionByVendor covers the one signal
+// the vendors read differently. OPNsense ignores a <gateway> naming a gateway
+// on another interface; pfSense resolves the name with no interface check, so
+// there the selection makes the interface an uplink. A device of no known type
+// takes the pfSense reading.
+func TestInterfaceReachability_GatewaySelectionByVendor(t *testing.T) {
+	t.Parallel()
+
+	lan := common.Interface{Name: "lan", Enabled: true, IPAddress: "192.168.1.1", Gateway: "WAN_GW"}
+
+	for _, tt := range []struct {
+		deviceType common.DeviceType
+		want       analysis.Reachability
+	}{
+		{common.DeviceTypeOPNsense, analysis.LANOnly},
+		{common.DeviceTypePfSense, analysis.WANReachable},
+		{"", analysis.WANReachable},
+	} {
+		t.Run(string(tt.deviceType), func(t *testing.T) {
+			t.Parallel()
+
+			device := &common.CommonDevice{
+				DeviceType: tt.deviceType,
+				Interfaces: []common.Interface{{Name: "wan", Enabled: true, IPAddress: "dhcp"}, lan},
+				Routing: common.Routing{
+					Gateways: []common.Gateway{{Name: "WAN_GW", Interface: "wan", Address: "203.0.113.1"}},
+				},
+			}
+
+			assert.Equal(t, tt.want, analysis.InterfaceReachability(lan, device))
+		})
 	}
 }

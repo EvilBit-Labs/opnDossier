@@ -452,3 +452,48 @@ func TestWANReachability_PortForwardOnGroup(t *testing.T) {
 		})
 	}
 }
+
+// TestWANReachability_PfSenseGatewaySelection drives pfSense's 2.7 fixture
+// with its lan rewritten to select GW_WAN, the gateway the fixture defines on
+// wan. pfSense resolves the name with no interface check (interfaces.inc
+// interface_has_gateway, gwlb.inc get_interface_gateway), so lan becomes an
+// uplink there, unlike the same shape on OPNsense, which the stale-selection
+// cases above cover.
+func TestWANReachability_PfSenseGatewaySelection(t *testing.T) {
+	t.Parallel()
+
+	const lan = "<ipaddr>10.0.0.1</ipaddr>\n      <subnet>24</subnet>\n    </lan>"
+
+	raw := readFixture(t, "pfsense/config-2.7.x.xml")
+	requireFixtureHolds(t, raw, map[string]int{lan: 1, "<name>GW_WAN</name>": 1})
+
+	for _, tt := range []struct {
+		name   string
+		config string
+		want   int
+	}{
+		{name: "as shipped", config: raw, want: 1},
+		{
+			name: "lan selects the gateway on wan",
+			config: strings.Replace(raw, lan,
+				"<ipaddr>10.0.0.1</ipaddr>\n      <subnet>24</subnet>\n      <gateway>GW_WAN</gateway>\n    </lan>", 1),
+			want: 2,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			report := newRedReport(parseConfig(t, tt.config))
+			runRedAnalysis(report)
+
+			data, ok := report.Metadata["enumeration_data"].(enumerationData)
+			if !ok {
+				t.Fatalf("enumeration_data = %T, want enumerationData", report.Metadata["enumeration_data"])
+			}
+
+			if data.WANInterfaces != tt.want {
+				t.Errorf("enumeration_data.WANInterfaces = %d, want %d", data.WANInterfaces, tt.want)
+			}
+		})
+	}
+}

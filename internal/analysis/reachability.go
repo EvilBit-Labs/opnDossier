@@ -51,17 +51,19 @@ var dynamicIPv6Types = []string{"6rd", "6to4", "dhcp6", "slaac"}
 //
 // An interface faces the WAN when it is an uplink. The interface key alone is
 // not enough: the first uplink is "wan", but every further one keeps the optN
-// key the assignments page gave it. Besides a "wan" key prefix, two signals
-// come from the vendors' own test for an interface with an upstream gateway
+// key the assignments page gave it. Besides a "wan" key prefix, which is
+// opnDossier's own convention rather than a vendor test, two signals come from
+// the vendors' own test for an interface with an upstream gateway
 // (OPNsense filter.lib.inc reply-to and force-gw, Gateways::getInterfaceGateway;
 // pfSense interface_has_gateway):
 //   - dynamic addressing, which learns a router from upstream (dynamicIPv4Types,
 //     dynamicIPv6Types);
 //   - a gateway selected on the interface (<gateway> or <gatewayv6> other than
 //     "none"), which the interface page describes as typically disabled on
-//     LAN-type interfaces. It counts only when it names a gateway on that
-//     interface, as getInterfaceGateway requires, or a name the config does not
-//     define, such as a dynamic gateway, so a dangling name still over-reports.
+//     LAN-type interfaces. On OPNsense it counts only when it names a gateway
+//     on that interface, as getInterfaceGateway requires, or a name the config
+//     does not define, such as a dynamic gateway, so a dangling name still
+//     over-reports. On pfSense any name counts (selectsGateway).
 //
 // A third signal is opnDossier's own, not either vendor's: an enabled gateway
 // on the interface whose per-gateway default flag is set, since the interface
@@ -162,17 +164,23 @@ func hasUpstreamAddressing(device *common.CommonDevice, iface common.Interface) 
 // selectsGateway reports whether an interface <gateway> or <gatewayv6> value
 // selects an upstream gateway for the interface keyed name. interfaces.php
 // stores nothing for "Disabled", but a hand-edited or older config can carry
-// the option's value "none". A name the config defines only on other
-// interfaces is a stale selection the firewall ignores (getInterfaceGateway
-// matches only a gateway on the interface), so it does not count; a name the
-// config does not define at all still does.
+// the option's value "none".
+//
+// The vendors resolve the name differently. On OPNsense a name the config
+// defines only on other interfaces is a stale selection the firewall ignores
+// (Gateways::getInterfaceGateway matches only a gateway on the interface), so
+// it does not count; a name the config does not define at all still does.
+// pfSense resolves the name with no interface check (interface_has_gateway
+// tests only that the element is set, and get_interface_gateway looks the
+// name up among every gateway), so any name counts there. A device of no
+// known type takes the pfSense reading, which over-reports.
 func selectsGateway(device *common.CommonDevice, name, value string) bool {
 	value = strings.TrimSpace(value)
 	if value == "" || strings.EqualFold(value, "none") {
 		return false
 	}
 
-	if device == nil {
+	if device == nil || device.DeviceType != common.DeviceTypeOPNsense {
 		return true
 	}
 
