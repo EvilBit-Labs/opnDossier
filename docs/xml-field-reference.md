@@ -42,6 +42,23 @@ Firewall rule source and destination support multiple addressing modes. The fiel
 
 **Field priority:** Network > Address > Any (per OPNsense semantics)
 
+## Firewall-Wide Settings
+
+Two `<system>` elements change what the firewall enforces without any rule changing. Both are presence fields: the firewall tests them with `isset()`, so an empty element counts the same as the value the page writes.
+
+```xml
+<system>
+  <disablefilter>enabled</disablefilter>
+  <webgui>
+    <protocol>https</protocol>
+    <noantilockout>1</noantilockout>
+  </webgui>
+</system>
+```
+
+- `<disablefilter>` ("Disable all packet filtering") turns pf off before any ruleset loads, so no rule, block option or NAT applies. It is read on OPNsense and pfSense as `system.packetFilterDisabled`.
+- `<noantilockout>` removes the anti-lockout rule, a quick pass rule to the web GUI port and, with SSH enabled, the SSH port, which both vendors otherwise add ahead of every user rule. On a firewall with no LAN the rule lands on the WAN, and red mode then reports the web GUI and SSH as WAN-exposed. It is read on both vendors as `system.webGui.noAntiLockout`.
+
 ## Rules in the Firewall Filter Model
 
 OPNsense keeps a second set of firewall rules under `<OPNsense><Firewall><Filter><rules>`. The "Rules [new]" page of 26.1 and the rules page of 26.7 write them, and the 26.7 default config ships its LAN rules there. opnDossier reads them together with the rules under `<filter>` and reports both in the order the firewall evaluates them: floating rules first, then rules on an interface group by the group's sequence, then rules on one interface, with the filter model's rules ahead of the legacy ones within each. A config the os-firewall plugin saved, at filter model version 1.0.0 to 1.0.2, is ordered as that plugin ordered it, with every rule of the model ahead of the legacy ones.
@@ -169,23 +186,6 @@ The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5
   ...
 </rule>
 ```
-
-## Firewall-Wide Settings
-
-Two `<system>` elements change what the firewall enforces without any rule changing. Both are presence fields: the firewall tests them with `isset()`, so an empty element counts the same as the value the page writes.
-
-```xml
-<system>
-  <disablefilter>enabled</disablefilter>
-  <webgui>
-    <protocol>https</protocol>
-    <noantilockout>1</noantilockout>
-  </webgui>
-</system>
-```
-
-- `<disablefilter>` ("Disable all packet filtering") turns pf off before any ruleset loads, so no rule, block option or NAT applies. It is read on OPNsense and pfSense as `system.packetFilterDisabled`.
-- `<noantilockout>` removes the anti-lockout rule, a quick pass rule to the web GUI port and, with SSH enabled, the SSH port, which both vendors otherwise add ahead of every user rule. On a firewall with no LAN the rule lands on the WAN, and red mode then reports the web GUI and SSH as WAN-exposed. It is read on both vendors as `system.webGui.noAntiLockout`.
 
 ## NAT Rule Enhancements
 
