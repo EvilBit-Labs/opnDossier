@@ -33,7 +33,7 @@ func TestServicePortTable(t *testing.T) {
 	}
 
 	missing := make(map[string]struct{})
-	for _, name := range strings.Fields(missingFromServices) {
+	for name := range strings.FieldsSeq(missingFromServices) {
 		missing[name] = struct{}{}
 	}
 
@@ -286,9 +286,10 @@ func TestCoverage_DisjointDimensionWins(t *testing.T) {
 	t.Parallel()
 
 	objects := common.NamedObjects{
-		"Feed":  {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
-		"LoopA": {Name: "LoopA", Type: common.NamedObjectTypePort, Members: []string{"LoopB"}},
-		"LoopB": {Name: "LoopB", Type: common.NamedObjectTypePort, Members: []string{"LoopA"}},
+		"Feed":    {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
+		"Fetched": {Name: "Fetched", Type: "urltable", Members: []string{"https://example.org/hosts"}},
+		"LoopA":   {Name: "LoopA", Type: common.NamedObjectTypePort, Members: []string{"LoopB"}},
+		"LoopB":   {Name: "LoopB", Type: common.NamedObjectTypePort, Members: []string{"LoopA"}},
 	}
 	alias := func(name string) common.RuleEndpoint {
 		return common.RuleEndpoint{Port: name, PortRef: &common.ObjectRef{Name: name}}
@@ -327,6 +328,13 @@ func TestCoverage_DisjointDimensionWins(t *testing.T) {
 			name:    "other literal network",
 			earlier: pass("tcp", common.RuleEndpoint{Address: "10.0.0.0/8"}, unreadable),
 			later:   block("tcp", client, host),
+		},
+		{
+			name: "ports read in full outweigh an unresolvable address",
+			earlier: pass("tcp", common.RuleEndpoint{}, common.RuleEndpoint{
+				Address: "Fetched", AddressRef: &common.ObjectRef{Name: "Fetched"}, Port: "22",
+			}),
+			later: block("tcp", common.RuleEndpoint{}, host),
 		},
 		{
 			name:      "same protocol and host",

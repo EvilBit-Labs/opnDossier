@@ -248,9 +248,9 @@ func TestDetectShadowedRules_DisabledPortAlias(t *testing.T) {
 Inner</content><description>outer</description>
           </alias>`
 
-			start := strings.Index(portAliasOPNsenseConfig, "<alias uuid")
-			end := strings.Index(portAliasOPNsenseConfig, "</aliases>")
-			config := portAliasOPNsenseConfig[:start] + aliases + "\n        " + portAliasOPNsenseConfig[end:]
+			head, _, _ := strings.Cut(portAliasOPNsenseConfig, "<alias uuid")
+			_, tail, _ := strings.Cut(portAliasOPNsenseConfig, "</aliases>")
+			config := head + aliases + "\n        </aliases>" + tail
 
 			xmlData := strings.NewReplacer(
 				"{{ACTION0}}", "pass",
