@@ -457,7 +457,7 @@ The following controls are planned for future releases, organized by security do
 | Control ID   | Title                    | Severity | Description                                                                              |
 | ------------ | ------------------------ | -------- | ---------------------------------------------------------------------------------------- |
 | FIREWALL-062 | DHCP Scope Inventory     | Info     | Reports configured DHCP scopes, covering ISC DHCP (legacy), Kea DHCP4 and dnsmasq scopes |
-| FIREWALL-063 | Active Interface Summary | Info     | Reports enabled interfaces and their types                                               |
+| FIREWALL-063 | Active Interface Summary | Info     | Reports how many interfaces are enabled                                                  |
 
 **Note:** Configuration inventory controls use `Type: "inventory"` and are excluded from compliance evaluation. They are rendered in a separate "Configuration Notes" section of audit reports and do not affect pass/fail compliance status.
 
