@@ -112,6 +112,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | `SSLCertRef`        | `string` | `system.webGui.sslCertRef`        | SSL certificate reference ID  |
 | `LoginAutocomplete` | `bool`   | `system.webGui.loginAutocomplete` | Browser autocomplete on login |
 | `MaxProcesses`      | `string` | `system.webGui.maxProcesses`      | Max web server processes      |
+| `NoDNSRebindCheck`  | `bool`   | `system.webGui.noDnsRebindCheck`  | DNS rebind filtering disabled |
 
 ### Firmware
 

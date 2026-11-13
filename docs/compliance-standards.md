@@ -130,7 +130,7 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 | FIREWALL-004 | System Configuration  | Hostname Configuration           | Low      | Implemented |
 | FIREWALL-005 | Network Configuration | DNS Server Configuration         | Medium   | Implemented |
 | FIREWALL-006 | Network Configuration | IPv6 Disablement                 | Medium   | Implemented |
-| FIREWALL-007 | DNS Security          | DNS Rebind Check                 | Low      | Unknown     |
+| FIREWALL-007 | DNS Security          | DNS Rebind Check                 | Medium   | Implemented |
 | FIREWALL-008 | Management Access     | HTTPS Web Management             | High     | Implemented |
 
 **Status key:**
@@ -333,7 +333,7 @@ All four SANS checks currently use placeholder logic:
 
 6. **IPv6 Disablement (FIREWALL-006)** - Checks `System.IPv6Allow`. Finding emitted when IPv6 is enabled.
 
-7. **DNS Rebind Check (FIREWALL-007)** - Always returns Unknown. The CommonDevice model does not yet expose this setting (tracked in [#296](https://github.com/EvilBit-Labs/opnDossier/issues/296)).
+7. **DNS Rebind Check (FIREWALL-007)** - Fails when `System.WebGUI.NoDNSRebindCheck` is set while Unbound or dnsmasq is enabled, or when Unbound is enabled with an empty private-address list. Returns Unknown when no resolver is enabled or the private-address element was never configured.
 
 8. **HTTPS Web Management (FIREWALL-008)** - Checks `System.WebGUI.Protocol` for case-insensitive match against "https".
 

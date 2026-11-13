@@ -200,6 +200,8 @@ func (c *converter) convertSystem(doc *pfsense.Document) common.System {
 			SSLCertRef:        sys.WebGUI.SSLCertRef,
 			LoginAutocomplete: bool(sys.WebGUI.LoginAutocomplete),
 			MaxProcesses:      sys.WebGUI.MaxProcesses,
+
+			NoDNSRebindCheck: sys.WebGUI.NoDNSRebindCheck != nil,
 		},
 		SSH: common.SSH{
 			Enabled: bool(sys.SSH.Enabled),
