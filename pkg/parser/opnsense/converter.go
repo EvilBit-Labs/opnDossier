@@ -160,6 +160,7 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 		PacketFilterDisabled:          sys.DisableFilter != nil,
 		WebGUI: common.WebGUI{
 			Protocol:          sys.WebGUI.Protocol,
+			NoAntiLockout:     sys.WebGUI.NoAntiLockout != nil,
 			Port:              sys.WebGUI.Port,
 			SSLCertRef:        sys.WebGUI.SSLCertRef,
 			LoginAutocomplete: bool(sys.WebGUI.LoginAutocomplete),

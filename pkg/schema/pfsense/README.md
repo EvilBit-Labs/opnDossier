@@ -667,7 +667,6 @@ The `<system>` section has many fields beyond what is currently implemented. Not
 | `authmode`            | Authentication mode                         |
 | `nodnsrebindcheck`    | Disable DNS rebind check                    |
 | `nohttpreferercheck`  | Disable HTTP referer check                  |
-| `noantilockout`       | Disable anti-lockout rule                   |
 | `roaming`             | Allow roaming (multi-IP sessions)           |
 | `pwhash`              | Password hash algorithm (`bcrypt`/`sha512`) |
 | `pagenamefirst`       | Page name first in title                    |

@@ -91,6 +91,13 @@ type System struct {
 type WebGUI struct {
 	// Protocol is the web GUI protocol (http or https).
 	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+
+	// NoAntiLockout reports that the anti-lockout rule is turned off. Without
+	// it, both vendors pass the web GUI and SSH ports on one interface ahead of
+	// every user rule, and that interface is the WAN on a firewall with no LAN.
+	// Named for the setting so that the zero value is the common case.
+	NoAntiLockout bool `json:"noAntiLockout,omitempty" yaml:"noAntiLockout,omitempty"`
+
 	// Port is the web GUI listening port. Empty means the protocol default
 	// (443 for https, 80 for http) applies; when present, it reflects a
 	// configured custom port from either vendor's config.xml.

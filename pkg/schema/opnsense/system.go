@@ -6,6 +6,12 @@ import "encoding/xml"
 // protocol (HTTP/HTTPS), SSL certificate reference, login autocomplete, and process limits.
 type WebGUIConfig struct {
 	Protocol string `xml:"protocol" json:"protocol" yaml:"protocol" validate:"required,oneof=http https"`
+
+	// NoAntiLockout is "Disable anti-lockout" under Firewall > Settings >
+	// Advanced. The page writes 1, but the firewall tests the element with
+	// isset(), so any body, an empty element included, removes the rule.
+	NoAntiLockout *string `xml:"noantilockout,omitempty" json:"noAntiLockout,omitempty" yaml:"noAntiLockout,omitempty"`
+
 	// Port is the custom WebGUI listening port, if configured. Empty means the
 	// protocol default (80 for http, 443 for https) applies.
 	Port              string   `xml:"port,omitempty"              json:"port,omitempty"         yaml:"port,omitempty"`
