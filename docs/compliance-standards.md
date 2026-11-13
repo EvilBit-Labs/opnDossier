@@ -223,7 +223,7 @@ The following controls are organized by security domain and represent the full p
 
 | Control ID   | Title                        | Severity | Implementability | Description                                                                   |
 | ------------ | ---------------------------- | -------- | ---------------- | ----------------------------------------------------------------------------- |
-| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | Full             | SNMP service disabled if `ROCommunity` is empty and no operational need       |
+| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | Full             | No SNMP agent is enabled when there is no operational need                    |
 | FIREWALL-046 | No Default Community Strings | High     | Full             | SNMP community strings changed from well-known defaults ("public", "private") |
 
 ##### VPN Configuration

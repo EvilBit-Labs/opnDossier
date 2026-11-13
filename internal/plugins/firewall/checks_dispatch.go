@@ -226,8 +226,8 @@ func (fp *Plugin) newChecksTable() []newCheckEntry {
 		},
 		{
 			controlID: "FIREWALL-045", checkFn: (*Plugin).checkSNMPDisabledIfUnused,
-			title: "SNMP Enabled", description: "SNMP is configured with a community string",
-			recommendation: "Remove SNMP community string if SNMP is not required",
+			title: "SNMP Enabled", description: "An SNMP agent is enabled",
+			recommendation: "Disable the SNMP agent if SNMP is not required",
 			component:      "snmp-config", tags: []string{"snmp-security", "attack-surface", "firewall-controls"},
 		},
 		{

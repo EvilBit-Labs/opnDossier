@@ -336,6 +336,24 @@ DHCP scopes are a flat array with one entry per interface.
 | `Hostname`    | `string` | `dhcp[].staticLeases[].hostname`    | Assigned hostname    |
 | `Description` | `string` | `dhcp[].staticLeases[].description` | Description          |
 
+### SNMP
+
+The OPNsense converter reads the os-net-snmp plugin when `<OPNsense><netsnmp><general><enabled>` is `1`, and otherwise the legacy `<snmpd>` block. The pfSense converter reports its `<snmpd>` block through the first three fields and leaves `Enabled` false. `SNMPConfig.IsEnabled()` reports a running agent for either.
+
+| Field             | Type         | JSON Key               | Description                                                      |
+| ----------------- | ------------ | ---------------------- | ---------------------------------------------------------------- |
+| `ROCommunity`     | `string`     | `snmp.roCommunity`     | Read-only community (v1/v2c); redacted on export                 |
+| `SysLocation`     | `string`     | `snmp.sysLocation`     | System location                                                  |
+| `SysContact`      | `string`     | `snmp.sysContact`      | System contact                                                   |
+| `Enabled`         | `bool`       | `snmp.enabled`         | An SNMP agent runs (OPNsense)                                    |
+| `ListenAddresses` | `[]string`   | `snmp.listenAddresses` | Bound addresses; empty means the agent default (all IPv4)        |
+| `Users`           | `[]SNMPUser` | `snmp.users`           | SNMPv3 users the agent loads; passwords and keys are not carried |
+
+| Field       | Type     | JSON Key                 | Description       |
+| ----------- | -------- | ------------------------ | ----------------- |
+| `Username`  | `string` | `snmp.users[].username`  | SNMPv3 user name  |
+| `ReadWrite` | `bool`   | `snmp.users[].readWrite` | Read-write access |
+
 ### DNS (Unbound)
 
 | Field            | Type   | JSON Key                     | Description               |

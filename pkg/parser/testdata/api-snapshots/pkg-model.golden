@@ -2413,8 +2413,35 @@ type SNMPConfig struct {
 	SysLocation string `json:"sysLocation,omitempty" yaml:"sysLocation,omitempty"`
 	// SysContact is the SNMP system contact.
 	SysContact string `json:"sysContact,omitempty" yaml:"sysContact,omitempty"`
+
+	// Enabled reports that the config starts an SNMP agent. The OPNsense
+	// converter sets it for an enabled os-net-snmp agent. The pfSense
+	// converter leaves it false and reports the agent through ROCommunity;
+	// use IsEnabled rather than this field to ask whether an agent runs.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+
+	// ListenAddresses lists the addresses the agent binds; empty means the
+	// agent's default, which includes every IPv4 address.
+	ListenAddresses []string `json:"listenAddresses,omitempty" yaml:"listenAddresses,omitempty"`
+
+	// Users lists the SNMPv3 users the agent loads. Their passwords and
+	// privacy keys are never carried.
+	Users []SNMPUser `json:"users,omitempty" yaml:"users,omitempty"`
 }
     SNMPConfig contains SNMP service configuration.
+
+func (c SNMPConfig) IsEnabled() bool
+    IsEnabled reports whether an SNMP agent runs: Enabled is set, or a community
+    is configured, which is how the pfSense converter and a hand-built device
+    report one.
+
+type SNMPUser struct {
+	// Username is the SNMPv3 security name.
+	Username string `json:"username" yaml:"username"`
+	// ReadWrite reports read-write access; false is read-only.
+	ReadWrite bool `json:"readWrite,omitempty" yaml:"readWrite,omitempty"`
+}
+    SNMPUser is an SNMPv3 user of the SNMP agent.
 
 type SSH struct {
 	// Enabled indicates whether the SSH service is active.

@@ -91,6 +91,7 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 		md.PlainTextf("%s: %s", markdown.Bold("Read-Only Community"), formatters.EscapeMarkdownValue(data.SNMP.ROCommunity)).
 			LF()
 	}
+	writeSNMPAgentDetails(md, data.SNMP)
 
 	md.H3("NTP")
 	if data.NTP.PreferredServer != "" {

@@ -73,9 +73,9 @@ type exposedService struct {
 }
 
 // serviceExposures enumerates the in-scope management services present on the
-// device (WebGUI is always present; SSH when enabled; SNMP when a read-only
-// community is configured) and classifies each as WAN-reachable or LAN-only by
-// correlating its port against WAN-reachable rules. Local-only services are not
+// device (WebGUI is always present; SSH and SNMP when enabled) and classifies
+// each as WAN-reachable or LAN-only by correlating its port against
+// WAN-reachable rules. Local-only services are not
 // possible here — a configured management service is at least LAN-reachable.
 func serviceExposures(device *common.CommonDevice) []exposedService {
 	if device == nil {
@@ -122,7 +122,7 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 		})
 	}
 
-	if device.SNMP.ROCommunity != "" {
+	if device.SNMP.IsEnabled() {
 		services = append(services, exposedService{
 			kind:            exploitKindSNMP,
 			name:            "snmp",

@@ -379,7 +379,7 @@ func newControlDefinitions() []compliance.Control {
 			Category:    "SNMP Security",
 			Severity:    "medium",
 			Rationale:   "SNMP exposes device information and can be exploited for reconnaissance",
-			Remediation: "Remove SNMP community string if SNMP monitoring is not required",
+			Remediation: "Disable the SNMP agent if SNMP monitoring is not required",
 			Tags:        []string{"snmp-security", "attack-surface", "firewall-controls"},
 		},
 		{

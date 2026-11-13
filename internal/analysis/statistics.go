@@ -158,7 +158,7 @@ func populateServiceStats(stats *common.Statistics, cfg *common.CommonDevice) {
 		serviceCount++
 	}
 
-	if cfg.SNMP.ROCommunity != "" {
+	if cfg.SNMP.IsEnabled() {
 		stats.EnabledServices = append(stats.EnabledServices, ServiceNameSNMP)
 		stats.ServiceDetails = append(stats.ServiceDetails, common.ServiceStatistics{
 			Name:    ServiceNameSNMP,
