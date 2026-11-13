@@ -10,8 +10,8 @@ import (
 
 // packetFilterControls are the controls whose pass verdict means pf restricts
 // or logs traffic: no rule passes everything, WAN sources are narrowed, ports
-// and protocols are pinned, pass and filter events are logged, and private and
-// bogon networks are blocked on the WAN. With packet filtering disabled none of
+// and protocols are pinned, pass and filter events are logged, private and
+// bogon networks are blocked on the WAN, and VLANs are kept apart. With packet filtering disabled none of
 // that happens, whatever the rules say. Controls about the configuration
 // itself, such as rule descriptions or the NAT reflection setting, are left to
 // their own checks.
@@ -23,6 +23,7 @@ var packetFilterControls = []string{
 	"FIREWALL-028",
 	"FIREWALL-029",
 	"FIREWALL-030",
+	"FIREWALL-032",
 	"FIREWALL-041",
 }
 

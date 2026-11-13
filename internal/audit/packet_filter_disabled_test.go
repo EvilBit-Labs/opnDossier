@@ -18,17 +18,21 @@ import (
 const packetFilterAnchor = "<optimization>normal</optimization>"
 
 // packetFilterControlsByPlugin lists, per plugin, the controls that must fail
-// when packet filtering is disabled. They are spelled out here rather than read
-// from the plugins so that dropping one from a plugin fails this test.
+// when packet filtering is disabled. This checks the plugins end to end; it
+// cannot pin their lists, because the fixtures fail several of these controls
+// on their own checks, so dropping one from a list changes no verdict here.
+// TestPacketFilterControls_List in each plugin package pins the lists.
+// SANS-FW-016 is absent: the fixtures hold no FTP port forward, so it stays
+// unknown (TestPacketFilterDisabled_FTPIsolation).
 var packetFilterControlsByPlugin = map[string][]string{
 	"firewall": {
-		"FIREWALL-022", "FIREWALL-023", "FIREWALL-024", "FIREWALL-027",
-		"FIREWALL-028", "FIREWALL-029", "FIREWALL-030", "FIREWALL-041",
+		"FIREWALL-022", "FIREWALL-023", "FIREWALL-024", "FIREWALL-027", "FIREWALL-028",
+		"FIREWALL-029", "FIREWALL-030", "FIREWALL-032", "FIREWALL-041",
 	},
 	"sans": {
-		"SANS-FW-001", "SANS-FW-002", "SANS-FW-003", "SANS-FW-007", "SANS-FW-012",
-		"SANS-FW-014", "SANS-FW-016", "SANS-FW-017", "SANS-FW-018", "SANS-FW-019",
-		"SANS-FW-020", "SANS-FW-021", "SANS-FW-022", "SANS-FW-024",
+		"SANS-FW-001", "SANS-FW-002", "SANS-FW-003", "SANS-FW-007", "SANS-FW-009",
+		"SANS-FW-012", "SANS-FW-014", "SANS-FW-015", "SANS-FW-017", "SANS-FW-018",
+		"SANS-FW-019", "SANS-FW-020", "SANS-FW-021", "SANS-FW-022", "SANS-FW-024",
 	},
 	"stig": {"V-206694", "V-206674", "V-206701", "V-206682"},
 }
@@ -37,24 +41,21 @@ var packetFilterControlsByPlugin = map[string][]string{
 // vendor's fixture and drives it through parse, convert, the compliance plugins
 // and red mode. Both vendors test the element with isset() and turn pf off, so
 // the page's "enabled" and an empty element must both read as disabled, and only
-// an absent element as filtering. The fixtures enable SSH so that the red-mode
-// rows cover a second service.
+// an absent element as filtering. SSH is enabled on OPNsense, in the form its
+// page writes, so that red mode covers a second service there; the pfSense
+// schema reads an SSH element pfSense does not write, so pfSense covers the web
+// GUI only.
 func TestPacketFilterDisabled_EndToEnd(t *testing.T) {
 	t.Parallel()
 
-	const (
-		opnSSH = "<ssh>\n      <group>admins</group>"
-		pfSSH  = "<webgui>"
-	)
-
 	vendors := []struct {
-		name    string
-		fixture string
-		ssh     string
-		withSSH string
+		name, fixture, ssh, withSSH string
 	}{
-		{"opnsense", "config.xml.sample", opnSSH, "<ssh><enabled>enabled</enabled><group>admins</group>"},
-		{"pfsense", "pfsense/config-pfSense.xml", pfSSH, "<ssh><enabled/></ssh><webgui>"},
+		{
+			name: "opnsense", fixture: "config.xml.sample", ssh: "<ssh>\n      <group>admins</group>",
+			withSSH: "<ssh><enabled>enabled</enabled><group>admins</group>",
+		},
+		{name: "pfsense", fixture: "pfsense/config-pfSense.xml"},
 	}
 
 	shapes := []struct {
@@ -69,9 +70,14 @@ func TestPacketFilterDisabled_EndToEnd(t *testing.T) {
 
 	for _, vendor := range vendors {
 		raw := readFixture(t, vendor.fixture)
-		requireFixtureHolds(t, raw, map[string]int{packetFilterAnchor: 1, vendor.ssh: 1, "<disablefilter": 0})
+		requireFixtureHolds(t, raw, map[string]int{packetFilterAnchor: 1, "<disablefilter": 0})
 
-		raw = strings.Replace(raw, vendor.ssh, vendor.withSSH, 1)
+		portals := []string{"webgui"}
+		if vendor.ssh != "" {
+			requireFixtureHolds(t, raw, map[string]int{vendor.ssh: 1})
+			raw = strings.Replace(raw, vendor.ssh, vendor.withSSH, 1)
+			portals = append(portals, "ssh")
+		}
 
 		for _, shape := range shapes {
 			t.Run(vendor.name+"/"+shape.name, func(t *testing.T) {
@@ -84,7 +90,7 @@ func TestPacketFilterDisabled_EndToEnd(t *testing.T) {
 				}
 
 				checkPacketFilterControls(t, device, shape.disabled)
-				checkPacketFilterRedMode(t, newRedReport(device), shape.disabled)
+				checkPacketFilterRedMode(t, newRedReport(device), portals, shape.disabled)
 			})
 		}
 	}
@@ -133,9 +139,9 @@ func checkPacketFilterControls(t *testing.T, device *common.CommonDevice, disabl
 
 // checkPacketFilterRedMode checks that red mode reports the management services
 // and the setting itself as WAN-exposed exactly when filtering is disabled. The
-// fixtures hold no WAN pass rule to the firewall, so with filtering on both
-// services stay LAN-only.
-func checkPacketFilterRedMode(t *testing.T, report *Report, disabled bool) {
+// fixtures hold no WAN pass rule to the firewall and keep their LAN, so with
+// filtering on the services stay LAN-only.
+func checkPacketFilterRedMode(t *testing.T, report *Report, portals []string, disabled bool) {
 	t.Helper()
 
 	runRedAnalysis(report)
@@ -145,24 +151,7 @@ func checkPacketFilterRedMode(t *testing.T, report *Report, disabled bool) {
 		want = analysis.WANReachable
 	}
 
-	portals, ok := report.Metadata["admin_portals"].([]adminPortal)
-	if !ok {
-		t.Fatalf("admin_portals has type %T", report.Metadata["admin_portals"])
-	}
-
-	names := make([]string, 0, len(portals))
-
-	for _, portal := range portals {
-		names = append(names, portal.Name)
-
-		if (portal.Name == "webgui" || portal.Name == "ssh") && portal.Reachability != want {
-			t.Errorf("%s reachability = %q, want %q", portal.Name, portal.Reachability, want)
-		}
-	}
-
-	if !slices.Contains(names, "ssh") || !slices.Contains(names, "webgui") {
-		t.Fatalf("admin portals %v, want webgui and ssh", names)
-	}
+	checkAntiLockoutPortals(t, report, portals, want)
 
 	_, flagged := findingByTitlePrefix(report.Findings, "Exposed Weakness: Packet Filtering Disabled")
 	if flagged != disabled {
