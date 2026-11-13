@@ -242,7 +242,7 @@ func TestConverter_SNMP_SecretsNeverExported(t *testing.T) {
 func TestConverter_SNMP_ModelVersionPins(t *testing.T) {
 	t.Parallel()
 
-	for _, version := range strings.Fields("1.0.0 1.0.1 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7") {
+	for version := range strings.FieldsSeq("1.0.0 1.0.1 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7") {
 		_, warnings := convertSNMPConfig(t, netsnmpBlock(version, "1", "public", "", ""))
 		assert.Empty(t, warnings, "general model %s", version)
 	}
