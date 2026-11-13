@@ -101,7 +101,7 @@ func NewPlugin() *Plugin {
 			Category:    "DNS Security",
 			Severity:    "medium",
 			Rationale:   "DNS rebind protection blocks responses that resolve public names to private IP ranges, mitigating DNS rebinding attacks against internal services.",
-			Remediation: "Untick 'Disable DNS Rebinding Checks' and populate Unbound's private-address list under Services > Unbound DNS > Advanced.",
+			Remediation: "Untick 'Disable DNS Rebinding Checks' (System > Settings > Administration on OPNsense, System > Advanced > Admin Access on pfSense) and populate Unbound's private-address list under Services > Unbound DNS > Advanced.",
 			Tags:        []string{"dns-rebind", "security", "firewall-controls"},
 		},
 		{

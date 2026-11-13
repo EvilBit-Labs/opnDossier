@@ -279,7 +279,7 @@ Enable DNS rebind protection:
 2. Navigate to **Services > Unbound DNS > Advanced**
 3. Populate the **Private networks** list with the CIDR ranges that should never appear in public DNS responses (commonly `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and any internal public allocations)
 4. Save and apply changes
-5. Verify the behaviour by resolving a test hostname that would rebind to a private address — Unbound should refuse to return it
+5. Verify the behavior by resolving a test hostname that would rebind to a private address: Unbound should refuse to return it
 
 ---
 
