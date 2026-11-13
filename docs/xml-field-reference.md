@@ -216,6 +216,37 @@ The example is the shape written through 25.7. From 26.1 each rule also has a `u
 
 Valid NAT reflection modes: `enable`, `disable`, `purenat`
 
+## Remote Logging and Retention
+
+From 20.1, OPNsense forwards logs only to the destinations of the Syslog model. A destination forwards when `<enabled>` is `1` and `<transport>` is one of `udp4`, `tcp4`, `udp6`, `tcp6`, `tls4` or `tls6`; `<program>`, `<level>` and `<facility>` are comma-separated filters that must all match, and an empty one matches every message. Remote servers left under the legacy `<syslog>` block (`<enable>`, `<remoteserver>`) are not read when the model is present, and opnDossier warns about them.
+
+```xml
+<OPNsense>
+  <Syslog version="1.0.3">
+    <general>
+      <enabled>1</enabled>
+      <loglocal>1</loglocal>
+      <maxpreserve>31</maxpreserve>
+      <maxfilesize />
+    </general>
+    <destinations>
+      <destination uuid="5b0c3f7e-1d2a-4c5b-9e8f-0a1b2c3d4e5f">
+        <enabled>1</enabled>
+        <transport>udp4</transport>
+        <program />
+        <level />
+        <facility />
+        <hostname>10.0.0.50</hostname>
+        <port>514</port>
+        <description>SIEM</description>
+      </destination>
+    </destinations>
+  </Syslog>
+</OPNsense>
+```
+
+Local retention is read from where each release keeps it: `<syslog><logfilesize>` (bytes, default 511488) for the circular logs up to 21.7, `<syslog><preservelogs>` (days, default 31) and, on 24.1, `<syslog><maxfilesize>` (MB) for the daily archives up to 24.1, and `<general><maxpreserve>` and `<general><maxfilesize>` from 24.7.
+
 ## Related
 
 - [Configuration Reference](user-guide/configuration-reference.md) -- opnDossier flags and options

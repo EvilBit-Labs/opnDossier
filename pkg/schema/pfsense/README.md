@@ -707,7 +707,7 @@ The `<system>` section has many fields beyond what is currently implemented. Not
 
 ## Expanded Syslog Fields (Not Yet in Schema)
 
-The current schema only captures `filterdescriptions`. Full pfSense syslog:
+The current schema only captures `filterdescriptions`, so the converter leaves `CommonDevice.Syslog` empty and `Syslog` is listed in `pfsense.KnownGaps()`. Full pfSense syslog:
 
 | Field                                                                                                                             | Description                   |
 | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |

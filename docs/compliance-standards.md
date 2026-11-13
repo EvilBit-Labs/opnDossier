@@ -34,6 +34,10 @@ STIGs are cybersecurity methodologies for standardizing security configuration w
 | V-206674   | Firewall must use packet headers and attributes for filtering | High     | Packet Filtering    | Implemented |
 | V-206690   | Firewall must disable unnecessary network services            | Medium   | Service Hardening   | Implemented |
 | V-206682   | Firewall must generate comprehensive traffic logs             | Medium   | Logging             | Implemented |
+| V-206678   | Firewall must log event type information                      | Medium   | Logging             | Implemented |
+| V-206679   | Firewall must log event timestamps                            | Medium   | Logging             | Implemented |
+| V-206680   | Firewall must log network location information                | Medium   | Logging             | Implemented |
+| V-206681   | Firewall must log source information for events               | Medium   | Logging             | Implemented |
 
 ### SANS Firewall Checklist
 
@@ -48,7 +52,7 @@ The current SANS plugin defines 4 controls with placeholder check logic. The che
 | SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Placeholder |
 | SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
 | SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Placeholder |
-| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Placeholder |
+| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Implemented |
 
 #### Planned SANS Controls
 
@@ -310,14 +314,16 @@ The audit engine performs the following checks per plugin:
 
 4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
 
+5. **Logging Detail (V-206678 to V-206681)** - Requires firewall traffic logs to be forwarded: a remote destination that forwards and carries filter logging (`Syslog.FilterLogging`). A destination whose program, level or facility filter drops filterlog's entries does not satisfy them.
+
 #### SANS Compliance Checks
 
-All four SANS checks currently use placeholder logic:
+SANS-FW-001 to SANS-FW-003 currently use placeholder logic:
 
 1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
 2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
 3. **Network Zone Separation (SANS-FW-003)** - Placeholder: always returns compliant
-4. **Comprehensive Logging (SANS-FW-004)** - Placeholder: always returns compliant
+4. **Comprehensive Logging (SANS-FW-004)** - Compliant when a remote destination forwards and carries filter or authentication logging (`Syslog.FilterLogging` or `Syslog.AuthLogging`)
 
 #### Firewall Security Compliance Checks
 
@@ -446,10 +452,6 @@ SANS-FW-008 (firmware version comparison), FIREWALL-034-035 (DoS protection tuna
 Additional DISA Firewall SRG controls under consideration:
 
 - V-206701: DoS attack prevention filters
-- V-206680: Network location information logging
-- V-206679: Event timestamp logging
-- V-206678: Event type logging
-- V-206681: Source information logging
 - V-206711: DoS incident alerting
 
 ### Additional Standards

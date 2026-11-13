@@ -350,6 +350,30 @@ DHCP scopes are a flat array with one entry per interface.
 | --------- | ------ | --------------------- | ------------------------ |
 | `Enabled` | `bool` | `dns.dnsMasq.enabled` | dnsmasq forwarder active |
 
+### Syslog
+
+Remote logging and local log retention. On OPNsense configs that carry the Syslog model (`<OPNsense><Syslog>`), the remote fields summarize the destinations that forward; older configs are read from the legacy `<syslog>` keys. pfSense does not populate this section yet.
+
+| Field                                                | Type                  | JSON Key                    | Description                                                                                                                                          |
+| ---------------------------------------------------- | --------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Enabled`                                            | `bool`                | `syslog.enabled`            | At least one remote destination forwards                                                                                                             |
+| `SystemLogging`, `AuthLogging`, `FilterLogging`, ... | `bool`                | `syslog.systemLogging`, ... | A forwarding destination carries that category; `FilterLogging` follows what filterlog writes (program `filterlog`, facility `local0`, level `info`) |
+| `RemoteServer`, `RemoteServer2`, `RemoteServer3`     | `string`              | `syslog.remoteServer`, ...  | First three forwarding destinations                                                                                                                  |
+| `LogFileSize`                                        | `string`              | `syslog.logFileSize`        | Local log size limit in bytes, including the platform default                                                                                        |
+| `RotateCount`                                        | `string`              | `syslog.rotateCount`        | Number of daily log archives kept, including the platform default                                                                                    |
+| `Destinations`                                       | `[]SyslogDestination` | `syslog.destinations`       | Every remote destination of the Syslog model, disabled ones included                                                                                 |
+
+### SyslogDestination
+
+| Field                              | Type       | JSON Key                              | Description                                      |
+| ---------------------------------- | ---------- | ------------------------------------- | ------------------------------------------------ |
+| `Enabled`                          | `bool`     | `syslog.destinations[].enabled`       | `<enabled>` is `1`                               |
+| `Transport`                        | `string`   | `syslog.destinations[].transport`     | `udp4`, `tcp4`, `udp6`, `tcp6`, `tls4` or `tls6` |
+| `Hostname`                         | `string`   | `syslog.destinations[].hostname`      | Receiving server                                 |
+| `Port`                             | `string`   | `syslog.destinations[].port`          | Receiving port                                   |
+| `Programs`, `Levels`, `Facilities` | `[]string` | `syslog.destinations[].programs`, ... | Filters; empty forwards every message            |
+| `Description`                      | `string`   | `syslog.destinations[].description`   | Operator's label                                 |
+
 ---
 
 ## VPN Configuration
