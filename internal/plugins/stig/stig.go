@@ -459,7 +459,7 @@ func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 	}
 
 	// Check for DHCP server on interfaces that might not need it
-	dhcpCount := len(device.DHCP)
+	dhcpCount := enabledDHCPScopes(device.DHCP)
 	if dhcpCount > 0 {
 		// Multiple DHCP interfaces might indicate unnecessary services
 		if dhcpCount > MaxDHCPInterfaces {
@@ -581,4 +581,18 @@ var broadNetworks = []string{
 	"172.16.0.0/12",      // Large private network
 	"192.168.0.0/16",     // Large private network
 	constants.NetworkAny, // Any network
+}
+
+// enabledDHCPScopes counts the DHCP scopes a server actually serves. A
+// disabled scope, such as the ISC entry an upgraded box keeps beside the
+// server that replaced it, is configuration, not a running service.
+func enabledDHCPScopes(scopes []common.DHCPScope) int {
+	count := 0
+	for _, scope := range scopes {
+		if scope.Enabled {
+			count++
+		}
+	}
+
+	return count
 }

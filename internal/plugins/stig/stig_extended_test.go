@@ -396,7 +396,7 @@ func TestHasUnnecessaryServicesEdgeCases(t *testing.T) {
 			false,
 		},
 		{
-			"DHCP with disabled interfaces is still counted",
+			"DHCP with disabled scopes is not counted",
 			&common.CommonDevice{
 				DHCP: []common.DHCPScope{
 					{
@@ -412,7 +412,7 @@ func TestHasUnnecessaryServicesEdgeCases(t *testing.T) {
 					},
 				},
 			},
-			true, // len(DHCP) > MaxDHCPInterfaces regardless of Enabled status
+			false, // only enabled scopes count, and one is under MaxDHCPInterfaces
 		},
 		{
 			"Load balancer with empty monitor type is not flagged",
