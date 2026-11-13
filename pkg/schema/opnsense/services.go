@@ -62,8 +62,15 @@ type Ntpd struct {
 	Prefer string `xml:"prefer"`
 }
 
-// DNSMasq represents the dnsmasq DNS forwarder configuration, including host overrides,
-// domain overrides, forwarder groups, DHCP registration, and custom options.
+// DNSMasq represents the dnsmasq DNS forwarder configuration, including host
+// overrides, domain overrides, forwarder groups, DHCP registration, and custom
+// options.
+//
+// From 25.1.2 OPNsense keeps this element as the Dnsmasq MVC model (mount
+// /dnsmasq) and writes the model version as an attribute. Earlier releases
+// wrote the same element from a legacy page, with no version attribute. Both
+// generations repeat <hosts> and <domainoverrides> once per entry directly
+// under <dnsmasq>; there is no <host> or <domainoverride> child.
 type DNSMasq struct {
 	XMLName            xml.Name         `xml:"dnsmasq"`
 	Enable             BoolFlag         `xml:"enable,omitempty"`
@@ -75,29 +82,39 @@ type DNSMasq struct {
 	No_private_reverse BoolFlag         `xml:"no_private_reverse,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
 	Forwarders         []ForwarderGroup `xml:"forwarders,omitempty"`
 	Custom_options     string           `xml:"custom_options,omitempty"` //nolint:revive,staticcheck // XML field name requires underscore
-	Hosts              []DNSMasqHost    `xml:"hosts>host,omitempty"`
-	DomainOverrides    []DomainOverride `xml:"domainoverrides>domainoverride,omitempty"`
+	Hosts              []DNSMasqHost    `xml:"hosts,omitempty"`
+	DomainOverrides    []DomainOverride `xml:"domainoverrides,omitempty"`
 	Created            string           `xml:"created,omitempty"`
 	Updated            string           `xml:"updated,omitempty"`
+
+	// Version is the Dnsmasq model version. It is empty on a legacy config.
+	Version string `xml:"version,attr,omitempty"`
 }
 
-// DNSMasqHost represents a static DNS host override entry mapping a hostname/domain to an IP address.
+// DNSMasqHost represents one <hosts> entry, a static DNS host override.
 type DNSMasqHost struct {
-	XMLName xml.Name `xml:"host"`
-	Host    string   `xml:"host,omitempty"`
-	Domain  string   `xml:"domain,omitempty"`
-	IP      string   `xml:"ip,omitempty"`
-	Descr   string   `xml:"descr,omitempty"`
-	Aliases []string `xml:"aliases,omitempty"`
+	XMLName xml.Name           `xml:"hosts"`
+	Host    string             `xml:"host,omitempty"`
+	Domain  string             `xml:"domain,omitempty"`
+	IP      string             `xml:"ip,omitempty"`
+	Descr   string             `xml:"descr,omitempty"`
+	Aliases DNSMasqHostAliases `xml:"aliases,omitempty"`
+
+	UUID string `xml:"uuid,attr,omitempty"`
 }
 
-// DomainOverride represents a DNS domain override entry, forwarding queries for a specific
-// domain to a designated DNS server IP.
+// DomainOverride represents one <domainoverrides> entry, forwarding queries
+// for a domain to a designated DNS server. The legacy page packed the port
+// and source address into IP as ip#port@srcip; the model stores them apart.
 type DomainOverride struct {
-	XMLName xml.Name `xml:"domainoverride"`
+	XMLName xml.Name `xml:"domainoverrides"`
 	Domain  string   `xml:"domain,omitempty"`
 	IP      string   `xml:"ip,omitempty"`
 	Descr   string   `xml:"descr,omitempty"`
+
+	UUID  string `xml:"uuid,attr,omitempty"`
+	Port  string `xml:"port,omitempty"`
+	SrcIP string `xml:"srcip,omitempty"`
 }
 
 // ForwarderGroup represents a DNS forwarder entry specifying an upstream DNS server IP and port.
@@ -234,7 +251,7 @@ func NewDNSMasq() *DNSMasq {
 // NewDNSMasqHost returns a DNSMasqHost instance with an initialized empty Aliases slice.
 func NewDNSMasqHost() DNSMasqHost {
 	return DNSMasqHost{
-		Aliases: make([]string, 0),
+		Aliases: make(DNSMasqHostAliases, 0),
 	}
 }
 

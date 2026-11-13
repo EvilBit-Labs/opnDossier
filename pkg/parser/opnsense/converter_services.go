@@ -236,12 +236,7 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 			LogReplies:               advanced.Logreplies == xmlBoolTrue,
 			Prefetch:                 advanced.Prefetch == xmlBoolTrue,
 		},
-		DNSMasq: common.DNSMasqConfig{
-			Enabled:         bool(doc.DNSMasquerade.Enable),
-			Hosts:           c.convertDNSMasqHosts(doc.DNSMasquerade.Hosts),
-			DomainOverrides: c.convertDomainOverrides(doc.DNSMasquerade.DomainOverrides),
-			Forwarders:      c.convertForwarders(doc.DNSMasquerade.Forwarders),
-		},
+		DNSMasq: c.convertDNSMasq(doc),
 	}
 }
 
@@ -283,44 +278,6 @@ func (c *converter) splitPrivateAddress(raw string) []string {
 	if len(result) == 0 {
 		return nil
 	}
-	return result
-}
-
-// convertDNSMasqHosts maps []schema.DNSMasqHost to []common.DNSMasqHost.
-func (c *converter) convertDNSMasqHosts(hosts []schema.DNSMasqHost) []common.DNSMasqHost {
-	if len(hosts) == 0 {
-		return nil
-	}
-
-	result := make([]common.DNSMasqHost, 0, len(hosts))
-	for _, h := range hosts {
-		result = append(result, common.DNSMasqHost{
-			Host:        h.Host,
-			Domain:      h.Domain,
-			IP:          h.IP,
-			Description: h.Descr,
-			Aliases:     h.Aliases,
-		})
-	}
-
-	return result
-}
-
-// convertDomainOverrides maps []schema.DomainOverride to []common.DomainOverride.
-func (c *converter) convertDomainOverrides(overrides []schema.DomainOverride) []common.DomainOverride {
-	if len(overrides) == 0 {
-		return nil
-	}
-
-	result := make([]common.DomainOverride, 0, len(overrides))
-	for _, o := range overrides {
-		result = append(result, common.DomainOverride{
-			Domain:      o.Domain,
-			IP:          o.IP,
-			Description: o.Descr,
-		})
-	}
-
 	return result
 }
 

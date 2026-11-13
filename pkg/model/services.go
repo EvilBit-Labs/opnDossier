@@ -341,6 +341,7 @@ type UnboundConfig struct {
 type DNSMasqConfig struct {
 	// Enabled indicates whether the dnsmasq forwarder is active.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+
 	// Hosts contains static DNS host entries.
 	Hosts []DNSMasqHost `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 	// DomainOverrides contains DNS domain override entries.
@@ -367,10 +368,18 @@ type DNSMasqHost struct {
 type DomainOverride struct {
 	// Domain is the domain name to override.
 	Domain string `json:"domain,omitempty" yaml:"domain,omitempty"`
-	// IP is the DNS server address for the overridden domain.
+	// IP is the DNS server address for the overridden domain. On a legacy
+	// config it is the value as written, which can carry a port and source
+	// address as ip#port@srcip.
 	IP string `json:"ip,omitempty" yaml:"ip,omitempty"`
 	// Description is a human-readable description of the override.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+
+	// Port is the port of the DNS server, when one other than 53 is set.
+	Port string `json:"port,omitempty" yaml:"port,omitempty"`
+
+	// SourceIP is the local address queries for the domain are sent from.
+	SourceIP string `json:"sourceIp,omitempty" yaml:"sourceIp,omitempty"`
 }
 
 // ForwarderGroup represents a DNS forwarding server.

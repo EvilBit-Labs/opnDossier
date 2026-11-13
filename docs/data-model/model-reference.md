@@ -346,9 +346,11 @@ DHCP scopes are a flat array with one entry per interface.
 
 ### DNS (dnsmasq)
 
-| Field     | Type   | JSON Key              | Description              |
-| --------- | ------ | --------------------- | ------------------------ |
-| `Enabled` | `bool` | `dns.dnsMasq.enabled` | dnsmasq forwarder active |
+| Field             | Type               | JSON Key                      | Description              |
+| ----------------- | ------------------ | ----------------------------- | ------------------------ |
+| `Enabled`         | `bool`             | `dns.dnsMasq.enabled`         | dnsmasq forwarder active |
+| `Hosts`           | `[]DNSMasqHost`    | `dns.dnsMasq.hosts`           | Host overrides           |
+| `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Per-domain DNS servers   |
 
 ---
 
