@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	"github.com/EvilBit-Labs/opnDossier/internal/compliance"
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -95,19 +96,15 @@ func (fp *Plugin) dhcpInventoryDescription(device *common.CommonDevice) string {
 	return strings.Join(parts, "; ")
 }
 
-// checkActiveInterfaces reports whether enabled interfaces exist.
+// checkActiveInterfaces reports whether enabled interfaces exist. Like the
+// count below, it leaves out loopback, interface groups and the other
+// pseudo-interfaces OPNsense registers (analysis.IsNetworkZone).
 func (fp *Plugin) checkActiveInterfaces(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	for _, iface := range device.Interfaces {
-		if iface.Enabled {
-			return checkResult{Result: true, Known: true}
-		}
-	}
-
-	return checkResult{Result: false, Known: true}
+	return checkResult{Result: analysis.CountNetworkZones(device) > 0, Known: true}
 }
 
 // interfaceInventoryDescription builds a human-readable description of active interfaces.
@@ -116,13 +113,5 @@ func (fp *Plugin) interfaceInventoryDescription(device *common.CommonDevice) str
 		return "No interfaces configured"
 	}
 
-	var enabled int
-
-	for _, iface := range device.Interfaces {
-		if iface.Enabled {
-			enabled++
-		}
-	}
-
-	return fmt.Sprintf("%d enabled interface(s)", enabled)
+	return fmt.Sprintf("%d enabled interface(s)", analysis.CountNetworkZones(device))
 }
