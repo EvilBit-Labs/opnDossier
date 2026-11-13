@@ -318,12 +318,12 @@ The audit engine performs the following checks per plugin:
 
 #### SANS Compliance Checks
 
-The SANS checks evaluate the configuration as follows:
+The SANS checks look at the following:
 
-1. **Default Deny Policy (SANS-FW-001)** - Fails when an enabled any-to-any pass rule exists and no enabled block or reject rule does. A configuration with no rules passes.
-2. **Explicit Rule Configuration (SANS-FW-002)** - Fails when any enabled pass rule has no description.
-3. **Network Zone Separation (SANS-FW-003)** - Compliant when the device has at least two enabled network interfaces.
-4. **Comprehensive Logging (SANS-FW-004)** - Compliant when remote syslog is enabled and carries filter or authentication logging.
+1. **Default Deny Policy (SANS-FW-001)** - Looks for an enabled any-to-any pass rule with no enabled block or reject rule.
+2. **Explicit Rule Configuration (SANS-FW-002)** - Looks for enabled pass rules without a description.
+3. **Network Zone Separation (SANS-FW-003)** - Counts enabled network interfaces; at least two are required.
+4. **Comprehensive Logging (SANS-FW-004)** - Looks for remote syslog that carries filter or authentication logging.
 
 #### Firewall Security Compliance Checks
 
