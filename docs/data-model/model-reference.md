@@ -27,7 +27,7 @@ The root export object representing a normalized device configuration.
 | Field              | Type                     | JSON Key           | Description                                                                                  |
 | ------------------ | ------------------------ | ------------------ | -------------------------------------------------------------------------------------------- |
 | `DeviceType`       | `string`                 | `device_type`      | Platform identifier (e.g., "opnsense")                                                       |
-| `Version`          | `string`                 | `version`          | Firmware/configuration version                                                               |
+| `Version`          | `string`                 | `version`          | Config format version from the top-level `<version>`, not the installed release              |
 | `Theme`            | `string`                 | `theme`            | Web GUI theme name                                                                           |
 | `System`           | `System`                 | `system`           | System-level settings                                                                        |
 | `Interfaces`       | `[]Interface`            | `interfaces`       | Network interface configurations (flat array)                                                |
@@ -90,7 +90,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | `DNSAllowOverride`     | `bool`     | `system.dnsAllowOverride`     | Allow DHCP/PPP DNS override          |
 | `WebGUI`               | `WebGUI`   | `system.webGui`               | Web GUI access configuration         |
 | `SSH`                  | `SSH`      | `system.ssh`                  | SSH service configuration            |
-| `Firmware`             | `Firmware` | `system.firmware`             | Firmware version and update settings |
+| `Firmware`             | `Firmware` | `system.firmware`             | Firmware update and package settings |
 | `DisableNATReflection` | `bool`     | `system.disableNatReflection` | Disable hairpin NAT                  |
 | `DisableConsoleMenu`   | `bool`     | `system.disableConsoleMenu`   | Disable console menu                 |
 | `IPv6Allow`            | `bool`     | `system.ipv6Allow`            | Enable IPv6 traffic                  |
@@ -117,7 +117,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 
 | Field     | Type     | JSON Key                  | Description                         |
 | --------- | -------- | ------------------------- | ----------------------------------- |
-| `Version` | `string` | `system.firmware.version` | Firmware version string             |
+| `Version` | `string` | `system.firmware.version` | Not filled: release not in config   |
 | `Mirror`  | `string` | `system.firmware.mirror`  | Update mirror URL                   |
 | `Flavour` | `string` | `system.firmware.flavour` | Firmware flavour (OpenSSL/LibreSSL) |
 | `Plugins` | `string` | `system.firmware.plugins` | Comma-separated plugin list         |
