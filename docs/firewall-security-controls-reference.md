@@ -14,6 +14,8 @@ Each firewall compliance check returns one of three states:
 - **Non-Compliant**: The configuration does not meet the control requirement. A finding is emitted with remediation guidance.
 - **Unknown**: The data needed to evaluate the control is not available in config.xml (OS-level setting or model gap). The check is skipped entirely to avoid false positives.
 
+With `<system><disablefilter>` ("Disable all packet filtering") set, FIREWALL-022, -023, -024, -027, -028, -029, -030, -032 and -041 are reported Non-Compliant with a "Packet Filtering Disabled" finding, whatever the configured rules say, because the firewall then enforces none of them. See [Compliance Standards](compliance-standards.md#packet-filtering-disabled).
+
 ## Controls Summary
 
 | Control ID   | Title                            | Category              | Severity | Status      |

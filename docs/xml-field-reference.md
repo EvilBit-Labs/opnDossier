@@ -170,6 +170,23 @@ The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5
 </rule>
 ```
 
+## Firewall-Wide Settings
+
+Two `<system>` elements change what the firewall enforces without any rule changing. Both are presence fields: the firewall tests them with `isset()`, so an empty element counts the same as the value the page writes.
+
+```xml
+<system>
+  <disablefilter>enabled</disablefilter>
+  <webgui>
+    <protocol>https</protocol>
+    <noantilockout>1</noantilockout>
+  </webgui>
+</system>
+```
+
+- `<disablefilter>` ("Disable all packet filtering") turns pf off before any ruleset loads, so no rule, block option or NAT applies. It is read on OPNsense and pfSense as `system.packetFilterDisabled`.
+- `<noantilockout>` removes the anti-lockout rule, a quick pass rule to the web GUI port and, with SSH enabled, the SSH port, which both vendors otherwise add ahead of every user rule. On a firewall with no LAN the rule lands on the WAN, and red mode then reports the web GUI and SSH as WAN-exposed. It is read on both vendors as `system.webGui.noAntiLockout`.
+
 ## NAT Rule Enhancements
 
 **Outbound NAT with port preservation:**
