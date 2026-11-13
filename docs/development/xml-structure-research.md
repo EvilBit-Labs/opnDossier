@@ -41,6 +41,7 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<quick/>`                  | `<rule>` (OPNsense filter, legacy and model) | `parseBool,quick` (`!empty`): content matters, `<quick/>` is not quick. Both `FirewallFilterRule.Quick` and the legacy `Rule.Quick` are `*string` (#976) |
 | `<disableconsolemenu/>`     | `<system>`                                   | config.xml.sample: self-closing                                                                                                                          |
 | `<enable/>`                 | `<rrd>`                                      | config.xml.sample: self-closing                                                                                                                          |
+| `<enable/>`                 | `<snmpd>`                                    | `isset()` (OPNsense up to 18.7), `config_path_enabled('snmpd')` (pfSense); `Snmpd.Enable` is `*string`                                                   |
 | `<tcpflags_any/>`           | `<rule>` (filter)                            | `isset($rule['tcpflags_any'])`                                                                                                                           |
 | `<nopfsync/>`               | `<rule>` (filter)                            | `isset($rule['nopfsync'])`                                                                                                                               |
 | `<allowopts/>`              | `<rule>` (filter)                            | `$filterent['allowopts'] = true`                                                                                                                         |
@@ -78,6 +79,8 @@ Element contains `1`, `yes`, or a specific value. Absent or empty = false.
 | ------------------------ | ------------------------ | ------ | ---------- | ------------------------------------------------------------------------------------------- |
 | `<enable>`               | `<interfaces><wan>`      | `1`    | varies     | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
 | `<enable>`               | `<dhcpd><lan>`           | `1`    | varies     | pfSense: presence-based (see §1a). OPNsense: value-based. pfSense parser uses BoolFlag fork |
+| `<enabled>`              | `<OPNsense><netsnmp>`    | `1`    | `string`   | os-net-snmp agent and users; raw `1` only, absent or empty is off                           |
+| `<readwrite>`            | `<netsnmp><user>`        | `1`    | `string`   | SNMPv3 user read-write access; raw `1` only                                                 |
 | `<blockpriv>`            | `<interfaces><wan>`      | `1`    | `string`   | Block private networks                                                                      |
 | `<blockbogons>`          | `<interfaces><wan>`      | `1`    | `string`   | Block bogon networks                                                                        |
 | `<dnsallowoverride>`     | `<system>`               | `1`    | `BoolFlag` | Allow DNS override (migrated from int)                                                      |

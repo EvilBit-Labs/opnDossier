@@ -407,10 +407,12 @@ The following controls are planned for future releases, organized by security do
 
 ### SNMP Security
 
-| Control ID   | Title                        | Severity | Description                                            |
-| ------------ | ---------------------------- | -------- | ------------------------------------------------------ |
-| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | SNMP service disabled when no operational need         |
-| FIREWALL-046 | No Default Community Strings | High     | SNMP community strings changed from "public"/"private" |
+| Control ID   | Title                        | Severity | Description                                                                  |
+| ------------ | ---------------------------- | -------- | ---------------------------------------------------------------------------- |
+| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | No SNMP agent enabled (`SNMP.IsEnabled()`) when there is no operational need |
+| FIREWALL-046 | No Default Community Strings | High     | The running agent's community is not "public"/"private"                      |
+
+Both controls read the agent the config starts. On OPNsense that is the os-net-snmp plugin (`<OPNsense><netsnmp><general><enabled>1</enabled>`), or a legacy `<snmpd>` block only when it carries `<enable>`; on pfSense it is `<snmpd>` with `<enable>`. A `<snmpd>` block with a community and no `<enable>`, such as the one OPNsense factory defaults wrote up to 25.7, starts no agent and passes both. An agent with SNMPv3 users and no community fails FIREWALL-045 and passes FIREWALL-046.
 
 ### VPN Configuration
 

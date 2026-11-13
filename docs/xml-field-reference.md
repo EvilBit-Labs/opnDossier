@@ -170,6 +170,46 @@ The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5
 </rule>
 ```
 
+## SNMP Agent
+
+On OPNsense from 19.1 the SNMP agent is the os-net-snmp plugin. opnDossier reads it from `<OPNsense><netsnmp>`, pinned to general model versions 1.0.0 to 1.0.7 and user model versions 1.0.0 and 1.0.1. The agent runs only with `<enabled>1</enabled>`, compared as raw text, so an absent or empty element is off. A user is loaded only with its own `<enabled>1</enabled>`, and `<readwrite>1</readwrite>` gives it read-write access. `<password>` and `<enckey>` are not read.
+
+```xml
+<OPNsense>
+  <netsnmp>
+    <general version="1.0.7">
+      <enabled>1</enabled>
+      <community>s3cret</community>
+      <syslocation>rack 4</syslocation>
+      <syscontact>noc</syscontact>
+      <listen>192.0.2.1,2001:db8::1</listen>
+    </general>
+    <user version="1.0.1">
+      <users>
+        <user uuid="...">
+          <enabled>1</enabled>
+          <username>monitor</username>
+          <password>...</password>
+          <enckey>...</enckey>
+          <readwrite>0</readwrite>
+        </user>
+      </users>
+    </user>
+  </netsnmp>
+</OPNsense>
+```
+
+The legacy top-level `<snmpd>` starts an agent only when it carries `<enable>`, tested for presence, so `<enable/>` counts. That holds on pfSense and on OPNsense up to 18.7; OPNsense 19.1 and later run nothing from it, and opnDossier still reports it there, with a warning, when net-snmp is not enabled.
+
+```xml
+<snmpd>
+  <syslocation />
+  <syscontact />
+  <rocommunity>public</rocommunity>
+  <enable />
+</snmpd>
+```
+
 ## NAT Rule Enhancements
 
 **Outbound NAT with port preservation:**
