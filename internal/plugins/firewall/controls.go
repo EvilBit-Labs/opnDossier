@@ -490,7 +490,7 @@ func newControlDefinitions() []compliance.Control {
 			Category:    "NAT Security",
 			Severity:    "low",
 			Rationale:   "NAT reflection complicates firewall rule auditing and can mask traffic sources",
-			Remediation: "Disable NAT reflection in Firewall > Settings > Advanced",
+			Remediation: "Disable NAT reflection in Firewall > Settings > Advanced, and set NAT reflection to Disable or the system default on each port forward that enables it",
 			Tags:        []string{"nat-security", "nat-reflection", "firewall-controls"},
 		},
 		{

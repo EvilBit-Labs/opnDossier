@@ -1866,7 +1866,11 @@ type MonitorType struct {
 type NATConfig struct {
 	// OutboundMode is the outbound NAT mode (automatic, hybrid, advanced, or disabled).
 	OutboundMode NATOutboundMode `json:"outboundMode,omitempty" yaml:"outboundMode,omitempty"`
-	// ReflectionDisabled indicates NAT reflection is turned off.
+	// ReflectionDisabled reports that the firewall reflects no port forward.
+	// Each forward can override the global setting (System.DisableNATReflection)
+	// in either direction, so the parsers decide it from the enabled forwards
+	// that redirect, and from the global setting only when there are none.
+	// 1:1 NAT reflection is not covered.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
@@ -1954,7 +1958,8 @@ type NATRule struct {
 type NATSummary struct {
 	// Mode is the outbound NAT mode.
 	Mode NATOutboundMode `json:"mode,omitempty" yaml:"mode,omitempty"`
-	// ReflectionDisabled indicates NAT reflection is turned off.
+	// ReflectionDisabled is NATConfig.ReflectionDisabled: no port forward is
+	// reflected.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`

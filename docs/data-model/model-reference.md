@@ -263,7 +263,7 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 | Field                | Type               | JSON Key                 | Description                       |
 | -------------------- | ------------------ | ------------------------ | --------------------------------- |
 | `OutboundMode`       | `string`           | `nat.outboundMode`       | Mode: automatic, hybrid, advanced |
-| `ReflectionDisabled` | `bool`             | `nat.reflectionDisabled` | NAT reflection turned off         |
+| `ReflectionDisabled` | `bool`             | `nat.reflectionDisabled` | No port forward is reflected      |
 | `OutboundRules`      | `[]NATRule`        | `nat.outboundRules`      | Outbound NAT rules                |
 | `InboundRules`       | `[]InboundNATRule` | `nat.inboundRules`       | Port-forward NAT rules            |
 
