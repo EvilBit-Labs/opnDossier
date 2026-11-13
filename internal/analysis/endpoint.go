@@ -97,9 +97,10 @@ func IsAnyPort(port string) bool {
 // permits traffic to the numeric service port.
 //
 // An empty or "any" rule port permits every port. Otherwise the rule port is a
-// comma-separated list whose entries are each a numeric port or a numeric "N-M"
-// range, matched exactly or by containment. A token that is neither, a port
-// alias or a malformed range, cannot be resolved here, so it is treated as
+// comma-separated list whose entries are each a port or a range, parsed as the
+// shadow analysis parses them (parsePortPart), and matched exactly or by
+// containment. A token that is neither, a port alias or a malformed range,
+// cannot be resolved here, so it is treated as
 // permitting the port: the over-report direction, since a false negative in a
 // security audit is worse than a false positive (GOTCHAS 8.4).
 func RulePortPermits(rulePort string, servicePort int) bool {

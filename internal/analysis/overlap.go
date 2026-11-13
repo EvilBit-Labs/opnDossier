@@ -3,7 +3,6 @@ package analysis
 import (
 	"net/netip"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -350,15 +349,18 @@ func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (C
 	earlierIntervals, earlierAny, earlierOK := parsePortMembers(earlierVals)
 	laterIntervals, laterAny, laterOK := parsePortMembers(laterVals)
 
-	if !earlierOK || !laterOK {
-		// Unparseable port specs (neither a recognized number, range, nor
-		// list) fall back to exact-string equality rather than failing
-		// closed on the whole predicate.
-		return exactSingletonCoverage(earlierVals, laterVals), false
+	if earlierOK && earlierAny {
+		return CoverFull, false
 	}
 
-	if earlierAny {
-		return CoverFull, false
+	if !earlierOK || !laterOK {
+		// A value that is neither a port, a range nor a known service name
+		// still names the same set as an identical string. Anything else is
+		// unknown rather than disjoint, so it is reported as blocked: a pass
+		// over a block then surfaces as the R8 advisory instead of vanishing.
+		cov := exactSingletonCoverage(earlierVals, laterVals)
+
+		return cov, cov == CoverNone
 	}
 
 	if laterAny {
@@ -393,8 +395,8 @@ func exactSingletonCoverage(earlierVals, laterVals []string) Coverage {
 }
 
 // parsePortMembers parses every member value (each a single port, a
-// "lo-hi" range, or a comma-separated list of either) into a merged set of
-// normalized intervals (the first return). The second return is true if any
+// "lo-hi" or "lo:hi" range, or a comma-separated list of either) into a
+// merged set of normalized intervals (the first return). The second return is true if any
 // member is the any/empty wildcard, in which case the intervals are not
 // meaningful. The third return is false if any member could not be parsed
 // at all.
@@ -418,8 +420,8 @@ func parsePortMembers(vals []string) ([]portRange, bool, bool) {
 }
 
 // parsePortSpec parses a single port specification: "" or "any" (the
-// wildcard), a single port number, a "lo-hi" range, or a comma-separated
-// list of the above.
+// wildcard), a single port number or service name, a "lo-hi" or "lo:hi"
+// range, or a comma-separated list of the above.
 func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
@@ -449,22 +451,36 @@ func parsePortSpec(s string) ([]portRange, bool, bool) {
 	return ranges, false, true
 }
 
-// parsePortPart parses one comma-list element: either "N" or "lo-hi".
+// parsePortPart parses one comma-list element: a port number or service name,
+// a "lo-hi" range as rule ports write it, or a "lo:hi" range as port alias
+// members do. An alias member can hold only the colon form: the alias model
+// validates it with Util::isPort, which splits on ":", and the ruleset loads a
+// member only when is_port or is_portrange accepts it, and is_portrange splits
+// on ":" too (filter.lib.inc filter_core_get_port_alias, util.inc). Either
+// bound of a colon range may be a service name, since isPort reads each half
+// with getservbyname. A dash range stays numeric, since service names hold
+// dashes.
 func parsePortPart(part string) (portRange, bool) {
-	lo, hi, isRange := strings.Cut(part, "-")
-	if !isRange {
-		n, err := strconv.Atoi(part)
-		if err != nil {
-			return portRange{}, false
-		}
-
+	if n, ok := parsePortNumber(part); ok {
 		return portRange{lo: n, hi: n}, true
 	}
 
-	loN, errLo := strconv.Atoi(strings.TrimSpace(lo))
-	hiN, errHi := strconv.Atoi(strings.TrimSpace(hi))
+	parseBound := parsePortNumber
 
-	if errLo != nil || errHi != nil || loN > hiN {
+	lo, hi, isRange := strings.Cut(part, ":")
+	if !isRange {
+		lo, hi, isRange = strings.Cut(part, "-")
+		parseBound = parsePortDigits
+	}
+
+	if !isRange {
+		return portRange{}, false
+	}
+
+	loN, okLo := parseBound(lo)
+	hiN, okHi := parseBound(hi)
+
+	if !okLo || !okHi || loN > hiN {
 		return portRange{}, false
 	}
 
