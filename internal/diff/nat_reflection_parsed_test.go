@@ -49,36 +49,104 @@ func reflectionDoc(systemElement string, natreflections ...string) string {
 </opnsense>`
 }
 
-// TestCompare_NATReflection_GlobalAndPerForward covers the diff entry for
-// nat.reflectionDisabled once it is decided from the port forwards as well as
-// the global flag. The diff never compared System.DisableNATReflection, so
-// this entry is the only one that reports a global toggle: it must move with
-// the global flag whatever the forwards say, move when a forward turns
-// reflection on, and stay quiet when forwards are only removed.
+// pfSenseReflectionDoc is a pfSense config with the given <system>
+// reflection element and one port forward per <natreflection> value given.
+func pfSenseReflectionDoc(systemElement string, natreflections ...string) string {
+	var forwards strings.Builder
+	for i, value := range natreflections {
+		forwards.WriteString(`<rule>
+			<source><any></any></source>
+			<destination><network>wanip</network><port>44` + string(rune('3'+i)) + `</port></destination>
+			<protocol>tcp</protocol>
+			<target>10.0.2.2</target>
+			<local-port>443</local-port>
+			<interface>wan</interface>
+			<descr>Forward ` + string(rune('1'+i)) + `</descr>
+			<natreflection>` + value + `</natreflection>
+		</rule>
+		`)
+	}
+
+	return `<?xml version="1.0"?>
+<pfsense>
+	<system>
+		<hostname>fw</hostname>
+		<domain>example.com</domain>
+		` + systemElement + `
+	</system>
+	<nat>
+		<outbound><mode>automatic</mode></outbound>
+		` + forwards.String() + `
+	</nat>
+</pfsense>`
+}
+
+// reflectionEntry is the old and new value of one diff entry, keyed by path.
+type reflectionEntry struct{ old, new string }
+
+// TestCompare_NATReflection_GlobalAndPerForward covers the two diff entries
+// for NAT reflection. nat.reflectionDisabled combines the global flag with the
+// port forwards, so it does not move when the global flag is toggled while a
+// forward sets purenat or enable; system.disableNatReflection reports the
+// global flag itself, which CompareSystem does not compare. Removing forwards
+// set to disable or to the default leaves both unchanged.
 func TestCompare_NATReflection_GlobalAndPerForward(t *testing.T) {
 	t.Parallel()
 
 	const globalOff = `<disablenatreflection>yes</disablenatreflection>`
+	const (
+		combined = "nat.reflectionDisabled"
+		global   = "system.disableNatReflection"
+	)
 
 	tests := []struct {
-		name      string
-		oldDoc    string
-		newDoc    string
-		wantEntry bool
-		wantOld   string
-		wantNew   string
+		name   string
+		oldDoc string
+		newDoc string
+		want   map[string]reflectionEntry
 	}{
 		{
-			name:      "global flag toggled with every forward set to Disable",
-			oldDoc:    reflectionDoc(globalOff, "disable", "disable"),
-			newDoc:    reflectionDoc("", "disable", "disable"),
-			wantEntry: true, wantOld: "true", wantNew: "false",
+			name:   "global flag toggled with every forward set to Disable",
+			oldDoc: reflectionDoc(globalOff, "disable", "disable"),
+			newDoc: reflectionDoc("", "disable", "disable"),
+			want:   map[string]reflectionEntry{combined: {"true", "false"}, global: {"true", "false"}},
 		},
 		{
-			name:      "forward set to Enable added under a global off",
-			oldDoc:    reflectionDoc(globalOff, ""),
-			newDoc:    reflectionDoc(globalOff, "", "purenat"),
-			wantEntry: true, wantOld: "true", wantNew: "false",
+			name:   "global flag toggled with a forward set to Enable",
+			oldDoc: reflectionDoc(globalOff, "", "purenat"),
+			newDoc: reflectionDoc("", "", "purenat"),
+			want:   map[string]reflectionEntry{global: {"true", "false"}},
+		},
+		{
+			name:   "global flag toggled back with a forward set to Enable",
+			oldDoc: reflectionDoc("", "", "purenat"),
+			newDoc: reflectionDoc(globalOff, "", "purenat"),
+			want:   map[string]reflectionEntry{global: {"false", "true"}},
+		},
+		{
+			name:   "pfSense global flag toggled with a forward set to NAT + Proxy",
+			oldDoc: pfSenseReflectionDoc(globalOff, "", "enable"),
+			newDoc: pfSenseReflectionDoc("", "", "enable"),
+			want:   map[string]reflectionEntry{global: {"true", "false"}},
+		},
+		{
+			name:   "pfSense global flag toggled with every forward set to Disable",
+			oldDoc: pfSenseReflectionDoc(globalOff, "disable"),
+			newDoc: pfSenseReflectionDoc("", "disable"),
+			want:   map[string]reflectionEntry{combined: {"true", "false"}, global: {"true", "false"}},
+		},
+		{
+			name:   "forward set to Enable added under a global off",
+			oldDoc: reflectionDoc(globalOff, ""),
+			newDoc: reflectionDoc(globalOff, "", "purenat"),
+			want:   map[string]reflectionEntry{combined: {"true", "false"}},
+		},
+		{
+			// The removed forward was reflected, so the combined value moves.
+			name:   "forward set to Enable removed under a global off",
+			oldDoc: reflectionDoc(globalOff, "", "purenat"),
+			newDoc: reflectionDoc(globalOff, ""),
+			want:   map[string]reflectionEntry{combined: {"false", "true"}},
 		},
 		{
 			name:   "forwards set to Disable removed under a global on",
@@ -86,7 +154,7 @@ func TestCompare_NATReflection_GlobalAndPerForward(t *testing.T) {
 			newDoc: reflectionDoc(""),
 		},
 		{
-			name:   "forwards on the default removed under a global off",
+			name:   "forwards on the default or Disable removed under a global off",
 			oldDoc: reflectionDoc(globalOff, "", "disable"),
 			newDoc: reflectionDoc(globalOff),
 		},
@@ -96,26 +164,28 @@ func TestCompare_NATReflection_GlobalAndPerForward(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var entries []Change
+			got := map[string]reflectionEntry{}
 			for _, c := range diffAliasDocs(t, tt.oldDoc, tt.newDoc, Options{}) {
-				if c.Path == "nat.reflectionDisabled" {
-					entries = append(entries, c)
+				if c.Path != combined && c.Path != global {
+					continue
+				}
+				require.NotContains(t, got, c.Path, "duplicate entry")
+				got[c.Path] = reflectionEntry{c.OldValue, c.NewValue}
+				assert.Equal(t, SectionNAT, c.Section)
+				if c.Path == combined {
+					assert.Equal(
+						t,
+						"NAT reflection changed (global setting or a port forward override)",
+						c.Description,
+					)
 				}
 			}
 
-			if !tt.wantEntry {
-				assert.Empty(t, entries)
-
-				return
+			want := tt.want
+			if want == nil {
+				want = map[string]reflectionEntry{}
 			}
-			require.Len(t, entries, 1)
-			assert.Equal(t, tt.wantOld, entries[0].OldValue)
-			assert.Equal(t, tt.wantNew, entries[0].NewValue)
-			assert.Equal(
-				t,
-				"NAT reflection changed (global setting or a port forward override)",
-				entries[0].Description,
-			)
+			assert.Equal(t, want, got)
 		})
 	}
 }
