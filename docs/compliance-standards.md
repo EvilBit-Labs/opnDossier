@@ -49,9 +49,9 @@ The current SANS plugin defines 4 controls with placeholder check logic. The che
 
 | Control ID  | SANS # | Category               | Title                       | Severity | Status      |
 | ----------- | ------ | ---------------------- | --------------------------- | -------- | ----------- |
-| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Placeholder |
-| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
-| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Placeholder |
+| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Implemented |
+| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Implemented |
+| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Implemented |
 | SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Implemented |
 
 #### Planned SANS Controls
@@ -318,12 +318,12 @@ The audit engine performs the following checks per plugin:
 
 #### SANS Compliance Checks
 
-SANS-FW-001 to SANS-FW-003 currently use placeholder logic:
+The SANS checks evaluate the configuration as follows:
 
-1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
-2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
-3. **Network Zone Separation (SANS-FW-003)** - Placeholder: always returns compliant
-4. **Comprehensive Logging (SANS-FW-004)** - Compliant when a remote destination forwards and carries filter or authentication logging (`Syslog.FilterLogging` or `Syslog.AuthLogging`)
+1. **Default Deny Policy (SANS-FW-001)** - Fails when an enabled any-to-any pass rule exists and no enabled block or reject rule does. A configuration with no rules passes.
+2. **Explicit Rule Configuration (SANS-FW-002)** - Fails when any enabled pass rule has no description.
+3. **Network Zone Separation (SANS-FW-003)** - Compliant when the device has at least two enabled network interfaces.
+4. **Comprehensive Logging (SANS-FW-004)** - Compliant when remote syslog is enabled and carries filter or authentication logging.
 
 #### Firewall Security Compliance Checks
 

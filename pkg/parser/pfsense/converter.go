@@ -48,6 +48,7 @@ var pfsenseKnownGaps = []string{
 	"NTP",
 	"HighAvailability",
 	"IDS",
+	"Syslog",
 	"Sysctl",
 	"Packages",
 	"Monit",
@@ -56,7 +57,6 @@ var pfsenseKnownGaps = []string{
 	"CaptivePortal",
 	"Trust",
 	"KeaDHCP",
-	"Syslog",
 }
 
 // IsKnownGap reports whether field names a CommonDevice subsystem that the
