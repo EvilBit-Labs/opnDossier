@@ -39,7 +39,7 @@ STIGs are cybersecurity methodologies for standardizing security configuration w
 
 The [SANS SCORE Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf) (prepared by Krishni Naidu) is a practical security audit checklist containing 24 numbered security elements for firewall configuration and management. It covers ruleset management, application-layer controls, logging, patching, DMZ architecture, anti-spoofing, port security, remote access, traffic filtering, and availability.
 
-The current SANS plugin defines 4 controls with placeholder check logic. The checklist has been fully analyzed and 16 additional controls are planned for implementation, covering the complete SANS checklist.
+The SANS plugin defines SANS-FW-001 to SANS-FW-025. The four controls in the table below were implemented first; the sections after it map the rest of the checklist. Some controls, such as SANS-FW-010 and SANS-FW-011, cannot be decided from config.xml and report Unknown.
 
 #### Implemented SANS Controls
 
@@ -139,7 +139,6 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 
 - **Implemented** - Check logic evaluates config.xml data and produces compliant/non-compliant results
 - **Unknown** - Control is defined but the required data is not available in config.xml (OS-level or model gap); the check always returns Unknown and no finding is emitted
-- **Placeholder** - Control is defined with placeholder check logic that always returns compliant; real analysis will be added in a future release
 
 #### Planned Firewall Security Controls
 
@@ -464,10 +463,9 @@ Additional DISA Firewall SRG controls under consideration:
 
 ### Planned Features
 
-1. **Real SANS Check Logic**: Replace placeholder stubs with actual analysis
-2. **Automated Remediation**: Generate configuration fixes
-3. **Compliance Monitoring**: Track compliance over time
-4. **Integration**: SIEM and ticketing system integration
+1. **Automated Remediation**: Generate configuration fixes
+2. **Compliance Monitoring**: Track compliance over time
+3. **Integration**: SIEM and ticketing system integration
 
 ## References
 
