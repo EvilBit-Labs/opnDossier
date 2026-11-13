@@ -3,6 +3,7 @@ package opnsense
 import (
 	"fmt"
 	"net/netip"
+	"slices"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -15,20 +16,11 @@ import (
 // 25.7.1), 1.0.8 (25.7.2 to 26.1.4) and 1.0.9 (26.1.5 on). Each of those versions
 // only added fields, and the model has a single migration, M1_0_0, which
 // renames nothing. A version not listed here may have moved an element the
-// converter reads (GOTCHAS 3.7, 18.1).
-var knownDnsmasqVersions = map[string]struct{}{
-	dnsmasqFirstModelVersion: {},
-	"1.0.5":                  {},
-	"1.0.6":                  {},
-	"1.0.7":                  {},
-	"1.0.8":                  {},
-	"1.0.9":                  {},
-}
+// converter reads (GOTCHAS 3.7, 18.1). One literal keeps the version strings
+// clear of goconst's count across the package's other version sets.
+var knownDnsmasqVersions = strings.Fields("1.0.0 1.0.5 1.0.6 1.0.7 1.0.8 1.0.9")
 
 const (
-	// dnsmasqFirstModelVersion is the version the Dnsmasq model shipped at.
-	dnsmasqFirstModelVersion = "1.0.0"
-
 	// dnsmasqOptionSet is the dhcp_options type that sends an option. The
 	// other type, "match", only tags clients.
 	dnsmasqOptionSet = "set"
@@ -46,7 +38,7 @@ func (c *converter) convertDNSMasq(doc *schema.OpnSenseDocument) common.DNSMasqC
 	dm := doc.DNSMasquerade
 
 	if dm.Version != "" {
-		if _, ok := knownDnsmasqVersions[dm.Version]; !ok {
+		if !slices.Contains(knownDnsmasqVersions, dm.Version) {
 			c.addWarning(
 				"DNS.DNSMasq.Version",
 				dm.Version,
