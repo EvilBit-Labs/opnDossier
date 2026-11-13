@@ -90,7 +90,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | `DNSAllowOverride`     | `bool`     | `system.dnsAllowOverride`     | Allow DHCP/PPP DNS override          |
 | `WebGUI`               | `WebGUI`   | `system.webGui`               | Web GUI access configuration         |
 | `SSH`                  | `SSH`      | `system.ssh`                  | SSH service configuration            |
-| `Firmware`             | `Firmware` | `system.firmware`             | Firmware update and package settings |
+| `Firmware`             | `Firmware` | `system.firmware`             | Firmware version and update settings |
 | `DisableNATReflection` | `bool`     | `system.disableNatReflection` | Disable hairpin NAT                  |
 | `DisableConsoleMenu`   | `bool`     | `system.disableConsoleMenu`   | Disable console menu                 |
 | `IPv6Allow`            | `bool`     | `system.ipv6Allow`            | Enable IPv6 traffic                  |
