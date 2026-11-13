@@ -45,10 +45,10 @@ The current SANS plugin defines 4 controls with placeholder check logic. The che
 
 | Control ID  | SANS # | Category               | Title                       | Severity | Status      |
 | ----------- | ------ | ---------------------- | --------------------------- | -------- | ----------- |
-| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Placeholder |
-| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
+| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Implemented |
+| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Implemented |
 | SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Implemented |
-| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Placeholder |
+| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Implemented |
 
 #### Planned SANS Controls
 
@@ -95,6 +95,8 @@ The following controls map to specific SANS SCORE Firewall Checklist items and a
 | SANS-FW-009 | 6      | DMZ Configuration     | High     | Full             | Check for DMZ interface existence; verify rules enforce DMZ-to-WAN and DMZ-to-LAN segmentation                        |
 | SANS-FW-016 | 13     | FTP Server Isolation  | Medium   | Partial          | Check that FTP-related (TCP 21) pass rules route to DMZ/separate interface, not internal network                      |
 | SANS-FW-019 | 16     | NAT / IP Masquerading | High     | Full             | Verify outbound NAT configured on WAN; check `NATConfig.OutboundMode`; ensure internal IPs are not exposed externally |
+
+SANS-FW-003 counts only enabled network interfaces as zones. Loopback devices (lo0 and any assigned lo1 and up), interface groups and the VPN pseudo-interfaces OPNsense registers (the OpenVPN and WireGuard groups, enc0) do not count. Assigned VLAN, bridge, LAGG, OpenVPN, WireGuard and IPsec VTI devices do.
 
 ##### Server Protection and Availability (SANS Checklist #19, #22, #23, #24)
 
@@ -312,12 +314,12 @@ The audit engine performs the following checks per plugin:
 
 #### SANS Compliance Checks
 
-All four SANS checks currently use placeholder logic:
+The SANS checks look at the following:
 
-1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
-2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
-3. **Network Zone Separation (SANS-FW-003)** - Compliant when at least two enabled network interfaces exist. Loopback devices, interface groups and the VPN pseudo-interfaces OPNsense registers do not count.
-4. **Comprehensive Logging (SANS-FW-004)** - Placeholder: always returns compliant
+1. **Default Deny Policy (SANS-FW-001)** - Looks for an enabled any-to-any pass rule with no enabled block or reject rule.
+2. **Explicit Rule Configuration (SANS-FW-002)** - Looks for enabled pass rules without a description.
+3. **Network Zone Separation (SANS-FW-003)** - Counts enabled network interfaces; at least two are required.
+4. **Comprehensive Logging (SANS-FW-004)** - Looks for remote syslog that carries filter or authentication logging.
 
 #### Firewall Security Compliance Checks
 
