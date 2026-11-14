@@ -41,6 +41,12 @@ type System struct {
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
 	} `xml:"bogons"                                  json:"bogons"                                  yaml:"bogons,omitempty"`
+
+	// DisableFilter is "Disable all packet filtering" under System > Advanced >
+	// Firewall & NAT. filter.inc tests it with config_path_enabled, which is
+	// isset(), and turns pf off before any rule or NAT is loaded, so any body
+	// counts.
+	DisableFilter *string `xml:"disablefilter,omitempty" json:"disableFilter,omitempty" yaml:"disableFilter,omitempty"`
 }
 
 // Group represents a pfSense group.
@@ -86,6 +92,12 @@ type User struct {
 // such as dashboard columns, CSS theme, login CSS, and alternate hostnames.
 type WebGUI struct {
 	Protocol string `xml:"protocol" json:"protocol" yaml:"protocol"`
+
+	// NoAntiLockout turns off the webConfigurator anti-lockout rule. filter.inc
+	// tests it with config_path_enabled, which is isset(), so any body removes
+	// the rule.
+	NoAntiLockout *string `xml:"noantilockout,omitempty" json:"noAntiLockout,omitempty" yaml:"noAntiLockout,omitempty"`
+
 	// Port is the custom WebGUI listening port, if configured. Empty means the
 	// protocol default (80 for http, 443 for https) applies.
 	Port              string            `xml:"port,omitempty"              json:"port,omitempty"             yaml:"port,omitempty"`

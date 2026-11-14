@@ -12,8 +12,9 @@ import (
 
 // writeSecuritySection writes the security configuration section to the markdown instance.
 func (b *MarkdownBuilder) writeSecuritySection(md *markdown.Markdown, data *common.CommonDevice) {
-	md.H2("Security Configuration").
-		H3("NAT Configuration")
+	md.H2("Security Configuration")
+	writePacketFilterWarning(md, data.System)
+	md.H3("NAT Configuration")
 
 	natSummary := data.NATSummary()
 	if natSummary.Mode != "" || data.NAT.OutboundMode != "" {
@@ -265,4 +266,18 @@ func endpointAddress(ep common.RuleEndpoint) string {
 	}
 
 	return address
+}
+
+// writePacketFilterWarning leads the security section with a warning when
+// packet filtering is disabled: the NAT and firewall rules listed below it
+// describe nothing the firewall enforces, and a reader of the tables alone would
+// take them for the live policy.
+func writePacketFilterWarning(md *markdown.Markdown, sys common.System) {
+	if !sys.PacketFilterDisabled {
+		return
+	}
+
+	md.Warning(
+		"All packet filtering is disabled. The firewall loads none of the NAT or firewall rules below, applies no block option, and every service it runs is reachable from every interface, the WAN included.",
+	)
 }

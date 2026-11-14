@@ -94,6 +94,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | `DisableNATReflection` | `bool`     | `system.disableNatReflection` | Disable hairpin NAT                  |
 | `DisableConsoleMenu`   | `bool`     | `system.disableConsoleMenu`   | Disable console menu                 |
 | `IPv6Allow`            | `bool`     | `system.ipv6Allow`            | Enable IPv6 traffic                  |
+| `PacketFilterDisabled` | `bool`     | `system.packetFilterDisabled` | Packet filtering off; no rules apply |
 | `Notes`                | `[]string` | `system.notes`                | Operator notes                       |
 
 ### SSH
@@ -109,6 +110,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | Field               | Type     | JSON Key                          | Description                   |
 | ------------------- | -------- | --------------------------------- | ----------------------------- |
 | `Protocol`          | `string` | `system.webGui.protocol`          | Web GUI protocol (http/https) |
+| `NoAntiLockout`     | `bool`   | `system.webGui.noAntiLockout`     | Anti-lockout rule turned off  |
 | `SSLCertRef`        | `string` | `system.webGui.sslCertRef`        | SSL certificate reference ID  |
 | `LoginAutocomplete` | `bool`   | `system.webGui.loginAutocomplete` | Browser autocomplete on login |
 | `MaxProcesses`      | `string` | `system.webGui.maxProcesses`      | Max web server processes      |
