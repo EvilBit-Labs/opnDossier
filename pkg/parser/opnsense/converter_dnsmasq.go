@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"maps"
+	"math/bits"
 	"net"
 	"net/netip"
 	"slices"
@@ -440,10 +441,17 @@ func dnsmasqRangeNetwork4(
 		return n, true
 	}
 	if _, named := doc.Interfaces.Items[iface]; named && !hasIfNet {
-		// The interface gets its address at runtime (dhcp, pppoe) or has
-		// none. dnsmasq takes the range's netmask from that address
-		// (guess_range_netmask in dhcp.c), which the config does not hold.
-		return dnsmasqNet4{}, false
+		// The interface has no static IPv4 network the config shows: its
+		// address comes at runtime (dhcp, pppoe), or only a virtual IP
+		// carries one. dnsmasq takes a range's mask from any local address
+		// whose network holds its start or end (guess_range_netmask in
+		// dhcp.c), and whatever that mask is, it keeps the start and the end
+		// in one network (complete_context). The smallest prefix holding both
+		// is the narrowest such network, so it holds every reservation inside
+		// the pool.
+		n.mask = prefixMask4(bits.LeadingZeros32(n.start ^ n.end))
+		n.local = true
+		return n, true
 	}
 	for _, class := range ipv4Classes {
 		if class.space.Contains(first) && class.space.Contains(last) {
@@ -459,41 +467,51 @@ func dnsmasqRangeNetwork4(
 var ipv4AllOnes = netip.MustParseAddr("255.255.255.255")
 
 // prefixMask4 returns the IPv4 netmask of a prefix length.
-func prefixMask4(bits int) uint32 {
-	return ipv4Uint(netip.PrefixFrom(ipv4AllOnes, bits).Masked().Addr())
+func prefixMask4(length int) uint32 {
+	return ipv4Uint(netip.PrefixFrom(ipv4AllOnes, length).Masked().Addr())
 }
 
 // addRangeNetworks6 records the IPv6 network an IPv6 range serves: the
 // prefix_len network (64 when unset, as the template writes it) around a
 // start given in full, or around the start dnsmasq constructs.
 //
-// For a constructed range dnsmasq builds a context only when prefix_len is at
-// least the constructor interface's prefix, and takes as its start the
-// interface's address with the low 64 bits replaced by the range's host part
-// (construct_worker and setaddr6part in dhcp6.c). A shorter prefix_len gives
-// no context at all, and dnsmasq refuses a prefix_len above 64. An interface with no static IPv6 address gets one at
-// runtime, so its range is constructed but has no network the config shows.
+// dnsmasq accepts only 64 for a constructor and nothing below 64 (option.c),
+// so a range with any other prefix_len is refused and matches nothing. For a
+// constructed range it builds a context only when the constructor
+// interface's prefix is at most 64, and takes as its start the interface's
+// address with the low 64 bits replaced by the range's host part
+// (construct_worker and setaddr6part in dhcp6.c), so the range's network is
+// the /64 around the interface's address. An interface with no static IPv6
+// address gets one at runtime, so its range is constructed but has no
+// network the config shows.
 func addRangeNetworks6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets, r schema.DNSMasqDHCPRange, start string) {
-	bits := strings.TrimSpace(r.PrefixLen)
-	if bits == "" {
-		bits = "64"
+	length := dnsmasqIPv6Prefix
+	if prefixLen := strings.TrimSpace(r.PrefixLen); prefixLen != "" {
+		var err error
+		if length, err = strconv.Atoi(prefixLen); err != nil || length < dnsmasqIPv6Prefix {
+			return
+		}
 	}
 	if constructor := strings.TrimSpace(r.Constructor); constructor != "" {
-		addConstructedNetwork6(doc, nets, constructor, bits)
+		if length == dnsmasqIPv6Prefix {
+			addConstructedNetwork6(doc, nets, constructor)
+		}
 		return
 	}
 	if strings.HasPrefix(start, "::") {
 		// A host part with no constructor names no network.
 		return
 	}
-	if p, err := netip.ParsePrefix(start + "/" + bits); err == nil && p.Addr().Is6() {
-		nets.v6 = append(nets.v6, p.Masked())
+	if addr, err := netip.ParseAddr(start); err == nil && addr.Is6() {
+		if p, err := addr.Prefix(length); err == nil {
+			nets.v6 = append(nets.v6, p)
+		}
 	}
 }
 
 // addConstructedNetwork6 records the network of a range dnsmasq constructs
 // from the constructor interface's address; see addRangeNetworks6.
-func addConstructedNetwork6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets, constructor, bits string) {
+func addConstructedNetwork6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets, constructor string) {
 	iface, ok := doc.Interfaces.Items[constructor]
 	if !ok {
 		return
@@ -503,23 +521,19 @@ func addConstructedNetwork6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets
 		nets.constructed = true
 		return
 	}
-	length, err := strconv.Atoi(bits)
-	if err != nil || length < ifPrefix.Bits() || length > constructorMaxPrefix {
+	if ifPrefix.Bits() > dnsmasqIPv6Prefix {
 		return
 	}
 	nets.constructed = true
-	// The constructed start keeps the interface's address above bit 64 and
-	// the range's host part below it, so with a prefix_len of at most 64 its
-	// network is the interface address's.
-	if p, err := ifPrefix.Addr().Prefix(length); err == nil {
+	if p, err := ifPrefix.Addr().Prefix(dnsmasqIPv6Prefix); err == nil {
 		nets.v6 = append(nets.v6, p)
 	}
 }
 
-// constructorMaxPrefix is the longest prefix_len dnsmasq accepts on a range
-// with a constructor ("prefix length must be exactly 64 for subnet
-// constructors", option.c); it refuses a longer one.
-const constructorMaxPrefix = 64
+// dnsmasqIPv6Prefix is the prefix_len the template writes when it is empty,
+// the shortest dnsmasq accepts on any IPv6 range, and the only one it accepts
+// with a constructor (option.c).
+const dnsmasqIPv6Prefix = 64
 
 // mappableDnsmasqOptions returns the dhcp_options entries a DHCP scope can
 // hold: DHCPv4 options sent to every client on an interface. Options that

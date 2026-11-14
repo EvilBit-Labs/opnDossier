@@ -19,12 +19,18 @@ import (
 )
 
 // dnsmasqInterfaces carries the factory LAN of 26.7.9 plus two more networks,
-// so that a reservation can be placed by its address.
+// so that a reservation can be placed by its address, and three interfaces
+// without a static network the config shows: opt3 with no address (a
+// virtual IP can carry one), opt4 tracking a delegated IPv6 prefix and opt5
+// with an IPv6 /48.
 const dnsmasqInterfaces = `<interfaces>
     <wan><enable>1</enable><if>vtnet0</if><ipaddr>dhcp</ipaddr></wan>
     <lan><enable>1</enable><if>vtnet1</if><ipaddr>192.168.1.1</ipaddr><subnet>24</subnet></lan>
     <opt1><enable>1</enable><if>vtnet2</if><ipaddr>10.0.1.1</ipaddr><subnet>24</subnet></opt1>
     <opt2><enable>1</enable><if>vtnet3</if><ipaddr>10.0.2.1</ipaddr><subnet>24</subnet><ipaddrv6>fd00:2::1</ipaddrv6><subnetv6>64</subnetv6></opt2>
+    <opt3><enable>1</enable><if>vtnet4</if></opt3>
+    <opt4><enable>1</enable><if>vtnet5</if><ipaddrv6>track6</ipaddrv6></opt4>
+    <opt5><enable>1</enable><if>vtnet6</if><ipaddrv6>fd00:5::1</ipaddrv6><subnetv6>48</subnetv6></opt5>
   </interfaces>`
 
 // dnsmasqFactoryDefault is the <dnsmasq> element of the 26.7.9
@@ -1211,6 +1217,19 @@ func rangeNetworks4Cases() []rangeNetworks4Case {
 			host: "10.0.1.60", wantScope: 1, wantSubnet: []string{"10.0.0.0/8", ""},
 		},
 		{
+			name:   "the relayed range takes what no interface holds (o1)",
+			ranges: o1Ranges,
+			host:   "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.0.0.0/8"},
+		},
+	}
+}
+
+// rangeNetworksDynamicCases lists the cases of
+// TestConverter_Dnsmasq_RangeNetworks4 with a range on an interface that
+// has no static IPv4 network.
+func rangeNetworksDynamicCases() []rangeNetworks4Case {
+	return []rangeNetworks4Case{
+		{
 			name: "a range on an interface with no static address has no network (dyn)",
 			ranges: `<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
 				`<end_addr>10.0.9.199</end_addr></dhcp_ranges>` +
@@ -1219,9 +1238,23 @@ func rangeNetworks4Cases() []rangeNetworks4Case {
 			host: "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.77.0.0/16"},
 		},
 		{
-			name:   "the relayed range takes what no interface holds (o1)",
-			ranges: o1Ranges,
-			host:   "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.0.0.0/8"},
+			name: "a range on an interface with only a virtual IP keeps its reservations (dyn_vip)",
+			ranges: `<dhcp_ranges><interface>opt3</interface><start_addr>10.5.0.100</start_addr>` +
+				`<end_addr>10.5.0.199</end_addr></dhcp_ranges>`,
+			host: "10.5.0.150", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name: "a range on a DHCP interface keeps the reservations in its pool (dyn_wan)",
+			ranges: `<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
+				`<end_addr>10.0.9.199</end_addr></dhcp_ranges>`,
+			host: "10.0.9.150", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name: "a range on a DHCP interface wins over a relayed range listed before it",
+			ranges: `<dhcp_ranges><start_addr>10.50.0.100</start_addr><end_addr>10.50.0.199</end_addr></dhcp_ranges>` +
+				`<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
+				`<end_addr>10.0.9.199</end_addr></dhcp_ranges>`,
+			host: "10.0.9.150", wantScope: 1, wantSubnet: []string{"10.0.0.0/8", ""},
 		},
 	}
 }
@@ -1229,7 +1262,39 @@ func rangeNetworks4Cases() []rangeNetworks4Case {
 // rangeNetworks6Cases lists the IPv6 cases of
 // TestConverter_Dnsmasq_RangeNetworks4.
 func rangeNetworks6Cases() []rangeNetworks4Case {
+	constructed := func(iface, prefixLen string) string {
+		return `<dhcp_ranges><interface>` + iface + `</interface><start_addr>::1000</start_addr>` +
+			`<end_addr>::2000</end_addr><constructor>` + iface + `</constructor><prefix_len>` + prefixLen +
+			`</prefix_len></dhcp_ranges>`
+	}
+
 	return []rangeNetworks4Case{
+		{
+			name: "dnsmasq refuses any IPv6 range with a prefix_len below 64",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>fd00:2::1000</start_addr>` +
+				`<end_addr>fd00:2::1fff</end_addr><prefix_len>48</prefix_len></dhcp_ranges>`,
+			host: "fd00:2::50", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name:   "a host part does not reach a range with a prefix_len below 64",
+			ranges: constructed("opt2", "48"), host: "::50", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name:   "a host part reaches a range constructed on a track6 interface",
+			ranges: constructed("opt4", "64"), host: "::50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name:   "a range constructed on a /48 serves the /64 around the address",
+			ranges: constructed("opt5", "64"), host: "fd00:5::1500", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name:   "a range constructed on a /48 serves no other /64 of it",
+			ranges: constructed("opt5", "64"), host: "fd00:5:0:9::1500", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name:   "a constructor with a prefix_len between the interface's and 64 is refused",
+			ranges: constructed("opt5", "56"), host: "fd00:5::1500", wantScope: -1, wantSubnet: []string{""},
+		},
 		{
 			name: "an IPv6 range serves only its prefix_len network (n2)",
 			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>fd00:2::1000</start_addr>` +
@@ -1282,7 +1347,7 @@ func rangeNetworks6Cases() []rangeNetworks4Case {
 func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
 	t.Parallel()
 
-	tests := append(rangeNetworks4Cases(), rangeNetworks6Cases()...)
+	tests := slices.Concat(rangeNetworks4Cases(), rangeNetworksDynamicCases(), rangeNetworks6Cases())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
