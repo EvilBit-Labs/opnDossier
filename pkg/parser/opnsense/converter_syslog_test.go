@@ -308,6 +308,60 @@ func TestConverter_Syslog_DestinationFilters(t *testing.T) {
 	}
 }
 
+// TestConverter_Syslog_ProgramCategories maps each program a destination
+// filters on to the category 19.7's legacy remote template filtered it under.
+func TestConverter_Syslog_ProgramCategories(t *testing.T) {
+	t.Parallel()
+
+	type flags struct{ dhcp, resolver, portal, vpn, dpinger, hostapd bool }
+
+	tests := []struct {
+		program string
+		want    flags
+	}{
+		{program: "dhcrelay", want: flags{dhcp: true}},
+		{program: "unbound", want: flags{resolver: true}},
+		{program: "dnsmasq", want: flags{resolver: true}},
+		{program: "captiveportal", want: flags{portal: true}},
+		{program: "charon", want: flags{vpn: true}},
+		{program: "dpinger", want: flags{dpinger: true}},
+		{program: "hostapd", want: flags{hostapd: true}},
+		{program: "ntpd"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.program, func(t *testing.T) {
+			t.Parallel()
+
+			destinations := syslogDestination("c3", "1", "udp4", tt.program, "", "", "10.0.0.51")
+			sl, _ := parseSyslogConfig(t, syslogModel("1.0.3", "31", destinations))
+
+			got := flags{
+				sl.DHCPLogging, sl.ResolverLogging, sl.PortalAuthLogging,
+				sl.VPNLogging, sl.DPingerLogging, sl.HostapdLogging,
+			}
+			assert.Equal(t, tt.want, got)
+			assert.False(t, sl.SystemLogging)
+		})
+	}
+}
+
+// TestConverter_Syslog_FileSizeNotWholeMB reports a maxfilesize the firewall
+// cannot read as a number of MB and leaves the file size unset.
+func TestConverter_Syslog_FileSizeNotWholeMB(t *testing.T) {
+	t.Parallel()
+
+	model := strings.Replace(syslogModel("1.0.3", "45", ""), "<maxfilesize/>", "<maxfilesize>1.5</maxfilesize>", 1)
+	sl, warnings := parseSyslogConfig(t, model)
+
+	assert.Equal(t, "45", sl.RotateCount)
+	assert.Empty(t, sl.LogFileSize)
+	got := syslogWarnings(warnings)
+	require.Len(t, got, 1)
+	assert.Equal(t, "Syslog.MaxFileSize", got[0].Field)
+	assert.Equal(t, "1.5", got[0].Value)
+}
+
 // TestConverter_Syslog_LegacyLogAll covers 19.7's logall, which forwarded every
 // message whatever the category flags held.
 func TestConverter_Syslog_LegacyLogAll(t *testing.T) {
