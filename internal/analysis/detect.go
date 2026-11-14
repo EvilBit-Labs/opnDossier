@@ -389,9 +389,11 @@ func DetectPerformanceIssues(cfg *common.CommonDevice) []common.PerformanceFindi
 // its interface (gwlb.inc get_interface_gateway), and uses it, so there the
 // selection is not a fault.
 func interfaceGatewayFinding(cfg *common.CommonDevice, iface common.Interface) (common.ConsistencyFinding, bool) {
+	// Only a static address offers the selection; a dynamic one such as dhcp
+	// can keep a stale <gateway> and a <subnet> the firewall ignores.
 	name := strings.TrimSpace(iface.Gateway)
-	if name == "" || strings.EqualFold(name, "none") || iface.IPAddress == "" || iface.Subnet == "" ||
-		net.ParseIP(name) != nil {
+	if name == "" || strings.EqualFold(name, "none") || net.ParseIP(iface.IPAddress) == nil ||
+		iface.Subnet == "" || net.ParseIP(name) != nil {
 		return common.ConsistencyFinding{}, false
 	}
 

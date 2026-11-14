@@ -985,6 +985,15 @@ func TestDetectConsistency(t *testing.T) {
 			wantCount: 0,
 		},
 		{
+			name: "undefined gateway on a dhcp interface that keeps a subnet not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", IPAddress: "dhcp", Subnet: "24", Gateway: "invalid-gw"},
+				},
+			},
+			wantCount: 0,
+		},
+		{
 			name: "valid gateway not flagged",
 			cfg: &common.CommonDevice{
 				Interfaces: []common.Interface{
