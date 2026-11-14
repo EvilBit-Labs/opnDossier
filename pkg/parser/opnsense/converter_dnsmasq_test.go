@@ -1109,12 +1109,17 @@ func TestConverter_Dnsmasq_RelayedScopesDiffBySubnet(t *testing.T) {
 		diffPaths(oldDevice, newDevice))
 }
 
-// TestConverter_Dnsmasq_RangeNetworks4 places IPv4 reservations by the network
-// dnsmasq matches each range on: the interface's own network first, then the
-// range's subnet mask, then for a relayed range its address class.
-func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
-	t.Parallel()
+// rangeNetworks4Case is one case of TestConverter_Dnsmasq_RangeNetworks4.
+type rangeNetworks4Case struct {
+	name       string
+	ranges     string
+	host       string
+	wantScope  int // index of the scope the lease reaches, -1 for none
+	wantSubnet []string
+}
 
+// rangeNetworks4Cases lists the cases of TestConverter_Dnsmasq_RangeNetworks4.
+func rangeNetworks4Cases() []rangeNetworks4Case {
 	const (
 		o1Ranges = `<dhcp_ranges><interface>opt1</interface><start_addr>10.0.1.100</start_addr>` +
 			`<end_addr>10.0.1.199</end_addr></dhcp_ranges>` +
@@ -1123,13 +1128,7 @@ func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
 			`<subnet_mask>255.255.252.0</subnet_mask></dhcp_ranges>`
 	)
 
-	tests := []struct {
-		name       string
-		ranges     string
-		host       string
-		wantScope  int // index of the scope the lease reaches, -1 for none
-		wantSubnet []string
-	}{
+	return []rangeNetworks4Case{
 		{
 			name: "named interface, range off its network, with a mask (r1)",
 			ranges: `<dhcp_ranges><interface>opt1</interface><start_addr>172.16.0.100</start_addr>` +
@@ -1176,10 +1175,28 @@ func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
 			host: "11.5.5.5", wantScope: -1, wantSubnet: []string{"11.0.0.0/8"},
 		},
 		{
-			name: "a mask that is not contiguous is applied as written (r2)",
-			ranges: `<dhcp_ranges><start_addr>172.16.0.100</start_addr><end_addr>172.16.0.199</end_addr>` +
+			name: "a mask that is not contiguous is applied bit by bit, inside",
+			ranges: `<dhcp_ranges><start_addr>172.16.1.100</start_addr><end_addr>172.16.5.100</end_addr>` +
 				`<subnet_mask>255.255.0.255</subnet_mask></dhcp_ranges>`,
-			host: "172.16.9.199", wantScope: -1, wantSubnet: []string{"172.16.0.100/255.255.0.255"},
+			host: "172.16.9.100", wantScope: 0, wantSubnet: []string{"172.16.0.100/255.255.0.255"},
+		},
+		{
+			name: "a mask that is not contiguous is applied bit by bit, outside",
+			ranges: `<dhcp_ranges><start_addr>172.16.1.100</start_addr><end_addr>172.16.5.100</end_addr>` +
+				`<subnet_mask>255.255.0.255</subnet_mask></dhcp_ranges>`,
+			host: "172.16.9.101", wantScope: -1, wantSubnet: []string{"172.16.0.100/255.255.0.255"},
+		},
+		{
+			name: "a mask narrower than the interface narrows what the range serves (n1)",
+			ranges: `<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.10</start_addr>` +
+				`<end_addr>192.168.1.100</end_addr><subnet_mask>255.255.255.128</subnet_mask></dhcp_ranges>`,
+			host: "192.168.1.200", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name: "inside a narrower mask the range serves the reservation (n1)",
+			ranges: `<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.10</start_addr>` +
+				`<end_addr>192.168.1.100</end_addr><subnet_mask>255.255.255.128</subnet_mask></dhcp_ranges>`,
+			host: "192.168.1.120", wantScope: 0, wantSubnet: []string{""},
 		},
 		{
 			name:   "an interface network wins over an overlapping relayed range (o1)",
@@ -1187,11 +1204,61 @@ func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
 			host:   "10.0.1.60", wantScope: 0, wantSubnet: []string{"", "10.0.0.0/8"},
 		},
 		{
+			name: "a local range wins over a relayed range listed before it",
+			ranges: `<dhcp_ranges><start_addr>10.50.0.100</start_addr><end_addr>10.50.0.199</end_addr></dhcp_ranges>` +
+				`<dhcp_ranges><interface>opt1</interface><start_addr>10.0.1.100</start_addr>` +
+				`<end_addr>10.0.1.199</end_addr></dhcp_ranges>`,
+			host: "10.0.1.60", wantScope: 1, wantSubnet: []string{"10.0.0.0/8", ""},
+		},
+		{
 			name:   "the relayed range takes what no interface holds (o1)",
 			ranges: o1Ranges,
 			host:   "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.0.0.0/8"},
 		},
 	}
+}
+
+// rangeNetworks6Cases lists the IPv6 cases of
+// TestConverter_Dnsmasq_RangeNetworks4.
+func rangeNetworks6Cases() []rangeNetworks4Case {
+	return []rangeNetworks4Case{
+		{
+			name: "an IPv6 range serves only its prefix_len network (n2)",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>fd00:2::1000</start_addr>` +
+				`<end_addr>fd00:2::1fff</end_addr><prefix_len>112</prefix_len></dhcp_ranges>`,
+			host: "fd00:2::9:50", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name: "inside its prefix_len network an IPv6 range serves the reservation (n2)",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>fd00:2::1000</start_addr>` +
+				`<end_addr>fd00:2::1fff</end_addr><prefix_len>112</prefix_len></dhcp_ranges>`,
+			host: "fd00:2::50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name: "a constructed range is matched on its own prefix_len",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr><end_addr>::2000</end_addr>` +
+				`<constructor>opt2</constructor><prefix_len>48</prefix_len></dhcp_ranges>`,
+			host:       "fd00:2:0:9::50",
+			wantScope:  0,
+			wantSubnet: []string{""},
+		},
+		{
+			name: "an IPv6 range no interface holds is named by its prefix",
+			ranges: `<dhcp_ranges><start_addr>fd00:9::100</start_addr><end_addr>fd00:9::1ff</end_addr>` +
+				`</dhcp_ranges>`,
+			host: "fd00:9::50", wantScope: 0, wantSubnet: []string{"fd00:9::/64"},
+		},
+	}
+}
+
+// TestConverter_Dnsmasq_RangeNetworks4 places reservations by the network
+// dnsmasq matches each range on: its subnet mask or prefix_len when set, else
+// for a local range its interface's network, else for a relayed range its
+// address class, with local ranges tried before relayed ones.
+func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
+	t.Parallel()
+
+	tests := append(rangeNetworks4Cases(), rangeNetworks6Cases()...)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1216,4 +1283,37 @@ func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestConverter_Dnsmasq_GlobalOptionDoesNotPairScopes keeps two relayed ranges
+// that share only a gateway every scope gets from a global option apart (d2):
+// {10.50, 10.60} to {10.60, 10.70} is one range removed and one added, and
+// nothing changes on 10.60. The test holds no reservations: every 10.x
+// address lies in each range's guessed 10.0.0.0/8, so a reservation would go
+// to whichever range comes first.
+func TestConverter_Dnsmasq_GlobalOptionDoesNotPairScopes(t *testing.T) {
+	t.Parallel()
+
+	rangeXML := func(net string) string {
+		return `<dhcp_ranges><start_addr>10.` + net + `.0.100</start_addr><end_addr>10.` + net +
+			`.0.199</end_addr></dhcp_ranges>`
+	}
+	config := func(nets ...string) string {
+		var x strings.Builder
+		x.WriteString(`<dnsmasq version="1.0.9"><enable>1</enable>`)
+		for _, n := range nets {
+			x.WriteString(rangeXML(n))
+		}
+		x.WriteString(`<dhcp_options><option>3</option><value>192.168.1.1</value></dhcp_options></dnsmasq>`)
+		return x.String()
+	}
+	oldDevice, _ := parseDnsmasqConfig(t, config("50", "60"), "")
+	newDevice, _ := parseDnsmasqConfig(t, config("60", "70"), "")
+	require.Len(t, oldDevice.DHCP, 2)
+	assert.Equal(t, "192.168.1.1", oldDevice.DHCP[0].Gateway)
+
+	assert.Equal(t, []string{
+		"dhcpd.dnsmasq[10.0.0.0/8,10.50.0.100]",
+		"dhcpd.dnsmasq[10.0.0.0/8,10.70.0.100]",
+	}, diffPaths(oldDevice, newDevice))
 }

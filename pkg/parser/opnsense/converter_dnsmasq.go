@@ -133,12 +133,14 @@ func convertDnsmasqDomainOverrides(overrides []schema.DomainOverride) []common.D
 // dnsmasqScopeNets holds what a dnsmasq scope's ranges say about the
 // addresses it serves, which the scope model has no field for.
 type dnsmasqScopeNets struct {
-	// v6 holds the IPv6 networks of the scope: its interface's static
-	// network, the constructor interface's, and the prefix of a range given
-	// as a full address.
+	// v6 holds the IPv6 networks the scope's ranges are matched on, each
+	// with the range's prefix_len: the constructor interface's address, or
+	// the range's start given in full. dnsmasq matches a reservation on the
+	// range's prefix only (is_config_in_context), not on the interface's
+	// whole network.
 	v6 []netip.Prefix
-	// v4 holds the IPv4 networks the scope's ranges carry beyond the
-	// interface's own network: see dnsmasqRangeNetwork4.
+	// v4 holds the IPv4 networks the scope's ranges are matched on: see
+	// dnsmasqRangeNetwork4.
 	v4 []dnsmasqNet4
 	// constructed is set when a range is built from an interface's prefix,
 	// where a reservation holding only a host part (::50) applies.
@@ -215,9 +217,6 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 				Description: r.Description,
 			})
 			nets = append(nets, dnsmasqScopeNets{})
-			if p, ok := interfaceNetwork6(doc, iface); ok {
-				nets[i].v6 = append(nets[i].v6, p)
-			}
 		}
 		if v6 {
 			addRangeNetworks6(doc, &nets[i], r, start)
@@ -350,6 +349,10 @@ var ipv4Classes = []struct {
 // contiguous; dnsmasq applies whatever the option holds.
 type dnsmasqNet4 struct {
 	start, end, mask uint32
+	// local is set when the range lies on the network of the interface it
+	// serves, so dnsmasq serves it to clients on that interface directly
+	// rather than through a relay.
+	local bool
 }
 
 // contains reports whether addr belongs to the network.
@@ -390,12 +393,15 @@ func uintIPv4(v uint32) netip.Addr {
 	return netip.AddrFrom4(b)
 }
 
-// dnsmasqRangeNetwork4 returns the IPv4 network an IPv4 range carries beyond
-// the network of the interface it serves. With a subnet mask, dnsmasq uses
-// that mask, whether or not the range is on the interface's network (it keeps
-// a configured netmask in complete_context). Without one, a range on the
-// interface's network takes that network, and there is nothing to add; any
-// other range is served through a relay agent, and dnsmasq guesses its mask
+// dnsmasqRangeNetwork4 returns the IPv4 network dnsmasq matches an IPv4 range
+// and its reservations on. A range is local when the network of the
+// interface it serves holds its start and its end, and relayed otherwise.
+//
+// With a subnet mask, dnsmasq keeps that mask whether the range is local or
+// relayed (CONTEXT_NETMASK, dhcp.c), and offers a reservation only inside it
+// (is_config_in_context, dhcp-common.c), so a mask narrower than the
+// interface's network narrows what the range serves. Without one, a local
+// range takes the interface's network, and a relayed range a mask guessed
 // from the address class, but only when the start and the end are in the same
 // class: /8 for class A, /16 for class B and /24 for class C (rfc2131.c). A
 // static range has no end and is matched on its start alone.
@@ -414,7 +420,12 @@ func dnsmasqRangeNetwork4(
 			return dnsmasqNet4{}, false
 		}
 	}
-	n := dnsmasqNet4{start: ipv4Uint(first), end: ipv4Uint(last)}
+	ifNet, hasIfNet := interfaceNetwork4(doc, iface)
+	n := dnsmasqNet4{
+		start: ipv4Uint(first),
+		end:   ipv4Uint(last),
+		local: hasIfNet && ifNet.Contains(first) && ifNet.Contains(last),
+	}
 
 	if mask := strings.TrimSpace(r.SubnetMask); mask != "" {
 		m, err := netip.ParseAddr(mask)
@@ -424,8 +435,9 @@ func dnsmasqRangeNetwork4(
 		n.mask = ipv4Uint(m)
 		return n, true
 	}
-	if interfaceNetworkHolds(doc, iface, first) && interfaceNetworkHolds(doc, iface, last) {
-		return dnsmasqNet4{}, false
+	if n.local {
+		n.mask = prefixMask4(ifNet.Bits())
+		return n, true
 	}
 	for _, class := range ipv4Classes {
 		if class.space.Contains(first) && class.space.Contains(last) {
@@ -437,20 +449,32 @@ func dnsmasqRangeNetwork4(
 	return dnsmasqNet4{}, false
 }
 
-// addRangeNetworks6 records the IPv6 networks an IPv6 range serves: the
-// prefix of its constructor interface, or the prefix_len network (64 when
-// unset, as the template writes it) around a start given in full.
+// ipv4AllOnes is the IPv4 address with every bit set.
+var ipv4AllOnes = netip.MustParseAddr("255.255.255.255")
+
+// prefixMask4 returns the IPv4 netmask of a prefix length.
+func prefixMask4(bits int) uint32 {
+	return ipv4Uint(netip.PrefixFrom(ipv4AllOnes, bits).Masked().Addr())
+}
+
+// addRangeNetworks6 records the IPv6 network an IPv6 range serves: the
+// prefix_len network (64 when unset, as the template writes it) around the
+// constructor interface's address, or around a start given in full.
 func addRangeNetworks6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets, r schema.DNSMasqDHCPRange, start string) {
-	if constructor := strings.TrimSpace(r.Constructor); constructor != "" {
-		nets.constructed = true
-		if p, ok := interfaceNetwork6(doc, constructor); ok {
-			nets.v6 = append(nets.v6, p)
-		}
-		return
-	}
 	bits := strings.TrimSpace(r.PrefixLen)
 	if bits == "" {
 		bits = "64"
+	}
+	if constructor := strings.TrimSpace(r.Constructor); constructor != "" {
+		nets.constructed = true
+		iface, ok := doc.Interfaces.Items[constructor]
+		if !ok {
+			return
+		}
+		if p, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddrv6) + "/" + bits); err == nil && p.Addr().Is6() {
+			nets.v6 = append(nets.v6, p.Masked())
+		}
+		return
 	}
 	if strings.HasPrefix(start, "::") {
 		// A host part with no constructor names no network.
@@ -569,7 +593,7 @@ func (c *converter) attachDnsmasqReservations(
 			continue
 		}
 
-		targets := dnsmasqLeaseTargets(doc, scopes, nets, h.IP, fallback)
+		targets := dnsmasqLeaseTargets(nets, h.IP, fallback)
 		if len(targets) == 0 {
 			c.addWarning("dnsmasq.hosts", label,
 				"dnsmasq DHCP reservation matches no DHCP range's network; not attached to a scope",
@@ -597,13 +621,7 @@ func (c *converter) attachDnsmasqReservations(
 // every range built by a constructor (dnsmasq(8), --dhcp-host), so it goes
 // to each such scope. Only an entry with no address at all takes the
 // fallback.
-func dnsmasqLeaseTargets(
-	doc *schema.OpnSenseDocument,
-	scopes []common.DHCPScope,
-	nets []dnsmasqScopeNets,
-	ips string,
-	fallback int,
-) []int {
+func dnsmasqLeaseTargets(nets []dnsmasqScopeNets, ips string, fallback int) []int {
 	var targets []int
 	add := func(i int) {
 		if i >= 0 && !slices.Contains(targets, i) {
@@ -629,7 +647,7 @@ func dnsmasqLeaseTargets(
 				}
 			}
 		default:
-			add(dnsmasqScopeHolding(doc, scopes, nets, addr))
+			add(dnsmasqScopeHolding(nets, addr))
 		}
 	}
 
@@ -641,17 +659,12 @@ func dnsmasqLeaseTargets(
 }
 
 // dnsmasqScopeHolding returns the index of the one scope that serves addr, or
-// -1. For IPv4 that is the first scope whose interface network holds it, and
-// only when none does, the first whose ranges' own network does
-// (dnsmasqRangeNetwork4), so an address an interface scope holds never goes
-// to an overlapping relayed range. For IPv6 it is the first scope whose IPv6
-// networks hold it.
-func dnsmasqScopeHolding(
-	doc *schema.OpnSenseDocument,
-	scopes []common.DHCPScope,
-	nets []dnsmasqScopeNets,
-	addr netip.Addr,
-) int {
+// -1. For IPv4 that is the first scope with a local range whose network holds
+// it, and only when none does, the first with a relayed range whose network
+// does (dnsmasqRangeNetwork4), so an address a local range holds never goes
+// to an overlapping relayed one. For IPv6 it is the first scope whose ranges'
+// prefixes hold it.
+func dnsmasqScopeHolding(nets []dnsmasqScopeNets, addr netip.Addr) int {
 	contains := func(p netip.Prefix) bool { return p.Contains(addr) }
 	if addr.Is6() {
 		for i := range nets {
@@ -661,14 +674,13 @@ func dnsmasqScopeHolding(
 		}
 		return -1
 	}
-	for i := range scopes {
-		if interfaceNetworkHolds(doc, scopes[i].Interface, addr) {
-			return i
-		}
-	}
-	for i := range nets {
-		if slices.ContainsFunc(nets[i].v4, func(n dnsmasqNet4) bool { return n.contains(addr) }) {
-			return i
+	for _, local := range []bool{true, false} {
+		for i := range nets {
+			if slices.ContainsFunc(nets[i].v4, func(n dnsmasqNet4) bool {
+				return n.local == local && n.contains(addr)
+			}) {
+				return i
+			}
 		}
 	}
 
@@ -682,13 +694,24 @@ func interfaceNetworkHolds(doc *schema.OpnSenseDocument, name string, addr netip
 		prefix, ok := interfaceNetwork6(doc, name)
 		return ok && prefix.Contains(addr)
 	}
+	prefix, ok := interfaceNetwork4(doc, name)
+
+	return ok && prefix.Contains(addr)
+}
+
+// interfaceNetwork4 returns the static IPv4 network of the named interface.
+// An interface whose ipaddr is a mode such as dhcp has none.
+func interfaceNetwork4(doc *schema.OpnSenseDocument, name string) (netip.Prefix, bool) {
 	iface, ok := doc.Interfaces.Items[name]
 	if !ok {
-		return false
+		return netip.Prefix{}, false
 	}
 	prefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddr) + "/" + strings.TrimSpace(iface.Subnet))
+	if err != nil || !prefix.Addr().Is4() {
+		return netip.Prefix{}, false
+	}
 
-	return err == nil && prefix.Contains(addr)
+	return prefix, true
 }
 
 // interfaceNetwork6 returns the static IPv6 network of the named interface.
