@@ -350,10 +350,14 @@ var ipv4Classes = []struct {
 // contiguous; dnsmasq applies whatever the option holds.
 type dnsmasqNet4 struct {
 	start, end, mask uint32
-	// local is set when the range lies on the network of the interface it
-	// serves, so dnsmasq serves it to clients on that interface directly
-	// rather than through a relay.
+	// local is set when dnsmasq serves the range to clients on its
+	// interface directly rather than through a relay: the interface's
+	// network holds its start and end, or the interface has no static IPv4
+	// network the config shows and so may hold them at runtime.
 	local bool
+	// dynamic is set for a local range on an interface with no static IPv4
+	// network the config shows, whose network is therefore an estimate.
+	dynamic bool
 }
 
 // contains reports whether addr belongs to the network.
@@ -396,7 +400,10 @@ func uintIPv4(v uint32) netip.Addr {
 
 // dnsmasqRangeNetwork4 returns the IPv4 network dnsmasq matches an IPv4 range
 // and its reservations on. A range is local when the network of the
-// interface it serves holds its start and its end, and relayed otherwise.
+// interface it serves holds its start and its end, or when that interface
+// has no static IPv4 network the config shows (dhcp, pppoe, or an address
+// only a virtual IP carries), since dnsmasq serves it there directly once
+// the interface's address is in its network; it is relayed otherwise.
 //
 // With a subnet mask, dnsmasq keeps that mask whether the range is local or
 // relayed (CONTEXT_NETMASK, dhcp.c), and offers a reservation only inside it
@@ -422,10 +429,13 @@ func dnsmasqRangeNetwork4(
 		}
 	}
 	ifNet, hasIfNet := interfaceNetwork4(doc, iface)
+	_, named := doc.Interfaces.Items[iface]
+	dynamic := named && !hasIfNet
 	n := dnsmasqNet4{
-		start: ipv4Uint(first),
-		end:   ipv4Uint(last),
-		local: hasIfNet && ifNet.Contains(first) && ifNet.Contains(last),
+		start:   ipv4Uint(first),
+		end:     ipv4Uint(last),
+		local:   dynamic || (hasIfNet && ifNet.Contains(first) && ifNet.Contains(last)),
+		dynamic: dynamic,
 	}
 
 	if mask := strings.TrimSpace(r.SubnetMask); mask != "" {
@@ -436,11 +446,11 @@ func dnsmasqRangeNetwork4(
 		n.mask = ipv4Uint(m)
 		return n, true
 	}
-	if n.local {
+	if n.local && !dynamic {
 		n.mask = prefixMask4(ifNet.Bits())
 		return n, true
 	}
-	if _, named := doc.Interfaces.Items[iface]; named && !hasIfNet {
+	if dynamic {
 		// The interface has no static IPv4 network the config shows: its
 		// address comes at runtime (dhcp, pppoe), or only a virtual IP
 		// carries one. dnsmasq takes a range's mask from any local address
@@ -450,7 +460,6 @@ func dnsmasqRangeNetwork4(
 		// is the narrowest such network, so it holds every reservation inside
 		// the pool.
 		n.mask = prefixMask4(bits.LeadingZeros32(n.start ^ n.end))
-		n.local = true
 		return n, true
 	}
 	for _, class := range ipv4Classes {
@@ -709,10 +718,12 @@ func dnsmasqLeaseTargets(nets []dnsmasqScopeNets, ips string, fallback int) []in
 }
 
 // dnsmasqScopeHolding returns the index of the one scope that serves addr, or
-// -1. For IPv4 that is the first scope with a local range whose network holds
-// it, and only when none does, the first with a relayed range whose network
-// does (dnsmasqRangeNetwork4), so an address a local range holds never goes
-// to an overlapping relayed one. For IPv6 it is the first scope whose ranges'
+// -1. For IPv4 the ranges are tried in three tiers (dnsmasqRangeNetwork4):
+// local ranges whose interface network the config shows, then ranges on an
+// interface with no static IPv4 network, whose network is an estimate, then
+// relayed ranges. The first scope with a range in the first tier whose
+// network holds addr serves it, so an address a range on a known network
+// holds never goes to an estimated or relayed one. For IPv6 it is the first scope whose ranges'
 // prefixes hold it.
 func dnsmasqScopeHolding(nets []dnsmasqScopeNets, addr netip.Addr) int {
 	contains := func(p netip.Prefix) bool { return p.Contains(addr) }
@@ -724,10 +735,15 @@ func dnsmasqScopeHolding(nets []dnsmasqScopeNets, addr netip.Addr) int {
 		}
 		return -1
 	}
-	for _, local := range []bool{true, false} {
+	tiers := []func(dnsmasqNet4) bool{
+		func(n dnsmasqNet4) bool { return n.local && !n.dynamic },
+		func(n dnsmasqNet4) bool { return n.dynamic },
+		func(n dnsmasqNet4) bool { return !n.local },
+	}
+	for _, tier := range tiers {
 		for i := range nets {
 			if slices.ContainsFunc(nets[i].v4, func(n dnsmasqNet4) bool {
-				return n.local == local && n.contains(addr)
+				return tier(n) && n.contains(addr)
 			}) {
 				return i
 			}

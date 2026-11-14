@@ -21,8 +21,8 @@ import (
 // dnsmasqInterfaces carries the factory LAN of 26.7.9 plus two more networks,
 // so that a reservation can be placed by its address, and three interfaces
 // without a static network the config shows: opt3 with no address (a
-// virtual IP can carry one), opt4 tracking a delegated IPv6 prefix and opt5
-// with an IPv6 /48.
+// virtual IP can carry one), opt4 tracking a delegated IPv6 prefix, opt5
+// with an IPv6 /48 and opt6 with an IPv6 /80.
 const dnsmasqInterfaces = `<interfaces>
     <wan><enable>1</enable><if>vtnet0</if><ipaddr>dhcp</ipaddr></wan>
     <lan><enable>1</enable><if>vtnet1</if><ipaddr>192.168.1.1</ipaddr><subnet>24</subnet></lan>
@@ -31,6 +31,7 @@ const dnsmasqInterfaces = `<interfaces>
     <opt3><enable>1</enable><if>vtnet4</if></opt3>
     <opt4><enable>1</enable><if>vtnet5</if><ipaddrv6>track6</ipaddrv6></opt4>
     <opt5><enable>1</enable><if>vtnet6</if><ipaddrv6>fd00:5::1</ipaddrv6><subnetv6>48</subnetv6></opt5>
+    <opt6><enable>1</enable><if>vtnet7</if><ipaddrv6>fd00:6::1</ipaddrv6><subnetv6>80</subnetv6></opt6>
   </interfaces>`
 
 // dnsmasqFactoryDefault is the <dnsmasq> element of the 26.7.9
@@ -1230,7 +1231,28 @@ func rangeNetworks4Cases() []rangeNetworks4Case {
 func rangeNetworksDynamicCases() []rangeNetworks4Case {
 	return []rangeNetworks4Case{
 		{
-			name: "a range on an interface with no static address has no network (dyn)",
+			name: "a masked range on a DHCP interface is local (dynmask)",
+			ranges: `<dhcp_ranges><start_addr>10.50.0.100</start_addr><end_addr>10.50.0.199</end_addr></dhcp_ranges>` +
+				`<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
+				`<end_addr>10.0.9.199</end_addr><subnet_mask>255.255.255.0</subnet_mask></dhcp_ranges>`,
+			host: "10.0.9.150", wantScope: 1, wantSubnet: []string{"10.0.0.0/8", ""},
+		},
+		{
+			name: "a range on a known network wins over one on an interface with no static address (dyn_wide)",
+			ranges: `<dhcp_ranges><interface>opt3</interface><start_addr>10.0.255.200</start_addr>` +
+				`<end_addr>10.1.0.50</end_addr></dhcp_ranges>` +
+				`<dhcp_ranges><interface>opt1</interface><start_addr>10.0.1.100</start_addr>` +
+				`<end_addr>10.0.1.199</end_addr></dhcp_ranges>`,
+			host: "10.0.1.60", wantScope: 1, wantSubnet: []string{"", ""},
+		},
+		{
+			name: "a range on a DHCP interface holds only the smallest prefix around its pool",
+			ranges: `<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
+				`<end_addr>10.0.9.120</end_addr></dhcp_ranges>`,
+			host: "10.0.9.130", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name: "a relayed range takes an address outside a DHCP interface's range (dyn)",
 			ranges: `<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
 				`<end_addr>10.0.9.199</end_addr></dhcp_ranges>` +
 				`<dhcp_ranges><start_addr>10.77.0.100</start_addr><end_addr>10.77.0.199</end_addr>` +
@@ -1282,6 +1304,10 @@ func rangeNetworks6Cases() []rangeNetworks4Case {
 		{
 			name:   "a host part reaches a range constructed on a track6 interface",
 			ranges: constructed("opt4", "64"), host: "::50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name:   "dnsmasq builds no range on an interface whose prefix is longer than 64",
+			ranges: constructed("opt6", "64"), host: "::50", wantScope: -1, wantSubnet: []string{""},
 		},
 		{
 			name:   "a range constructed on a /48 serves the /64 around the address",
