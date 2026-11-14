@@ -130,7 +130,7 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 | FIREWALL-004 | System Configuration  | Hostname Configuration           | Low      | Implemented |
 | FIREWALL-005 | Network Configuration | DNS Server Configuration         | Medium   | Implemented |
 | FIREWALL-006 | Network Configuration | IPv6 Disablement                 | Medium   | Implemented |
-| FIREWALL-007 | DNS Security          | DNS Rebind Check                 | Low      | Unknown     |
+| FIREWALL-007 | DNS Security          | DNS Rebind Check                 | Medium   | Implemented |
 | FIREWALL-008 | Management Access     | HTTPS Web Management             | High     | Implemented |
 
 **Status key:**
@@ -306,7 +306,7 @@ The audit engine performs the following checks per plugin:
 
 2. **Packet Filtering (V-206674)** - Scans pass rules for overly broad source/destination addresses (any, 0.0.0.0/0, ::/0, RFC 1918 ranges) and flags rules without specific port restrictions.
 
-3. **Service Hardening (V-206690)** - Checks for SNMP with community strings, Unbound DNS with DNSSEC stripping, more than 2 DHCP interfaces, and configured load balancer services.
+3. **Service Hardening (V-206690)** - Checks for an enabled SNMP agent, more than 2 DHCP interfaces, and configured load balancer services.
 
 4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
 
@@ -333,7 +333,7 @@ All four SANS checks currently use placeholder logic:
 
 6. **IPv6 Disablement (FIREWALL-006)** - Checks `System.IPv6Allow`. Finding emitted when IPv6 is enabled.
 
-7. **DNS Rebind Check (FIREWALL-007)** - Always returns Unknown. The CommonDevice model does not yet expose this setting (tracked in [#296](https://github.com/EvilBit-Labs/opnDossier/issues/296)).
+7. **DNS Rebind Check (FIREWALL-007)** - Fails when `System.WebGUI.NoDNSRebindCheck` is set while Unbound or dnsmasq is enabled, or when Unbound is enabled with an empty private-address list. Returns Unknown when no resolver is enabled or the private-address element was never configured.
 
 8. **HTTPS Web Management (FIREWALL-008)** - Checks `System.WebGUI.Protocol` for case-insensitive match against "https".
 

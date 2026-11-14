@@ -268,7 +268,8 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "config with DNSSEC stripping",
+			// DNSSECStripped is "Harden DNSSEC Data", the secure setting.
+			name: "config with DNSSEC hardening is not flagged",
 			config: &common.CommonDevice{
 				DNS: common.DNSConfig{
 					Unbound: common.UnboundConfig{
@@ -277,7 +278,7 @@ func TestPlugin_hasUnnecessaryServices(t *testing.T) {
 					},
 				},
 			},
-			expected: true,
+			expected: false,
 		},
 		{
 			name: "config with more than MaxDHCPInterfaces DHCP interfaces",

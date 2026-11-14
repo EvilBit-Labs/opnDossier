@@ -666,7 +666,6 @@ The `<system>` section has many fields beyond what is currently implemented. Not
 | `max_procs`           | Max web server processes                    |
 | `session_timeout`     | Session timeout (minutes)                   |
 | `authmode`            | Authentication mode                         |
-| `nodnsrebindcheck`    | Disable DNS rebind check                    |
 | `nohttpreferercheck`  | Disable HTTP referer check                  |
 | `noantilockout`       | Disable anti-lockout rule                   |
 | `roaming`             | Allow roaming (multi-IP sessions)           |
