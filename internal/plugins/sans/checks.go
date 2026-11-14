@@ -291,19 +291,6 @@ func (sp *Plugin) checkStatefulInspection(device *common.CommonDevice) checkResu
 	return checkResult{Result: true, Known: true}
 }
 
-// checkFirmwareCurrency verifies the firmware version string is present.
-// This is a PARTIAL check — it confirms version exists but cannot verify currency.
-func (sp *Plugin) checkFirmwareCurrency(device *common.CommonDevice) checkResult {
-	if device == nil {
-		return checkResult{Result: false, Known: true}
-	}
-
-	return checkResult{
-		Result: strings.TrimSpace(device.System.Firmware.Version) != "",
-		Known:  true,
-	}
-}
-
 // checkDMZConfiguration verifies a DMZ or OPT interface is configured.
 func (sp *Plugin) checkDMZConfiguration(device *common.CommonDevice) checkResult {
 	if device == nil {

@@ -169,8 +169,11 @@ func (c *converter) convertSystem(doc *schema.OpnSenseDocument) common.System {
 			Port:    sys.SSH.Port,
 			Group:   sys.SSH.Group,
 		},
+		// The version attribute on <firmware> is not copied into Version. BaseModel
+		// writes the Firmware model's schema version there (1.0.0 or 1.0.1
+		// so far), not the installed release, and reports showed it as the
+		// platform release ("OPNsense 1.0.1"). config.xml records no release.
 		Firmware: common.Firmware{
-			Version: sys.Firmware.Version,
 			Mirror:  sys.Firmware.Mirror,
 			Flavour: sys.Firmware.Flavour,
 			Plugins: sys.Firmware.Plugins,
