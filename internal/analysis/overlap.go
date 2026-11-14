@@ -633,42 +633,31 @@ func exactSingletonCoverage(earlierVals, laterVals []string) Coverage {
 	return CoverNone
 }
 
-// parsePortSpec parses a rule's port specification: "" or "any" (the
-// wildcard), a single port number or service name, a "lo-hi" or "lo:hi"
-// range, or a comma-separated list of the above. It returns the ranges,
-// whether the spec is the wildcard, and whether the spec could be read. A
-// list with any part it cannot read is not read at all: neither firewall
-// loads part of one. OPNsense disables the rule when the port is not an
-// alias, a port, a range or a known name (Rule.php L104-L123), and pfSense
-// writes no port statement for a value alias_expand cannot read, so the rule
-// passes every port (filter.inc filter_generate_port).
+// parsePortSpec parses a rule's own port specification: "" or "any" (the
+// wildcard), a single port number or service name, or a "lo-hi" or "lo:hi"
+// range. It returns the ranges, whether the spec is the wildcard, and whether
+// the spec could be read. A comma list is never read, whatever it holds:
+// neither firewall loads one as ports. OPNsense disables the rule when the
+// port is not an alias, a port, a range or a known name (Rule.php L104-L123;
+// Util::isPort splits on ":" only), and pfSense writes no port statement for
+// a value alias_expand cannot read, so the rule passes every port (filter.inc
+// filter_generate_port). A port alias member is read separately.
 func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
 		return nil, true, true
 	}
 
-	var ranges []portRange
-
-	for part := range strings.SplitSeq(trimmed, ",") {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		r, ok := parsePortPart(part, ruleVocab)
-		if !ok {
-			return nil, false, false
-		}
-
-		ranges = append(ranges, r)
-	}
-
-	if len(ranges) == 0 {
+	if strings.Contains(trimmed, ",") {
 		return nil, false, false
 	}
 
-	return ranges, false, true
+	r, ok := parsePortPart(trimmed, ruleVocab)
+	if !ok {
+		return nil, false, false
+	}
+
+	return []portRange{r}, false, true
 }
 
 // parsePortPart parses one comma-list element: a port number or service name,

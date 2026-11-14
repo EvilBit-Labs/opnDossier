@@ -110,7 +110,9 @@ func TestCoverage(t *testing.T) {
 			wantAliasBlocked: false,
 		},
 		{
-			name: "port list covers single port",
+			// Neither firewall loads a comma list in a rule's own port as
+			// ports, so it is unread: the pair is blocked, not covered.
+			name: "port list is not read",
 			earlier: func() common.FirewallRule {
 				r := baseOverlapRule()
 				r.Destination.Port = "80,443"
@@ -121,11 +123,11 @@ func TestCoverage(t *testing.T) {
 				r.Destination.Port = "443"
 				return r
 			}(),
-			wantCoverage:     CoverFull,
-			wantAliasBlocked: false,
+			wantCoverage:     CoverNone,
+			wantAliasBlocked: true,
 		},
 		{
-			name: "port list partially overlaps another list",
+			name: "two identical port lists match only as written",
 			earlier: func() common.FirewallRule {
 				r := baseOverlapRule()
 				r.Destination.Port = "80,443"
@@ -133,10 +135,10 @@ func TestCoverage(t *testing.T) {
 			}(),
 			later: func() common.FirewallRule {
 				r := baseOverlapRule()
-				r.Destination.Port = "443,8443"
+				r.Destination.Port = "80,443"
 				return r
 			}(),
-			wantCoverage:     CoverPartial,
+			wantCoverage:     CoverFull,
 			wantAliasBlocked: false,
 		},
 		{
