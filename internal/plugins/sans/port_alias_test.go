@@ -248,7 +248,9 @@ func sansStatuses(t *testing.T, device *common.CommonDevice) map[string]string {
 }
 
 // sansPortLiteralConfig is an OPNsense 26.7 config with two rules in the
-// filter model and no aliases, for the controls' reading of literal ports.
+// filter model, for the controls' reading of literal ports. Its three port
+// aliases, one disabled, one with no members and one unreadable, are named
+// only by the rows of sansEmptyAliasPortCases.
 const sansPortLiteralConfig = `<?xml version="1.0"?>
 <opnsense>
   <system>
@@ -262,6 +264,22 @@ const sansPortLiteralConfig = `<?xml version="1.0"?>
   <filter/>
   <OPNsense>
     <Firewall>
+      <Alias version="1.0.1">
+        <aliases>
+          <alias uuid="a0000000-0000-4000-8000-000000000001">
+            <enabled>0</enabled><name>Off</name><type>port</type>
+            <content>23</content><description>disabled</description>
+          </alias>
+          <alias uuid="a0000000-0000-4000-8000-000000000002">
+            <enabled>1</enabled><name>Empty</name><type>port</type>
+            <content></content><description>no members</description>
+          </alias>
+          <alias uuid="a0000000-0000-4000-8000-000000000003">
+            <enabled>1</enabled><name>Odd</name><type>port</type>
+            <content>no-such-service</content><description>unreadable</description>
+          </alias>
+        </aliases>
+      </Alias>
       <Filter version="1.0.6">
         <rules>
           <rule uuid="b0000000-0000-4000-8000-000000000001">
@@ -293,7 +311,7 @@ type sansLiteralRule struct {
 func TestSANSChecks_LiteralPorts(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range sansLiteralPortCases() {
+	for _, tt := range append(sansLiteralPortCases(), sansEmptyAliasPortCases()...) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -432,6 +450,40 @@ func sansLiteralPortCases() []sansLiteralPortCase {
 			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
 			b:    sansLiteralRule{dst: "any", port: "syslog"},
 			want: map[string]string{"SANS-FW-015": statusUnknown, "SANS-FW-017": statusUnknown},
+		},
+	}
+}
+
+// sansEmptyAliasPortCases lists rows where one endpoint names a port alias
+// that matches no port, so the rule matches no traffic and bears on no
+// control, whatever the other endpoint holds. An alias known only in part
+// does not take a rule out.
+func sansEmptyAliasPortCases() []sansLiteralPortCase {
+	return []sansLiteralPortCase{
+		{
+			name: "telnet as the source port beside a disabled destination alias",
+			a:    sansLiteralRule{iface: "wan", sport: "23", dst: "any", port: "Off"},
+			want: map[string]string{},
+		},
+		{
+			name: "telnet beside a disabled source alias",
+			a:    sansLiteralRule{iface: "wan", sport: "Off", dst: "any", port: "23"},
+			want: map[string]string{},
+		},
+		{
+			name: "SMTP beside a source alias with no members",
+			a:    sansLiteralRule{sport: "Empty", dst: "any", port: "25"},
+			want: map[string]string{},
+		},
+		{
+			name: "DNS on WAN beside a disabled source alias",
+			a:    sansLiteralRule{iface: "wan", sport: "Off", dst: "any", port: "53"},
+			want: map[string]string{},
+		},
+		{
+			name: "an unreadable source alias does not take the rule out",
+			a:    sansLiteralRule{iface: "wan", sport: "Odd", dst: "any", port: "23"},
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
 		},
 	}
 }

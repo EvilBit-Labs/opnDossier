@@ -130,6 +130,17 @@ func endpointPortMatch(
 	}
 }
 
+// matchesNoPort reports whether either endpoint of r resolves to a port set
+// read in full that holds no port, as a disabled port alias or one with no
+// members does. Such a rule matches no traffic: a disabled alias loads as a
+// port that matches nothing (filter.inc L607-L611), and the ruleset skips a
+// rule whose port alias has no content (Rule.php L113-L123). A set known only in part
+// is never treated this way.
+func matchesNoPort(r common.FirewallRule, objects common.NamedObjects) bool {
+	return analysis.EndpointPorts(r.Source, objects).MatchesNothing() ||
+		analysis.EndpointPorts(r.Destination, objects).MatchesNothing()
+}
+
 // checkDefaultDeny verifies the firewall has a default deny policy.
 // If no rules exist, OPNsense/pfSense default deny is assumed compliant.
 // If pass rules exist without any block/reject rules, it fails.
@@ -434,7 +445,7 @@ func (sp *Plugin) checkDangerousPorts(device *common.CommonDevice) checkResult {
 	unresolved := false
 
 	for _, r := range enabledPassRules(device) {
-		if !ruleAppliesToWAN(r, device.Interfaces) {
+		if !ruleAppliesToWAN(r, device.Interfaces) || matchesNoPort(r, device.NamedObjects) {
 			continue
 		}
 
@@ -472,6 +483,10 @@ func (sp *Plugin) checkSecureRemoteAccess(device *common.CommonDevice) checkResu
 	unresolved := false
 
 	for _, r := range enabledPassRules(device) {
+		if matchesNoPort(r, device.NamedObjects) {
+			continue
+		}
+
 		switch endpointPortMatch(r.Destination, device.NamedObjects, fullRangeIsAnyPort, telnetPort) {
 		case portNamed:
 			return checkResult{Result: false, Known: true}
@@ -532,6 +547,10 @@ func (sp *Plugin) checkMailRestriction(device *common.CommonDevice) checkResult 
 	unresolvedOpen := false
 
 	for _, r := range enabledPassRules(device) {
+		if matchesNoPort(r, device.NamedObjects) {
+			continue
+		}
+
 		switch endpointPortMatch(r.Destination, device.NamedObjects, fullRangeIsAnyPort, smtpPorts...) {
 		case portNamed:
 			hasSMTPRules = true
@@ -596,7 +615,8 @@ func (sp *Plugin) checkDNSZoneTransfer(device *common.CommonDevice) checkResult 
 		if !ruleAppliesToWAN(r, device.Interfaces) {
 			continue
 		}
-		if !strings.EqualFold(r.Protocol, "tcp") || !analysis.IsAnyEndpoint(r.Source) {
+		if !strings.EqualFold(r.Protocol, "tcp") || !analysis.IsAnyEndpoint(r.Source) ||
+			matchesNoPort(r, device.NamedObjects) {
 			continue
 		}
 

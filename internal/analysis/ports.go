@@ -262,6 +262,13 @@ func (s PortSet) Complete() bool {
 	return s.values.complete()
 }
 
+// MatchesNothing reports whether the set was read in full and holds no port,
+// as a disabled port alias or one with no members does. A rule with such an
+// endpoint matches no traffic.
+func (s PortSet) MatchesNothing() bool {
+	return s.values.matchesNothing()
+}
+
 // CoversEveryPort reports whether the set matches every port: the any-port
 // wildcard, or ranges that span 1 to 65535. pfSense writes no port statement
 // at all for a rule to 1-65535.
