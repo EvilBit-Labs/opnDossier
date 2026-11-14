@@ -45,7 +45,7 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 | Cron jobs               | Supported |     Supported     |
 | Trust settings          | Supported | Not yet supported |
 | Kea DHCP                | Supported | Not yet supported |
-| dnsmasq DHCP            | Supported |  Not applicable   |
+| dnsmasq DHCP            | Supported |   Not supported   |
 | Revision history        | Supported |     Supported     |
 | Theme settings          | Supported | Not yet supported |
 
@@ -53,7 +53,7 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 
 - **Supported** — opnDossier currently includes this area in parsing, reporting, and related analysis when it exists in the source configuration.
 - **Not yet supported** — opnDossier does not currently include this area for that platform.
-- **Not applicable** -- the platform has no such feature. pfSense's DNS Forwarder runs dnsmasq for DNS only.
+- **Not supported** -- opnDossier does not read this area for that platform and does not warn when it is present. pfSense's DNS Forwarder runs dnsmasq and its settings page offers no DHCP ranges, but its custom options (`<dnsmasq><custom_options>`, base64 encoded) are passed to dnsmasq as command-line options, so a `dhcp-range` there makes it serve DHCP. The pfSense parser reads neither the Forwarder's `<dnsmasq>` element nor those options, so DHCP served that way does not appear in a report.
 
 ## What this means in practice
 
