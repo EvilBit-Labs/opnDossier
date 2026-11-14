@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"fmt"
+	"maps"
 	"net/netip"
 	"slices"
 	"strings"
@@ -126,61 +127,63 @@ func convertDnsmasqDomainOverrides(overrides []schema.DomainOverride) []common.D
 	return result
 }
 
+// dnsmasqScopeNets holds what a dnsmasq scope's ranges say about the IPv6
+// addresses it serves, which the scope model has no field for.
+type dnsmasqScopeNets struct {
+	// v6 holds the IPv6 networks of the scope: its interface's static
+	// network, the constructor interface's, and the prefix of a range given
+	// as a full address.
+	v6 []netip.Prefix
+	// constructed is set when a range is built from an interface's prefix,
+	// where a reservation holding only a host part (::50) applies.
+	constructed bool
+}
+
 // convertDnsmasqDHCPScopes turns the dnsmasq <dhcp_ranges> into DHCP scopes,
 // one per interface as for ISC, with the first IPv4 range in Range and the
-// first IPv6 range in RangeV6. A range that names no interface serves every
-// interface dnsmasq listens on and gets a scope with an empty Interface.
+// first IPv6 range in RangeV6.
+//
+// A range that names no interface (Any) is written without an interface tag,
+// and dnsmasq serves it on the interface whose network holds it, or whose
+// prefix its constructor names. Such a range gets the scope of that
+// interface. One that no interface's network holds serves no interface the
+// config describes; it keeps a scope of its own with an empty Interface.
 //
 // A scope is enabled when dnsmasq is, unless dnsmasq does not serve DHCP on
 // the interface: it is listed under <dhcp><no_interface>, or <interface>
 // limits dnsmasq to other interfaces.
 //
 // Some entries hand out no pool. A static range serves only the
-// reservations, so its scope keeps an empty range. An IPv6 entry with no end
-// address hands out no addresses either (the range dialog's help; Dnsmasq.php
-// requires an end address only for an IPv4 range that is not static). With
-// ra-stateless in its RA mode it still answers stateless DHCPv6, so its scope
-// is kept with no RangeV6. With any other mode, or none, it only sends router
-// advertisements, which is not DHCP, and it makes no scope.
+// reservations, so its scope keeps an empty range. An IPv6 range with
+// ra-stateless in its RA mode answers stateless DHCPv6 and allocates no
+// address, with or without an end address (dnsmasq skips such a context when
+// it allocates), so its scope is kept with no RangeV6. Any other IPv6 entry
+// with no end address hands out no addresses either (the range dialog's help;
+// Dnsmasq.php requires an end address only for an IPv4 range that is not
+// static): it only sends router advertisements, which is not DHCP, and it
+// makes no scope. An end address makes dnsmasq serve DHCP from the range
+// whatever else the RA mode holds, ra-only included.
 func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []common.DHCPScope {
 	dm := doc.DNSMasquerade
 	if len(dm.DHCPRanges) == 0 {
 		return nil
 	}
 
-	listen := csvSet(dm.Interface)
-	var noDHCP map[string]struct{}
-	if dm.DHCP != nil {
-		noDHCP = csvSet(dm.DHCP.NoInterface)
-	}
-	servesOn := func(iface string) bool {
-		if _, excluded := noDHCP[iface]; excluded && iface != "" {
-			return false
-		}
-		if len(listen) == 0 || iface == "" {
-			return true
-		}
-		_, ok := listen[iface]
-		return ok
-	}
-
-	var scopes []common.DHCPScope
+	servesOn := dnsmasqServesOn(dm)
+	var (
+		scopes []common.DHCPScope
+		nets   []dnsmasqScopeNets
+	)
 	index := make(map[string]int)
-	for _, r := range dm.DHCPRanges {
+	for n, r := range dm.DHCPRanges {
 		if r.IsPlaceholder() {
 			continue
 		}
-		start := strings.TrimSpace(r.StartAddr)
-		end := strings.TrimSpace(r.EndAddr)
-		_, static := csvSet(r.Mode)["static"]
-		// The template tells the families apart by a colon in start_addr.
-		v6 := strings.Contains(start, ":")
-		noPool := static
-		if v6 && end == "" && !static {
-			if _, stateless := csvSet(r.RAMode)["ra-stateless"]; !stateless {
-				continue
-			}
-			noPool = true
+		start, end := strings.TrimSpace(r.StartAddr), strings.TrimSpace(r.EndAddr)
+		kind := classifyDnsmasqRange(r, start, end)
+		v6 := kind.v6
+		if !kind.serves {
+			continue
 		}
 		if start == "" {
 			c.addWarning("dnsmasq.dhcp_ranges.start_addr", r.UUID,
@@ -189,20 +192,32 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 			continue
 		}
 
-		iface := strings.TrimSpace(r.Interface)
-		i, ok := index[iface]
+		iface := dnsmasqRangeInterface(doc, r, start)
+		key := iface
+		if key == "" {
+			// No interface serves it; keep it apart from every other range.
+			key = fmt.Sprintf("\x00%d", n)
+		}
+		i, ok := index[key]
 		if !ok {
 			i = len(scopes)
-			index[iface] = i
+			index[key] = i
 			scopes = append(scopes, common.DHCPScope{
 				Interface:   iface,
 				Source:      common.DHCPSourceDnsmasq,
 				Enabled:     bool(dm.Enable) && servesOn(iface),
 				Description: r.Description,
 			})
+			nets = append(nets, dnsmasqScopeNets{})
+			if p, ok := interfaceNetwork6(doc, iface); ok {
+				nets[i].v6 = append(nets[i].v6, p)
+			}
+		}
+		if v6 {
+			addRangeNetworks6(doc, &nets[i], r, start)
 		}
 		scope := &scopes[i]
-		if noPool {
+		if kind.noPool {
 			continue
 		}
 
@@ -224,9 +239,104 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 	for i := range scopes {
 		applyDnsmasqOptions(&scopes[i], options)
 	}
-	c.attachDnsmasqReservations(doc, scopes)
+	c.attachDnsmasqReservations(doc, scopes, nets)
 
 	return scopes
+}
+
+// dnsmasqServesOn returns a test for whether dnsmasq serves DHCP on an
+// interface: it is not listed under <dhcp><no_interface>, and <interface>,
+// when set, includes it. A range that names no interface passes.
+func dnsmasqServesOn(dm schema.DNSMasq) func(string) bool {
+	listen := csvSet(dm.Interface)
+	var noDHCP map[string]struct{}
+	if dm.DHCP != nil {
+		noDHCP = csvSet(dm.DHCP.NoInterface)
+	}
+
+	return func(iface string) bool {
+		if iface == "" {
+			return true
+		}
+		if _, excluded := noDHCP[iface]; excluded {
+			return false
+		}
+		if len(listen) == 0 {
+			return true
+		}
+		_, ok := listen[iface]
+		return ok
+	}
+}
+
+// dnsmasqRangeKind says what dnsmasq does with a range.
+type dnsmasqRangeKind struct {
+	// v6 is set for an IPv6 range; the template tells the families apart by
+	// a colon in start_addr.
+	v6 bool
+	// noPool is set when the range allocates no address.
+	noPool bool
+	// serves is set when dnsmasq serves DHCP from the range at all.
+	serves bool
+}
+
+// classifyDnsmasqRange classifies a range by its addresses and modes.
+func classifyDnsmasqRange(r schema.DNSMasqDHCPRange, start, end string) dnsmasqRangeKind {
+	_, static := csvSet(r.Mode)["static"]
+	_, stateless := csvSet(r.RAMode)["ra-stateless"]
+	v6 := strings.Contains(start, ":")
+	if v6 && end == "" && !static && !stateless {
+		return dnsmasqRangeKind{v6: true}
+	}
+
+	return dnsmasqRangeKind{v6: v6, noPool: static || (v6 && stateless), serves: true}
+}
+
+// dnsmasqRangeInterface returns the interface a range serves: the one it
+// names, else the one its constructor names, else the one whose network
+// holds its start address, or "" when none does.
+func dnsmasqRangeInterface(doc *schema.OpnSenseDocument, r schema.DNSMasqDHCPRange, start string) string {
+	if iface := strings.TrimSpace(r.Interface); iface != "" {
+		return iface
+	}
+	if constructor := strings.TrimSpace(r.Constructor); constructor != "" {
+		return constructor
+	}
+	addr, err := netip.ParseAddr(start)
+	if err != nil {
+		return ""
+	}
+	for _, name := range slices.Sorted(maps.Keys(doc.Interfaces.Items)) {
+		if interfaceNetworkHolds(doc, name, addr) {
+			return name
+		}
+	}
+
+	return ""
+}
+
+// addRangeNetworks6 records the IPv6 networks an IPv6 range serves: the
+// prefix of its constructor interface, or the prefix_len network (64 when
+// unset, as the template writes it) around a start given in full.
+func addRangeNetworks6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets, r schema.DNSMasqDHCPRange, start string) {
+	if constructor := strings.TrimSpace(r.Constructor); constructor != "" {
+		nets.constructed = true
+		if p, ok := interfaceNetwork6(doc, constructor); ok {
+			nets.v6 = append(nets.v6, p)
+		}
+		return
+	}
+	bits := strings.TrimSpace(r.PrefixLen)
+	if bits == "" {
+		bits = "64"
+	}
+	if strings.HasPrefix(start, "::") {
+		// A host part with no constructor names no network.
+		return
+	}
+	if p, err := netip.ParsePrefix(start + "/" + bits); err == nil && p.Addr().Is6() {
+		nets.v6 = append(nets.v6, p.Masked())
+	}
 }
 
 // mappableDnsmasqOptions returns the dhcp_options entries a DHCP scope can
@@ -298,29 +408,25 @@ func applyDnsmasqOptions(scope *common.DHCPScope, options []schema.DNSMasqDHCPOp
 // for an entry with a client id, or with a hardware address holding a colon.
 //
 // A host entry names no interface; dnsmasq applies it on the range whose
-// network holds its address. The lease goes to the scope whose interface
-// network holds the entry's first IPv4 address, or to the scope that names
-// no interface when the address lies in some interface's network. An entry
-// with no IPv4 address goes to the only scope with an IPv4 range, or to the
-// scope that names no interface. An entry with no home is reported rather
-// than dropped silently.
-func (c *converter) attachDnsmasqReservations(doc *schema.OpnSenseDocument, scopes []common.DHCPScope) {
+// subnet holds its address (dnsmasq(8), --dhcp-host). The lease goes to the
+// first scope that holds one of the entry's addresses, see dnsmasqLeaseTargets.
+// An entry with no address goes to the only scope with an IPv4 range. An
+// entry with no home is reported rather than dropped silently.
+func (c *converter) attachDnsmasqReservations(
+	doc *schema.OpnSenseDocument,
+	scopes []common.DHCPScope,
+	nets []dnsmasqScopeNets,
+) {
 	fallback := -1
-	v4Scopes := 0
 	for i := range scopes {
-		if scopes[i].Range.From != "" {
-			v4Scopes++
-			fallback = i
+		if scopes[i].Range.From == "" {
+			continue
 		}
-	}
-	if v4Scopes != 1 {
-		fallback = -1
-	}
-	for i := range scopes {
-		if scopes[i].Interface == "" {
-			fallback = i
+		if fallback >= 0 {
+			fallback = -1
 			break
 		}
+		fallback = i
 	}
 
 	for _, h := range doc.DNSMasquerade.Hosts {
@@ -340,44 +446,93 @@ func (c *converter) attachDnsmasqReservations(doc *schema.OpnSenseDocument, scop
 			continue
 		}
 
-		addr, hasV4 := firstIPv4(h.IP)
-		var target int
-		if hasV4 {
-			target = dnsmasqScopeFor(doc, scopes, addr)
-		} else {
-			target = fallback
-		}
-		if target < 0 {
+		targets := dnsmasqLeaseTargets(doc, scopes, nets, h.IP, fallback)
+		if len(targets) == 0 {
 			c.addWarning("dnsmasq.hosts", label,
-				"dnsmasq DHCP reservation matches no DHCP range's interface network; not attached to a scope",
+				"dnsmasq DHCP reservation matches no DHCP range's network; not attached to a scope",
 				common.SeverityLow)
 			continue
 		}
 
-		scopes[target].StaticLeases = append(scopes[target].StaticLeases, common.DHCPStaticLease{
-			MAC:         hwaddr,
-			CID:         clientID,
-			IPAddress:   strings.TrimSpace(h.IP),
-			Hostname:    strings.TrimSpace(h.Host),
-			Description: h.Descr,
-		})
+		for _, target := range targets {
+			scopes[target].StaticLeases = append(scopes[target].StaticLeases, common.DHCPStaticLease{
+				MAC:         hwaddr,
+				CID:         clientID,
+				IPAddress:   strings.TrimSpace(h.IP),
+				Hostname:    strings.TrimSpace(h.Host),
+				Description: h.Descr,
+			})
+		}
 	}
 }
 
-// firstIPv4 returns the first IPv4 address in a comma-separated list.
-func firstIPv4(ips string) (netip.Addr, bool) {
+// dnsmasqLeaseTargets returns the indexes of the scopes a reservation with
+// the comma-separated addresses ips belongs to. An IPv4 address goes to the
+// scope whose interface network holds it, and a full IPv6 address to the
+// scope whose IPv6 networks hold it; the first address that finds a scope
+// decides. An address holding only a host part (::50) applies in every range
+// built by a constructor (dnsmasq(8), --dhcp-host), so it goes to each such
+// scope. Only an entry with no address at all takes the fallback.
+func dnsmasqLeaseTargets(
+	doc *schema.OpnSenseDocument,
+	scopes []common.DHCPScope,
+	nets []dnsmasqScopeNets,
+	ips string,
+	fallback int,
+) []int {
+	addresses, partial := false, false
 	for entry := range strings.SplitSeq(ips, ",") {
-		if a, err := netip.ParseAddr(strings.TrimSpace(entry)); err == nil && a.Is4() {
-			return a, true
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		addresses = true
+		addr, err := netip.ParseAddr(entry)
+		switch {
+		case err != nil:
+			continue
+		case addr.Is4():
+			for i := range scopes {
+				if interfaceNetworkHolds(doc, scopes[i].Interface, addr) {
+					return []int{i}
+				}
+			}
+		case strings.HasPrefix(entry, "::"):
+			partial = true
+		default:
+			for i := range nets {
+				if slices.ContainsFunc(nets[i].v6, func(p netip.Prefix) bool { return p.Contains(addr) }) {
+					return []int{i}
+				}
+			}
 		}
 	}
 
-	return netip.Addr{}, false
+	if !addresses {
+		if fallback >= 0 {
+			return []int{fallback}
+		}
+		return nil
+	}
+	var targets []int
+	if partial {
+		for i := range nets {
+			if nets[i].constructed {
+				targets = append(targets, i)
+			}
+		}
+	}
+
+	return targets
 }
 
-// interfaceNetworkHolds reports whether the IPv4 network of the named
-// interface holds addr.
+// interfaceNetworkHolds reports whether the network of the named interface
+// in addr's family holds addr.
 func interfaceNetworkHolds(doc *schema.OpnSenseDocument, name string, addr netip.Addr) bool {
+	if addr.Is6() {
+		prefix, ok := interfaceNetwork6(doc, name)
+		return ok && prefix.Contains(addr)
+	}
 	iface, ok := doc.Interfaces.Items[name]
 	if !ok {
 		return false
@@ -387,30 +542,19 @@ func interfaceNetworkHolds(doc *schema.OpnSenseDocument, name string, addr netip
 	return err == nil && prefix.Contains(addr)
 }
 
-// dnsmasqScopeFor returns the index of the scope that serves addr, or -1: the
-// scope whose interface network holds it, else the scope that names no
-// interface when some interface's network holds it.
-func dnsmasqScopeFor(doc *schema.OpnSenseDocument, scopes []common.DHCPScope, addr netip.Addr) int {
-	anyScope := -1
-	for i := range scopes {
-		if scopes[i].Interface == "" {
-			anyScope = i
-			continue
-		}
-		if interfaceNetworkHolds(doc, scopes[i].Interface, addr) {
-			return i
-		}
+// interfaceNetwork6 returns the static IPv6 network of the named interface.
+// An interface whose ipaddrv6 is a mode such as track6 or dhcp6 has none.
+func interfaceNetwork6(doc *schema.OpnSenseDocument, name string) (netip.Prefix, bool) {
+	iface, ok := doc.Interfaces.Items[name]
+	if !ok {
+		return netip.Prefix{}, false
 	}
-	if anyScope < 0 {
-		return -1
-	}
-	for name := range doc.Interfaces.Items {
-		if interfaceNetworkHolds(doc, name, addr) {
-			return anyScope
-		}
+	prefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddrv6) + "/" + strings.TrimSpace(iface.Subnetv6))
+	if err != nil || !prefix.Addr().Is6() {
+		return netip.Prefix{}, false
 	}
 
-	return -1
+	return prefix.Masked(), true
 }
 
 // csvSet returns the trimmed, non-empty members of a comma-separated list.

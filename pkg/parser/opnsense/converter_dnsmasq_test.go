@@ -24,7 +24,7 @@ const dnsmasqInterfaces = `<interfaces>
     <wan><enable>1</enable><if>vtnet0</if><ipaddr>dhcp</ipaddr></wan>
     <lan><enable>1</enable><if>vtnet1</if><ipaddr>192.168.1.1</ipaddr><subnet>24</subnet></lan>
     <opt1><enable>1</enable><if>vtnet2</if><ipaddr>10.0.1.1</ipaddr><subnet>24</subnet></opt1>
-    <opt2><enable>1</enable><if>vtnet3</if><ipaddr>10.0.2.1</ipaddr><subnet>24</subnet></opt2>
+    <opt2><enable>1</enable><if>vtnet3</if><ipaddr>10.0.2.1</ipaddr><subnet>24</subnet><ipaddrv6>fd00:2::1</ipaddrv6><subnetv6>64</subnetv6></opt2>
   </interfaces>`
 
 // dnsmasqFactoryDefault is the <dnsmasq> element of the 26.7.9
@@ -221,8 +221,9 @@ func TestConverter_Dnsmasq_ScopeEnabled(t *testing.T) {
 	}
 }
 
-// TestConverter_Dnsmasq_RangeWithoutInterface keeps a range that serves any
-// interface, and folds a second range of one family into a warning.
+// TestConverter_Dnsmasq_RangeWithoutInterface gives a range that names no
+// interface the scope of the interface whose network holds it, and folds a
+// second range of one family into a warning.
 func TestConverter_Dnsmasq_RangeWithoutInterface(t *testing.T) {
 	t.Parallel()
 
@@ -233,7 +234,7 @@ func TestConverter_Dnsmasq_RangeWithoutInterface(t *testing.T) {
   </dnsmasq>`, "")
 
 	require.Len(t, device.DHCP, 1)
-	assert.Empty(t, device.DHCP[0].Interface)
+	assert.Equal(t, "lan", device.DHCP[0].Interface)
 	assert.True(t, device.DHCP[0].Enabled)
 	assert.Equal(t, "192.168.1.100", device.DHCP[0].Range.From)
 
@@ -820,4 +821,97 @@ func TestConverter_Dnsmasq_DiffLeaseWithMACAndClientID(t *testing.T) {
 	changes := diff.NewAnalyzer().CompareDHCP(oldDevice.DHCP, newDevice.DHCP)
 	require.Len(t, changes, 1)
 	assert.Equal(t, "dhcpd.dnsmasq.lan.staticmap[aa:bb:cc:dd:ee:40].ipaddr", changes[0].Path)
+}
+
+// TestConverter_Dnsmasq_AnyRangesResolveToTheirInterface gives each range
+// that names no interface the scope of the interface whose network holds it,
+// so the scopes reach the checks per interface. Ranges no interface holds keep
+// a scope each.
+func TestConverter_Dnsmasq_AnyRangesResolveToTheirInterface(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
+    <dhcp_ranges><start_addr>192.168.1.100</start_addr><end_addr>192.168.1.199</end_addr></dhcp_ranges>
+    <dhcp_ranges><start_addr>10.0.1.100</start_addr><end_addr>10.0.1.199</end_addr></dhcp_ranges>
+    <dhcp_ranges><start_addr>10.0.2.100</start_addr><end_addr>10.0.2.199</end_addr></dhcp_ranges>
+  </dnsmasq>`, "")
+
+	assert.Empty(t, dnsmasqWarnings(warnings))
+	require.Len(t, device.DHCP, 3)
+	for i, want := range []string{"lan", "opt1", "opt2"} {
+		assert.Equal(t, want, device.DHCP[i].Interface)
+		assert.True(t, device.DHCP[i].Enabled, want)
+	}
+	assert.Equal(t, common.DHCPRange{From: "10.0.2.100", To: "10.0.2.199"}, device.DHCP[2].Range)
+	for _, unused := range analysis.DetectUnusedInterfaces(device) {
+		assert.NotContains(t, []string{"opt1", "opt2"}, unused.InterfaceName)
+	}
+	stigFindings, _, err := stig.NewPlugin().RunChecks(device)
+	require.NoError(t, err)
+	assert.True(t, hasReference(stigFindings, "V-206690"), "three interfaces get DHCP")
+
+	device, warnings = parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
+    <dhcp_ranges><start_addr>172.16.0.100</start_addr><end_addr>172.16.0.199</end_addr></dhcp_ranges>
+    <dhcp_ranges><start_addr>172.17.0.100</start_addr><end_addr>172.17.0.199</end_addr></dhcp_ranges>
+  </dnsmasq>`, "")
+
+	assert.Empty(t, dnsmasqWarnings(warnings), "distinct ranges are not folded together")
+	require.Len(t, device.DHCP, 2)
+	assert.Empty(t, device.DHCP[0].Interface)
+	assert.Equal(t, "172.16.0.100", device.DHCP[0].Range.From)
+	assert.Empty(t, device.DHCP[1].Interface)
+	assert.Equal(t, "172.17.0.100", device.DHCP[1].Range.From)
+}
+
+// TestConverter_Dnsmasq_RAModeWithEndAddress classifies an IPv6 range with an
+// end address by what dnsmasq does with it: ra-stateless allocates no address
+// and ra-only, which only adds router advertisements, still serves the range.
+func TestConverter_Dnsmasq_RAModeWithEndAddress(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
+    <dhcp_ranges><interface>opt1</interface><start_addr>::1000</start_addr><end_addr>::2000</end_addr><constructor>opt1</constructor><ra_mode>ra-only</ra_mode></dhcp_ranges>
+    <dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr><end_addr>::2000</end_addr><constructor>opt2</constructor><ra_mode>ra-stateless</ra_mode></dhcp_ranges>
+  </dnsmasq>`, "")
+
+	assert.Empty(t, dnsmasqWarnings(warnings))
+	require.Len(t, device.DHCP, 2)
+	assert.Equal(t, "opt1", device.DHCP[0].Interface)
+	assert.Equal(t, &common.DHCPRange{From: "::1000", To: "::2000"}, device.DHCP[0].RangeV6)
+	assert.Equal(t, "opt2", device.DHCP[1].Interface)
+	assert.True(t, device.DHCP[1].Enabled)
+	assert.Nil(t, device.DHCP[1].RangeV6, "a stateless DHCPv6 service hands out no addresses")
+}
+
+// TestConverter_Dnsmasq_IPv6Reservations places a reservation with only IPv6
+// addresses by those addresses, not on the only IPv4 scope.
+func TestConverter_Dnsmasq_IPv6Reservations(t *testing.T) {
+	t.Parallel()
+
+	ranges := `<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr>` +
+		`<end_addr>192.168.1.199</end_addr></dhcp_ranges>` +
+		`<dhcp_ranges><interface>opt1</interface><start_addr>fd00:1::100</start_addr>` +
+		`<end_addr>fd00:1::1ff</end_addr></dhcp_ranges>` +
+		`<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr>` +
+		`<end_addr>::2000</end_addr><constructor>opt2</constructor></dhcp_ranges>`
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>`+ranges+
+		`<hosts><host>v6a</host><ip>fd00:1::50</ip><hwaddr>aa:bb:cc:dd:ee:50</hwaddr></hosts>`+
+		`<hosts><host>v6b</host><ip>fd00:2::50</ip><hwaddr>aa:bb:cc:dd:ee:51</hwaddr></hosts>`+
+		`<hosts><host>v6c</host><ip>::60</ip><hwaddr>aa:bb:cc:dd:ee:52</hwaddr></hosts>`+
+		`<hosts><host>v6d</host><ip>fd00:9::50</ip><hwaddr>aa:bb:cc:dd:ee:53</hwaddr></hosts>`+
+		`</dnsmasq>`, "")
+
+	require.Len(t, device.DHCP, 3)
+	assert.Empty(t, device.DHCP[0].StaticLeases, "the IPv4 scope takes no IPv6-only reservation")
+	assert.Equal(t, []common.DHCPStaticLease{{MAC: "aa:bb:cc:dd:ee:50", IPAddress: "fd00:1::50", Hostname: "v6a"}},
+		device.DHCP[1].StaticLeases)
+	assert.Equal(t, []common.DHCPStaticLease{
+		{MAC: "aa:bb:cc:dd:ee:51", IPAddress: "fd00:2::50", Hostname: "v6b"},
+		{MAC: "aa:bb:cc:dd:ee:52", IPAddress: "::60", Hostname: "v6c"},
+	}, device.DHCP[2].StaticLeases)
+
+	got := dnsmasqWarnings(warnings)
+	require.Len(t, got, 1)
+	assert.Equal(t, "v6d", got[0].Value)
 }
