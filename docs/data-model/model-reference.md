@@ -365,14 +365,14 @@ Remote logging and local log retention. On OPNsense configs that carry the Syslo
 
 ### SyslogDestination
 
-| Field                              | Type       | JSON Key                              | Description                                      |
-| ---------------------------------- | ---------- | ------------------------------------- | ------------------------------------------------ |
-| `Enabled`                          | `bool`     | `syslog.destinations[].enabled`       | `<enabled>` is `1`                               |
-| `Transport`                        | `string`   | `syslog.destinations[].transport`     | `udp4`, `tcp4`, `udp6`, `tcp6`, `tls4` or `tls6` |
-| `Hostname`                         | `string`   | `syslog.destinations[].hostname`      | Receiving server                                 |
-| `Port`                             | `string`   | `syslog.destinations[].port`          | Receiving port                                   |
-| `Programs`, `Levels`, `Facilities` | `[]string` | `syslog.destinations[].programs`, ... | Filters; empty forwards every message            |
-| `Description`                      | `string`   | `syslog.destinations[].description`   | Operator's label                                 |
+| Field                              | Type       | JSON Key                              | Description                                                                                             |
+| ---------------------------------- | ---------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `Enabled`                          | `bool`     | `syslog.destinations[].enabled`       | `<enabled>` is `1`                                                                                      |
+| `Transport`                        | `string`   | `syslog.destinations[].transport`     | `udp4`, `tcp4`, `udp6`, `tcp6`, `tls4` or `tls6`                                                        |
+| `Hostname`                         | `string`   | `syslog.destinations[].hostname`      | Receiving server                                                                                        |
+| `Port`                             | `string`   | `syslog.destinations[].port`          | Receiving port                                                                                          |
+| `Programs`, `Levels`, `Facilities` | `[]string` | `syslog.destinations[].programs`, ... | Filters; empty forwards every message; program entries are kept untrimmed, as the firewall matches them |
+| `Description`                      | `string`   | `syslog.destinations[].description`   | Operator's label                                                                                        |
 
 ---
 

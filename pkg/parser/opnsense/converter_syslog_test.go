@@ -266,6 +266,8 @@ func TestConverter_Syslog_DestinationFilters(t *testing.T) {
 		{name: "other program drops filterlog", program: "ntpd"},
 		{name: "program entry matches as a pattern", program: "ntpd,filter", want: flags{filter: true}},
 		{name: "invalid pattern admits nothing", program: "filter(log"},
+		{name: "space after the comma stays in the pattern", program: "ntpd, filterlog"},
+		{name: "empty entry matches every program", program: "ntpd,", want: flags{filter: true}},
 		{
 			name:    "program list maps each entry",
 			program: "dhcpd,openvpn",
@@ -361,6 +363,21 @@ func TestConverter_Syslog_LegacyRemoteWarning(t *testing.T) {
 			assert.Len(t, syslogWarnings(warnings), tt.want)
 		})
 	}
+}
+
+// TestConverter_Syslog_ProgramEntriesKeptAsWritten exports program filters the
+// way syslog-ng-destinations.conf splits them: untrimmed, so " filterlog" is
+// the pattern the firewall writes, and it does not match filterlog.
+func TestConverter_Syslog_ProgramEntriesKeptAsWritten(t *testing.T) {
+	t.Parallel()
+
+	sl, _ := parseSyslogConfig(t, syslogModel("1.0.3", "31",
+		syslogDestination("b2", "1", "udp4", "ntpd, filterlog", "", "", "10.0.0.50")))
+
+	require.Len(t, sl.Destinations, 1)
+	assert.Equal(t, []string{"ntpd", " filterlog"}, sl.Destinations[0].Programs)
+	assert.True(t, sl.Enabled)
+	assert.False(t, sl.FilterLogging)
 }
 
 // TestConverter_Syslog_FourDestinations keeps every forwarding target in

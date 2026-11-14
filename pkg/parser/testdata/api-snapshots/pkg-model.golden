@@ -2739,6 +2739,7 @@ type SyslogDestination struct {
 	// Port is the receiving port.
 	Port string `json:"port,omitempty" yaml:"port,omitempty"`
 	// Programs limits forwarding to these applications; empty forwards every one.
+	// Entries are kept as written, untrimmed, as the firewall's template uses them.
 	Programs []string `json:"programs,omitempty" yaml:"programs,omitempty"`
 	// Levels limits forwarding to these severities; empty forwards every one.
 	Levels []string `json:"levels,omitempty" yaml:"levels,omitempty"`

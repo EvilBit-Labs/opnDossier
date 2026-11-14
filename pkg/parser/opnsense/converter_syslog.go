@@ -281,7 +281,7 @@ func (c *converter) applySyslogDestinations(cfg *common.SyslogConfig, items []sc
 			Transport:   item.Transport,
 			Hostname:    item.Hostname,
 			Port:        item.Port,
-			Programs:    splitNonEmpty(item.Program, listSeparator),
+			Programs:    programEntries(item.Program),
 			Levels:      splitNonEmpty(item.Level, listSeparator),
 			Facilities:  splitNonEmpty(item.Facility, listSeparator),
 			Description: item.Description,
@@ -347,7 +347,7 @@ func applySyslogCoverage(cfg *common.SyslogConfig, d *schema.SyslogDestination) 
 	// The program names are those 19.7's legacy remote template filtered each
 	// category on. System and authentication events come from many programs,
 	// so no program list proves them.
-	for _, program := range splitNonEmpty(d.Program, listSeparator) {
+	for _, program := range programEntries(d.Program) {
 		switch program {
 		case "dhcpd", "dhcrelay":
 			cfg.DHCPLogging = true
@@ -383,9 +383,22 @@ func admitsFilterlog(d *schema.SyslogDestination) bool {
 		return true
 	}
 
-	return slices.ContainsFunc(splitNonEmpty(d.Program, listSeparator), func(entry string) bool {
+	return slices.ContainsFunc(programEntries(d.Program), func(entry string) bool {
 		pattern, err := regexp.Compile(entry)
 
 		return err == nil && pattern.MatchString(filterlogProgram)
 	})
+}
+
+// programEntries splits a destination's program filter the way
+// syslog-ng-destinations.conf does (19.7 to 26.7): on commas, with nothing
+// trimmed and no entry dropped, each entry becoming a program() pattern. An
+// entry " filterlog" therefore does not match filterlog, and an empty entry
+// matches every program.
+func programEntries(value string) []string {
+	if value == "" {
+		return nil
+	}
+
+	return strings.Split(value, listSeparator)
 }
