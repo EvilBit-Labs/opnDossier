@@ -1,12 +1,37 @@
 package opnsense
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
+
+// TestNetsnmpGeneral_CommunityNotSerialized pins the standards rule that a
+// credential in pkg/schema stays out of JSON and YAML: the community still
+// round-trips through XML, but a stray marshal of the DTO cannot carry it.
+func TestNetsnmpGeneral_CommunityNotSerialized(t *testing.T) {
+	t.Parallel()
+
+	const community = "c0mmunity-not-for-export"
+
+	general := NetsnmpGeneral{Enabled: "1", Community: community}
+
+	jsonOut, err := json.Marshal(general)
+	require.NoError(t, err)
+	assert.NotContains(t, string(jsonOut), community)
+
+	yamlOut, err := yaml.Marshal(general)
+	require.NoError(t, err)
+	assert.NotContains(t, string(yamlOut), community)
+
+	xmlOut, err := xml.Marshal(general)
+	require.NoError(t, err)
+	assert.Contains(t, string(xmlOut), community)
+}
 
 func TestNetsnmp_RoundTrip(t *testing.T) {
 	t.Parallel()
