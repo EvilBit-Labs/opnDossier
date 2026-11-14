@@ -652,7 +652,7 @@ func TestDetectShadowedRules_DestinationComplementWithUnreadablePort(t *testing.
 func TestSameInterfaceToken(t *testing.T) {
 	t.Parallel()
 
-	ifaces := []common.Interface{{Name: "wan"}, {Name: "lan"}, {Name: "opt1"}, {Name: "vlanip"}, {Name: "vlan"}}
+	ifaces := []common.Interface{{Name: "wan"}, {Name: "lan"}, {Name: "opt1"}, {Name: "vlanip"}, {Name: "vlan"}, {}}
 	ep := func(address string, negated bool) common.RuleEndpoint {
 		return common.RuleEndpoint{Address: address, Negated: negated}
 	}
@@ -672,6 +672,7 @@ func TestSameInterfaceToken(t *testing.T) {
 		{name: "two interface addresses", a: ep("lanip", true), b: ep("wanip", false)},
 		{name: "network against address", a: ep("lan", true), b: ep("lanip", false)},
 		{name: "undefined interface", a: ep("opt9ip", true), b: ep("opt9ip", false)},
+		{name: "interface with no name", a: ep("ip", true), b: ep("ip", false)},
 		{name: "hostname", a: ep("fw.example.org", true), b: ep("fw.example.org", false)},
 		{
 			name: "alias named like an interface address",
