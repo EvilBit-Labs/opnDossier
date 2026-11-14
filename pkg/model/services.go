@@ -180,6 +180,10 @@ type DHCPScope struct {
 	// or "dnsmasq").
 	// Empty string is treated as "isc" for backward compatibility.
 	Source DHCPSource `json:"source,omitempty" yaml:"source,omitempty"`
+	// Subnet is the network a scope that names no interface serves: the
+	// <subnet> of a Kea subnet, or the network dnsmasq assumes for a range no
+	// interface's network holds. It identifies such a scope in a diff.
+	Subnet string `json:"subnet,omitempty" yaml:"subnet,omitempty"`
 	// Description is a human-readable label for the scope (Kea subnets have descriptions; ISC scopes use the interface name).
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Enabled indicates whether the DHCP server is active on this interface.

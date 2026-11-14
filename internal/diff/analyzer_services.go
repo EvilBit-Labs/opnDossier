@@ -3,6 +3,7 @@ package diff
 import (
 	"fmt"
 	"maps"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -33,141 +34,240 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 		}}
 	}
 
+	pairs, res := pairDHCPScopes(old, newCfg)
+
 	var changes []Change
 
-	// Build maps keyed by server and interface. ISC and dnsmasq can both
-	// hold a scope for one interface, as on a box upgraded to dnsmasq that
-	// keeps its disabled ISC entry, and keying on the interface alone let
-	// the later scope hide the earlier one.
-	oldByIface := dhcpScopesByKey(old)
-	newByIface := dhcpScopesByKey(newCfg)
-
-	// Collect and sort names for deterministic output
-	oldNames := slices.Sorted(maps.Keys(oldByIface))
-	newNames := slices.Sorted(maps.Keys(newByIface))
-
 	// Find removed DHCP configs
-	for _, name := range oldNames {
-		if _, exists := newByIface[name]; !exists {
-			changes = append(changes, Change{
-				Type:        ChangeRemoved,
-				Section:     SectionDHCP,
-				Path:        "dhcpd." + name,
-				Description: "Removed DHCP server for " + name,
-			})
-		}
+	for _, oi := range sortedScopeIndexes(old, res.oldPaired) {
+		name := dhcpScopeName(old[oi])
+		changes = append(changes, Change{
+			Type:        ChangeRemoved,
+			Section:     SectionDHCP,
+			Path:        "dhcpd." + name,
+			Description: "Removed DHCP server for " + name,
+		})
 	}
 
 	// Find added DHCP configs
-	for _, name := range newNames {
-		if _, exists := oldByIface[name]; !exists {
-			changes = append(changes, Change{
-				Type:        ChangeAdded,
-				Section:     SectionDHCP,
-				Path:        "dhcpd." + name,
-				Description: "Added DHCP server for " + name,
-			})
-		}
+	for _, ni := range sortedScopeIndexes(newCfg, res.newPaired) {
+		name := dhcpScopeName(newCfg[ni])
+		changes = append(changes, Change{
+			Type:        ChangeAdded,
+			Section:     SectionDHCP,
+			Path:        "dhcpd." + name,
+			Description: "Added DHCP server for " + name,
+		})
 	}
 
 	// Compare existing DHCP configs - focus on static reservations
-	for _, name := range oldNames {
-		if _, exists := newByIface[name]; !exists {
-			continue
-		}
-
-		oldDHCP := oldByIface[name]
-		newDHCP := newByIface[name]
-
-		// Compare static reservations specifically
-		staticChanges := a.compareStaticMappings(name, oldDHCP.StaticLeases, newDHCP.StaticLeases)
-		changes = append(changes, staticChanges...)
-
-		// Compare DHCP range changes
-		if oldDHCP.Range.From != newDHCP.Range.From || oldDHCP.Range.To != newDHCP.Range.To {
-			changes = append(changes, Change{
-				Type:        ChangeModified,
-				Section:     SectionDHCP,
-				Path:        fmt.Sprintf("dhcpd.%s.range", name),
-				Description: "DHCP range changed for " + name,
-				OldValue:    fmt.Sprintf("%s - %s", oldDHCP.Range.From, oldDHCP.Range.To),
-				NewValue:    fmt.Sprintf("%s - %s", newDHCP.Range.From, newDHCP.Range.To),
-			})
-		}
-
-		// A dnsmasq scope also carries a DHCPv6 range.
-		if oldV6, newV6 := formatOptionalRange(oldDHCP.RangeV6), formatOptionalRange(newDHCP.RangeV6); oldV6 != newV6 {
-			changes = append(changes, Change{
-				Type:        ChangeModified,
-				Section:     SectionDHCP,
-				Path:        fmt.Sprintf("dhcpd.%s.rangeV6", name),
-				Description: "DHCPv6 range changed for " + name,
-				OldValue:    oldV6,
-				NewValue:    newV6,
-			})
-		}
-
-		// Compare enable state
-		if oldDHCP.Enabled != newDHCP.Enabled {
-			changes = append(changes, Change{
-				Type:        ChangeModified,
-				Section:     SectionDHCP,
-				Path:        fmt.Sprintf("dhcpd.%s.enabled", name),
-				Description: fmt.Sprintf("DHCP server %s state changed", name),
-				OldValue:    strconv.FormatBool(oldDHCP.Enabled),
-				NewValue:    strconv.FormatBool(newDHCP.Enabled),
-			})
-		}
+	for _, p := range pairs {
+		changes = append(changes, a.compareDHCPScope(p.name, old[p.oldIdx], newCfg[p.newIdx])...)
 	}
 
 	return changes
 }
 
-// dhcpScopesByKey maps each scope to the name dhcpScopeKey gives it. Scopes
-// that would share a name, such as two with no interface and the same range
-// start, are told apart by their order: the second gets the suffix #2.
-func dhcpScopesByKey(scopes []common.DHCPScope) map[string]common.DHCPScope {
-	byKey := make(map[string]common.DHCPScope, len(scopes))
-	seen := make(map[string]int, len(scopes))
-	for _, scope := range scopes {
-		key := dhcpScopeKey(scope)
-		seen[key]++
-		if n := seen[key]; n > 1 {
-			key += "#" + strconv.Itoa(n)
-		}
-		byKey[key] = scope
+// compareDHCPScope reports the changes between two paired scopes.
+func (a *Analyzer) compareDHCPScope(name string, oldDHCP, newDHCP common.DHCPScope) []Change {
+	// Compare static reservations specifically
+	changes := a.compareStaticMappings(name, oldDHCP.StaticLeases, newDHCP.StaticLeases)
+
+	// Compare DHCP range changes
+	if oldDHCP.Range.From != newDHCP.Range.From || oldDHCP.Range.To != newDHCP.Range.To {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionDHCP,
+			Path:        fmt.Sprintf("dhcpd.%s.range", name),
+			Description: "DHCP range changed for " + name,
+			OldValue:    fmt.Sprintf("%s - %s", oldDHCP.Range.From, oldDHCP.Range.To),
+			NewValue:    fmt.Sprintf("%s - %s", newDHCP.Range.From, newDHCP.Range.To),
+		})
 	}
 
-	return byKey
+	// A dnsmasq scope also carries a DHCPv6 range.
+	if oldV6, newV6 := formatOptionalRange(oldDHCP.RangeV6), formatOptionalRange(newDHCP.RangeV6); oldV6 != newV6 {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionDHCP,
+			Path:        fmt.Sprintf("dhcpd.%s.rangeV6", name),
+			Description: "DHCPv6 range changed for " + name,
+			OldValue:    oldV6,
+			NewValue:    newV6,
+		})
+	}
+
+	// Compare enable state
+	if oldDHCP.Enabled != newDHCP.Enabled {
+		changes = append(changes, Change{
+			Type:        ChangeModified,
+			Section:     SectionDHCP,
+			Path:        fmt.Sprintf("dhcpd.%s.enabled", name),
+			Description: fmt.Sprintf("DHCP server %s state changed", name),
+			OldValue:    strconv.FormatBool(oldDHCP.Enabled),
+			NewValue:    strconv.FormatBool(newDHCP.Enabled),
+		})
+	}
+
+	return changes
 }
 
-// dhcpScopeKey names a scope in diff paths and descriptions. An ISC scope
-// keeps the bare interface name; a scope of another server is prefixed with
-// the server, such as dnsmasq.lan.
-//
-// A scope with no interface, which every Kea subnet is and a dnsmasq range
-// no interface's network holds can be, is named by its server and the start
-// of its range instead, such as kea[10.0.1.100]: an empty interface would
-// give every such scope of one server the same name, and the later would
-// hide the earlier. A change to the range start reads as one scope removed
-// and another added.
-func dhcpScopeKey(scope common.DHCPScope) string {
-	server := string(scope.Source)
-	if server == "" {
-		server = string(common.DHCPSourceISC)
-	}
-	if scope.Interface == "" {
-		start := scope.Range.From
-		if start == "" && scope.RangeV6 != nil {
-			start = scope.RangeV6.From
-		}
-		return server + "[" + start + "]"
-	}
-	if server == string(common.DHCPSourceISC) {
-		return scope.Interface
+// dhcpScopePair is one old scope matched to one new scope, with the name the
+// changes between them are reported under.
+type dhcpScopePair struct {
+	name           string
+	oldIdx, newIdx int
+}
+
+// dhcpSimMinScore is the floor for calling two scopes without an identity the
+// same scope edited: at least one setting or reservation in common. Scopes
+// with nothing in common stay a removal and an addition.
+const dhcpSimMinScore = 1
+
+// dhcpSimDescription weights a matching description above any one other
+// field, as the operator's own label for the scope.
+const dhcpSimDescription = 2
+
+// pairDHCPScopes matches the scopes of two configs. A scope pairs first by its
+// identity (dhcpScopeKey), then by identical content, then by similarity, as
+// firewall and NAT rules do (itemPairer). An identity two scopes of one config
+// share identifies neither, so such scopes, and scopes with none, are paired
+// by what they hold rather than by their position. The pairs come back sorted
+// by name.
+func pairDHCPScopes(old, newCfg []common.DHCPScope) ([]dhcpScopePair, pairResult) {
+	shared := sharedScopeKeys(old)
+	maps.Copy(shared, sharedScopeKeys(newCfg))
+
+	pairer := itemPairer[common.DHCPScope]{
+		identity: func(scope common.DHCPScope) (string, bool) {
+			key, ok := dhcpScopeKey(scope)
+			if !ok {
+				return "", false
+			}
+			if _, dup := shared[key]; dup {
+				return "", false
+			}
+			return key, true
+		},
+		equal:      func(x, y common.DHCPScope) bool { return reflect.DeepEqual(x, y) },
+		similarity: dhcpScopeSimilarity,
+		minScore:   dhcpSimMinScore,
+		maxPairs:   simMaxPairs,
 	}
 
-	return server + "." + scope.Interface
+	var pairs []dhcpScopePair
+	res := pairer.pair(old, newCfg, func(oi, ni int) {
+		pairs = append(pairs, dhcpScopePair{name: dhcpScopeName(old[oi]), oldIdx: oi, newIdx: ni})
+	})
+	slices.SortStableFunc(pairs, func(x, y dhcpScopePair) int { return strings.Compare(x.name, y.name) })
+
+	return pairs, res
+}
+
+// sharedScopeKeys returns the identities more than one scope of a config has.
+func sharedScopeKeys(scopes []common.DHCPScope) map[string]struct{} {
+	seen := make(map[string]int, len(scopes))
+	for _, scope := range scopes {
+		if key, ok := dhcpScopeKey(scope); ok {
+			seen[key]++
+		}
+	}
+	shared := make(map[string]struct{})
+	for key, n := range seen {
+		if n > 1 {
+			shared[key] = struct{}{}
+		}
+	}
+
+	return shared
+}
+
+// sortedScopeIndexes returns the unpaired positions, ordered by scope name.
+func sortedScopeIndexes(scopes []common.DHCPScope, paired []bool) []int {
+	idx := unpairedIndexes(paired)
+	slices.SortStableFunc(idx, func(x, y int) int {
+		return strings.Compare(dhcpScopeName(scopes[x]), dhcpScopeName(scopes[y]))
+	})
+
+	return idx
+}
+
+// dhcpScopeSimilarity scores how likely two scopes without an identity are one
+// scope edited. Scopes of different servers never match.
+func dhcpScopeSimilarity(x, y common.DHCPScope) int {
+	if dhcpServer(x) != dhcpServer(y) {
+		return 0
+	}
+	score := 0
+	if x.Description != "" && x.Description == y.Description {
+		score += dhcpSimDescription
+	}
+	if x.Range != (common.DHCPRange{}) && x.Range == y.Range {
+		score++
+	}
+	if x.RangeV6 != nil && y.RangeV6 != nil && *x.RangeV6 == *y.RangeV6 {
+		score++
+	}
+	if x.Gateway != "" && x.Gateway == y.Gateway {
+		score++
+	}
+	leases := make(map[string]struct{}, len(x.StaticLeases))
+	for _, lease := range x.StaticLeases {
+		leases[staticLeaseKey(lease)] = struct{}{}
+	}
+	for _, lease := range y.StaticLeases {
+		if _, ok := leases[staticLeaseKey(lease)]; ok {
+			score++
+		}
+	}
+
+	return score
+}
+
+// dhcpServer returns the server of a scope, reading an empty Source as ISC.
+func dhcpServer(scope common.DHCPScope) string {
+	if scope.Source == "" {
+		return string(common.DHCPSourceISC)
+	}
+
+	return string(scope.Source)
+}
+
+// dhcpScopeKey returns the identity of a scope, and false when it has none.
+// An ISC scope is its bare interface name; a scope of another server is
+// prefixed with the server, such as dnsmasq.lan. A scope with no interface,
+// which every Kea subnet is and a dnsmasq range no interface's network holds
+// can be, is named by its server and its Subnet, such as kea[10.0.1.0/24]:
+// Kea requires the subnet and keeps it unique, and it does not move when the
+// pool or a reservation is edited.
+func dhcpScopeKey(scope common.DHCPScope) (string, bool) {
+	server := dhcpServer(scope)
+	switch {
+	case scope.Interface != "" && server == string(common.DHCPSourceISC):
+		return scope.Interface, true
+	case scope.Interface != "":
+		return server + "." + scope.Interface, true
+	case scope.Subnet != "":
+		return server + "[" + scope.Subnet + "]", true
+	default:
+		return "", false
+	}
+}
+
+// dhcpScopeName names a scope in diff paths and descriptions: its identity,
+// or for a scope with none its server and the start of its range, such as
+// dnsmasq[172.16.0.100], or dnsmasq[] when it has no range. Such a name
+// labels the change; it does not pair the scope.
+func dhcpScopeName(scope common.DHCPScope) string {
+	if key, ok := dhcpScopeKey(scope); ok {
+		return key
+	}
+	start := scope.Range.From
+	if start == "" && scope.RangeV6 != nil {
+		start = scope.RangeV6.From
+	}
+
+	return dhcpServer(scope) + "[" + start + "]"
 }
 
 // staticLeaseKey identifies a reservation: its MAC address, or its client id

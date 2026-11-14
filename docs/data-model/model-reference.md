@@ -306,21 +306,22 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 
 ### DHCPScope
 
-DHCP scopes are a flat array with one entry per DHCP server and interface. A dnsmasq range that names no interface and lies in no interface's network gets an entry of its own with an empty `interface`. An interface can have an ISC and a dnsmasq scope at once, typically a disabled ISC scope left beside the dnsmasq one; `source` tells them apart.
+DHCP scopes are a flat array with one entry per DHCP server and interface. A Kea subnet names no interface and carries its network in `subnet`. A dnsmasq range that names no interface and lies in no interface's network gets an entry of its own with an empty `interface`, and `subnet` holds the network dnsmasq assumes for it. `diff` names a scope by its interface, else by its server and `subnet`, as in `dhcpd.kea[10.0.1.0/24]`; scopes with neither, or sharing one, are paired by their content. An interface can have an ISC and a dnsmasq scope at once, typically a disabled ISC scope left beside the dnsmasq one; `source` tells them apart.
 
-| Field          | Type                | JSON Key              | Description                     |
-| -------------- | ------------------- | --------------------- | ------------------------------- |
-| `Interface`    | `string`            | `dhcp[].interface`    | Bound interface name            |
-| `Enabled`      | `bool`              | `dhcp[].enabled`      | DHCP server active on interface |
-| `Range`        | `DHCPRange`         | `dhcp[].range`        | Address pool range              |
-| `Gateway`      | `string`            | `dhcp[].gateway`      | Default gateway for clients     |
-| `DNSServer`    | `string`            | `dhcp[].dnsServer`    | First DNS server (deprecated)   |
-| `DNSServers`   | `[]string`          | `dhcp[].dnsServers`   | DNS servers for clients         |
-| `NTPServer`    | `string`            | `dhcp[].ntpServer`    | NTP server for clients          |
-| `WINSServer`   | `string`            | `dhcp[].winsServer`   | WINS server for clients         |
-| `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Fixed MAC-to-IP mappings        |
-| `Source`       | `DHCPSource`        | `dhcp[].source`       | `isc`, `kea` or `dnsmasq`       |
-| `RangeV6`      | `*DHCPRange`        | `dhcp[].rangeV6`      | DHCPv6 range (dnsmasq only)     |
+| Field          | Type                | JSON Key              | Description                             |
+| -------------- | ------------------- | --------------------- | --------------------------------------- |
+| `Interface`    | `string`            | `dhcp[].interface`    | Bound interface name                    |
+| `Enabled`      | `bool`              | `dhcp[].enabled`      | DHCP server active on interface         |
+| `Range`        | `DHCPRange`         | `dhcp[].range`        | Address pool range                      |
+| `Gateway`      | `string`            | `dhcp[].gateway`      | Default gateway for clients             |
+| `DNSServer`    | `string`            | `dhcp[].dnsServer`    | First DNS server (deprecated)           |
+| `DNSServers`   | `[]string`          | `dhcp[].dnsServers`   | DNS servers for clients                 |
+| `NTPServer`    | `string`            | `dhcp[].ntpServer`    | NTP server for clients                  |
+| `WINSServer`   | `string`            | `dhcp[].winsServer`   | WINS server for clients                 |
+| `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Fixed MAC-to-IP mappings                |
+| `Source`       | `DHCPSource`        | `dhcp[].source`       | `isc`, `kea` or `dnsmasq`               |
+| `RangeV6`      | `*DHCPRange`        | `dhcp[].rangeV6`      | DHCPv6 range (dnsmasq only)             |
+| `Subnet`       | `string`            | `dhcp[].subnet`       | Network of a scope without an interface |
 
 ### DHCPRange
 

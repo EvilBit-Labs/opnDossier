@@ -1002,3 +1002,84 @@ func TestConverter_Dnsmasq_ReservationWithSeveralAddresses(t *testing.T) {
 	assert.Equal(t, []string{"both", "mixed"}, names(device.DHCP[0].StaticLeases))
 	assert.Equal(t, []string{"both", "mixed", "twice"}, names(device.DHCP[1].StaticLeases))
 }
+
+// keaSubnets wraps Kea subnets and reservations in the elements a config
+// holds them in.
+func keaSubnets(subnets, reservations string) string {
+	return `<OPNsense><Kea><dhcp4 version="1.0.4"><general><enabled>1</enabled>` +
+		`<interfaces>lan,opt1</interfaces></general><subnets>` + subnets + `</subnets>` +
+		`<reservations>` + reservations + `</reservations></dhcp4></Kea></OPNsense>`
+}
+
+// keaReservation is one Kea reservation in the given subnet.
+func keaReservation(subnet, ip, mac string) string {
+	return `<reservation><subnet>` + subnet + `</subnet><ip_address>` + ip + `</ip_address>` +
+		`<hw_address>` + mac + `</hw_address></reservation>`
+}
+
+// diffPaths runs the DHCP diff and returns the change paths.
+func diffPaths(oldDevice, newDevice *common.CommonDevice) []string {
+	changes := diff.NewAnalyzer().CompareDHCP(oldDevice.DHCP, newDevice.DHCP)
+	paths := make([]string, 0, len(changes))
+	for _, c := range changes {
+		paths = append(paths, c.Path)
+	}
+
+	return paths
+}
+
+// TestConverter_Kea_DiffKeysBySubnet pairs Kea subnets by their <subnet>,
+// which Kea requires and keeps unique. Keyed by the pool start, a pool edit
+// read as a removed and an added subnet and the reservation change was lost
+// (k1, k3), and pool-less subnets were numbered by position, so deleting the
+// first moved reservations between the others (k2).
+func TestConverter_Kea_DiffKeysBySubnet(t *testing.T) {
+	t.Parallel()
+
+	const (
+		uuid1 = "10000000-0000-4000-8000-000000000001"
+		uuid2 = "10000000-0000-4000-8000-000000000002"
+		uuid3 = "10000000-0000-4000-8000-000000000003"
+	)
+	subnet := func(uuid, cidr, pools string) string {
+		return `<subnet4 uuid="` + uuid + `"><subnet>` + cidr + `</subnet><pools>` + pools + `</pools></subnet4>`
+	}
+	parse := func(subnets, reservations string) *common.CommonDevice {
+		device, _ := parseDnsmasqConfig(t, "", keaSubnets(subnets, reservations))
+		return device
+	}
+
+	// k1: pool and reservation edited.
+	oldK1 := parse(subnet(uuid1, "10.0.1.0/24", "10.0.1.100-10.0.1.199"),
+		keaReservation(uuid1, "10.0.1.10", "aa:bb:cc:00:00:01"))
+	newK1 := parse(subnet(uuid1, "10.0.1.0/24", "10.0.1.50-10.0.1.199"),
+		keaReservation(uuid1, "10.0.1.11", "aa:bb:cc:00:00:01"))
+	require.Len(t, oldK1.DHCP, 1)
+	assert.Equal(t, "10.0.1.0/24", oldK1.DHCP[0].Subnet)
+	assert.Equal(t, []string{
+		"dhcpd.kea[10.0.1.0/24].staticmap[aa:bb:cc:00:00:01].ipaddr",
+		"dhcpd.kea[10.0.1.0/24].range",
+	}, diffPaths(oldK1, newK1))
+
+	// k2: three subnets without pools; the first is deleted.
+	none := func(uuid, cidr string) string {
+		return `<subnet4 uuid="` + uuid + `"><subnet>` + cidr + `</subnet></subnet4>`
+	}
+	leases := keaReservation(uuid2, "10.0.2.10", "aa:bb:cc:00:00:02") +
+		keaReservation(uuid3, "10.0.3.10", "aa:bb:cc:00:00:03")
+	oldK2 := parse(none(uuid1, "10.0.1.0/24")+none(uuid2, "10.0.2.0/24")+none(uuid3, "10.0.3.0/24"),
+		keaReservation(uuid1, "10.0.1.10", "aa:bb:cc:00:00:01")+leases)
+	newK2 := parse(none(uuid2, "10.0.2.0/24")+none(uuid3, "10.0.3.0/24"), leases)
+	assert.Equal(t, []string{"dhcpd.kea[10.0.1.0/24]"}, diffPaths(oldK2, newK2))
+
+	// k3: the pools of one subnet swap order and a reservation moves.
+	second := subnet(uuid2, "10.0.2.0/24", "10.0.2.100-10.0.2.199")
+	oldK3 := parse(subnet(uuid1, "10.0.1.0/24", "10.0.1.100-10.0.1.149\n10.0.1.150-10.0.1.199")+second,
+		keaReservation(uuid1, "10.0.1.10", "aa:bb:cc:00:00:01"))
+	newK3 := parse(subnet(uuid1, "10.0.1.0/24", "10.0.1.150-10.0.1.199\n10.0.1.100-10.0.1.149")+second,
+		keaReservation(uuid1, "10.0.1.99", "aa:bb:cc:00:00:01"))
+	assert.Equal(t, []string{
+		"dhcpd.kea[10.0.1.0/24].staticmap[aa:bb:cc:00:00:01].ipaddr",
+		"dhcpd.kea[10.0.1.0/24].range",
+	}, diffPaths(oldK3, newK3))
+}
