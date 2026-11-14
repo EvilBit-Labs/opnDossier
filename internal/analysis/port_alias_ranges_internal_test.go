@@ -642,3 +642,127 @@ func TestDetectShadowedRules_DestinationComplementWithUnreadablePort(t *testing.
 		})
 	}
 }
+
+// TestSameInterfaceToken pins the tokens the firewall writes as one fixed pf
+// expression, so that one negated copy is the complement of the other: (self),
+// an interface address and an interface network. An interface network on a
+// rule that also loads for IPv6 is not, since OPNsense adds fe80::/10 to it
+// before negating it, and a hostname, an alias or an interface the config does
+// not define proves nothing.
+func TestSameInterfaceToken(t *testing.T) {
+	t.Parallel()
+
+	ifaces := []common.Interface{{Name: "wan"}, {Name: "lan"}, {Name: "opt1"}}
+	ep := func(address string, negated bool) common.RuleEndpoint {
+		return common.RuleEndpoint{Address: address, Negated: negated}
+	}
+
+	tests := []struct {
+		name  string
+		a, b  common.RuleEndpoint
+		inet6 bool
+		want  bool
+	}{
+		{name: "self", a: ep("(self)", true), b: ep("(self)", false), want: true},
+		{name: "self on an IPv6 rule", a: ep("(self)", true), b: ep("(self)", false), inet6: true, want: true},
+		{name: "interface address", a: ep("lanip", false), b: ep("lanip", true), want: true},
+		{
+			name:  "interface address on an IPv6 rule",
+			a:     ep("opt1ip", true),
+			b:     ep("opt1ip", false),
+			inet6: true,
+			want:  true,
+		},
+		{name: "interface network", a: ep("lan", true), b: ep("lan", false), want: true},
+		{name: "interface network on an IPv6 rule", a: ep("lan", true), b: ep("lan", false), inet6: true},
+		{name: "both negated", a: ep("lan", true), b: ep("lan", true)},
+		{name: "neither negated", a: ep("(self)", false), b: ep("(self)", false)},
+		{name: "two interfaces", a: ep("lan", true), b: ep("wan", false)},
+		{name: "network against address", a: ep("lan", true), b: ep("lanip", false)},
+		{name: "undefined interface", a: ep("opt9", true), b: ep("opt9", false)},
+		{name: "hostname", a: ep("fw.example.org", true), b: ep("fw.example.org", false)},
+		{
+			name: "alias named like an interface",
+			a:    common.RuleEndpoint{Address: "lan", AddressRef: &common.ObjectRef{Name: "lan"}, Negated: true},
+			b:    common.RuleEndpoint{Address: "lan", AddressRef: &common.ObjectRef{Name: "lan"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, sameInterfaceToken(tt.a, tt.b, ifaces, tt.inet6))
+		})
+	}
+}
+
+// TestDetectShadowedRules_InterfaceTokenComplementWithUnreadablePort drives
+// the same tokens through the advisory scan: a pass from a negated token above
+// a block from the same token shares no traffic, whatever its port alias
+// holds, except an interface network on a rule that also loads for IPv6,
+// which keeps the advisory.
+func TestDetectShadowedRules_InterfaceTokenComplementWithUnreadablePort(t *testing.T) {
+	t.Parallel()
+
+	objects := common.NamedObjects{
+		"Ports": {Name: "Ports", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
+	}
+
+	tests := []struct {
+		name        string
+		address     string
+		destination bool
+		family      common.IPProtocol
+		want        bool
+	}{
+		{name: "self as the destination", address: "(self)", destination: true},
+		{name: "interface address", address: "lanip"},
+		{name: "interface network, family unset", address: "lan"},
+		{name: "interface network on an inet rule", address: "lan", family: common.IPProtocolInet},
+		{name: "interface network on an inet6 rule", address: "lan", family: common.IPProtocolInet6, want: true},
+		{name: "interface network on an inet46 rule", address: "lan", family: common.IPProtocolInet46, want: true},
+		{name: "hostname", address: "fw.example.org", want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			earlier := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+			later := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+			earlier.IPProtocol, later.IPProtocol = tt.family, tt.family
+
+			negated := common.RuleEndpoint{Address: tt.address, Negated: true}
+			plain := common.RuleEndpoint{Address: tt.address}
+
+			if tt.destination {
+				negated.Port, negated.PortRef = "Ports", &common.ObjectRef{Name: "Ports"}
+				plain.Port = "8050"
+				earlier.Destination, later.Destination = negated, plain
+			} else {
+				earlier.Source, later.Source = negated, plain
+				earlier.Destination = common.RuleEndpoint{
+					Address: "192.168.1.10", Port: "Ports", PortRef: &common.ObjectRef{Name: "Ports"},
+				}
+				later.Destination = common.RuleEndpoint{Address: "192.168.1.10", Port: "8050"}
+			}
+
+			findings := DetectShadowedRules(&common.CommonDevice{
+				Interfaces:    []common.Interface{{Name: "wan"}, {Name: "lan"}},
+				FirewallRules: []common.FirewallRule{earlier, later},
+				NamedObjects:  objects,
+			})
+
+			if !tt.want {
+				assert.Empty(t, findings)
+
+				return
+			}
+
+			if assert.Len(t, findings, 1) {
+				assert.Equal(t, common.ConfidenceLow, findings[0].Confidence)
+			}
+		})
+	}
+}

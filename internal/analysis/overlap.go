@@ -207,6 +207,62 @@ func complementDisjoint(a, b common.RuleEndpoint, no common.NamedObjects) bool {
 	return true
 }
 
+// addressSidesDisjoint reports whether the source or the destination of two
+// rules proves they share no traffic: a complement (complementDisjoint), or
+// one token for the firewall itself or an interface, negated on one rule
+// only (sameInterfaceToken).
+func addressSidesDisjoint(a, b common.FirewallRule, no common.NamedObjects, ifaces []common.Interface) bool {
+	inet6 := hasInet6Part(a.IPProtocol) || hasInet6Part(b.IPProtocol)
+
+	return complementDisjoint(a.Source, b.Source, no) ||
+		complementDisjoint(a.Destination, b.Destination, no) ||
+		sameInterfaceToken(a.Source, b.Source, ifaces, inet6) ||
+		sameInterfaceToken(a.Destination, b.Destination, ifaces, inet6)
+}
+
+// hasInet6Part reports whether a rule of this family also loads for IPv6.
+func hasInet6Part(p common.IPProtocol) bool {
+	return p == common.IPProtocolInet6 || p == common.IPProtocolInet46
+}
+
+// sameInterfaceToken reports whether two endpoints name the same (self),
+// interface address (lanip) or interface network (lan) token, one of them
+// negated. The firewall writes each as one fixed pf expression, (self),
+// (vtnet1) or (vtnet1:network) on OPNsense (Rule.php loadAliasMap) and the
+// interface address or network on pfSense (filter.inc), so the negated copy is
+// the complement of the other. The exception is an interface network on a rule
+// that also loads for IPv6: OPNsense adds fe80::/10 to it before negating it
+// (Rule.php mapAddressInfo, and reader for the IPv6 copy of an inet46 rule),
+// so both copies match link-local addresses. pfSense does not, but the model
+// does not say which vendor wrote the rule, so the pair keeps its advisory on
+// both. A hostname is never such a token: a negated name with several records
+// negates each one and so matches every address.
+func sameInterfaceToken(a, b common.RuleEndpoint, ifaces []common.Interface, inet6 bool) bool {
+	if a.Negated == b.Negated || a.AddressRef != nil || b.AddressRef != nil {
+		return false
+	}
+
+	token := strings.TrimSpace(a.Address)
+	if token != strings.TrimSpace(b.Address) {
+		return false
+	}
+
+	if token == "(self)" {
+		return true
+	}
+
+	for _, iface := range ifaces {
+		switch token {
+		case iface.Name:
+			return iface.Name != "" && !inet6
+		case iface.Name + "ip":
+			return iface.Name != ""
+		}
+	}
+
+	return false
+}
+
 // sameAlias reports whether both endpoints name one alias and nothing else.
 func sameAlias(a, b common.RuleEndpoint) bool {
 	return a.AddressRef != nil && b.AddressRef != nil &&

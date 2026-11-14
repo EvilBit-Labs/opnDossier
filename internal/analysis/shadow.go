@@ -288,8 +288,8 @@ func isTerminalDefaultDeny(pair PrecedencePair, cfg *common.CommonDevice) bool {
 // whose coverage is CoverIndeterminate because an endpoint is negated, and
 // which also holds a part that could not be read, surfaces here too, since
 // ResolvePrecedence drops it as well. No pair surfaces when an address side
-// proves the two rules disjoint, as a negated set against a set inside it
-// does, whatever could not be read elsewhere.
+// proves the two rules disjoint (addressSidesDisjoint), whatever could not be
+// read elsewhere.
 //
 // Pairs whose coverage() call did resolve to CoverFull or CoverPartial with
 // AliasBlocked=true are NOT re-derived here — ResolvePrecedence already
@@ -305,7 +305,10 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 
 		for i := range ordered {
 			for j := i + 1; j < len(ordered); j++ {
-				if pair, ok := resolveAliasBlockedAdvisoryPair(key, ordered[i], ordered[j], cfg.NamedObjects); ok {
+				pair, ok := resolveAliasBlockedAdvisoryPair(
+					key, ordered[i], ordered[j], cfg.NamedObjects, cfg.Interfaces,
+				)
+				if ok {
 					pairs = append(pairs, pair)
 				}
 			}
@@ -323,9 +326,12 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 // relationship would be Security. It also surfaces a CoverIndeterminate pair
 // with a block cause: negation hides the overlap, and the unreadable part
 // keeps it from being ruled out. A CoverIndeterminate from negation alone has
-// no cause and stays silent, as it does in resolvePair. A pair where one rule
-// negates an address set and the other matches inside it shares no traffic,
-// so it stays silent on either path (complementDisjoint). The pair's Extent is set to CoverFull: the
+// no cause and stays silent, as it does in resolvePair. On either path a pair
+// stays silent when an address side is proven disjoint: one rule negates a set
+// the other matches only inside, through the same alias or literal networks
+// (complementDisjoint), or the two name the same (self), interface address or
+// interface network token, one of them negated (sameInterfaceToken). The
+// pair's Extent is set to CoverFull: the
 // true extent is unknown (that is precisely what "unresolved" means), and
 // R8's over-report bias for security correlation prefers the conservative
 // (full) framing over silently under-reporting a partial one.
@@ -333,6 +339,7 @@ func resolveAliasBlockedAdvisoryPair(
 	key precedenceGroupKey,
 	earlier, later IndexedRule,
 	no common.NamedObjects,
+	ifaces []common.Interface,
 ) (PrecedencePair, bool) {
 	wl, cov, cause := derivePairWinnerLoser(earlier, later, no)
 
@@ -340,8 +347,7 @@ func resolveAliasBlockedAdvisoryPair(
 		return PrecedencePair{}, false
 	}
 
-	if complementDisjoint(wl.winner.Rule.Source, wl.loser.Rule.Source, no) ||
-		complementDisjoint(wl.winner.Rule.Destination, wl.loser.Rule.Destination, no) {
+	if addressSidesDisjoint(wl.winner.Rule, wl.loser.Rule, no, ifaces) {
 		return PrecedencePair{}, false
 	}
 
