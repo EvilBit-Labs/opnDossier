@@ -228,12 +228,13 @@ func (w *portAliasWalker) walk(name string, depth int) {
 
 		// A member is read as one port or one colon range. OPNsense's loader
 		// reads it with is_port or is_portrange and drops anything else, a
-		// comma list, a dash range and "any" included. pfSense's
-		// (filter_generate_nested_alias_recurse) drops a dash range and
-		// "any" as hostnames but keeps a comma list such as "20,23", which
-		// pf loads as two ports. A member this code cannot read is therefore
-		// left unknown rather than dropped, which is also right for a
-		// service name the analysis does not know.
+		// comma list, a dash range and "any" included, keeping the other
+		// members. pfSense's (filter_generate_nested_alias_recurse) takes a
+		// dash range or "any" for a hostname, hands it to filterdns and then
+		// empties the whole alias, and keeps a comma list such as "20,23"
+		// verbatim, which pf loads as two ports. A member this code cannot
+		// read is therefore left unknown rather than dropped, which is also
+		// right for a service name the analysis does not know.
 		r, ok := parsePortPart(member, aliasVocab)
 		if !ok {
 			w.cause |= causeValue
