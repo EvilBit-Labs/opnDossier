@@ -948,3 +948,57 @@ func TestConverter_Dnsmasq_DiffClientIDChange(t *testing.T) {
 	assert.Equal(t, "01:02:03", changes[0].OldValue)
 	assert.Equal(t, "01:02:04", changes[0].NewValue)
 }
+
+// TestConverter_Dnsmasq_RelayedRangeReservations places a reservation on a
+// range no interface's network holds by the network dnsmasq assumes for it:
+// the range's subnet mask, or the class of its start address without one.
+func TestConverter_Dnsmasq_RelayedRangeReservations(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
+    <dhcp_ranges><start_addr>172.16.0.100</start_addr><end_addr>172.16.0.199</end_addr><subnet_mask>255.255.255.0</subnet_mask></dhcp_ranges>
+    <dhcp_ranges><start_addr>172.20.0.100</start_addr><end_addr>172.20.0.199</end_addr></dhcp_ranges>
+    <hosts><host>masked</host><ip>172.16.0.50</ip><hwaddr>aa:bb:cc:dd:ee:60</hwaddr></hosts>
+    <hosts><host>outside</host><ip>172.16.1.50</ip><hwaddr>aa:bb:cc:dd:ee:61</hwaddr></hosts>
+    <hosts><host>classful</host><ip>172.20.9.9</ip><hwaddr>aa:bb:cc:dd:ee:62</hwaddr></hosts>
+  </dnsmasq>`, "")
+
+	require.Len(t, device.DHCP, 2)
+	require.Len(t, device.DHCP[0].StaticLeases, 1)
+	assert.Equal(t, "masked", device.DHCP[0].StaticLeases[0].Hostname)
+	require.Len(t, device.DHCP[1].StaticLeases, 1)
+	assert.Equal(t, "classful", device.DHCP[1].StaticLeases[0].Hostname, "172.20.0.0/16 is class B")
+
+	got := dnsmasqWarnings(warnings)
+	require.Len(t, got, 1)
+	assert.Equal(t, "outside", got[0].Value)
+}
+
+// TestConverter_Dnsmasq_ReservationWithSeveralAddresses attaches a
+// reservation to every scope one of its addresses reaches, once each.
+func TestConverter_Dnsmasq_ReservationWithSeveralAddresses(t *testing.T) {
+	t.Parallel()
+
+	ranges := `<dhcp_ranges><interface>opt1</interface><start_addr>fd00:1::100</start_addr>` +
+		`<end_addr>fd00:1::1ff</end_addr></dhcp_ranges>` +
+		`<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr>` +
+		`<end_addr>::2000</end_addr><constructor>opt2</constructor></dhcp_ranges>`
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>`+ranges+
+		`<hosts><host>both</host><ip>fd00:1::50,fd00:2::50</ip><hwaddr>aa:bb:cc:dd:ee:70</hwaddr></hosts>`+
+		`<hosts><host>mixed</host><ip>fd00:1::51,::61</ip><hwaddr>aa:bb:cc:dd:ee:71</hwaddr></hosts>`+
+		`<hosts><host>twice</host><ip>fd00:2::52,::62</ip><hwaddr>aa:bb:cc:dd:ee:72</hwaddr></hosts>`+
+		`</dnsmasq>`, "")
+
+	assert.Empty(t, dnsmasqWarnings(warnings))
+	require.Len(t, device.DHCP, 2)
+	names := func(leases []common.DHCPStaticLease) []string {
+		var out []string
+		for _, l := range leases {
+			out = append(out, l.Hostname)
+		}
+		return out
+	}
+	assert.Equal(t, []string{"both", "mixed"}, names(device.DHCP[0].StaticLeases))
+	assert.Equal(t, []string{"both", "mixed", "twice"}, names(device.DHCP[1].StaticLeases))
+}
