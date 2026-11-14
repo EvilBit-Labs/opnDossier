@@ -329,10 +329,10 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 // no cause and stays silent, as it does in resolvePair. On either path a pair
 // stays silent when an address side is proven disjoint: one rule negates a set
 // the other matches only inside, through the same alias or literal networks
-// (complementDisjoint), or the two name the same (self), interface address or
-// interface network token, one of them negated (sameInterfaceToken). The
-// pair's Extent is set to CoverFull: the
-// true extent is unknown (that is precisely what "unresolved" means), and
+// (complementDisjoint), or the two name the same (self) or interface address
+// token, one of them negated (sameInterfaceToken). The pair's Extent is set
+// to CoverFull: the true extent is unknown (that is precisely what
+// "unresolved" means), and
 // R8's over-report bias for security correlation prefers the conservative
 // (full) framing over silently under-reporting a partial one.
 func resolveAliasBlockedAdvisoryPair(

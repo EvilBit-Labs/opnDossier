@@ -643,48 +643,40 @@ func TestDetectShadowedRules_DestinationComplementWithUnreadablePort(t *testing.
 	}
 }
 
-// TestSameInterfaceToken pins the tokens the firewall writes as one fixed pf
-// expression, so that one negated copy is the complement of the other: (self),
-// an interface address and an interface network. An interface network on a
-// rule that also loads for IPv6 is not, since OPNsense adds fe80::/10 to it
-// before negating it, and a hostname, an alias or an interface the config does
-// not define proves nothing.
+// TestSameInterfaceToken pins the tokens every release checked writes as a
+// single pf expression, so that one negated copy is the complement of the
+// other: (self) and an interface address. An interface network is not one, on
+// any rule: older releases write it as a list when the interface carries a
+// virtual IP, and OPNsense adds fe80::/10 to it on an IPv6 rule. A hostname,
+// an alias or an interface the config does not define proves nothing.
 func TestSameInterfaceToken(t *testing.T) {
 	t.Parallel()
 
-	ifaces := []common.Interface{{Name: "wan"}, {Name: "lan"}, {Name: "opt1"}}
+	ifaces := []common.Interface{{Name: "wan"}, {Name: "lan"}, {Name: "opt1"}, {Name: "vlanip"}, {Name: "vlan"}}
 	ep := func(address string, negated bool) common.RuleEndpoint {
 		return common.RuleEndpoint{Address: address, Negated: negated}
 	}
 
 	tests := []struct {
-		name  string
-		a, b  common.RuleEndpoint
-		inet6 bool
-		want  bool
+		name string
+		a, b common.RuleEndpoint
+		want bool
 	}{
 		{name: "self", a: ep("(self)", true), b: ep("(self)", false), want: true},
-		{name: "self on an IPv6 rule", a: ep("(self)", true), b: ep("(self)", false), inet6: true, want: true},
 		{name: "interface address", a: ep("lanip", false), b: ep("lanip", true), want: true},
-		{
-			name:  "interface address on an IPv6 rule",
-			a:     ep("opt1ip", true),
-			b:     ep("opt1ip", false),
-			inet6: true,
-			want:  true,
-		},
-		{name: "interface network", a: ep("lan", true), b: ep("lan", false), want: true},
-		{name: "interface network on an IPv6 rule", a: ep("lan", true), b: ep("lan", false), inet6: true},
-		{name: "both negated", a: ep("lan", true), b: ep("lan", true)},
+		{name: "optional interface address", a: ep("opt1ip", true), b: ep("opt1ip", false), want: true},
+		{name: "interface network", a: ep("lan", true), b: ep("lan", false)},
+		{name: "interface named like an address token", a: ep("vlanip", true), b: ep("vlanip", false)},
+		{name: "both negated", a: ep("lanip", true), b: ep("lanip", true)},
 		{name: "neither negated", a: ep("(self)", false), b: ep("(self)", false)},
-		{name: "two interfaces", a: ep("lan", true), b: ep("wan", false)},
+		{name: "two interface addresses", a: ep("lanip", true), b: ep("wanip", false)},
 		{name: "network against address", a: ep("lan", true), b: ep("lanip", false)},
-		{name: "undefined interface", a: ep("opt9", true), b: ep("opt9", false)},
+		{name: "undefined interface", a: ep("opt9ip", true), b: ep("opt9ip", false)},
 		{name: "hostname", a: ep("fw.example.org", true), b: ep("fw.example.org", false)},
 		{
-			name: "alias named like an interface",
-			a:    common.RuleEndpoint{Address: "lan", AddressRef: &common.ObjectRef{Name: "lan"}, Negated: true},
-			b:    common.RuleEndpoint{Address: "lan", AddressRef: &common.ObjectRef{Name: "lan"}},
+			name: "alias named like an interface address",
+			a:    common.RuleEndpoint{Address: "lanip", AddressRef: &common.ObjectRef{Name: "lanip"}, Negated: true},
+			b:    common.RuleEndpoint{Address: "lanip", AddressRef: &common.ObjectRef{Name: "lanip"}},
 		},
 	}
 
@@ -692,16 +684,16 @@ func TestSameInterfaceToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tt.want, sameInterfaceToken(tt.a, tt.b, ifaces, tt.inet6))
+			assert.Equal(t, tt.want, sameInterfaceToken(tt.a, tt.b, ifaces))
 		})
 	}
 }
 
 // TestDetectShadowedRules_InterfaceTokenComplementWithUnreadablePort drives
-// the same tokens through the advisory scan: a pass from a negated token above
-// a block from the same token shares no traffic, whatever its port alias
-// holds, except an interface network on a rule that also loads for IPv6,
-// which keeps the advisory.
+// the same tokens through the advisory scan: a pass from a negated (self) or
+// interface address above a block from the same token shares no traffic,
+// whatever its port alias holds. An interface network keeps the advisory on
+// every address family, and so does a hostname.
 func TestDetectShadowedRules_InterfaceTokenComplementWithUnreadablePort(t *testing.T) {
 	t.Parallel()
 
@@ -718,8 +710,9 @@ func TestDetectShadowedRules_InterfaceTokenComplementWithUnreadablePort(t *testi
 	}{
 		{name: "self as the destination", address: "(self)", destination: true},
 		{name: "interface address", address: "lanip"},
-		{name: "interface network, family unset", address: "lan"},
-		{name: "interface network on an inet rule", address: "lan", family: common.IPProtocolInet},
+		{name: "interface address on an inet46 rule", address: "lanip", family: common.IPProtocolInet46},
+		{name: "interface network, family unset", address: "lan", want: true},
+		{name: "interface network on an inet rule", address: "lan", family: common.IPProtocolInet, want: true},
 		{name: "interface network on an inet6 rule", address: "lan", family: common.IPProtocolInet6, want: true},
 		{name: "interface network on an inet46 rule", address: "lan", family: common.IPProtocolInet46, want: true},
 		{name: "hostname", address: "fw.example.org", want: true},
