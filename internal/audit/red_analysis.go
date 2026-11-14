@@ -130,7 +130,7 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 			severity:        analysis.SeverityHigh,
 			component:       "snmpd",
 			port:            portSNMP,
-			reachability:    serviceReachability(device, portSNMP),
+			reachability:    snmpReachability(device),
 			description:     "The SNMP management service is reachable from a WAN interface, exposing device and topology information to untrusted networks.",
 			recommendation:  "Restrict SNMP to management networks, migrate to SNMPv3 with authPriv, or disable SNMP if unused.",
 			vulnerabilities: []string{"exposed-snmp"},

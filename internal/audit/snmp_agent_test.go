@@ -2,6 +2,7 @@ package audit
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -154,6 +155,48 @@ func TestSNMPAgent_ControlsFollowTheAgentTheConfigStarts(t *testing.T) {
 			runRedAnalysis(report)
 			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
 			assert.Equal(t, tc.running, exposed, "red-mode SNMP exposure")
+		})
+	}
+}
+
+// TestSNMPAgent_ListenAddressesDecideWANExposure keeps the WAN rule passing
+// UDP 161 and varies the agent's listen list. An agent bound only to loopback
+// answers no other host: it stays among the services red mode considers, as
+// local, and draws no WAN exposure. Any other address, an unparseable one, or
+// an empty list (every IPv4 address) is still judged by the rule.
+func TestSNMPAgent_ListenAddressesDecideWANExposure(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		listen string
+		want   analysis.Reachability
+	}{
+		{listen: "", want: analysis.WANReachable},
+		{listen: "127.0.0.1", want: analysis.Local},
+		{listen: "127.0.0.1,::1", want: analysis.Local},
+		{listen: "127.0.0.0/8", want: analysis.Local},
+		{listen: "127.0.0.1,192.168.1.1", want: analysis.WANReachable},
+		{listen: "0.0.0.0", want: analysis.WANReachable},
+		{listen: "localhost", want: analysis.WANReachable},
+	}
+
+	for _, tc := range tests {
+		t.Run("listen="+tc.listen, func(t *testing.T) {
+			t.Parallel()
+
+			model := strings.Replace(snmpNetsnmpPublic, "<listen/>", "<listen>"+tc.listen+"</listen>", 1)
+			device := parseConfig(t, snmpAgentConfig("", model))
+
+			services := serviceExposures(device)
+			idx := slices.IndexFunc(services, func(s exposedService) bool { return s.name == "snmp" })
+			require.GreaterOrEqual(t, idx, 0, "snmp missing from the services red mode considers: %+v", services)
+			assert.Equal(t, tc.want, services[idx].reachability)
+
+			report := newRedReport(device)
+			runRedAnalysis(report)
+
+			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
+			assert.Equal(t, tc.want == analysis.WANReachable, exposed, "red-mode SNMP exposure")
 		})
 	}
 }
