@@ -507,15 +507,28 @@ func addRangeNetworks6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets, r s
 		}
 		return
 	}
-	if strings.HasPrefix(start, "::") {
+	addr, err := netip.ParseAddr(start)
+	if err != nil || !addr.Is6() || isIPv6HostPart(addr) {
 		// A host part with no constructor names no network.
 		return
 	}
-	if addr, err := netip.ParseAddr(start); err == nil && addr.Is6() {
-		if p, err := addr.Prefix(length); err == nil {
-			nets.v6 = append(nets.v6, p)
-		}
+	if p, err := addr.Prefix(length); err == nil {
+		nets.v6 = append(nets.v6, p)
 	}
+}
+
+// isIPv6HostPart reports whether addr is an IPv6 address whose network half is
+// zero. dnsmasq reads such an address as a host part to combine with a range's
+// prefix, whatever its spelling: it tests the first eight bytes of the parsed
+// address (option.c, "set WILDCARD if network part all zeros"), so
+// 0:0:0:0:0:0:0:50 is read as ::50 is.
+func isIPv6HostPart(addr netip.Addr) bool {
+	if !addr.Is6() {
+		return false
+	}
+	b := addr.As16()
+
+	return binary.BigEndian.Uint64(b[:8]) == 0
 }
 
 // addConstructedNetwork6 records the network of a range dnsmasq constructs
@@ -699,7 +712,7 @@ func dnsmasqLeaseTargets(nets []dnsmasqScopeNets, ips string, fallback int) []in
 		switch {
 		case err != nil:
 			continue
-		case addr.Is6() && strings.HasPrefix(entry, "::"):
+		case isIPv6HostPart(addr):
 			for i := range nets {
 				if nets[i].constructed {
 					add(i)

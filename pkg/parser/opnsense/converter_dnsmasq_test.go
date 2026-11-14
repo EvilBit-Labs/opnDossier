@@ -1313,6 +1313,16 @@ func rangeNetworks6Cases() []rangeNetworks4Case {
 			ranges: constructed("opt4", "64"), host: "::50", wantScope: 0, wantSubnet: []string{""},
 		},
 		{
+			name:   "a host part written out in full is a host part",
+			ranges: constructed("opt4", "64"), host: "0:0:0:0:0:0:0:50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name: "a range whose start is a host part written out in full names no network",
+			ranges: `<dhcp_ranges><start_addr>0:0:0:0:0:0:0:1000</start_addr>` +
+				`<end_addr>0:0:0:0:0:0:0:2000</end_addr></dhcp_ranges>`,
+			host: "fd00:9::50", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
 			name:   "dnsmasq builds no range on an interface whose prefix is longer than 64",
 			ranges: constructed("opt6", "64"), host: "::50", wantScope: -1, wantSubnet: []string{""},
 		},
