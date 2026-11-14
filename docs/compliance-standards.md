@@ -20,6 +20,10 @@ Firewall compliance checks use a three-state `checkResult` pattern:
 
 The "Unknown" state prevents false positives. Some settings (e.g., SSH banners, MOTD) are OS-level configurations stored outside `config.xml` and cannot be assessed from the exported configuration alone. When a check returns Unknown, opnDossier does not report a finding rather than guessing.
 
+## WAN Interfaces
+
+Controls that check the WAN (for example FIREWALL-023, FIREWALL-029, FIREWALL-030, SANS-FW-012, SANS-FW-014 and SANS-FW-020) apply to every WAN interface, not only the one keyed `wan`. A second uplink on an `optN` key counts when it takes its address dynamically or selects an upstream gateway, and a rule on an interface group counts when any member is a WAN interface. See [How WAN Interfaces Are Identified](firewall-security-controls-reference.md#how-wan-interfaces-are-identified) for the full definition.
+
 ## Supported Standards
 
 ### STIG (Security Technical Implementation Guide)

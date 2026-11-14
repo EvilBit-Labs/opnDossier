@@ -505,4 +505,7 @@ type IfGroupEntry struct {
 	// Sequence orders the firewall rules on the group against those on other
 	// groups. It defaults to 0.
 	Sequence string `xml:"sequence,omitempty"`
+
+	// Descr is the group's description (Group.xml descr).
+	Descr string `xml:"descr,omitempty"`
 }

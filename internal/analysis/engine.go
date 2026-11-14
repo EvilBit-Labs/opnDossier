@@ -283,7 +283,7 @@ func detectAnyToAnyRules(cfg *common.CommonDevice) []Observation {
 		observations = append(observations, Observation{
 			Severity:     SeverityHigh,
 			Confidence:   ConfidenceHigh,
-			Reachability: RuleReachability(rule, cfg.Interfaces),
+			Reachability: RuleReachability(rule, cfg),
 			Component:    component,
 			Evidence:     fmt.Sprintf("rule %d: source=any destination=any port=any protocol=any", i+1),
 			Title:        "Any-to-Any Pass Rule",
@@ -414,7 +414,7 @@ func shadowObservation(cfg *common.CommonDevice, f common.ShadowedRuleFinding) O
 
 	reachability := Local
 	if f.RuleIndex >= 0 && f.RuleIndex < len(cfg.FirewallRules) {
-		reachability = RuleReachability(cfg.FirewallRules[f.RuleIndex], cfg.Interfaces)
+		reachability = RuleReachability(cfg.FirewallRules[f.RuleIndex], cfg)
 	}
 
 	return Observation{

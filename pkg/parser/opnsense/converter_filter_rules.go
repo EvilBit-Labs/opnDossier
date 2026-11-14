@@ -591,7 +591,7 @@ func (c *converter) interfacesExcept(path, excluded string, doc *schema.OpnSense
 func groupMembers(doc *schema.OpnSenseDocument, group string) ([]string, bool) {
 	for _, entry := range doc.InterfaceGroups.IfGroupEntry {
 		if entry.IfName == group {
-			return strings.FieldsFunc(entry.Members, func(r rune) bool { return r == ' ' || r == ',' }), true
+			return splitGroupMembers(entry.Members), true
 		}
 	}
 

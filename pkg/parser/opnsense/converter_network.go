@@ -2,6 +2,7 @@ package opnsense
 
 import (
 	"fmt"
+	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
@@ -190,8 +191,6 @@ func (c *converter) convertVirtualIPs(doc *schema.OpnSenseDocument) []common.Vir
 }
 
 // convertInterfaceGroups maps doc.InterfaceGroups.IfGroupEntry to []common.InterfaceGroup.
-// Interface group members are space-separated in OPNsense XML, unlike bridge and
-// LAGG members which use commas.
 func (c *converter) convertInterfaceGroups(doc *schema.OpnSenseDocument) []common.InterfaceGroup {
 	if len(doc.InterfaceGroups.IfGroupEntry) == 0 {
 		return nil
@@ -200,9 +199,26 @@ func (c *converter) convertInterfaceGroups(doc *schema.OpnSenseDocument) []commo
 	result := make([]common.InterfaceGroup, 0, len(doc.InterfaceGroups.IfGroupEntry))
 	for _, e := range doc.InterfaceGroups.IfGroupEntry {
 		result = append(result, common.InterfaceGroup{
-			Name:    e.IfName,
-			Members: splitNonEmpty(e.Members, " "),
+			Name:        e.IfName,
+			Members:     splitGroupMembers(e.Members),
+			Description: e.Descr,
 		})
+	}
+
+	return result
+}
+
+// splitGroupMembers splits an <ifgroups> member list. The Group model stores
+// it comma-separated, and its migration rewrote the older space-separated form
+// (Firewall/Migrations/M1_0_0.php). The firewall itself splits on any run of
+// spaces, commas and pipes (filter.inc ifgroup_setup), so a config holding
+// either form, or a hand-edited mix, reads as the firewall reads it.
+func splitGroupMembers(members string) []string {
+	result := strings.FieldsFunc(members, func(r rune) bool {
+		return r == ' ' || r == ',' || r == '|'
+	})
+	if len(result) == 0 {
+		return nil
 	}
 
 	return result

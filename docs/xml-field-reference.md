@@ -134,6 +134,38 @@ Valid state types: `keep state`, `sloppy state`, `modulate state`, `synproxy sta
 
 A pass rule that leaves `<statetype>` out keeps state on both vendors, and is reported as `keep state`. pfSense's port forward page never writes the element.
 
+## Interface Groups and Uplinks
+
+opnDossier reads these elements to decide which interfaces face the internet. The rules are in [How WAN Interfaces Are Identified](firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
+
+```xml
+<opnsense>
+  <interfaces>
+    <opt1>
+      <ipaddr>198.51.100.2</ipaddr>
+      <gateway>ISP2_GW</gateway>
+      <ipaddrv6>dhcp6</ipaddrv6>
+    </opt1>
+    <UPLINKS>
+      <virtual>1</virtual>
+      <type>group</type>
+    </UPLINKS>
+  </interfaces>
+  <ifgroups version="1.0.0">
+    <ifgroupentry uuid="...">
+      <ifname>UPLINKS</ifname>
+      <members>wan,opt1</members>
+      <descr>Internet uplinks</descr>
+    </ifgroupentry>
+  </ifgroups>
+</opnsense>
+```
+
+- `<ipaddr>` marks an uplink when it is `dhcp`, `pppoe`, `pptp`, `l2tp` or `ppp`; `<ipaddrv6>` when it is `dhcp6`, `slaac`, `6rd` or `6to4`. `track6` does not count.
+- `<gateway>` and `<gatewayv6>` select an upstream gateway. A gateway counts for the interface it is defined on (`<gateway_item><interface>` under `<OPNsense><Gateways>` or `<gateways>`).
+- The `<UPLINKS>` entry is the one OPNsense writes under `<interfaces>` for each group. It is never an uplink itself.
+- `<members>` is comma-separated; older releases wrote it space-separated, and both read the same. A rule or port forward whose `<interface>` names the group applies on every member.
+
 ## Rate-Limiting and DoS Protection
 
 **Connection limits:**

@@ -32,7 +32,7 @@ func DetectShadowedRules(cfg *common.CommonDevice) []common.ShadowedRuleFinding 
 			continue
 		}
 
-		if finding, ok := buildShadowFinding(pair, cfg.Interfaces); ok {
+		if finding, ok := buildShadowFinding(pair, cfg); ok {
 			findings = append(findings, finding)
 		}
 	}
@@ -46,7 +46,7 @@ func DetectShadowedRules(cfg *common.CommonDevice) []common.ShadowedRuleFinding 
 // The second return is false when pair.AliasBlocked is true and the pair's
 // impact class is not Security — R8's "stay silent for Hygiene/
 // Troubleshooting aliasBlocked pairs" carve-out.
-func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.ShadowedRuleFinding, bool) {
+func buildShadowFinding(pair PrecedencePair, cfg *common.CommonDevice) (common.ShadowedRuleFinding, bool) {
 	impactClass := impactClassFor(pair.Winner.Rule.Type, pair.Loser.Rule.Type)
 
 	if pair.AliasBlocked && impactClass != common.ImpactClassSecurity {
@@ -54,7 +54,7 @@ func buildShadowFinding(pair PrecedencePair, ifaces []common.Interface) (common.
 	}
 
 	kind := shadowKindFor(pair.Extent)
-	sev := severityFor(impactClass, RuleReachability(pair.Loser.Rule, ifaces), pair.AliasBlocked)
+	sev := severityFor(impactClass, RuleReachability(pair.Loser.Rule, cfg), pair.AliasBlocked)
 
 	return common.ShadowedRuleFinding{
 		Kind:            kind,
