@@ -120,7 +120,10 @@ var unrepresentedRuleElements = []struct {
 }
 
 // wellKnownPorts maps the service names the filter model accepts as a port to
-// their numbers, as OPNsense does when it builds the ruleset.
+// their numbers, as OPNsense does when it builds the ruleset. The shadow
+// analysis keeps its own copy, wellKnownServicePorts in internal/analysis,
+// since pkg/ must not import internal/; both are pinned against PortField.php,
+// so change them together.
 var wellKnownPorts = map[string]string{
 	"afs3-fileserver": "7000", "aol": "5190", "auth": "113", "avt-profile-1": "5004", "cvsup": "5999",
 	"domain": "53", "domain-s": "853", "ftp": "21", "hbci": "3000", "http": "80", "https": "443",

@@ -3,7 +3,6 @@ package analysis
 import (
 	"net/netip"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -58,8 +57,9 @@ func (c Coverage) String() string {
 }
 
 // coverage reports how completely earlier's match set covers later's match
-// set, and whether an unresolvable or dynamic named-object reference
-// prevented a full member-set comparison on any dimension (aliasBlocked).
+// set, and whether an unresolvable or dynamic named-object reference, or a port
+// value the analysis cannot read, prevented a full member-set comparison on
+// any dimension (aliasBlocked).
 //
 // aliasBlocked is a distinct signal from CoverNone: a genuinely
 // non-overlapping pair and a pair whose overlap could not be determined
@@ -78,28 +78,95 @@ func (c Coverage) String() string {
 // untrustworthy (a negated "10.0.0.0/8" matches everything OUTSIDE that
 // range, not inside it), so even an exact-literal match that resolves to
 // CoverFull must not be reported as a confirmed shadow.
-func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Coverage, bool) {
+func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Coverage, blockCause) {
 	if !familiesCompatible(earlier.IPProtocol, later.IPProtocol) {
-		return CoverNone, false
+		return CoverNone, 0
 	}
 
 	srcAddrCov, srcAddrBlocked := addressCoverage(earlier.Source, later.Source, no)
 	dstAddrCov, dstAddrBlocked := addressCoverage(earlier.Destination, later.Destination, no)
-	srcPortCov, srcPortBlocked := portCoverage(earlier.Source, later.Source, no)
-	dstPortCov, dstPortBlocked := portCoverage(earlier.Destination, later.Destination, no)
+	srcPortCov, srcPortCause := portCoverage(earlier.Source, later.Source, no)
+	dstPortCov, dstPortCause := portCoverage(earlier.Destination, later.Destination, no)
 	protoCov := protocolCoverage(earlier.Protocol, later.Protocol)
 
-	aliasBlocked := srcAddrBlocked || dstAddrBlocked || srcPortBlocked || dstPortBlocked
+	// proven says a CoverNone in that dimension shows the rules cannot
+	// overlap. Ports read in full and single protocols are compared exactly;
+	// protocolCoverage reads tcp/udp against tcp as CoverNone although the
+	// two overlap, so a combined protocol proves nothing. An address
+	// CoverNone is proof only when both sides are literal addresses or
+	// networks: addressRelation also returns CoverNone for values it cannot
+	// compare, such as an interface network like lan, (self), a hostname or
+	// a negated endpoint.
+	dims := []struct {
+		cov    Coverage
+		cause  blockCause
+		proven bool
+	}{
+		{srcAddrCov, aliasCause(srcAddrBlocked), addressesComparable(earlier.Source, later.Source, no)},
+		{dstAddrCov, aliasCause(dstAddrBlocked), addressesComparable(earlier.Destination, later.Destination, no)},
+		{srcPortCov, srcPortCause, true},
+		{dstPortCov, dstPortCause, true},
+		{protoCov, 0, singleProtocol(earlier.Protocol) && singleProtocol(later.Protocol)},
+	}
+
+	var cause blockCause
+
+	for _, d := range dims {
+		if d.cov == CoverNone && d.cause == 0 && d.proven {
+			return CoverNone, 0
+		}
+
+		cause |= d.cause
+	}
 
 	raw := combineDimensions(srcAddrCov, dstAddrCov, srcPortCov, dstPortCov, protoCov)
 
 	negated := earlier.Source.Negated || earlier.Destination.Negated ||
 		later.Source.Negated || later.Destination.Negated
 	if negated && (raw == CoverPartial || raw == CoverFull) {
-		return CoverIndeterminate, aliasBlocked
+		return CoverIndeterminate, cause
 	}
 
-	return raw, aliasBlocked
+	return raw, cause
+}
+
+// addressesComparable reports whether every address both endpoints resolve
+// to is a literal IP address or network and neither endpoint is negated, so
+// that addressRelation's answer for the pair is exact.
+func addressesComparable(a, b common.RuleEndpoint, no common.NamedObjects) bool {
+	if a.Negated || b.Negated {
+		return false
+	}
+
+	for _, ep := range []common.RuleEndpoint{a, b} {
+		vals, blocked := resolveAddressValues(ep, no)
+		if blocked {
+			return false
+		}
+
+		for _, v := range vals {
+			if _, err := ParsePrefixOrAddr(v); err != nil {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// singleProtocol reports whether p names one protocol, not a combination
+// such as tcp/udp.
+func singleProtocol(p string) bool {
+	return !strings.Contains(p, "/")
+}
+
+// aliasCause maps an address dimension's blocked flag to its cause.
+func aliasCause(blocked bool) blockCause {
+	if blocked {
+		return causeAlias
+	}
+
+	return 0
 }
 
 // combineDimensions folds per-dimension Coverage results into a single
@@ -338,43 +405,74 @@ type portRange struct {
 }
 
 // portCoverage classifies containment of one endpoint pair's port
-// dimension, resolving named-object references to their member sets first.
-func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (Coverage, bool) {
-	earlierVals, earlierBlocked := resolvePortValues(earlier, no)
-	laterVals, laterBlocked := resolvePortValues(later, no)
+// dimension, resolving port aliases to their member sets first (resolvePorts).
+// The second return says why the comparison rests on a set known only in
+// part, and is zero when both sets are known in full.
+//
+// An earlier wildcard covers anything. Otherwise, when either set is known
+// only in part, the parts that could be read still prove an overlap they
+// share, but never that the later set is covered in full, and no overlap
+// among them proves nothing: the result is then CoverNone with the cause set,
+// which callers read as unknown rather than disjoint (R8). Two endpoints that
+// name the same alias or the same literal still match each other in full.
+func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (Coverage, blockCause) {
+	earlierVals := resolvePorts(earlier, no)
+	laterVals := resolvePorts(later, no)
 
-	if earlierBlocked || laterBlocked {
-		return exactSingletonCoverage(earlierVals, laterVals), true
+	// A set read in full that holds no port matches no traffic: a disabled
+	// alias loads as { 0 <> 65535 } (filter.inc L607-L611), and the ruleset
+	// skips a rule whose port alias has no content (Rule.php). Such a rule
+	// neither covers another nor is covered by one, any-port rules included.
+	if earlierVals.matchesNothing() || laterVals.matchesNothing() {
+		return CoverNone, 0
 	}
 
-	earlierIntervals, earlierAny, earlierOK := parsePortMembers(earlierVals)
-	laterIntervals, laterAny, laterOK := parsePortMembers(laterVals)
-
-	if !earlierOK || !laterOK {
-		// Unparseable port specs (neither a recognized number, range, nor
-		// list) fall back to exact-string equality rather than failing
-		// closed on the whole predicate.
-		return exactSingletonCoverage(earlierVals, laterVals), false
+	if earlierVals.every {
+		return CoverFull, 0
 	}
 
-	if earlierAny {
-		return CoverFull, false
+	cause := earlierVals.cause | laterVals.cause
+	if cause != 0 {
+		if sameEndpointPort(earlier, later) {
+			return CoverFull, cause & causeAlias
+		}
+
+		cov := partialPortCoverage(earlierVals, laterVals)
+		if cov == CoverFull && !laterVals.complete() {
+			cov = CoverPartial
+		}
+
+		return cov, cause
 	}
 
-	if laterAny {
-		return CoverPartial, false
+	if laterVals.every {
+		return CoverPartial, 0
 	}
 
-	merged := mergeIntervals(earlierIntervals)
-
-	return aggregateCoverage(merged, laterIntervals, portRangeRelation), false
+	return aggregateCoverage(earlierVals.ranges, laterVals.ranges, portRangeRelation), 0
 }
 
-// resolvePortValues expands an endpoint's port spec into its full set of
-// concrete member values, mirroring resolveAddressValues for the Port/PortRef
-// pair.
-func resolvePortValues(ep common.RuleEndpoint, no common.NamedObjects) ([]string, bool) {
-	return resolveEndpointValues(ep.PortRef, ep.Port, no)
+// partialPortCoverage compares what could be read of two port sets.
+func partialPortCoverage(earlier, later portValues) Coverage {
+	if len(earlier.ranges) == 0 {
+		return CoverNone
+	}
+
+	if later.every {
+		return CoverPartial
+	}
+
+	return aggregateCoverage(earlier.ranges, later.ranges, portRangeRelation)
+}
+
+// sameEndpointPort reports whether two endpoints name the same port alias, or
+// hold the same literal port with no alias.
+func sameEndpointPort(a, b common.RuleEndpoint) bool {
+	if a.PortRef != nil || b.PortRef != nil {
+		return a.PortRef != nil && b.PortRef != nil && a.PortRef.Name == b.PortRef.Name
+	}
+
+	return a.Port == b.Port
 }
 
 // exactSingletonCoverage compares two single-value sets for exact string
@@ -392,34 +490,12 @@ func exactSingletonCoverage(earlierVals, laterVals []string) Coverage {
 	return CoverNone
 }
 
-// parsePortMembers parses every member value (each a single port, a
-// "lo-hi" range, or a comma-separated list of either) into a merged set of
-// normalized intervals (the first return). The second return is true if any
-// member is the any/empty wildcard, in which case the intervals are not
-// meaningful. The third return is false if any member could not be parsed
-// at all.
-func parsePortMembers(vals []string) ([]portRange, bool, bool) {
-	var all []portRange
-
-	for _, v := range vals {
-		sub, subAny, subOK := parsePortSpec(v)
-		if !subOK {
-			return nil, false, false
-		}
-
-		if subAny {
-			return nil, true, true
-		}
-
-		all = append(all, sub...)
-	}
-
-	return mergeIntervals(all), false, true
-}
-
-// parsePortSpec parses a single port specification: "" or "any" (the
-// wildcard), a single port number, a "lo-hi" range, or a comma-separated
-// list of the above.
+// parsePortSpec parses a rule's port specification: "" or "any" (the
+// wildcard), a single port number or service name, a "lo-hi" or "lo:hi"
+// range, or a comma-separated list of the above. It returns the ranges it
+// could read, whether the spec is the wildcard, and whether every element
+// could be read. An element it cannot read leaves the ranges read so far in
+// place, so a caller can still act on a port the spec certainly holds.
 func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
@@ -428,43 +504,71 @@ func parsePortSpec(s string) ([]portRange, bool, bool) {
 
 	var ranges []portRange
 
+	complete := true
+
 	for part := range strings.SplitSeq(trimmed, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
 		}
 
-		r, ok := parsePortPart(part)
+		r, ok := parsePortPart(part, ruleVocab)
 		if !ok {
-			return nil, false, false
+			complete = false
+
+			continue
 		}
 
 		ranges = append(ranges, r)
 	}
 
-	if len(ranges) == 0 {
-		return nil, false, false
-	}
-
-	return ranges, false, true
+	return ranges, false, complete && len(ranges) > 0
 }
 
-// parsePortPart parses one comma-list element: either "N" or "lo-hi".
-func parsePortPart(part string) (portRange, bool) {
-	lo, hi, isRange := strings.Cut(part, "-")
-	if !isRange {
-		n, err := strconv.Atoi(part)
-		if err != nil {
-			return portRange{}, false
-		}
-
+// parsePortPart parses one comma-list element: a port number or service name,
+// or a range of two. A port alias member can write a range only as "lo:hi":
+// the alias model validates it with Util::isPort, which splits on ":", and the
+// ruleset loads a member only when is_port or is_portrange accepts it, and
+// is_portrange splits on ":" too (filter.lib.inc filter_core_get_port_alias,
+// util.inc). A rule port writes "lo-hi", and the ruleset turns every dash into
+// a colon before it reads the port (FilterRuleContainer/Rule.php), so a range
+// of two names such as http-https is a range there too. A service name may
+// itself hold dashes, so a whole name is tried first, and then every dash in
+// turn as the separator. Either bound may be a service name vocab accepts.
+// An alias member never takes the dash form: the loader drops "20-25", since
+// is_port and is_portrange both split on ":" only.
+func parsePortPart(part string, vocab portVocab) (portRange, bool) {
+	if n, ok := parsePortNumber(part, vocab); ok {
 		return portRange{lo: n, hi: n}, true
 	}
 
-	loN, errLo := strconv.Atoi(strings.TrimSpace(lo))
-	hiN, errHi := strconv.Atoi(strings.TrimSpace(hi))
+	if lo, hi, isRange := strings.Cut(part, ":"); isRange {
+		return portBounds(lo, hi, vocab)
+	}
 
-	if errLo != nil || errHi != nil || loN > hiN {
+	if vocab == aliasVocab {
+		return portRange{}, false
+	}
+
+	for i := range len(part) {
+		if part[i] != '-' {
+			continue
+		}
+
+		if r, ok := portBounds(part[:i], part[i+1:], vocab); ok {
+			return r, true
+		}
+	}
+
+	return portRange{}, false
+}
+
+// portBounds parses the two bounds of a range, which must be in order.
+func portBounds(lo, hi string, vocab portVocab) (portRange, bool) {
+	loN, okLo := parsePortNumber(lo, vocab)
+	hiN, okHi := parsePortNumber(hi, vocab)
+
+	if !okLo || !okHi || loN > hiN {
 		return portRange{}, false
 	}
 

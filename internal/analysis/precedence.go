@@ -52,6 +52,11 @@ type PrecedencePair struct {
 	// this pair, so consumers needing the R8 advisory path do not have to
 	// re-run coverage() themselves.
 	AliasBlocked bool
+
+	// ValueBlocked reports that what blocked the comparison was a port value
+	// the analysis cannot read, with every alias resolved, so a finding names
+	// the value rather than an alias.
+	ValueBlocked bool
 }
 
 // ResolvePrecedence groups cfg's firewall rules into pf evaluation-order
@@ -256,7 +261,7 @@ func resolveGroup(key precedenceGroupKey, ordered []IndexedRule, no common.Named
 // the pair's coverage is CoverNone or CoverIndeterminate. See
 // derivePairWinnerLoser for the winner/loser derivation rules.
 func resolvePair(key precedenceGroupKey, earlier, later IndexedRule, no common.NamedObjects) (PrecedencePair, bool) {
-	wl, cov, aliasBlocked := derivePairWinnerLoser(earlier, later, no)
+	wl, cov, cause := derivePairWinnerLoser(earlier, later, no)
 
 	if cov != CoverFull && cov != CoverPartial {
 		return PrecedencePair{}, false
@@ -268,7 +273,8 @@ func resolvePair(key precedenceGroupKey, earlier, later IndexedRule, no common.N
 		Winner:       wl.winner,
 		Loser:        wl.loser,
 		Extent:       cov,
-		AliasBlocked: aliasBlocked,
+		AliasBlocked: cause != 0,
+		ValueBlocked: cause == causeValue,
 	}, true
 }
 
@@ -302,24 +308,24 @@ type pairWinnerLoser struct {
 func derivePairWinnerLoser(
 	earlier, later IndexedRule,
 	no common.NamedObjects,
-) (pairWinnerLoser, Coverage, bool) {
+) (pairWinnerLoser, Coverage, blockCause) {
 	var (
-		cov          Coverage
-		aliasBlocked bool
-		wl           pairWinnerLoser
+		cov   Coverage
+		cause blockCause
+		wl    pairWinnerLoser
 	)
 
 	if earlier.Rule.Quick {
-		cov, aliasBlocked = coverage(earlier.Rule, later.Rule, no)
+		cov, cause = coverage(earlier.Rule, later.Rule, no)
 		wl = pairWinnerLoser{winner: earlier, loser: later}
 	} else {
-		cov, aliasBlocked = coverage(later.Rule, earlier.Rule, no)
+		cov, cause = coverage(later.Rule, earlier.Rule, no)
 		wl = pairWinnerLoser{winner: later, loser: earlier}
 	}
 
 	if wl.winner.Rule.Disabled {
-		return wl, CoverNone, false
+		return wl, CoverNone, 0
 	}
 
-	return wl, cov, aliasBlocked
+	return wl, cov, cause
 }
