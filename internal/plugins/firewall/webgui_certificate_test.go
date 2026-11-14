@@ -434,6 +434,7 @@ type nameAttr struct {
 
 var (
 	oidCommonName = asn1.ObjectIdentifier{2, 5, 4, 3}
+	oidCountry    = asn1.ObjectIdentifier{2, 5, 4, 6}
 	oidOrg        = asn1.ObjectIdentifier{2, 5, 4, 10}
 	oidOrgUnit    = asn1.ObjectIdentifier{2, 5, 4, 11}
 )
@@ -487,11 +488,12 @@ func certificateWithNames(t *testing.T, issuer, subject []byte) string {
 }
 
 // TestFirewallPlugin_ValidWebGUICertificate_NameEncodings pins how issuer and
-// subject are compared. OPNsense compares the strings certs_build_name builds
-// from openssl_x509_parse: decoded values, attribute types sorted, repeated
-// values of one type in order. A certificate whose issuer and subject hold the
-// same values in different string types, or in a different attribute order, is
-// self-signed there although its DER bytes differ.
+// subject are compared. pfSense, and OPNsense up to 24.1, compare strings
+// built from openssl_x509_parse: decoded values, attribute types sorted,
+// repeated values of one type in order, and the values otherwise exactly. A
+// certificate whose issuer and subject hold the same values in different
+// string types, or in a different attribute order, is self-signed there
+// although its DER bytes differ.
 func TestFirewallPlugin_ValidWebGUICertificate_NameEncodings(t *testing.T) {
 	t.Parallel()
 
@@ -500,6 +502,16 @@ func TestFirewallPlugin_ValidWebGUICertificate_NameEncodings(t *testing.T) {
 	}
 	utf8 := func(oid asn1.ObjectIdentifier, v string) nameAttr {
 		return nameAttr{oid: oid, tag: asn1.TagUTF8String, value: v}
+	}
+	// universal writes ASCII text v as a UniversalString, UCS-4 big-endian,
+	// which encoding/asn1 does not decode.
+	universal := func(oid asn1.ObjectIdentifier, v string) nameAttr {
+		b := make([]byte, 0, 4*len(v))
+		for i := range len(v) {
+			b = append(b, 0, 0, 0, v[i])
+		}
+
+		return nameAttr{oid: oid, tag: 28, value: string(b)}
 	}
 
 	tests := []struct {
@@ -515,6 +527,12 @@ func TestFirewallPlugin_ValidWebGUICertificate_NameEncodings(t *testing.T) {
 			failed:  true,
 		},
 		{
+			name:    "same values, UniversalString and UTF8String",
+			issuer:  rawName(t, universal(oidCommonName, "fw.example.internal")),
+			subject: rawName(t, utf8(oidCommonName, "fw.example.internal")),
+			failed:  true,
+		},
+		{
 			name:    "same values, attributes in a different order",
 			issuer:  rawName(t, utf8(oidCommonName, "fw.example.internal"), utf8(oidOrg, "Example")),
 			subject: rawName(t, utf8(oidOrg, "Example"), utf8(oidCommonName, "fw.example.internal")),
@@ -525,6 +543,33 @@ func TestFirewallPlugin_ValidWebGUICertificate_NameEncodings(t *testing.T) {
 			name:    "repeated attribute values in a different order",
 			issuer:  rawName(t, utf8(oidOrgUnit, "a"), utf8(oidOrgUnit, "b")),
 			subject: rawName(t, utf8(oidOrgUnit, "b"), utf8(oidOrgUnit, "a")),
+		},
+		{
+			name:    "repeated attribute values that differ after the first",
+			issuer:  rawName(t, utf8(oidOrgUnit, "a"), utf8(oidOrgUnit, "b")),
+			subject: rawName(t, utf8(oidOrgUnit, "a"), utf8(oidOrgUnit, "c")),
+		},
+		// A CA with no common name issuing a leaf that adds one: the issuer's
+		// attributes are all in the subject, which is still another name.
+		{
+			name:   "issuer attributes a subset of the subject",
+			issuer: rawName(t, printable(oidCountry, "US"), utf8(oidOrg, "Example")),
+			subject: rawName(
+				t,
+				printable(oidCountry, "US"),
+				utf8(oidOrg, "Example"),
+				utf8(oidCommonName, "fw.example.internal"),
+			),
+		},
+		{
+			name:    "values that differ only in case",
+			issuer:  rawName(t, utf8(oidCommonName, "FW.example.internal")),
+			subject: rawName(t, utf8(oidCommonName, "fw.example.internal")),
+		},
+		{
+			name:    "values that differ only in spacing",
+			issuer:  rawName(t, utf8(oidOrg, "Example  Firewall")),
+			subject: rawName(t, utf8(oidOrg, "Example Firewall")),
 		},
 		{
 			name:    "different values, different string types",
