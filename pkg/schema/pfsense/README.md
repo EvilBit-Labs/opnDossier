@@ -63,7 +63,7 @@ vlan, wolentry
 | `nat` (inbound + outbound) | `security.go` | Outbound reused               | Inbound forked: the OPNsense rule has elements pfSense does not write          |
 | `dhcpd`                    | `document.go` | Yes (full)                    | Identical map-based structure                                                  |
 | `dhcpdv6`                  | `network.go`  | No (pfSense-specific)         | Map-based with RAMode, RAPriority                                              |
-| `snmpd`                    | `document.go` | Yes (full)                    | Identical                                                                      |
+| `snmpd`                    | `document.go` | Yes (full)                    | Identical; `<enable>` (`*string`) gates the agent                              |
 | `openvpn`                  | `document.go` | Yes (full)                    | Client + server arrays                                                         |
 | `syslog`                   | `services.go` | No (pfSense-specific)         | Currently minimal                                                              |
 | `unbound`                  | `services.go` | No (pfSense-specific)         | Core fields                                                                    |

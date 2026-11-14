@@ -2,6 +2,8 @@
 
 **Date**: 2026-06-27 **Status**: accepted **Deciders**: UncleSp1d3r (maintainer), Claude Code (Opus 4.8)
 
+> Updated 2026-11-13: the OPNsense findings below are corrected, and the plugin namespace is now parsed. See [Update (2026-11-13)](#update-2026-11-13).
+
 ## Context
 
 opnDossier redacts the SNMP community string in statistics and exports. A scope question (deduplicating that redaction) raised a follow-on: should redaction also cover SNMPv3 authentication and privacy secrets? Answering responsibly required examining the upstream OPNsense and pfSense source to determine exactly where SNMP credentials are persisted in `config.xml`. This ADR records those verified findings so future SNMP parser, statistics, and sanitizer work starts from facts rather than assumptions. The findings are the durable artifact here; the scoping choice they enabled is a consequence, not the decision.
@@ -55,6 +57,15 @@ Scope opnDossier's SNMP credential handling to what the vendor source actually p
 ### Risks
 
 - **Schema version drift.** The plugin model element names/versions can change across OPNsense releases (general v1.0.5, user v1.0.1 at time of writing). Re-verify against a real `config.xml` when implementing ingestion (cf. GOTCHAS §18.1 version-pinning).
+
+## Update (2026-11-13)
+
+Two findings above were incomplete, and the parser now reads the plugin namespace.
+
+- OPNsense core has not run an SNMP agent since 17.1. From 17.1 to 18.7 the `os-snmp` plugin (`net-mgmt/snmp`, removed in 19.1) ran `bsnmpd` from the legacy `<snmpd>` block, and like core before it, only when `<snmpd><enable>` was set. From 19.1 the only agent is `os-net-snmp`. Factory defaults kept writing `<snmpd><rocommunity>public</rocommunity></snmpd>` without `<enable>` up to 25.7, so upgraded configs carry a block no agent reads.
+- opnDossier now parses `<OPNsense><netsnmp>` (`pkg/schema/opnsense/netsnmp.go`), pins general model versions 1.0.0 to 1.0.7 (the plugin never used 1.0.2) and user model versions 1.0.0 and 1.0.1, and maps an enabled agent into `SNMPConfig`, including SNMPv3 usernames and read-write access. The `password` and `enckey` elements are not bound in the schema, so model-based features never see them.
+- pfSense, like OPNsense up to 18.7, starts bsnmpd only when `<snmpd><enable>` is present (`config_path_enabled('snmpd')`, an `isset()` test). Both converters now report an `<snmpd>` block only when it carries `<enable>`, and set `SNMPConfig.Enabled` for a running agent.
+- The consequence above that the namespace "remains unparsed" no longer holds; the decision on which credentials exist is unchanged, and SNMPv3 secrets are still kept out of the model.
 
 ## Sources
 

@@ -55,6 +55,8 @@ If a pfSense feature area is listed as **Not yet supported**, opnDossier warns y
 
 ## What this means in practice
 
+SNMP is reported only for an agent the configuration starts. On OPNsense that is the os-net-snmp plugin when it is enabled; on both platforms an `<snmpd>` block counts only when it carries `<enable>`, so a leftover community such as the old OPNsense default `public` is not reported as a running agent.
+
 When you process an **OPNsense** configuration, you can expect the broadest coverage across system, networking, security, and service sections.
 
 When you process a **pfSense** configuration, you can still rely on opnDossier for the major day-to-day areas most operators care about, including interfaces, VLANs, firewall rules, NAT, DHCP, DNS, VPN, routing, certificates, users, groups, syslog, cron jobs, and revision history.

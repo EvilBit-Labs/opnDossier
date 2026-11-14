@@ -124,15 +124,14 @@ func (fp *Plugin) checkTimezoneConfiguration(device *common.CommonDevice) checkR
 	return checkResult{Result: device.System.Timezone != "", Known: true}
 }
 
-// checkSNMPDisabledIfUnused checks that SNMP is disabled when not needed.
-// An empty ROCommunity string indicates SNMP is not configured (good).
-// Any non-empty value means SNMP is in use and may increase attack surface.
+// checkSNMPDisabledIfUnused checks that no SNMP agent runs, since one adds
+// attack surface whether it answers a community or only SNMPv3 users.
 func (fp *Plugin) checkSNMPDisabledIfUnused(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: true, Known: true}
 	}
 
-	return checkResult{Result: device.SNMP.ROCommunity == "", Known: true}
+	return checkResult{Result: !device.SNMP.IsEnabled(), Known: true}
 }
 
 // checkNoDefaultCommunityStrings checks that SNMP community strings are not

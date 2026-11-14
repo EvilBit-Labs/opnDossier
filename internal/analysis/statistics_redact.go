@@ -18,9 +18,9 @@ const serviceDetailRedactedValue = "[REDACTED]"
 
 // snmpSensitiveDetailKeys lists the keys in ServiceStatistics.Details (for the
 // SNMP service entry) whose values must be redacted on export. Adding a new
-// sensitive key — for example, an SNMPv3 authentication password surfaced once
-// the OPNsense net-snmp plugin namespace is parsed — is a one-line append here,
-// shared by every caller of RedactServiceDetails.
+// sensitive key is a one-line append here, shared by every caller of
+// RedactServiceDetails. SNMPv3 passwords and privacy keys are deliberately
+// never parsed, so none can reach these details.
 //
 // When adding a key here, also verify the sanitizer's password/private_key
 // FieldPatterns in internal/sanitizer/rules.go cover the corresponding raw XML
