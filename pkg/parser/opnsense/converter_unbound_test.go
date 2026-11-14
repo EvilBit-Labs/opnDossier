@@ -164,6 +164,22 @@ func TestConverter_Unbound_ServiceFlagsFollowModelVersion(t *testing.T) {
 	}
 }
 
+// TestConverter_Unbound_VersionThatDoesNotParse covers a three-part version
+// with a part that is not a number, such as 1.0.x. It says nothing about the
+// release, so a setting is read from the model when the model carries it and
+// from the legacy block otherwise.
+func TestConverter_Unbound_VersionThatDoesNotParse(t *testing.T) {
+	t.Parallel()
+
+	const legacyEnabled = `<unbound><enable>1</enable></unbound>`
+
+	device, _ := parseUnboundXML(t, legacyEnabled+unboundPlus("1.0.x", `<enabled>0</enabled>`, ``))
+	assert.False(t, device.DNS.Unbound.Enabled, "the model holds enabled, so it wins")
+
+	device, _ = parseUnboundXML(t, legacyEnabled+unboundPlus("1.0.x", `<port>53</port>`, ``))
+	assert.True(t, device.DNS.Unbound.Enabled, "the model lacks enabled, so legacy is read")
+}
+
 // TestConverter_Unbound_KnownModelVersions checks that every model version
 // from 1.0.0 to 26.7's 1.0.15 converts without a warning, that the accepted set
 // holds nothing else, and that a later version still warns.
