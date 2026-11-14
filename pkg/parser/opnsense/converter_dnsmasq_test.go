@@ -1083,3 +1083,137 @@ func TestConverter_Kea_DiffKeysBySubnet(t *testing.T) {
 		"dhcpd.kea[10.0.1.0/24].range",
 	}, diffPaths(oldK3, newK3))
 }
+
+// TestConverter_Dnsmasq_RelayedScopesDiffBySubnet names a dnsmasq range no
+// interface's network holds by the network dnsmasq assumes for it, so a
+// change to a reservation on the second of two such static ranges is
+// reported (d1).
+func TestConverter_Dnsmasq_RelayedScopesDiffBySubnet(t *testing.T) {
+	t.Parallel()
+
+	config := func(ip string) string {
+		return `<dnsmasq version="1.0.9"><enable>1</enable>` +
+			`<dhcp_ranges><start_addr>172.16.0.1</start_addr><mode>static</mode></dhcp_ranges>` +
+			`<dhcp_ranges><start_addr>172.20.0.1</start_addr><mode>static</mode></dhcp_ranges>` +
+			`<hosts><host>h1</host><ip>172.16.0.50</ip><hwaddr>aa:bb:cc:dd:ee:01</hwaddr></hosts>` +
+			`<hosts><host>h2</host><ip>` + ip + `</ip><hwaddr>aa:bb:cc:dd:ee:02</hwaddr></hosts></dnsmasq>`
+	}
+	oldDevice, warnings := parseDnsmasqConfig(t, config("172.20.0.50"), "")
+	assert.Empty(t, dnsmasqWarnings(warnings))
+	newDevice, _ := parseDnsmasqConfig(t, config("172.20.0.51"), "")
+
+	require.Len(t, oldDevice.DHCP, 2)
+	assert.Equal(t, "172.16.0.0/16", oldDevice.DHCP[0].Subnet)
+	assert.Equal(t, "172.20.0.0/16", oldDevice.DHCP[1].Subnet)
+	assert.Equal(t, []string{"dhcpd.dnsmasq[172.20.0.0/16].staticmap[aa:bb:cc:dd:ee:02].ipaddr"},
+		diffPaths(oldDevice, newDevice))
+}
+
+// TestConverter_Dnsmasq_RangeNetworks4 places IPv4 reservations by the network
+// dnsmasq matches each range on: the interface's own network first, then the
+// range's subnet mask, then for a relayed range its address class.
+func TestConverter_Dnsmasq_RangeNetworks4(t *testing.T) {
+	t.Parallel()
+
+	const (
+		o1Ranges = `<dhcp_ranges><interface>opt1</interface><start_addr>10.0.1.100</start_addr>` +
+			`<end_addr>10.0.1.199</end_addr></dhcp_ranges>` +
+			`<dhcp_ranges><start_addr>10.50.0.100</start_addr><end_addr>10.50.0.199</end_addr></dhcp_ranges>`
+		relayed22 = `<dhcp_ranges><start_addr>172.16.0.100</start_addr><end_addr>172.16.0.199</end_addr>` +
+			`<subnet_mask>255.255.252.0</subnet_mask></dhcp_ranges>`
+	)
+
+	tests := []struct {
+		name       string
+		ranges     string
+		host       string
+		wantScope  int // index of the scope the lease reaches, -1 for none
+		wantSubnet []string
+	}{
+		{
+			name: "named interface, range off its network, with a mask (r1)",
+			ranges: `<dhcp_ranges><interface>opt1</interface><start_addr>172.16.0.100</start_addr>` +
+				`<end_addr>172.16.0.199</end_addr><subnet_mask>255.255.255.0</subnet_mask></dhcp_ranges>`,
+			host: "172.16.0.50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name: "local range with a mask wider than the interface",
+			ranges: `<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr>` +
+				`<end_addr>192.168.1.199</end_addr><subnet_mask>255.255.252.0</subnet_mask></dhcp_ranges>`,
+			host: "192.168.2.50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name:   "relayed range, /22 mask, inside",
+			ranges: relayed22,
+			host:   "172.16.3.50", wantScope: 0, wantSubnet: []string{"172.16.0.0/22"},
+		},
+		{
+			name:   "relayed range, /22 mask, outside",
+			ranges: relayed22,
+			host:   "172.16.4.50", wantScope: -1, wantSubnet: []string{"172.16.0.0/22"},
+		},
+		{
+			name:   "class A guess is /8",
+			ranges: `<dhcp_ranges><start_addr>11.0.0.100</start_addr><end_addr>11.0.0.199</end_addr></dhcp_ranges>`,
+			host:   "11.200.0.1", wantScope: 0, wantSubnet: []string{"11.0.0.0/8"},
+		},
+		{
+			name: "class C guess is /24",
+			ranges: `<dhcp_ranges><start_addr>203.0.113.100</start_addr>` +
+				`<end_addr>203.0.113.199</end_addr></dhcp_ranges>`,
+			host: "203.0.114.50", wantScope: -1, wantSubnet: []string{"203.0.113.0/24"},
+		},
+		{
+			name: "no guess when start and end are in different classes",
+			ranges: `<dhcp_ranges><start_addr>126.255.255.250</start_addr>` +
+				`<end_addr>128.0.0.5</end_addr></dhcp_ranges>`,
+			host: "126.255.255.251", wantScope: -1, wantSubnet: []string{""},
+		},
+		{
+			name: "an address must share the guessed network with the start and the end",
+			ranges: `<dhcp_ranges><start_addr>11.0.0.100</start_addr>` +
+				`<end_addr>12.0.0.100</end_addr></dhcp_ranges>`,
+			host: "11.5.5.5", wantScope: -1, wantSubnet: []string{"11.0.0.0/8"},
+		},
+		{
+			name: "a mask that is not contiguous is applied as written (r2)",
+			ranges: `<dhcp_ranges><start_addr>172.16.0.100</start_addr><end_addr>172.16.0.199</end_addr>` +
+				`<subnet_mask>255.255.0.255</subnet_mask></dhcp_ranges>`,
+			host: "172.16.9.199", wantScope: -1, wantSubnet: []string{"172.16.0.100/255.255.0.255"},
+		},
+		{
+			name:   "an interface network wins over an overlapping relayed range (o1)",
+			ranges: o1Ranges,
+			host:   "10.0.1.60", wantScope: 0, wantSubnet: []string{"", "10.0.0.0/8"},
+		},
+		{
+			name:   "the relayed range takes what no interface holds (o1)",
+			ranges: o1Ranges,
+			host:   "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.0.0.0/8"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>`+tt.ranges+
+				`<hosts><host>h</host><ip>`+tt.host+`</ip><hwaddr>aa:bb:cc:dd:ee:80</hwaddr></hosts></dnsmasq>`, "")
+
+			require.Len(t, device.DHCP, len(tt.wantSubnet))
+			for i, scope := range device.DHCP {
+				assert.Equal(t, tt.wantSubnet[i], scope.Subnet, "subnet of scope %d", i)
+				if i == tt.wantScope {
+					assert.Len(t, scope.StaticLeases, 1, "scope %d", i)
+				} else {
+					assert.Empty(t, scope.StaticLeases, "scope %d", i)
+				}
+			}
+			if tt.wantScope < 0 {
+				got := dnsmasqWarnings(warnings)
+				require.Len(t, got, 1)
+				assert.Equal(t, "dnsmasq.hosts", got[0].Field)
+			}
+		})
+	}
+}
