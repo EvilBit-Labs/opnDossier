@@ -175,6 +175,9 @@ func TestSNMPAgent_ListenAddressesDecideWANExposure(t *testing.T) {
 		{listen: "127.0.0.1", want: analysis.Local},
 		{listen: "127.0.0.1,::1", want: analysis.Local},
 		{listen: "127.0.0.0/8", want: analysis.Local},
+		{listen: "::1/128", want: analysis.Local},
+		// ::1/127 also holds ::, the unspecified address, so it is not loopback.
+		{listen: "::1/127", want: analysis.WANReachable},
 		{listen: "127.0.0.1,192.168.1.1", want: analysis.WANReachable},
 		{listen: "0.0.0.0", want: analysis.WANReachable},
 		{listen: "localhost", want: analysis.WANReachable},
