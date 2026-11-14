@@ -194,6 +194,13 @@ func pairDHCPScopes(old, newCfg []common.DHCPScope, oldNames []string) ([]dhcpSc
 			if kx != ky {
 				return 0
 			}
+			if kx != "" {
+				// Scopes sharing a key are ranges in one network, and the
+				// converter puts every reservation in that network on the
+				// first of them, so reservations follow config order rather
+				// than the range and say nothing about which range is which.
+				x.StaticLeases, y.StaticLeases = nil, nil
+			}
 			return dhcpScopeSimilarity(x, y)
 		},
 		minScore: dhcpSimMinScore,

@@ -1317,3 +1317,72 @@ func TestConverter_Dnsmasq_GlobalOptionDoesNotPairScopes(t *testing.T) {
 		"dhcpd.dnsmasq[10.0.0.0/8,10.70.0.100]",
 	}, diffPaths(oldDevice, newDevice))
 }
+
+// TestConverter_Dnsmasq_SharedNetworkRangesPairByRange pairs ranges that share
+// one relayed network by the range, not by the reservations the converter
+// puts on the first of them. The changes to scopes themselves are checked;
+// reservations can still appear to move between such ranges.
+func TestConverter_Dnsmasq_SharedNetworkRangesPairByRange(t *testing.T) {
+	t.Parallel()
+
+	host := func(name, ip, mac string) string {
+		return `<hosts><host>` + name + `</host><ip>` + ip + `</ip><hwaddr>aa:bb:cc:dd:ee:` + mac + `</hwaddr></hosts>`
+	}
+	masked := func(from, to string) string {
+		return `<dhcp_ranges><start_addr>` + from + `</start_addr><end_addr>` + to + `</end_addr>` +
+			`<subnet_mask>255.255.255.0</subnet_mask></dhcp_ranges>`
+	}
+	guessed := func(from, to string) string {
+		return `<dhcp_ranges><start_addr>` + from + `</start_addr><end_addr>` + to + `</end_addr></dhcp_ranges>`
+	}
+	gateway := `<dhcp_options><option>3</option><value>192.168.1.1</value></dhcp_options>`
+	wrap := func(body string) string { return `<dnsmasq version="1.0.9"><enable>1</enable>` + body + `</dnsmasq>` }
+
+	r50, r60, r70 := guessed("10.50.0.100", "10.50.0.199"), guessed("10.60.0.100", "10.60.0.199"),
+		guessed("10.70.0.100", "10.70.0.199")
+	b, b2 := host("b", "10.60.0.10", "52"), host("b2", "10.60.0.11", "54")
+	s1, s2 := guessed("172.20.1.100", "172.20.1.199"), guessed("172.20.2.100", "172.20.2.199")
+	h := host("h1", "172.20.1.10", "01") + host("h2", "172.20.2.10", "02") + host("h3", "172.20.2.11", "03")
+	p := host("p1", "172.20.1.10", "01") + host("p2", "172.20.1.11", "02")
+
+	tests := []struct {
+		name     string
+		old, new string
+		want     []string
+	}{
+		{
+			name: "a relayed /24 split in two, first deleted (a9)",
+			old:  wrap(masked("172.20.1.100", "172.20.1.149") + masked("172.20.1.150", "172.20.1.199") + p),
+			new:  wrap(masked("172.20.1.150", "172.20.1.199") + p),
+			want: []string{"dhcpd.dnsmasq[172.20.1.0/24,172.20.1.100]"},
+		},
+		{
+			name: "one range removed and one added beside an unchanged one (d2b)",
+			old:  wrap(r50 + r60 + gateway + host("a", "10.50.0.10", "51") + b + b2),
+			new:  wrap(r60 + r70 + gateway + b + b2 + host("c", "10.70.0.10", "53")),
+			want: []string{"dhcpd.dnsmasq[10.0.0.0/8,10.50.0.100]", "dhcpd.dnsmasq[10.0.0.0/8,10.70.0.100]"},
+		},
+		{
+			name: "two ranges listed in the other order (a6)",
+			old:  wrap(s1 + s2 + h),
+			new:  wrap(s2 + s1 + h),
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			oldDevice, _ := parseDnsmasqConfig(t, tt.old, "")
+			newDevice, _ := parseDnsmasqConfig(t, tt.new, "")
+			var scopePaths []string
+			for _, path := range diffPaths(oldDevice, newDevice) {
+				if !strings.Contains(path, ".staticmap[") {
+					scopePaths = append(scopePaths, path)
+				}
+			}
+			assert.Equal(t, tt.want, scopePaths)
+		})
+	}
+}

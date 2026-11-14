@@ -422,3 +422,22 @@ func TestCompareDHCP_SharedKeyPairsWithinGroup(t *testing.T) {
 	}
 	assert.Equal(t, ChangeAdded, changes[2].Type)
 }
+
+// TestCompareDHCP_KeySharedOnNewSideOnly treats a key that one scope has on
+// the old side and two have on the new side as shared, so the unchanged
+// scope keeps its partner and only the new range is added (a1).
+func TestCompareDHCP_KeySharedOnNewSideOnly(t *testing.T) {
+	t.Parallel()
+
+	first := common.DHCPScope{
+		Source: common.DHCPSourceDnsmasq, Subnet: "172.20.0.0/16", Enabled: true,
+		Range: common.DHCPRange{From: "172.20.1.100", To: "172.20.1.199"},
+	}
+	second := first
+	second.Range = common.DHCPRange{From: "172.20.2.100", To: "172.20.2.199"}
+
+	changes := NewAnalyzer().CompareDHCP([]common.DHCPScope{first}, []common.DHCPScope{first, second})
+	require.Len(t, changes, 1)
+	assert.Equal(t, ChangeAdded, changes[0].Type)
+	assert.Equal(t, "dhcpd.dnsmasq[172.20.0.0/16,172.20.2.100]", changes[0].Path)
+}
