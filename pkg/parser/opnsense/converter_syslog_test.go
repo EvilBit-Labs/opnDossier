@@ -267,12 +267,19 @@ func TestConverter_Syslog_DestinationFilters(t *testing.T) {
 		{name: "program entry matches as a pattern", program: "ntpd,filter", want: flags{filter: true}},
 		{name: "invalid pattern admits nothing", program: "filter(log"},
 		{name: "space after the comma stays in the pattern", program: "ntpd, filterlog"},
-		{name: "empty entry matches every program", program: "ntpd,", want: flags{filter: true}},
+		{name: "empty entry matches every program", program: "ntpd,", want: flags{true, true, true, true, true}},
+		{
+			name:    "empty entry keeps the level filter",
+			program: ",ntpd",
+			level:   "info,notice,warn,err,crit,alert",
+			want:    flags{filter: true},
+		},
 		{
 			name:    "program list maps each entry",
 			program: "dhcpd,openvpn",
 			want:    flags{dhcp: true, vpn: true},
 		},
+		{name: "space after the comma drops that category", program: "dhcpd, openvpn", want: flags{dhcp: true}},
 		{name: "every filter must admit filterlog", program: "filterlog", facility: "local0", level: "err"},
 		{
 			name:     "filterlog through all three filters",

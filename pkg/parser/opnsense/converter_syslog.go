@@ -338,7 +338,9 @@ func applySyslogCoverage(cfg *common.SyslogConfig, d *schema.SyslogDestination) 
 		}
 	}
 
-	if d.Program == "" {
+	// An empty entry in the list is an empty pattern, which matches every
+	// program, so the list then drops nothing.
+	if d.Program == "" || slices.Contains(programEntries(d.Program), "") {
 		setAllSyslogCategories(cfg)
 
 		return
