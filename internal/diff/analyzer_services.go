@@ -34,13 +34,14 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 		}}
 	}
 
-	pairs, res := pairDHCPScopes(old, newCfg)
+	oldNames, newNames := dhcpScopeNames(old), dhcpScopeNames(newCfg)
+	pairs, res := pairDHCPScopes(old, newCfg, oldNames)
 
 	var changes []Change
 
 	// Find removed DHCP configs
-	for _, oi := range sortedScopeIndexes(old, res.oldPaired) {
-		name := dhcpScopeName(old[oi])
+	for _, oi := range sortedScopeIndexes(oldNames, res.oldPaired) {
+		name := oldNames[oi]
 		changes = append(changes, Change{
 			Type:        ChangeRemoved,
 			Section:     SectionDHCP,
@@ -50,8 +51,8 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	}
 
 	// Find added DHCP configs
-	for _, ni := range sortedScopeIndexes(newCfg, res.newPaired) {
-		name := dhcpScopeName(newCfg[ni])
+	for _, ni := range sortedScopeIndexes(newNames, res.newPaired) {
+		name := newNames[ni]
 		changes = append(changes, Change{
 			Type:        ChangeAdded,
 			Section:     SectionDHCP,
@@ -62,7 +63,7 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 
 	// Compare existing DHCP configs - focus on static reservations
 	for _, p := range pairs {
-		changes = append(changes, a.compareDHCPScope(p.name, old[p.oldIdx], newCfg[p.newIdx])...)
+		changes = append(changes, a.compareDHCPScope(oldNames[p.oldIdx], old[p.oldIdx], newCfg[p.newIdx])...)
 	}
 
 	return changes
@@ -112,56 +113,111 @@ func (a *Analyzer) compareDHCPScope(name string, oldDHCP, newDHCP common.DHCPSco
 	return changes
 }
 
-// dhcpScopePair is one old scope matched to one new scope, with the name the
-// changes between them are reported under.
+// dhcpScopePair is one old scope matched to one new scope.
 type dhcpScopePair struct {
-	name           string
 	oldIdx, newIdx int
 }
 
-// dhcpSimMinScore is the floor for calling two scopes without an identity the
-// same scope edited: at least one setting or reservation in common. Scopes
-// with nothing in common stay a removal and an addition.
+// dhcpSimMinScore is the floor for calling two scopes without a unique
+// identity the same scope edited: a range, a description or a reservation in
+// common. dhcpScopeSimilarity scores no field a server copies into every
+// scope, such as a gateway or DNS server set globally, so the floor cannot be
+// met on such a value alone.
 const dhcpSimMinScore = 1
 
-// dhcpSimDescription weights a matching description above any one other
-// field, as the operator's own label for the scope.
-const dhcpSimDescription = 2
+// dhcpSimDescription and dhcpSimRange weight a matching description, the
+// operator's own label for the scope, and a matching address pool above a
+// DHCPv6 range or a single reservation.
+const (
+	dhcpSimDescription = 2
+	dhcpSimRange       = 2
+)
 
-// pairDHCPScopes matches the scopes of two configs. A scope pairs first by its
-// identity (dhcpScopeKey), then by identical content, then by similarity, as
-// firewall and NAT rules do (itemPairer). An identity two scopes of one config
-// share identifies neither, so such scopes, and scopes with none, are paired
-// by what they hold rather than by their position. The pairs come back sorted
-// by name.
-func pairDHCPScopes(old, newCfg []common.DHCPScope) ([]dhcpScopePair, pairResult) {
+// pairDHCPScopes matches the scopes of two configs.
+//
+// A scope with a unique identity (dhcpScopeKey), one no other scope on either
+// side has, pairs only with the scope of the same identity; without one it is
+// removed or added. Moving an ISC scope from opt1 to opt2 is therefore a
+// removal and an addition, however alike the two scopes are.
+//
+// Only scopes with no identity, or with one more than one scope has, are
+// paired by what they hold: identical content first, then similarity, as
+// firewall and NAT rules are (itemPairer). Such a scope pairs only within its
+// group, the scopes sharing its identity or the scopes with none.
+//
+// The pairs come back ordered by the old scope's name.
+func pairDHCPScopes(old, newCfg []common.DHCPScope, oldNames []string) ([]dhcpScopePair, pairResult) {
 	shared := sharedScopeKeys(old)
 	maps.Copy(shared, sharedScopeKeys(newCfg))
-
-	pairer := itemPairer[common.DHCPScope]{
-		identity: func(scope common.DHCPScope) (string, bool) {
-			key, ok := dhcpScopeKey(scope)
-			if !ok {
-				return "", false
-			}
-			if _, dup := shared[key]; dup {
-				return "", false
-			}
-			return key, true
-		},
-		equal:      func(x, y common.DHCPScope) bool { return reflect.DeepEqual(x, y) },
-		similarity: dhcpScopeSimilarity,
-		minScore:   dhcpSimMinScore,
-		maxPairs:   simMaxPairs,
+	group := func(scope common.DHCPScope) (string, bool) {
+		key, ok := dhcpScopeKey(scope)
+		if !ok {
+			return "", false
+		}
+		_, dup := shared[key]
+		return key, !dup
 	}
 
+	res := pairResult{oldPaired: make([]bool, len(old)), newPaired: make([]bool, len(newCfg))}
 	var pairs []dhcpScopePair
-	res := pairer.pair(old, newCfg, func(oi, ni int) {
-		pairs = append(pairs, dhcpScopePair{name: dhcpScopeName(old[oi]), oldIdx: oi, newIdx: ni})
+	bind := func(oi, ni int) {
+		res.oldPaired[oi], res.newPaired[ni] = true, true
+		pairs = append(pairs, dhcpScopePair{oldIdx: oi, newIdx: ni})
+	}
+
+	newByKey := make(map[string]int, len(newCfg))
+	var newRest []int
+	for ni, scope := range newCfg {
+		if key, unique := group(scope); unique {
+			newByKey[key] = ni
+		} else {
+			newRest = append(newRest, ni)
+		}
+	}
+	var oldRest []int
+	for oi, scope := range old {
+		key, unique := group(scope)
+		if !unique {
+			oldRest = append(oldRest, oi)
+			continue
+		}
+		if ni, ok := newByKey[key]; ok {
+			bind(oi, ni)
+		}
+	}
+
+	pairer := itemPairer[common.DHCPScope]{
+		equal: func(x, y common.DHCPScope) bool { return reflect.DeepEqual(x, y) },
+		similarity: func(x, y common.DHCPScope) int {
+			kx, _ := group(x)
+			ky, _ := group(y)
+			if kx != ky {
+				return 0
+			}
+			return dhcpScopeSimilarity(x, y)
+		},
+		minScore: dhcpSimMinScore,
+		maxPairs: simMaxPairs,
+	}
+	pairer.pair(pick(old, oldRest), pick(newCfg, newRest), func(i, j int) {
+		bind(oldRest[i], newRest[j])
 	})
-	slices.SortStableFunc(pairs, func(x, y dhcpScopePair) int { return strings.Compare(x.name, y.name) })
+
+	slices.SortStableFunc(pairs, func(x, y dhcpScopePair) int {
+		return strings.Compare(oldNames[x.oldIdx], oldNames[y.oldIdx])
+	})
 
 	return pairs, res
+}
+
+// pick returns the scopes at the given positions.
+func pick(scopes []common.DHCPScope, idx []int) []common.DHCPScope {
+	out := make([]common.DHCPScope, 0, len(idx))
+	for _, i := range idx {
+		out = append(out, scopes[i])
+	}
+
+	return out
 }
 
 // sharedScopeKeys returns the identities more than one scope of a config has.
@@ -183,17 +239,18 @@ func sharedScopeKeys(scopes []common.DHCPScope) map[string]struct{} {
 }
 
 // sortedScopeIndexes returns the unpaired positions, ordered by scope name.
-func sortedScopeIndexes(scopes []common.DHCPScope, paired []bool) []int {
+func sortedScopeIndexes(names []string, paired []bool) []int {
 	idx := unpairedIndexes(paired)
-	slices.SortStableFunc(idx, func(x, y int) int {
-		return strings.Compare(dhcpScopeName(scopes[x]), dhcpScopeName(scopes[y]))
-	})
+	slices.SortStableFunc(idx, func(x, y int) int { return strings.Compare(names[x], names[y]) })
 
 	return idx
 }
 
-// dhcpScopeSimilarity scores how likely two scopes without an identity are one
-// scope edited. Scopes of different servers never match.
+// dhcpScopeSimilarity scores how likely two scopes without a unique identity
+// are one scope edited: a matching description or address pool scores 2, a
+// matching DHCPv6 range and each reservation both hold score 1. Scopes of
+// different servers never match. Fields a server can copy into every scope,
+// the gateway and the DNS, NTP and WINS servers, are not scored.
 func dhcpScopeSimilarity(x, y common.DHCPScope) int {
 	if dhcpServer(x) != dhcpServer(y) {
 		return 0
@@ -203,12 +260,9 @@ func dhcpScopeSimilarity(x, y common.DHCPScope) int {
 		score += dhcpSimDescription
 	}
 	if x.Range != (common.DHCPRange{}) && x.Range == y.Range {
-		score++
+		score += dhcpSimRange
 	}
 	if x.RangeV6 != nil && y.RangeV6 != nil && *x.RangeV6 == *y.RangeV6 {
-		score++
-	}
-	if x.Gateway != "" && x.Gateway == y.Gateway {
 		score++
 	}
 	leases := make(map[string]struct{}, len(x.StaticLeases))
@@ -254,20 +308,57 @@ func dhcpScopeKey(scope common.DHCPScope) (string, bool) {
 	}
 }
 
-// dhcpScopeName names a scope in diff paths and descriptions: its identity,
-// or for a scope with none its server and the start of its range, such as
-// dnsmasq[172.16.0.100], or dnsmasq[] when it has no range. Such a name
-// labels the change; it does not pair the scope.
+// dhcpScopeNames names each scope of a config in diff paths and descriptions.
+// A scope is named by its identity, or with none by its server and the start
+// of its range, such as dnsmasq[172.16.0.100]. A name more than one scope of
+// the config would get is told apart by the range start, as
+// dnsmasq[10.0.0.0/8,10.1.0.100] for two relayed ranges in one class
+// network, and a name still repeated after that gets #2, #3 in order. A name
+// labels the changes; it does not pair the scope.
+func dhcpScopeNames(scopes []common.DHCPScope) []string {
+	base := make([]string, len(scopes))
+	count := make(map[string]int, len(scopes))
+	for i, scope := range scopes {
+		base[i] = dhcpScopeName(scope)
+		count[base[i]]++
+	}
+
+	names := make([]string, len(scopes))
+	seen := make(map[string]int, len(scopes))
+	for i, scope := range scopes {
+		name := base[i]
+		if _, keyed := dhcpScopeKey(scope); keyed && count[name] > 1 {
+			if start := dhcpScopeStart(scope); start != "" {
+				name = strings.TrimSuffix(name, "]") + "," + start + "]"
+			}
+		}
+		seen[name]++
+		if n := seen[name]; n > 1 {
+			name += "#" + strconv.Itoa(n)
+		}
+		names[i] = name
+	}
+
+	return names
+}
+
+// dhcpScopeName names one scope: its identity, or its server and range start.
 func dhcpScopeName(scope common.DHCPScope) string {
 	if key, ok := dhcpScopeKey(scope); ok {
 		return key
 	}
-	start := scope.Range.From
-	if start == "" && scope.RangeV6 != nil {
-		start = scope.RangeV6.From
+
+	return dhcpServer(scope) + "[" + dhcpScopeStart(scope) + "]"
+}
+
+// dhcpScopeStart returns the start of a scope's IPv4 range, or of its DHCPv6
+// range when it has no IPv4 one.
+func dhcpScopeStart(scope common.DHCPScope) string {
+	if scope.Range.From != "" || scope.RangeV6 == nil {
+		return scope.Range.From
 	}
 
-	return dhcpServer(scope) + "[" + start + "]"
+	return scope.RangeV6.From
 }
 
 // staticLeaseKey identifies a reservation: its MAC address, or its client id
