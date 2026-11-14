@@ -1433,6 +1433,8 @@ func TestConverter_Dnsmasq_SharedNetworkRangesPairByRange(t *testing.T) {
 	s1, s2 := guessed("172.20.1.100", "172.20.1.199"), guessed("172.20.2.100", "172.20.2.199")
 	h := host("h1", "172.20.1.10", "01") + host("h2", "172.20.2.10", "02") + host("h3", "172.20.2.11", "03")
 	p := host("p1", "172.20.1.10", "01") + host("p2", "172.20.1.11", "02")
+	v6a, v6b := guessed("fd00:9::100", "fd00:9::1ff"), guessed("fd00:9::200", "fd00:9::2ff")
+	h6 := host("h6", "fd00:9::50", "61")
 
 	tests := []struct {
 		name     string
@@ -1450,6 +1452,18 @@ func TestConverter_Dnsmasq_SharedNetworkRangesPairByRange(t *testing.T) {
 			old:  wrap(r50 + r60 + gateway + host("a", "10.50.0.10", "51") + b + b2),
 			new:  wrap(r60 + r70 + gateway + b + b2 + host("c", "10.70.0.10", "53")),
 			want: []string{"dhcpd.dnsmasq[10.0.0.0/8,10.50.0.100]", "dhcpd.dnsmasq[10.0.0.0/8,10.70.0.100]"},
+		},
+		{
+			name: "two DHCPv6 ranges in one relayed /64 listed in the other order (v6r)",
+			old:  wrap(v6a + v6b + h6),
+			new:  wrap(v6b + v6a + h6),
+			want: nil,
+		},
+		{
+			name: "the first of two DHCPv6 ranges in one relayed /64 deleted (v6d)",
+			old:  wrap(v6a + v6b + h6),
+			new:  wrap(v6b + h6),
+			want: []string{"dhcpd.dnsmasq[fd00:9::/64,fd00:9::100]"},
 		},
 		{
 			name: "two ranges listed in the other order (a6)",
