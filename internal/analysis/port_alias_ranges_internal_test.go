@@ -68,6 +68,10 @@ func TestParsePortPart_VendorForms(t *testing.T) {
 		{part: "rfb", want: portRange{lo: 5900, hi: 5900}, wantOK: true},
 		{part: "rfb", vocab: aliasVocab, wantOK: false},
 		{part: "telnet", vocab: aliasVocab, want: portRange{lo: 23, hi: 23}, wantOK: true},
+		{part: "netbios-ns", vocab: aliasVocab, want: portRange{lo: 137, hi: 137}, wantOK: true},
+		{part: "netbios-ns:netbios-ssn", vocab: aliasVocab, want: portRange{lo: 137, hi: 139}, wantOK: true},
+		{part: "8000-8100", vocab: aliasVocab, wantOK: false},
+		{part: "http-https", vocab: aliasVocab, wantOK: false},
 		{part: "HTTPS", wantOK: false},
 		{part: "TELNET", vocab: aliasVocab, wantOK: false},
 		{part: "100:http", wantOK: false},
@@ -130,6 +134,9 @@ func TestEndpointPorts_PartialSets(t *testing.T) {
 		"Upper":     port("Upper", "TELNET"),
 		"Telnet":    port("Telnet", "telnet"),
 		"FullRange": port("FullRange", "1:65535"),
+		"Dashed":    port("Dashed", "20-25"),
+		"Listed":    port("Listed", "20,23"),
+		"AnyMember": port("AnyMember", "any"),
 	}
 
 	ref := func(name string) common.RuleEndpoint {
@@ -157,6 +164,10 @@ func TestEndpointPorts_PartialSets(t *testing.T) {
 		{name: "missing alias", ep: ref("Nowhere")},
 		{name: "literal with no alias", ep: common.RuleEndpoint{Port: "syslog"}},
 		{name: "literal range", ep: common.RuleEndpoint{Port: "20-25"}, wantTelnet: true, wantComplete: true},
+		{name: "literal list keeps its readable part", ep: common.RuleEndpoint{Port: "23,syslog"}, wantTelnet: true},
+		{name: "dash range member is not loaded", ep: ref("Dashed")},
+		{name: "comma list member is not loaded", ep: ref("Listed")},
+		{name: "any member is not the wildcard", ep: ref("AnyMember")},
 		{name: "any port", ep: common.RuleEndpoint{}, wantComplete: true, wantEvery: true},
 	}
 

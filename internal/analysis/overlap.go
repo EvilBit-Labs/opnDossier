@@ -490,11 +490,13 @@ func exactSingletonCoverage(earlierVals, laterVals []string) Coverage {
 	return CoverNone
 }
 
-// parsePortSpec parses a single port specification: "" or "any" (the
+// parsePortSpec parses a rule's port specification: "" or "any" (the
 // wildcard), a single port number or service name, a "lo-hi" or "lo:hi"
-// range, or a comma-separated list of the above. vocab says which service
-// names it may use.
-func parsePortSpec(s string, vocab portVocab) ([]portRange, bool, bool) {
+// range, or a comma-separated list of the above. It returns the ranges it
+// could read, whether the spec is the wildcard, and whether every element
+// could be read. An element it cannot read leaves the ranges read so far in
+// place, so a caller can still act on a port the spec certainly holds.
+func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
 		return nil, true, true
@@ -502,25 +504,25 @@ func parsePortSpec(s string, vocab portVocab) ([]portRange, bool, bool) {
 
 	var ranges []portRange
 
+	complete := true
+
 	for part := range strings.SplitSeq(trimmed, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
 		}
 
-		r, ok := parsePortPart(part, vocab)
+		r, ok := parsePortPart(part, ruleVocab)
 		if !ok {
-			return nil, false, false
+			complete = false
+
+			continue
 		}
 
 		ranges = append(ranges, r)
 	}
 
-	if len(ranges) == 0 {
-		return nil, false, false
-	}
-
-	return ranges, false, true
+	return ranges, false, complete && len(ranges) > 0
 }
 
 // parsePortPart parses one comma-list element: a port number or service name,
@@ -533,6 +535,8 @@ func parsePortSpec(s string, vocab portVocab) ([]portRange, bool, bool) {
 // of two names such as http-https is a range there too. A service name may
 // itself hold dashes, so a whole name is tried first, and then every dash in
 // turn as the separator. Either bound may be a service name vocab accepts.
+// An alias member never takes the dash form: the loader drops "20-25", since
+// is_port and is_portrange both split on ":" only.
 func parsePortPart(part string, vocab portVocab) (portRange, bool) {
 	if n, ok := parsePortNumber(part, vocab); ok {
 		return portRange{lo: n, hi: n}, true
@@ -540,6 +544,10 @@ func parsePortPart(part string, vocab portVocab) (portRange, bool) {
 
 	if lo, hi, isRange := strings.Cut(part, ":"); isRange {
 		return portBounds(lo, hi, vocab)
+	}
+
+	if vocab == aliasVocab {
+		return portRange{}, false
 	}
 
 	for i := range len(part) {

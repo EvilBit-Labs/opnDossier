@@ -126,103 +126,8 @@ type sansPortAliasCase struct {
 func TestSANSChecks_ResolvePortAliases(t *testing.T) {
 	t.Parallel()
 
-	cases := []sansPortAliasCase{
-		{
-			name: "telnet alias on WAN", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
-		},
-		{
-			name: "telnet among other members", inner: "22\n23", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
-		},
-		{
-			name: "telnet through a nested alias", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Outer",
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
-		},
-		{
-			name: "telnet by service name", inner: "telnet", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
-		},
-		{
-			name: "NetBIOS colon range", inner: "443\n135:139", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusPass},
-		},
-		{
-			name: "telnet alias in the legacy store", inner: "23", rule: "legacy", iface: "wan", dst: "any",
-			port: "Inner", vendor: "opnsense",
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
-		},
-		{
-			name: "SMTP alias to any destination", inner: "25\n587", rule: "model", iface: "lan", dst: "any",
-			port: "Inner",
-			want: map[string]string{"SANS-FW-017": statusFail},
-		},
-		{
-			name: "SMTP alias to a mail server", inner: "25\n587", rule: "model", iface: "lan", dst: "192.168.1.25",
-			port: "Inner",
-			want: map[string]string{"SANS-FW-017": statusPass},
-		},
-		{
-			name: "DNS alias on WAN from any source", inner: "domain", rule: "model", iface: "wan", dst: "any",
-			port: "Inner",
-			want: map[string]string{"SANS-FW-020": statusFail},
-		},
-		{
-			name: "disabled telnet alias", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			vendor: "opnsense", innerDisabled: true,
-			want: map[string]string{"SANS-FW-014": statusPass, "SANS-FW-015": statusPass},
-		},
-		{
-			name: "disabled telnet alias nested", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Outer",
-			vendor: "opnsense", innerDisabled: true,
-			want: map[string]string{"SANS-FW-014": statusPass, "SANS-FW-015": statusPass},
-		},
-		{
-			name: "telnet beside a cycle", inner: "23\nOuter", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{
-				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
-			},
-		},
-		{
-			name: "telnet beside a host alias", inner: "23\nHosts", rule: "model", iface: "wan", dst: "any",
-			port: "Inner",
-			want: map[string]string{
-				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
-			},
-		},
-		{
-			name: "telnet beside an unknown service name", inner: "23\nsyslog", rule: "model", iface: "wan",
-			dst: "any", port: "Inner",
-			want: map[string]string{
-				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
-			},
-		},
-		{
-			name: "service names are case sensitive", inner: "TELNET", rule: "model", iface: "wan", dst: "any",
-			port: "Inner",
-			want: map[string]string{
-				"SANS-FW-014": statusUnknown, "SANS-FW-015": statusUnknown,
-				"SANS-FW-017": statusUnknown, "SANS-FW-020": statusUnknown,
-			},
-		},
-		{
-			name: "harmless alias", inner: "80\n443", rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{
-				"SANS-FW-014": statusPass, "SANS-FW-015": statusPass, "SANS-FW-020": statusPass,
-			},
-		},
-		{
-			name: "a member that cannot be read leaves the controls undecided", inner: "443\nno-such-service",
-			rule: "model", iface: "wan", dst: "any", port: "Inner",
-			want: map[string]string{
-				"SANS-FW-014": statusUnknown, "SANS-FW-015": statusUnknown,
-				"SANS-FW-017": statusUnknown, "SANS-FW-020": statusUnknown,
-			},
-		},
-	}
-
 	for _, vendor := range []string{"opnsense", "pfsense"} {
-		for _, tc := range cases {
+		for _, tc := range sansPortAliasCases() {
 			if tc.vendor != "" && tc.vendor != vendor {
 				continue
 			}
@@ -507,6 +412,11 @@ func sansLiteralPortCases() []sansLiteralPortCase {
 			want: map[string]string{"SANS-FW-014": statusFail},
 		},
 		{
+			name: "a list keeps the port its readable part names",
+			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "23,syslog"},
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+		},
+		{
 			name: "a restricted SMTP rule decides SANS-FW-017",
 			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
 			want: map[string]string{"SANS-FW-017": statusPass},
@@ -522,6 +432,120 @@ func sansLiteralPortCases() []sansLiteralPortCase {
 			a:    sansLiteralRule{dst: "192.168.1.25", port: "25"},
 			b:    sansLiteralRule{dst: "any", port: "syslog"},
 			want: map[string]string{"SANS-FW-015": statusUnknown, "SANS-FW-017": statusUnknown},
+		},
+	}
+}
+
+// sansPortAliasCases lists the rows of TestSANSChecks_ResolvePortAliases, kept
+// apart so the test function stays readable.
+func sansPortAliasCases() []sansPortAliasCase {
+	return []sansPortAliasCase{
+		{
+			name: "telnet alias on WAN", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+		},
+		{
+			name: "telnet among other members", inner: "22\n23", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+		},
+		{
+			name: "telnet through a nested alias", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Outer",
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+		},
+		{
+			name: "telnet by service name", inner: "telnet", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+		},
+		{
+			name: "NetBIOS colon range", inner: "443\n135:139", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusPass},
+		},
+		{
+			name: "telnet alias in the legacy store", inner: "23", rule: "legacy", iface: "wan", dst: "any",
+			port: "Inner", vendor: "opnsense",
+			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+		},
+		{
+			name: "SMTP alias to any destination", inner: "25\n587", rule: "model", iface: "lan", dst: "any",
+			port: "Inner",
+			want: map[string]string{"SANS-FW-017": statusFail},
+		},
+		{
+			name: "SMTP alias to a mail server", inner: "25\n587", rule: "model", iface: "lan", dst: "192.168.1.25",
+			port: "Inner",
+			want: map[string]string{"SANS-FW-017": statusPass},
+		},
+		{
+			name: "DNS alias on WAN from any source", inner: "domain", rule: "model", iface: "wan", dst: "any",
+			port: "Inner",
+			want: map[string]string{"SANS-FW-020": statusFail},
+		},
+		{
+			name: "disabled telnet alias", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			vendor: "opnsense", innerDisabled: true,
+			want: map[string]string{"SANS-FW-014": statusPass, "SANS-FW-015": statusPass},
+		},
+		{
+			name: "disabled telnet alias nested", inner: "23", rule: "model", iface: "wan", dst: "any", port: "Outer",
+			vendor: "opnsense", innerDisabled: true,
+			want: map[string]string{"SANS-FW-014": statusPass, "SANS-FW-015": statusPass},
+		},
+		{
+			name: "telnet beside a cycle", inner: "23\nOuter", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
+			},
+		},
+		{
+			name: "telnet beside a host alias", inner: "23\nHosts", rule: "model", iface: "wan", dst: "any",
+			port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
+			},
+		},
+		{
+			name: "telnet beside an unknown service name", inner: "23\nsyslog", rule: "model", iface: "wan",
+			dst: "any", port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
+			},
+		},
+		{
+			name: "service names are case sensitive", inner: "TELNET", rule: "model", iface: "wan", dst: "any",
+			port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusUnknown, "SANS-FW-015": statusUnknown,
+				"SANS-FW-017": statusUnknown, "SANS-FW-020": statusUnknown,
+			},
+		},
+		{
+			name: "a dash range member is not loaded", inner: "20-25", rule: "model", iface: "wan", dst: "any",
+			port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusUnknown, "SANS-FW-015": statusUnknown,
+				"SANS-FW-017": statusUnknown, "SANS-FW-020": statusUnknown,
+			},
+		},
+		{
+			name: "an any member is not the any-port wildcard", inner: "any\n23", rule: "model", iface: "wan",
+			dst: "any", port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusFail, "SANS-FW-015": statusFail, "SANS-FW-020": statusUnknown,
+			},
+		},
+		{
+			name: "harmless alias", inner: "80\n443", rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusPass, "SANS-FW-015": statusPass, "SANS-FW-020": statusPass,
+			},
+		},
+		{
+			name: "a member that cannot be read leaves the controls undecided", inner: "443\nno-such-service",
+			rule: "model", iface: "wan", dst: "any", port: "Inner",
+			want: map[string]string{
+				"SANS-FW-014": statusUnknown, "SANS-FW-015": statusUnknown,
+				"SANS-FW-017": statusUnknown, "SANS-FW-020": statusUnknown,
+			},
 		},
 	}
 }

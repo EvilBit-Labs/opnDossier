@@ -154,9 +154,9 @@ func (v portValues) matchesNothing() bool {
 // so a caller can still act on a port they certainly contain.
 func resolvePorts(ep common.RuleEndpoint, no common.NamedObjects) portValues {
 	if ep.PortRef == nil {
-		ranges, every, ok := parsePortSpec(ep.Port, ruleVocab)
-		if !ok {
-			return portValues{cause: causeValue}
+		ranges, every, complete := parsePortSpec(ep.Port)
+		if !complete {
+			return portValues{ranges: ranges, cause: causeValue}
 		}
 
 		return portValues{ranges: ranges, every: every}
@@ -169,7 +169,7 @@ func resolvePorts(ep common.RuleEndpoint, no common.NamedObjects) portValues {
 		return portValues{cause: w.cause | causeAlias}
 	}
 
-	return portValues{ranges: mergeIntervals(w.ranges), every: w.every, cause: w.cause}
+	return portValues{ranges: mergeIntervals(w.ranges), cause: w.cause}
 }
 
 // portAliasWalker expands one port alias tree for resolvePorts.
@@ -178,7 +178,6 @@ type portAliasWalker struct {
 	visiting map[string]struct{}
 	visits   int
 	ranges   []portRange
-	every    bool
 	cause    blockCause
 }
 
@@ -227,15 +226,20 @@ func (w *portAliasWalker) walk(name string, depth int) {
 			continue
 		}
 
-		ranges, every, ok := parsePortSpec(member, aliasVocab)
+		// A member is one port or one colon range: the loader reads it with
+		// is_port or is_portrange and drops anything else, a comma list, a
+		// dash range and "any" included. A member this code cannot read is
+		// left unknown rather than dropped, since the analysis knows fewer
+		// service names than /etc/services holds and pfSense's loader is not
+		// read here.
+		r, ok := parsePortPart(member, aliasVocab)
 		if !ok {
 			w.cause |= causeValue
 
 			continue
 		}
 
-		w.every = w.every || every
-		w.ranges = append(w.ranges, ranges...)
+		w.ranges = append(w.ranges, r)
 	}
 }
 
