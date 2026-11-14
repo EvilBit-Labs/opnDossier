@@ -445,7 +445,11 @@ func (sp *Plugin) checkDangerousPorts(device *common.CommonDevice) checkResult {
 	unresolved := false
 
 	for _, r := range enabledPassRules(device) {
-		if !ruleAppliesToWAN(r, device.Interfaces) || matchesNoPort(r, device.NamedObjects) {
+		if !ruleAppliesToWAN(r, device.Interfaces) {
+			continue
+		}
+
+		if matchesNoPort(r, device.NamedObjects) {
 			continue
 		}
 
