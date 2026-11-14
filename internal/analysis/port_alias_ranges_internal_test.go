@@ -402,3 +402,111 @@ func TestCoverage_DisjointDimensionWins(t *testing.T) {
 		})
 	}
 }
+
+// TestDetectShadowedRules_R10ComplementWithUnreadablePart pins that a pass
+// from !X never meets a block from X, or from a set inside X, whatever else in
+// the pair cannot be read. The unreadable part reaches the advisory scan as
+// CoverNone (a port list) or as CoverIndeterminate (an alias with one
+// unreadable member), and the complement silences both, with the negation on
+// either rule. When the plain side reaches outside X the rules can overlap,
+// and the advisory stands.
+func TestDetectShadowedRules_R10ComplementWithUnreadablePart(t *testing.T) {
+	t.Parallel()
+
+	objects := common.NamedObjects{
+		"Ports": {Name: "Ports", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
+		"Geo":   {Name: "Geo", Type: "geoip", Members: []string{"CN"}},
+	}
+	alias := func(name string) *common.ObjectRef { return &common.ObjectRef{Name: name} }
+
+	tests := []struct {
+		name          string
+		earlierSource common.RuleEndpoint
+		laterSource   common.RuleEndpoint
+		earlierPort   common.RuleEndpoint
+		want          bool
+	}{
+		{
+			name:          "unreadable port list, pass negated",
+			earlierSource: common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true},
+			laterSource:   common.RuleEndpoint{Address: "10.0.0.0/8"},
+			earlierPort:   common.RuleEndpoint{Port: "8000-8100,syslog"},
+		},
+		{
+			name:          "unreadable port list, block negated",
+			earlierSource: common.RuleEndpoint{Address: "10.0.0.0/8"},
+			laterSource:   common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true},
+			earlierPort:   common.RuleEndpoint{Port: "8000-8100,syslog"},
+		},
+		{
+			name:          "unreadable alias member, pass negated",
+			earlierSource: common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true},
+			laterSource:   common.RuleEndpoint{Address: "10.0.0.0/8"},
+			earlierPort:   common.RuleEndpoint{Port: "Ports", PortRef: alias("Ports")},
+		},
+		{
+			name:          "block from a network inside the negated one",
+			earlierSource: common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true},
+			laterSource:   common.RuleEndpoint{Address: "10.1.0.0/16"},
+			earlierPort:   common.RuleEndpoint{Port: "Ports", PortRef: alias("Ports")},
+		},
+		{
+			name:          "geoip alias and its complement",
+			earlierSource: common.RuleEndpoint{Address: "Geo", AddressRef: alias("Geo"), Negated: true},
+			laterSource:   common.RuleEndpoint{Address: "Geo", AddressRef: alias("Geo")},
+			earlierPort:   common.RuleEndpoint{Port: "8050"},
+		},
+		{
+			name:          "geoip alias and its complement, block negated",
+			earlierSource: common.RuleEndpoint{Address: "Geo", AddressRef: alias("Geo")},
+			laterSource:   common.RuleEndpoint{Address: "Geo", AddressRef: alias("Geo"), Negated: true},
+			earlierPort:   common.RuleEndpoint{Port: "8050"},
+		},
+		{
+			name:          "block from any reaches outside the negated network",
+			earlierSource: common.RuleEndpoint{Address: "10.0.0.0/8", Negated: true},
+			laterSource:   common.RuleEndpoint{Address: "any"},
+			earlierPort:   common.RuleEndpoint{Port: "Ports", PortRef: alias("Ports")},
+			want:          true,
+		},
+		{
+			name:          "a negated any proves nothing",
+			earlierSource: common.RuleEndpoint{Address: "any", Negated: true},
+			laterSource:   common.RuleEndpoint{Address: "10.0.0.0/8"},
+			earlierPort:   common.RuleEndpoint{Port: "Ports", PortRef: alias("Ports")},
+			want:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			earlier := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+			earlier.Source = tt.earlierSource
+			earlier.Destination = common.RuleEndpoint{
+				Address: "192.168.1.10", Port: tt.earlierPort.Port, PortRef: tt.earlierPort.PortRef,
+			}
+
+			later := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+			later.Source = tt.laterSource
+			later.Destination = common.RuleEndpoint{Address: "192.168.1.10", Port: "8050"}
+
+			cfg := &common.CommonDevice{
+				FirewallRules: []common.FirewallRule{earlier, later},
+				NamedObjects:  objects,
+			}
+
+			findings := DetectShadowedRules(cfg)
+			if !tt.want {
+				assert.Empty(t, findings)
+
+				return
+			}
+
+			if assert.Len(t, findings, 1) {
+				assert.Equal(t, common.ConfidenceLow, findings[0].Confidence)
+			}
+		})
+	}
+}

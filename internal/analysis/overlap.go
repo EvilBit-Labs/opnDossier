@@ -35,7 +35,9 @@ const (
 	CoverFull
 	// CoverIndeterminate indicates negation makes the overlap relationship
 	// impossible to determine with confidence; callers must not report a
-	// finding for this result (R10).
+	// confirmed finding for this result (R10). The R8 advisory scan may
+	// report one when part of the pair could not be read, unless an address
+	// side proves the two disjoint (complementDisjoint).
 	CoverIndeterminate
 )
 
@@ -152,6 +154,31 @@ func addressesComparable(a, b common.RuleEndpoint, no common.NamedObjects) bool 
 	}
 
 	return true
+}
+
+// complementDisjoint reports whether one endpoint negates an address set and
+// the other, not negated, matches only addresses inside that set, so the two
+// endpoints share no address: a pass from !10.0.0.0/8 never meets a block from
+// 10.0.0.0/8 (R10). Two references to one alias are the same set, whether or
+// not it resolves. A negated endpoint that reads as any, such as a negated
+// empty address, any or list (IsAnyEndpoint), proves nothing.
+func complementDisjoint(a, b common.RuleEndpoint, no common.NamedObjects) bool {
+	if a.Negated == b.Negated {
+		return false
+	}
+
+	negated, plain := a, b
+	if b.Negated {
+		negated, plain = b, a
+	}
+
+	if IsAnyEndpoint(negated) {
+		return false
+	}
+
+	cov, _ := addressCoverage(negated, plain, no)
+
+	return cov == CoverFull
 }
 
 // singleProtocol reports whether p names one protocol, not a combination

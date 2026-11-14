@@ -287,7 +287,9 @@ func isTerminalDefaultDeny(pair PrecedencePair, cfg *common.CommonDevice) bool {
 // over-report bias GOTCHAS §8.4 documents for NAT-to-WAN correlation). A pair
 // whose coverage is CoverIndeterminate because an endpoint is negated, and
 // which also holds a part that could not be read, surfaces here too, since
-// ResolvePrecedence drops it as well.
+// ResolvePrecedence drops it as well. No pair surfaces when an address side
+// proves the two rules disjoint, as a negated set against a set inside it
+// does, whatever could not be read elsewhere.
 //
 // Pairs whose coverage() call did resolve to CoverFull or CoverPartial with
 // AliasBlocked=true are NOT re-derived here — ResolvePrecedence already
@@ -321,7 +323,9 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 // relationship would be Security. It also surfaces a CoverIndeterminate pair
 // with a block cause: negation hides the overlap, and the unreadable part
 // keeps it from being ruled out. A CoverIndeterminate from negation alone has
-// no cause and stays silent, as it does in resolvePair. The pair's Extent is set to CoverFull: the
+// no cause and stays silent, as it does in resolvePair. A pair where one rule
+// negates an address set and the other matches inside it shares no traffic,
+// so it stays silent on either path (complementDisjoint). The pair's Extent is set to CoverFull: the
 // true extent is unknown (that is precisely what "unresolved" means), and
 // R8's over-report bias for security correlation prefers the conservative
 // (full) framing over silently under-reporting a partial one.
@@ -333,6 +337,11 @@ func resolveAliasBlockedAdvisoryPair(
 	wl, cov, cause := derivePairWinnerLoser(earlier, later, no)
 
 	if cause == 0 || (cov != CoverNone && cov != CoverIndeterminate) {
+		return PrecedencePair{}, false
+	}
+
+	if complementDisjoint(wl.winner.Rule.Source, wl.loser.Rule.Source, no) ||
+		complementDisjoint(wl.winner.Rule.Destination, wl.loser.Rule.Destination, no) {
 		return PrecedencePair{}, false
 	}
 

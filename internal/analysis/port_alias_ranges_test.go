@@ -387,40 +387,47 @@ func TestDetectShadowedRules_MixedCausesNameTheAlias(t *testing.T) {
 }
 
 // TestDetectShadowedRules_NegatedPairWithUnreadablePort covers a pair whose
-// coverage negation leaves undetermined. Both rules negate the same source
-// network, and the pass names an alias holding a range over the blocked port
-// and a member the analysis cannot read. Nothing proves the two disjoint, so
-// the pair is the R8 advisory. With every member read, negation alone leaves
-// the pair silent, as before.
+// coverage negation leaves undetermined. The pass names an alias holding a
+// range over the blocked port and a member the analysis cannot read. When
+// both rules negate the same source network nothing proves the two disjoint,
+// so the pair is the R8 advisory. With every member read, negation alone
+// leaves the pair silent, as before. When only one rule negates it, the pass
+// from !10.0.0.0/8 and the block from 10.0.0.0/8 share no address, and the
+// pair stays silent whichever rule carries the negation.
 func TestDetectShadowedRules_NegatedPairWithUnreadablePort(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		content string
-		want    bool
+		name       string
+		content    string
+		not0, not1 string
+		want       bool
 	}{
-		{name: "unreadable member", content: "8000:8100\nno-such-service", want: true},
-		{name: "every member read", content: "8000:8100", want: false},
+		{name: "unreadable member", content: "8000:8100\nno-such-service", not0: "1", not1: "1", want: true},
+		{name: "every member read", content: "8000:8100", not0: "1", not1: "1", want: false},
+		{name: "pass negated, block not", content: "8000:8100\nno-such-service", not0: "1", not1: "0"},
+		{name: "block negated, pass not", content: "8000:8100\nno-such-service", not0: "0", not1: "1"},
 	}
 
-	negate := "<source_net>10.0.0.0/8</source_net><source_not>1</source_not>"
+	source := func(not string) string {
+		return "<source_net>10.0.0.0/8</source_net><source_not>" + not + "</source_not>"
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			xmlData := strings.NewReplacer(
-				"<destination_port>{{PORT0}}", negate+"<destination_port>Ports",
-				"<destination_port>{{PORT1}}", negate+"<destination_port>8050",
+				"<destination_port>{{PORT0}}", source(tt.not0)+"<destination_port>Ports",
+				"<destination_port>{{PORT1}}", source(tt.not1)+"<destination_port>8050",
 				"{{CONTENT}}", tt.content,
 				"{{ACTION0}}", "pass",
 				"{{ACTION1}}", "block",
 			).Replace(portAliasOPNsenseConfig)
 
 			device := parsePortAliasDevice(t, xmlData, common.DeviceTypeOPNsense)
-			require.True(t, device.FirewallRules[0].Source.Negated)
-			require.True(t, device.FirewallRules[1].Source.Negated)
+			require.Equal(t, tt.not0 == "1", device.FirewallRules[0].Source.Negated)
+			require.Equal(t, tt.not1 == "1", device.FirewallRules[1].Source.Negated)
 
 			finding, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
 			require.Equal(t, tt.want, ok)
