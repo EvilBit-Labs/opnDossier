@@ -571,6 +571,13 @@ func TestComplementDisjoint(t *testing.T) {
 		{name: "self", negated: not(lit("(self)")), plain: lit("(self)")},
 		{name: "negated any", negated: not(lit("any")), plain: lit("10.0.0.0/8")},
 		{name: "both negated", negated: not(lit("10.0.0.0/8")), plain: not(lit("10.0.0.0/8"))},
+		{
+			name: "a list that also names the alias",
+			negated: not(common.RuleEndpoint{
+				Address: "NetX,10.1.0.0/16", AddressRef: &common.ObjectRef{Name: "NetX"},
+			}),
+			plain: ref("NetX"),
+		},
 	}
 
 	for _, tt := range tests {
