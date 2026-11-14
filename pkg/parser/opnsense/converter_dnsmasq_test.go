@@ -453,6 +453,7 @@ func TestConverter_Dnsmasq_FIREWALL058(t *testing.T) {
 
 	tests := []struct {
 		name     string
+		enable   string
 		settings string
 		extra    string
 		wantPass bool
@@ -462,6 +463,12 @@ func TestConverter_Dnsmasq_FIREWALL058(t *testing.T) {
 		{name: "dnsmasq without DNSSEC", settings: `<dnssec>0</dnssec>`, wantPass: false},
 		{name: "dnsmasq on another port", settings: `<port>53053</port><dnssec>1</dnssec>`, wantPass: false},
 		{name: "dnsmasq DNS turned off", settings: `<port>0</port><dnssec>1</dnssec>`, wantPass: false},
+		{
+			name:     "dnsmasq disabled",
+			enable:   "0",
+			settings: `<dnssec>1</dnssec>`,
+			wantPass: false,
+		},
 		{
 			name:     "Unbound decides when it is enabled",
 			settings: `<dnssec>1</dnssec>`,
@@ -474,8 +481,12 @@ func TestConverter_Dnsmasq_FIREWALL058(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			enable := tt.enable
+			if enable == "" {
+				enable = "1"
+			}
 			device, _ := parseDnsmasqConfig(t,
-				`<dnsmasq version="1.0.9"><enable>1</enable>`+tt.settings+`</dnsmasq>`, tt.extra)
+				`<dnsmasq version="1.0.9"><enable>`+enable+`</enable>`+tt.settings+`</dnsmasq>`, tt.extra)
 			findings, evaluated, err := firewall.NewPlugin().RunChecks(device)
 			require.NoError(t, err)
 
