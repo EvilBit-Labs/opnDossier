@@ -386,6 +386,53 @@ func TestDetectShadowedRules_MixedCausesNameTheAlias(t *testing.T) {
 	}
 }
 
+// TestDetectShadowedRules_NegatedPairWithUnreadablePort covers a pair whose
+// coverage negation leaves undetermined. Both rules negate the same source
+// network, and the pass names an alias holding a range over the blocked port
+// and a member the analysis cannot read. Nothing proves the two disjoint, so
+// the pair is the R8 advisory. With every member read, negation alone leaves
+// the pair silent, as before.
+func TestDetectShadowedRules_NegatedPairWithUnreadablePort(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		content string
+		want    bool
+	}{
+		{name: "unreadable member", content: "8000:8100\nno-such-service", want: true},
+		{name: "every member read", content: "8000:8100", want: false},
+	}
+
+	negate := "<source_net>10.0.0.0/8</source_net><source_not>1</source_not>"
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			xmlData := strings.NewReplacer(
+				"<destination_port>{{PORT0}}", negate+"<destination_port>Ports",
+				"<destination_port>{{PORT1}}", negate+"<destination_port>8050",
+				"{{CONTENT}}", tt.content,
+				"{{ACTION0}}", "pass",
+				"{{ACTION1}}", "block",
+			).Replace(portAliasOPNsenseConfig)
+
+			device := parsePortAliasDevice(t, xmlData, common.DeviceTypeOPNsense)
+			require.True(t, device.FirewallRules[0].Source.Negated)
+			require.True(t, device.FirewallRules[1].Source.Negated)
+
+			finding, ok := findSecondShadowedByFirst(analysis.DetectShadowedRules(device))
+			require.Equal(t, tt.want, ok)
+
+			if ok {
+				assert.Equal(t, common.ConfidenceLow, finding.Confidence)
+				assert.Equal(t, common.ImpactClassSecurity, finding.ImpactClass)
+			}
+		})
+	}
+}
+
 func parsePortAliasDevice(t *testing.T, xmlData string, deviceType common.DeviceType) *common.CommonDevice {
 	t.Helper()
 

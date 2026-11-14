@@ -113,7 +113,7 @@ func effectiveRuleType(ruleType common.FirewallRuleType) common.FirewallRuleType
 // shadowKindFor maps a PrecedencePair's coverage Extent to the KTD-8
 // full/partial Kind. Extent is never CoverNone or CoverIndeterminate for a
 // pair reaching this point (ResolvePrecedence guarantees Full/Partial; the
-// R8 advisory scan's CoverNone pairs are given an explicit conservative
+// R8 advisory scan's CoverNone and CoverIndeterminate pairs are given an explicit conservative
 // Extent by resolveAliasBlockedAdvisoryPair).
 func shadowKindFor(extent Coverage) common.ShadowKind {
 	if extent == CoverFull {
@@ -284,7 +284,10 @@ func isTerminalDefaultDeny(pair PrecedencePair, cfg *common.CommonDevice) bool {
 // so a pair whose coverage folded back to CoverNone via U4's alias-blocked
 // exact-singleton fallback is invisible to it — this scan is the only place
 // such a pair surfaces, implementing R8's advisory carve-out (the same
-// over-report bias GOTCHAS §8.4 documents for NAT-to-WAN correlation).
+// over-report bias GOTCHAS §8.4 documents for NAT-to-WAN correlation). A pair
+// whose coverage is CoverIndeterminate because an endpoint is negated, and
+// which also holds a part that could not be read, surfaces here too, since
+// ResolvePrecedence drops it as well.
 //
 // Pairs whose coverage() call did resolve to CoverFull or CoverPartial with
 // AliasBlocked=true are NOT re-derived here — ResolvePrecedence already
@@ -315,7 +318,10 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 // (earlier, later) pair, but — unlike resolvePair — surfaces the pair even
 // when coverage() returns CoverNone, provided the CoverNone came from an
 // unresolvable alias (aliasBlocked) and the resulting winner/loser action
-// relationship would be Security. The pair's Extent is set to CoverFull: the
+// relationship would be Security. It also surfaces a CoverIndeterminate pair
+// with a block cause: negation hides the overlap, and the unreadable part
+// keeps it from being ruled out. A CoverIndeterminate from negation alone has
+// no cause and stays silent, as it does in resolvePair. The pair's Extent is set to CoverFull: the
 // true extent is unknown (that is precisely what "unresolved" means), and
 // R8's over-report bias for security correlation prefers the conservative
 // (full) framing over silently under-reporting a partial one.
@@ -326,7 +332,7 @@ func resolveAliasBlockedAdvisoryPair(
 ) (PrecedencePair, bool) {
 	wl, cov, cause := derivePairWinnerLoser(earlier, later, no)
 
-	if cause == 0 || cov != CoverNone {
+	if cause == 0 || (cov != CoverNone && cov != CoverIndeterminate) {
 		return PrecedencePair{}, false
 	}
 
