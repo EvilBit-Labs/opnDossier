@@ -194,14 +194,19 @@ func pairDHCPScopes(old, newCfg []common.DHCPScope, oldNames []string) ([]dhcpSc
 			if kx != ky {
 				return 0
 			}
-			if kx != "" {
-				// Scopes sharing a key are ranges in one network, and the
-				// converter puts every reservation in that network on the
-				// first of them, so reservations follow config order rather
-				// than the range and say nothing about which range is which.
-				x.StaticLeases, y.StaticLeases = nil, nil
+			if kx == "" {
+				return dhcpScopeSimilarity(x, y)
 			}
-			return dhcpScopeSimilarity(x, y)
+			// Scopes sharing a key are ranges in one network, and the
+			// converter puts every reservation in that network on the first
+			// of them, so reservations follow config order rather than the
+			// range. They count at most 1: enough to pair a range whose pool
+			// was edited, or a static range with no pool, so a reservation
+			// change in it is still reported, and never more than a pool.
+			withLeases := dhcpScopeSimilarity(x, y)
+			x.StaticLeases, y.StaticLeases = nil, nil
+			base := dhcpScopeSimilarity(x, y)
+			return base + min(withLeases-base, 1)
 		},
 		minScore: dhcpSimMinScore,
 		maxPairs: simMaxPairs,

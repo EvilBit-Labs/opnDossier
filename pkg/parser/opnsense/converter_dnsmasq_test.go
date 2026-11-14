@@ -1410,3 +1410,54 @@ func TestConverter_Dnsmasq_SharedNetworkRangesPairByRange(t *testing.T) {
 		})
 	}
 }
+
+// TestConverter_Dnsmasq_SharedNetworkReservationChanges reports a reservation
+// change in a range that shares its network with another, when the range
+// itself pairs only through that reservation: its pool was edited (a4), or
+// it is static and has none (e2).
+func TestConverter_Dnsmasq_SharedNetworkReservationChanges(t *testing.T) {
+	t.Parallel()
+
+	host := func(name, ip, mac string) string {
+		return `<hosts><host>` + name + `</host><ip>` + ip + `</ip><hwaddr>aa:bb:cc:dd:ee:` + mac + `</hwaddr></hosts>`
+	}
+	pool := func(from, to string) string {
+		return `<dhcp_ranges><start_addr>` + from + `</start_addr><end_addr>` + to + `</end_addr></dhcp_ranges>`
+	}
+	static := func(start string) string {
+		return `<dhcp_ranges><start_addr>` + start + `</start_addr><subnet_mask>255.255.255.0</subnet_mask>` +
+			`<mode>static</mode></dhcp_ranges>`
+	}
+	wrap := func(body string) string { return `<dnsmasq version="1.0.9"><enable>1</enable>` + body + `</dnsmasq>` }
+	p12 := host("p1", "172.20.1.10", "01") + host("p2", "172.20.1.11", "02")
+
+	tests := []struct {
+		name     string
+		old, new string
+		want     string
+	}{
+		{
+			name: "a range split in two while its reservation moves (a4)",
+			old:  wrap(pool("172.20.1.100", "172.20.1.199") + host("h", "172.20.1.10", "01")),
+			new: wrap(pool("172.20.1.100", "172.20.1.149") + pool("172.20.1.150", "172.20.1.199") +
+				host("h", "172.20.1.11", "01")),
+			want: "dhcpd.dnsmasq[172.20.0.0/16].staticmap[aa:bb:cc:dd:ee:01].ipaddr",
+		},
+		{
+			name: "a reservation added on one of two static ranges in one /24 (e2)",
+			old:  wrap(static("172.20.1.0") + static("172.20.1.128") + p12),
+			new:  wrap(static("172.20.1.0") + static("172.20.1.128") + p12 + host("p3", "172.20.1.12", "03")),
+			want: "dhcpd.dnsmasq[172.20.1.0/24].staticmap[aa:bb:cc:dd:ee:03]",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			oldDevice, _ := parseDnsmasqConfig(t, tt.old, "")
+			newDevice, _ := parseDnsmasqConfig(t, tt.new, "")
+			assert.Contains(t, diffPaths(oldDevice, newDevice), tt.want)
+		})
+	}
+}
