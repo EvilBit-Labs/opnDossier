@@ -304,11 +304,16 @@ func (c *converter) convertNAT(doc *pfsense.Document) common.NATConfig {
 		)
 	}
 
+	inbound := c.convertInboundNATRules(doc.Nat.Inbound)
+
 	return common.NATConfig{
-		OutboundMode:       outboundMode,
-		ReflectionDisabled: strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
-		OutboundRules:      c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
-		InboundRules:       c.convertInboundNATRules(doc.Nat.Inbound),
+		OutboundMode: outboundMode,
+		ReflectionDisabled: natReflectionDisabled(
+			inbound,
+			strings.EqualFold(doc.System.DisableNATReflection, xmlBoolYes),
+		),
+		OutboundRules: c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
+		InboundRules:  inbound,
 	}
 }
 

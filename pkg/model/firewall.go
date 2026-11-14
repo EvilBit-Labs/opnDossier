@@ -234,7 +234,11 @@ type FirewallRule struct {
 type NATConfig struct {
 	// OutboundMode is the outbound NAT mode (automatic, hybrid, advanced, or disabled).
 	OutboundMode NATOutboundMode `json:"outboundMode,omitempty" yaml:"outboundMode,omitempty"`
-	// ReflectionDisabled indicates NAT reflection is turned off.
+	// ReflectionDisabled reports that NAT reflection is disabled globally
+	// (System.DisableNATReflection) and that no enabled port forward that
+	// redirects turns it back on with its own setting. A global enable is never
+	// reported as disabled, even when every forward opts out, since the next
+	// forward added would reflect. 1:1 NAT reflection is not covered.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
@@ -394,7 +398,8 @@ func (c NATConfig) HasData() bool {
 type NATSummary struct {
 	// Mode is the outbound NAT mode.
 	Mode NATOutboundMode `json:"mode,omitempty" yaml:"mode,omitempty"`
-	// ReflectionDisabled indicates NAT reflection is turned off.
+	// ReflectionDisabled is NATConfig.ReflectionDisabled: reflection is
+	// disabled globally and no port forward turns it back on.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`

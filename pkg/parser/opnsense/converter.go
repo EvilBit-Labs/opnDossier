@@ -549,12 +549,16 @@ func (c *converter) convertNAT(doc *schema.OpnSenseDocument) common.NATConfig {
 		)
 	}
 
+	inbound := c.convertInboundNATRules(doc.Nat.Inbound)
 	nat := common.NATConfig{
-		OutboundMode:       outboundMode,
-		ReflectionDisabled: shared.IsValueTrue(doc.System.DisableNATReflection),
-		PfShareForward:     bool(doc.System.PfShareForward),
-		OutboundRules:      c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
-		InboundRules:       c.convertInboundNATRules(doc.Nat.Inbound),
+		OutboundMode: outboundMode,
+		ReflectionDisabled: natReflectionDisabled(
+			inbound,
+			shared.IsValueTrue(doc.System.DisableNATReflection),
+		),
+		PfShareForward: bool(doc.System.PfShareForward),
+		OutboundRules:  c.convertOutboundNATRules(doc.Nat.Outbound.Rule),
+		InboundRules:   inbound,
 	}
 
 	return nat

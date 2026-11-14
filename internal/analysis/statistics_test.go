@@ -144,7 +144,7 @@ func TestComputeStatistics(t *testing.T) {
 		{
 			name: "NAT reflection disabled detected as security feature",
 			cfg: &common.CommonDevice{
-				System: common.System{DisableNATReflection: true},
+				NAT: common.NATConfig{ReflectionDisabled: true},
 			},
 			wantHasSecFeatures: true,
 			wantSecFeatures:    []string{"NAT Reflection Disabled"},
