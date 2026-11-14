@@ -223,7 +223,7 @@ The following controls are organized by security domain and represent the full p
 
 | Control ID   | Title                        | Severity | Implementability | Description                                                                     |
 | ------------ | ---------------------------- | -------- | ---------------- | ------------------------------------------------------------------------------- |
-| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | Full             | No SNMP agent is enabled when there is no operational need                      |
+| FIREWALL-045 | SNMP Disabled if Unused      | Medium   | Full             | Fails whenever an SNMP agent is enabled; operational need is not assessed       |
 | FIREWALL-046 | No Default Community Strings | High     | Full             | The running agent's community is not a well-known default ("public", "private") |
 
 ##### VPN Configuration
