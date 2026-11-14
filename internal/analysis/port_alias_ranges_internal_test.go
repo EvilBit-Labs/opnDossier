@@ -535,6 +535,8 @@ func TestComplementDisjoint(t *testing.T) {
 		"Hosts":   {Name: "Hosts", Type: common.NamedObjectTypeHost, Members: []string{"10.0.0.1"}},
 		"Geo":     {Name: "Geo", Type: common.NamedObjectTypeGeoIP, Members: []string{"CN"}},
 		"Ext":     {Name: "Ext", Type: common.NamedObjectTypeExternal, Members: []string{"10.0.0.0/8"}},
+		"NetTwo":  network("NetTwo", "10.1.0.0/16", "172.16.0.0/12"),
+		"NetW":    network("NetW", "NetExcl"),
 	}
 	lit := func(address string) common.RuleEndpoint { return common.RuleEndpoint{Address: address} }
 	ref := func(name string) common.RuleEndpoint {
@@ -571,6 +573,9 @@ func TestComplementDisjoint(t *testing.T) {
 		{name: "self", negated: not(lit("(self)")), plain: lit("(self)")},
 		{name: "negated any", negated: not(lit("any")), plain: lit("10.0.0.0/8")},
 		{name: "both negated", negated: not(lit("10.0.0.0/8")), plain: not(lit("10.0.0.0/8"))},
+		{name: "one plain network of two reaches outside", negated: not(lit("10.0.0.0/8")), plain: ref("NetTwo")},
+		{name: "exclusion member in a nested alias", negated: not(ref("NetW")), plain: lit("10.1.0.0/16")},
+		{name: "negated literal list", negated: not(lit("10.0.0.0/8,192.168.0.0/16")), plain: lit("10.1.0.0/16")},
 		{
 			name: "a list that also names the alias",
 			negated: not(common.RuleEndpoint{
