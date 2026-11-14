@@ -146,7 +146,7 @@ func TestFirewallPlugin_InventoryChecks_Interfaces(t *testing.T) {
 		require.NotNil(t, f, "expected FIREWALL-063 inventory finding")
 		assert.Equal(t, "inventory", f.Type)
 		assert.Equal(t, "info", f.Severity)
-		assert.Contains(t, f.Description, "2 enabled interface(s)")
+		assert.Contains(t, f.Description, "2 enabled network interface(s)")
 	})
 
 	t.Run("no finding when all interfaces disabled", func(t *testing.T) {
