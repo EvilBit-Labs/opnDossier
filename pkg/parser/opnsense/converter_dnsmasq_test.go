@@ -915,3 +915,25 @@ func TestConverter_Dnsmasq_IPv6Reservations(t *testing.T) {
 	require.Len(t, got, 1)
 	assert.Equal(t, "v6d", got[0].Value)
 }
+
+// TestConverter_Dnsmasq_DiffClientIDChange reports a new client id on a
+// reservation keyed by its MAC address.
+func TestConverter_Dnsmasq_DiffClientIDChange(t *testing.T) {
+	t.Parallel()
+
+	config := func(cid string) string {
+		return `<dnsmasq version="1.0.9"><enable>1</enable>` +
+			`<hosts><host>a</host><ip>192.168.1.50</ip><hwaddr>aa:bb:cc:dd:ee:40</hwaddr><client_id>` + cid +
+			`</client_id></hosts>` +
+			`<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr>` +
+			`<end_addr>192.168.1.199</end_addr></dhcp_ranges></dnsmasq>`
+	}
+	oldDevice, _ := parseDnsmasqConfig(t, config("01:02:03"), "")
+	newDevice, _ := parseDnsmasqConfig(t, config("01:02:04"), "")
+
+	changes := diff.NewAnalyzer().CompareDHCP(oldDevice.DHCP, newDevice.DHCP)
+	require.Len(t, changes, 1)
+	assert.Equal(t, "dhcpd.dnsmasq.lan.staticmap[aa:bb:cc:dd:ee:40].cid", changes[0].Path)
+	assert.Equal(t, "01:02:03", changes[0].OldValue)
+	assert.Equal(t, "01:02:04", changes[0].NewValue)
+}

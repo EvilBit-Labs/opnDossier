@@ -232,6 +232,19 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.
 				NewValue:    newLease.Hostname,
 			})
 		}
+		// A reservation keyed by its MAC address can still change the client
+		// id it matches; one keyed by its client id has the same one on both
+		// sides.
+		if oldLease.CID != newLease.CID {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionDHCP,
+				Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].cid", ifaceName, mac),
+				Description: "Static reservation client ID changed for " + staticLeaseLabel(newLease),
+				OldValue:    oldLease.CID,
+				NewValue:    newLease.CID,
+			})
+		}
 	}
 
 	return changes
