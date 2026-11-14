@@ -219,9 +219,9 @@ func applyLegacySyslogRemote(cfg *common.SyslogConfig, sl *schema.Syslog) {
 	cfg.IPProtocol = sl.IPProtocol
 
 	// logall sent every message to the servers, whatever the category flags.
-	// 19.7 tests it with helpers.empty, which reads 0 as unset; 19.1 used
-	// isset().
-	if modelFlagSet(sl.LogAll) {
+	// 19.7's syslog-ng-legacy-remote.conf tests it with helpers.empty, which
+	// reads an empty value and 0, once trimmed, as unset; 19.1 used isset().
+	if templateFlagSet(sl.LogAll) {
 		setAllSyslogCategories(cfg)
 	}
 }

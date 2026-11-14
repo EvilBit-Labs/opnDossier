@@ -2424,7 +2424,8 @@ type Syslog struct {
 	DisableClog string `xml:"disable_clog,omitempty"`
 	// LogAll made 19.7 forward every message to the legacy remote servers,
 	// whatever the category flags say. 19.7 tests it with helpers.empty,
-	// which reads 0 as unset; 19.1 used isset().
+	// which reads an empty value and 0, once trimmed, as unset; 19.1 used
+	// isset().
 	LogAll string `xml:"logall,omitempty"`
 	// DisableLocalLogging turned local logs off up to 24.1. Up to 21.7
 	// system.inc tests it with isset(), so any element, 0 included, reads

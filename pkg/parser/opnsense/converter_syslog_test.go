@@ -323,6 +323,17 @@ func TestConverter_Syslog_LegacyLogAll(t *testing.T) {
 		`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall/></syslog>`)
 
 	assert.False(t, sl.FilterLogging)
+
+	// helpers.empty trims first, so 0 with spaces and spaces alone are unset too.
+	for _, value := range []string{" 0 ", "   "} {
+		sl, _ = parseSyslogConfig(t,
+			`<syslog><remoteserver>10.0.0.9</remoteserver><enable>1</enable><logall>`+value+`</logall></syslog>`)
+
+		assert.True(t, sl.Enabled, "logall %q", value)
+		assert.False(t, sl.FilterLogging, "logall %q", value)
+		assert.False(t, sl.AuthLogging, "logall %q", value)
+		assert.False(t, sl.SystemLogging, "logall %q", value)
+	}
 }
 
 // TestConverter_Syslog_LegacyRemoteWarning warns only for legacy keys that
