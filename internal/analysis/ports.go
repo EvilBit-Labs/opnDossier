@@ -156,7 +156,7 @@ func resolvePorts(ep common.RuleEndpoint, no common.NamedObjects) portValues {
 	if ep.PortRef == nil {
 		ranges, every, complete := parsePortSpec(ep.Port)
 		if !complete {
-			return portValues{ranges: ranges, cause: causeValue}
+			return portValues{cause: causeValue}
 		}
 
 		return portValues{ranges: ranges, every: every}

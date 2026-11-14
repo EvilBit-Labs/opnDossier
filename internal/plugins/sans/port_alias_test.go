@@ -430,9 +430,11 @@ func sansLiteralPortCases() []sansLiteralPortCase {
 			want: map[string]string{"SANS-FW-014": statusFail},
 		},
 		{
-			name: "a list keeps the port its readable part names",
+			// Neither firewall loads part of a rule's port list: OPNsense
+			// disables the rule, and pfSense passes every port.
+			name: "a list with an unreadable part leaves the controls undecided",
 			a:    sansLiteralRule{iface: "wan", src: "198.51.100.7", dst: "any", port: "23,syslog"},
-			want: map[string]string{"SANS-FW-014": statusFail, "SANS-FW-015": statusFail},
+			want: map[string]string{"SANS-FW-014": statusUnknown, "SANS-FW-015": statusUnknown},
 		},
 		{
 			name: "a restricted SMTP rule decides SANS-FW-017",

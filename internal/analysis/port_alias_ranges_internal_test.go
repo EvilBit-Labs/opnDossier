@@ -164,7 +164,7 @@ func TestEndpointPorts_PartialSets(t *testing.T) {
 		{name: "missing alias", ep: ref("Nowhere")},
 		{name: "literal with no alias", ep: common.RuleEndpoint{Port: "syslog"}},
 		{name: "literal range", ep: common.RuleEndpoint{Port: "20-25"}, wantTelnet: true, wantComplete: true},
-		{name: "literal list keeps its readable part", ep: common.RuleEndpoint{Port: "23,syslog"}, wantTelnet: true},
+		{name: "literal list with an unreadable part is not read", ep: common.RuleEndpoint{Port: "23,syslog"}},
 		{name: "dash range member is not loaded", ep: ref("Dashed")},
 		{name: "comma list member is not loaded", ep: ref("Listed")},
 		{name: "any member is not the wildcard", ep: ref("AnyMember")},

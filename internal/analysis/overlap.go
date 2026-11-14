@@ -492,10 +492,13 @@ func exactSingletonCoverage(earlierVals, laterVals []string) Coverage {
 
 // parsePortSpec parses a rule's port specification: "" or "any" (the
 // wildcard), a single port number or service name, a "lo-hi" or "lo:hi"
-// range, or a comma-separated list of the above. It returns the ranges it
-// could read, whether the spec is the wildcard, and whether every element
-// could be read. An element it cannot read leaves the ranges read so far in
-// place, so a caller can still act on a port the spec certainly holds.
+// range, or a comma-separated list of the above. It returns the ranges,
+// whether the spec is the wildcard, and whether the spec could be read. A
+// list with any part it cannot read is not read at all: neither firewall
+// loads part of one. OPNsense disables the rule when the port is not an
+// alias, a port, a range or a known name (Rule.php L104-L123), and pfSense
+// writes no port statement for a value alias_expand cannot read, so the rule
+// passes every port (filter.inc filter_generate_port).
 func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
@@ -503,8 +506,6 @@ func parsePortSpec(s string) ([]portRange, bool, bool) {
 	}
 
 	var ranges []portRange
-
-	complete := true
 
 	for part := range strings.SplitSeq(trimmed, ",") {
 		part = strings.TrimSpace(part)
@@ -514,15 +515,17 @@ func parsePortSpec(s string) ([]portRange, bool, bool) {
 
 		r, ok := parsePortPart(part, ruleVocab)
 		if !ok {
-			complete = false
-
-			continue
+			return nil, false, false
 		}
 
 		ranges = append(ranges, r)
 	}
 
-	return ranges, false, complete && len(ranges) > 0
+	if len(ranges) == 0 {
+		return nil, false, false
+	}
+
+	return ranges, false, true
 }
 
 // parsePortPart parses one comma-list element: a port number or service name,
