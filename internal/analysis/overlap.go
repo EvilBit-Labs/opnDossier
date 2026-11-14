@@ -169,11 +169,10 @@ func addressesComparable(a, b common.RuleEndpoint, no common.NamedObjects) bool 
 //     through enabled host and network aliases only (literalPrefixes), and
 //     each network on the plain side lies inside one on the negated side.
 //
-// Anything else proves nothing. An interface network such as lan is not a
-// fixed set: on an inet6 rule OPNsense adds fe80::/10 to it before negating
-// it (Rule.php mapAddressInfo), so !lan and lan both match link-local
-// addresses. (self), a hostname, a geoip or URL alias and a value that does
-// not parse are left out for the same reason.
+// Anything else proves nothing here. An interface token such as lan or
+// (self) does not parse as a literal, and sameInterfaceToken handles the case
+// where both sides hold the same one. A hostname, a geoip or URL alias and a
+// value that does not parse are left out.
 func complementDisjoint(a, b common.RuleEndpoint, no common.NamedObjects) bool {
 	if a.Negated == b.Negated {
 		return false
