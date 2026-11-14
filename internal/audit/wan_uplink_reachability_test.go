@@ -497,3 +497,39 @@ func TestWANReachability_PfSenseGatewaySelection(t *testing.T) {
 		})
 	}
 }
+
+// TestWANReachability_OutboundRuleDoesNotExposeService passes port 443 to the
+// firewall on a second uplink in each direction. Only the inbound rule admits a
+// connection to the web GUI; the outbound one matches traffic leaving the
+// firewall and must not make the web GUI WAN-exposed.
+func TestWANReachability_OutboundRuleDoesNotExposeService(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		direction string
+		want      bool
+	}{
+		{direction: "in", want: true},
+		{direction: "out", want: false},
+	} {
+		t.Run(tt.direction, func(t *testing.T) {
+			t.Parallel()
+
+			rule := strings.Replace(guiRuleOn("opt1"), "<type>pass</type>",
+				"<type>pass</type>\n      <direction>"+tt.direction+"</direction>", 1)
+			config := uplinkCase{
+				opt1:     staticOpt1 + `<gateway>ISP2_GW</gateway>`,
+				gateways: gatewayItem("ISP2_GW", "opt1", "0"),
+				rules:    rule,
+			}.config()
+
+			report := newRedReport(parseConfig(t, config))
+			runRedAnalysis(report)
+
+			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: Web Administration")
+			if exposed != tt.want {
+				t.Errorf("web GUI WAN-exposed = %v, want %v; findings: %+v", exposed, tt.want, report.Findings)
+			}
+		})
+	}
+}
