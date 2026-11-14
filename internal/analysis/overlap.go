@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"net/netip"
+	"slices"
 	"sort"
 	"strings"
 
@@ -159,9 +160,20 @@ func addressesComparable(a, b common.RuleEndpoint, no common.NamedObjects) bool 
 // complementDisjoint reports whether one endpoint negates an address set and
 // the other, not negated, matches only addresses inside that set, so the two
 // endpoints share no address: a pass from !10.0.0.0/8 never meets a block from
-// 10.0.0.0/8 (R10). Two references to one alias are the same set, whether or
-// not it resolves. A negated endpoint that reads as any, such as a negated
-// empty address, any or list (IsAnyEndpoint), proves nothing.
+// 10.0.0.0/8 (R10). It proves this in two shapes only:
+//
+//   - both endpoints name the same alias, alone: the firewall loads an alias
+//     as one table, so !<X> and <X> are complements whatever X holds, even
+//     when it is disabled, holds an exclusion member or fetches its content;
+//   - every value on both sides is a literal address or network, read
+//     through enabled host and network aliases only (literalPrefixes), and
+//     each network on the plain side lies inside one on the negated side.
+//
+// Anything else proves nothing. An interface network such as lan is not a
+// fixed set: on an inet6 rule OPNsense adds fe80::/10 to it before negating
+// it (Rule.php mapAddressInfo), so !lan and lan both match link-local
+// addresses. (self), a hostname, a geoip or URL alias and a value that does
+// not parse are left out for the same reason.
 func complementDisjoint(a, b common.RuleEndpoint, no common.NamedObjects) bool {
 	if a.Negated == b.Negated {
 		return false
@@ -172,13 +184,117 @@ func complementDisjoint(a, b common.RuleEndpoint, no common.NamedObjects) bool {
 		negated, plain = b, a
 	}
 
-	if IsAnyEndpoint(negated) {
+	if sameAlias(negated, plain) {
+		return true
+	}
+
+	outside, ok := literalPrefixes(negated, no)
+	if !ok {
 		return false
 	}
 
-	cov, _ := addressCoverage(negated, plain, no)
+	inside, ok := literalPrefixes(plain, no)
+	if !ok {
+		return false
+	}
 
-	return cov == CoverFull
+	for _, p := range inside {
+		if !slices.ContainsFunc(outside, func(n netip.Prefix) bool { return prefixContains(n, p) }) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// sameAlias reports whether both endpoints name one alias and nothing else.
+func sameAlias(a, b common.RuleEndpoint) bool {
+	return a.AddressRef != nil && b.AddressRef != nil &&
+		a.AddressRef.Name == b.AddressRef.Name &&
+		strings.TrimSpace(a.Address) == a.AddressRef.Name &&
+		strings.TrimSpace(b.Address) == b.AddressRef.Name
+}
+
+// literalPrefixes returns the networks an endpoint's address names when every
+// value is a literal address or network. An alias is followed only when it
+// and every alias it names is an enabled host or network alias: a disabled
+// alias loads with no members (filter.lib.inc), and an exclusion member such
+// as !10.1.0.0/16 (AliasContentField.php) or a hostname does not parse, so
+// either leaves the set unproven. An empty result is unproven too.
+func literalPrefixes(ep common.RuleEndpoint, no common.NamedObjects) ([]netip.Prefix, bool) {
+	address := strings.TrimSpace(ep.Address)
+
+	if ep.AddressRef == nil {
+		p, err := ParsePrefixOrAddr(address)
+		if err != nil {
+			return nil, false
+		}
+
+		return []netip.Prefix{p.Masked()}, true
+	}
+
+	if address != ep.AddressRef.Name {
+		return nil, false
+	}
+
+	w := literalWalker{no: no, visiting: make(map[string]struct{})}
+	if !w.walk(address, 0) || len(w.prefixes) == 0 {
+		return nil, false
+	}
+
+	return w.prefixes, true
+}
+
+// literalWalker collects the literal networks of a host or network alias tree
+// for literalPrefixes.
+type literalWalker struct {
+	no       common.NamedObjects
+	visiting map[string]struct{}
+	prefixes []netip.Prefix
+}
+
+// walk adds the networks of the alias name and reports whether every member
+// was a literal address or network or an alias walk accepts.
+func (w *literalWalker) walk(name string, depth int) bool {
+	obj, exists := w.no[name]
+	if !exists || depth > maxPortAliasDepth || obj.Disabled ||
+		(obj.Type != common.NamedObjectTypeHost && obj.Type != common.NamedObjectTypeNetwork) {
+		return false
+	}
+
+	if _, cyclic := w.visiting[name]; cyclic {
+		return false
+	}
+
+	w.visiting[name] = struct{}{}
+	defer delete(w.visiting, name)
+
+	for _, member := range obj.Members {
+		member = strings.TrimSpace(member)
+
+		if _, nested := w.no[member]; nested {
+			if !w.walk(member, depth+1) {
+				return false
+			}
+
+			continue
+		}
+
+		p, err := ParsePrefixOrAddr(member)
+		if err != nil || len(w.prefixes) >= maxResolvedMembers {
+			return false
+		}
+
+		w.prefixes = append(w.prefixes, p.Masked())
+	}
+
+	return true
+}
+
+// prefixContains reports whether network outer holds every address of inner.
+// Contains already rejects an address of the other family.
+func prefixContains(outer, inner netip.Prefix) bool {
+	return outer.Bits() <= inner.Bits() && outer.Contains(inner.Addr())
 }
 
 // singleProtocol reports whether p names one protocol, not a combination

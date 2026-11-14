@@ -510,3 +510,122 @@ func TestDetectShadowedRules_R10ComplementWithUnreadablePart(t *testing.T) {
 		})
 	}
 }
+
+// TestComplementDisjoint pins the two shapes that prove a negated endpoint and
+// a plain one share no address, and the vendor shapes that must not: a
+// disabled alias loads with no members, an exclusion member takes addresses
+// out of an alias, and an interface network, (self), a geoip alias or an alias
+// whose content is managed at runtime is not a fixed literal set.
+func TestComplementDisjoint(t *testing.T) {
+	t.Parallel()
+
+	network := func(name string, members ...string) common.NamedObject {
+		return common.NamedObject{Name: name, Type: common.NamedObjectTypeNetwork, Members: members}
+	}
+	off := network("NetOff", "10.0.0.0/8")
+	off.Disabled = true
+
+	objects := common.NamedObjects{
+		"NetX":    network("NetX", "10.0.0.0/8"),
+		"NetOff":  off,
+		"NetExcl": network("NetExcl", "10.0.0.0/8", "!10.1.0.0/16"),
+		"Nested":  network("Nested", "NetX"),
+		"Empty":   network("Empty"),
+		"Hosts":   {Name: "Hosts", Type: common.NamedObjectTypeHost, Members: []string{"10.0.0.1"}},
+		"Geo":     {Name: "Geo", Type: common.NamedObjectTypeGeoIP, Members: []string{"CN"}},
+		"Ext":     {Name: "Ext", Type: common.NamedObjectTypeExternal, Members: []string{"10.0.0.0/8"}},
+	}
+	lit := func(address string) common.RuleEndpoint { return common.RuleEndpoint{Address: address} }
+	ref := func(name string) common.RuleEndpoint {
+		return common.RuleEndpoint{Address: name, AddressRef: &common.ObjectRef{Name: name}}
+	}
+	not := func(ep common.RuleEndpoint) common.RuleEndpoint {
+		ep.Negated = true
+		return ep
+	}
+
+	tests := []struct {
+		name           string
+		negated, plain common.RuleEndpoint
+		want           bool
+	}{
+		{name: "same literal network", negated: not(lit("10.0.0.0/8")), plain: lit("10.0.0.0/8"), want: true},
+		{name: "plain network inside", negated: not(lit("10.0.0.0/8")), plain: lit("10.1.0.0/16"), want: true},
+		{name: "plain host inside", negated: not(lit("10.0.0.0/8")), plain: lit("10.0.0.1"), want: true},
+		{name: "plain network reaches outside", negated: not(lit("10.0.0.0/8")), plain: lit("10.0.0.0/7")},
+		{name: "plain network holds the negated one", negated: not(lit("10.1.0.0/16")), plain: lit("10.0.0.0/8")},
+		{name: "other address family", negated: not(lit("10.0.0.0/8")), plain: lit("fd00::/8")},
+		{name: "same alias", negated: not(ref("NetX")), plain: ref("NetX"), want: true},
+		{name: "same disabled alias", negated: not(ref("NetOff")), plain: ref("NetOff"), want: true},
+		{name: "same alias with an exclusion member", negated: not(ref("NetExcl")), plain: ref("NetExcl"), want: true},
+		{name: "same geoip alias", negated: not(ref("Geo")), plain: ref("Geo"), want: true},
+		{name: "enabled aliases with literal members", negated: not(ref("Nested")), plain: ref("Hosts"), want: true},
+		{name: "disabled negated alias", negated: not(ref("NetOff")), plain: lit("10.0.0.0/8")},
+		{name: "exclusion member", negated: not(ref("NetExcl")), plain: lit("10.1.0.0/16")},
+		{name: "empty negated alias", negated: not(ref("Empty")), plain: lit("10.0.0.0/8")},
+		{name: "negated geoip against a network", negated: not(ref("Geo")), plain: lit("10.0.0.0/8")},
+		{name: "network against a negated geoip", negated: not(lit("10.0.0.0/8")), plain: ref("Geo")},
+		{name: "runtime alias", negated: not(ref("Ext")), plain: lit("10.0.0.0/8")},
+		{name: "interface network", negated: not(lit("lan")), plain: lit("lan")},
+		{name: "self", negated: not(lit("(self)")), plain: lit("(self)")},
+		{name: "negated any", negated: not(lit("any")), plain: lit("10.0.0.0/8")},
+		{name: "both negated", negated: not(lit("10.0.0.0/8")), plain: not(lit("10.0.0.0/8"))},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, complementDisjoint(tt.negated, tt.plain, objects), "negated first")
+			assert.Equal(t, tt.want, complementDisjoint(tt.plain, tt.negated, objects), "plain first")
+		})
+	}
+}
+
+// TestDetectShadowedRules_DestinationComplementWithUnreadablePort is the
+// destination-side twin of the source complement: a pass to !192.168.1.0/24
+// never meets a block to a host inside it, whatever its port alias holds, and
+// it does meet a block to a host outside it.
+func TestDetectShadowedRules_DestinationComplementWithUnreadablePort(t *testing.T) {
+	t.Parallel()
+
+	objects := common.NamedObjects{
+		"Ports": {Name: "Ports", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
+	}
+
+	for _, tt := range []struct {
+		name, blocked string
+		want          bool
+	}{
+		{name: "host inside the negated network", blocked: "192.168.1.10"},
+		{name: "host outside the negated network", blocked: "192.168.2.10", want: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			earlier := baseShadowRule("wan", common.DirectionIn, common.RuleTypePass)
+			earlier.Destination = common.RuleEndpoint{
+				Address: "192.168.1.0/24", Negated: true,
+				Port: "Ports", PortRef: &common.ObjectRef{Name: "Ports"},
+			}
+
+			later := baseShadowRule("wan", common.DirectionIn, common.RuleTypeBlock)
+			later.Destination = common.RuleEndpoint{Address: tt.blocked, Port: "8050"}
+
+			findings := DetectShadowedRules(&common.CommonDevice{
+				FirewallRules: []common.FirewallRule{earlier, later},
+				NamedObjects:  objects,
+			})
+
+			if !tt.want {
+				assert.Empty(t, findings)
+
+				return
+			}
+
+			if assert.Len(t, findings, 1) {
+				assert.Equal(t, common.ConfidenceLow, findings[0].Confidence)
+			}
+		})
+	}
+}
