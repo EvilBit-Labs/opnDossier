@@ -248,11 +248,11 @@ The following controls are organized by security domain and represent the full p
 
 ##### Service Hardening
 
-| Control ID   | Title                           | Severity | Implementability | Description                                                               |
-| ------------ | ------------------------------- | -------- | ---------------- | ------------------------------------------------------------------------- |
-| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | Partial          | UPnP and NAT-PMP disabled (automatic port forwarding is a security risk)  |
-| FIREWALL-058 | DNSSEC Validation               | Medium   | Full             | Unbound DNS resolver has DNSSEC validation enabled (`DNS.Unbound.DNSSEC`) |
-| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | Partial          | DNS resolver serves only internal networks, not WAN-facing                |
+| Control ID   | Title                           | Severity | Implementability | Description                                                                                                                                                            |
+| ------------ | ------------------------------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | Partial          | UPnP and NAT-PMP disabled (automatic port forwarding is a security risk)                                                                                               |
+| FIREWALL-058 | DNSSEC Validation               | Medium   | Full             | The DNS resolver has DNSSEC validation enabled: Unbound when it is enabled (`DNS.Unbound.DNSSEC`), otherwise dnsmasq when it answers on port 53 (`DNS.DNSMasq.DNSSEC`) |
+| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | Partial          | DNS resolver serves only internal networks, not WAN-facing                                                                                                             |
 
 ##### Change Management and Backup
 

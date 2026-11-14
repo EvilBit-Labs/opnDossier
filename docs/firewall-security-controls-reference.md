@@ -434,11 +434,11 @@ The following controls are planned for future releases, organized by security do
 
 ### Service Hardening
 
-| Control ID   | Title                           | Severity | Description                                                         |
-| ------------ | ------------------------------- | -------- | ------------------------------------------------------------------- |
-| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | UPnP and NAT-PMP disabled (auto port forwarding is a security risk) |
-| FIREWALL-058 | DNSSEC Validation               | Medium   | Unbound DNS resolver has DNSSEC validation enabled                  |
-| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | DNS resolver serves only internal networks, not WAN-facing          |
+| Control ID   | Title                           | Severity | Description                                                                                                              |
+| ------------ | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| FIREWALL-057 | UPnP/NAT-PMP Disabled           | High     | UPnP and NAT-PMP disabled (auto port forwarding is a security risk)                                                      |
+| FIREWALL-058 | DNSSEC Validation               | Medium   | The DNS resolver has DNSSEC validation enabled: Unbound when it is enabled, otherwise dnsmasq when it answers on port 53 |
+| FIREWALL-059 | DNS Resolver Access Restriction | Medium   | DNS resolver serves only internal networks, not WAN-facing                                                               |
 
 ### Change Management
 
@@ -454,10 +454,10 @@ The following controls are planned for future releases, organized by security do
 
 ### Configuration Inventory
 
-| Control ID   | Title                    | Severity | Description                                                                                   |
-| ------------ | ------------------------ | -------- | --------------------------------------------------------------------------------------------- |
-| FIREWALL-062 | DHCP Scope Inventory     | Info     | Reports configured DHCP scopes, covering both ISC DHCP (legacy) and Kea DHCP4 (modern) scopes |
-| FIREWALL-063 | Active Interface Summary | Info     | Reports enabled interfaces and their types                                                    |
+| Control ID   | Title                    | Severity | Description                                                                              |
+| ------------ | ------------------------ | -------- | ---------------------------------------------------------------------------------------- |
+| FIREWALL-062 | DHCP Scope Inventory     | Info     | Reports configured DHCP scopes, covering ISC DHCP (legacy), Kea DHCP4 and dnsmasq scopes |
+| FIREWALL-063 | Active Interface Summary | Info     | Reports how many interfaces are enabled                                                  |
 
 **Note:** Configuration inventory controls use `Type: "inventory"` and are excluded from compliance evaluation. They are rendered in a separate "Configuration Notes" section of audit reports and do not affect pass/fail compliance status.
 

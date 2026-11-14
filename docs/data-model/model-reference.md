@@ -306,7 +306,7 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 
 ### DHCPScope
 
-DHCP scopes are a flat array with one entry per interface.
+DHCP scopes are a flat array with one entry per DHCP server and interface. A dnsmasq range that names no interface and lies in no interface's network gets an entry of its own with an empty `interface`. An interface can have an ISC and a dnsmasq scope at once, typically a disabled ISC scope left beside the dnsmasq one; `source` tells them apart.
 
 | Field          | Type                | JSON Key              | Description                     |
 | -------------- | ------------------- | --------------------- | ------------------------------- |
@@ -319,6 +319,8 @@ DHCP scopes are a flat array with one entry per interface.
 | `NTPServer`    | `string`            | `dhcp[].ntpServer`    | NTP server for clients          |
 | `WINSServer`   | `string`            | `dhcp[].winsServer`   | WINS server for clients         |
 | `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Fixed MAC-to-IP mappings        |
+| `Source`       | `DHCPSource`        | `dhcp[].source`       | `isc`, `kea` or `dnsmasq`       |
+| `RangeV6`      | `*DHCPRange`        | `dhcp[].rangeV6`      | DHCPv6 range (dnsmasq only)     |
 
 ### DHCPRange
 
@@ -346,9 +348,25 @@ DHCP scopes are a flat array with one entry per interface.
 
 ### DNS (dnsmasq)
 
-| Field     | Type   | JSON Key              | Description              |
-| --------- | ------ | --------------------- | ------------------------ |
-| `Enabled` | `bool` | `dns.dnsMasq.enabled` | dnsmasq forwarder active |
+The DHCP ranges dnsmasq serves are reported as `dhcp[]` scopes with `source` set to `dnsmasq`.
+
+| Field             | Type               | JSON Key                      | Description                       |
+| ----------------- | ------------------ | ----------------------------- | --------------------------------- |
+| `Enabled`         | `bool`             | `dns.dnsMasq.enabled`         | dnsmasq forwarder active          |
+| `DNSSEC`          | `bool`             | `dns.dnsMasq.dnssec`          | DNSSEC validation enabled         |
+| `Port`            | `string`           | `dns.dnsMasq.port`            | DNS port; empty is 53, `0` is off |
+| `Hosts`           | `[]DNSMasqHost`    | `dns.dnsMasq.hosts`           | Host overrides                    |
+| `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Per-domain DNS servers            |
+
+### DomainOverride
+
+| Field         | Type     | JSON Key                                    | Description                                                        |
+| ------------- | -------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| `Domain`      | `string` | `dns.dnsMasq.domainOverrides[].domain`      | Domain forwarded                                                   |
+| `IP`          | `string` | `dns.dnsMasq.domainOverrides[].ip`          | DNS server address; on a legacy config as written, `ip#port@srcip` |
+| `Description` | `string` | `dns.dnsMasq.domainOverrides[].description` | Description                                                        |
+| `Port`        | `string` | `dns.dnsMasq.domainOverrides[].port`        | DNS server port, when not 53                                       |
+| `SourceIP`    | `string` | `dns.dnsMasq.domainOverrides[].sourceIp`    | Local address queries are sent from                                |
 
 ---
 

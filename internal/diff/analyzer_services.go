@@ -35,15 +35,12 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 
 	var changes []Change
 
-	// Build maps keyed by interface name
-	oldByIface := make(map[string]common.DHCPScope, len(old))
-	for _, scope := range old {
-		oldByIface[scope.Interface] = scope
-	}
-	newByIface := make(map[string]common.DHCPScope, len(newCfg))
-	for _, scope := range newCfg {
-		newByIface[scope.Interface] = scope
-	}
+	// Build maps keyed by server and interface. ISC and dnsmasq can both
+	// hold a scope for one interface, as on a box upgraded to dnsmasq that
+	// keeps its disabled ISC entry, and keying on the interface alone let
+	// the later scope hide the earlier one.
+	oldByIface := dhcpScopesByKey(old)
+	newByIface := dhcpScopesByKey(newCfg)
 
 	// Collect and sort names for deterministic output
 	oldNames := slices.Sorted(maps.Keys(oldByIface))
@@ -98,6 +95,18 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 			})
 		}
 
+		// A dnsmasq scope also carries a DHCPv6 range.
+		if oldV6, newV6 := formatOptionalRange(oldDHCP.RangeV6), formatOptionalRange(newDHCP.RangeV6); oldV6 != newV6 {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionDHCP,
+				Path:        fmt.Sprintf("dhcpd.%s.rangeV6", name),
+				Description: "DHCPv6 range changed for " + name,
+				OldValue:    oldV6,
+				NewValue:    newV6,
+			})
+		}
+
 		// Compare enable state
 		if oldDHCP.Enabled != newDHCP.Enabled {
 			changes = append(changes, Change{
@@ -114,19 +123,76 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	return changes
 }
 
+// dhcpScopesByKey maps each scope to the name dhcpScopeKey gives it. Scopes
+// that would share a name, such as two with no interface and the same range
+// start, are told apart by their order: the second gets the suffix #2.
+func dhcpScopesByKey(scopes []common.DHCPScope) map[string]common.DHCPScope {
+	byKey := make(map[string]common.DHCPScope, len(scopes))
+	seen := make(map[string]int, len(scopes))
+	for _, scope := range scopes {
+		key := dhcpScopeKey(scope)
+		seen[key]++
+		if n := seen[key]; n > 1 {
+			key += "#" + strconv.Itoa(n)
+		}
+		byKey[key] = scope
+	}
+
+	return byKey
+}
+
+// dhcpScopeKey names a scope in diff paths and descriptions. An ISC scope
+// keeps the bare interface name; a scope of another server is prefixed with
+// the server, such as dnsmasq.lan.
+//
+// A scope with no interface, which every Kea subnet is and a dnsmasq range
+// no interface's network holds can be, is named by its server and the start
+// of its range instead, such as kea[10.0.1.100]: an empty interface would
+// give every such scope of one server the same name, and the later would
+// hide the earlier. A change to the range start reads as one scope removed
+// and another added.
+func dhcpScopeKey(scope common.DHCPScope) string {
+	server := string(scope.Source)
+	if server == "" {
+		server = string(common.DHCPSourceISC)
+	}
+	if scope.Interface == "" {
+		start := scope.Range.From
+		if start == "" && scope.RangeV6 != nil {
+			start = scope.RangeV6.From
+		}
+		return server + "[" + start + "]"
+	}
+	if server == string(common.DHCPSourceISC) {
+		return scope.Interface
+	}
+
+	return server + "." + scope.Interface
+}
+
+// staticLeaseKey identifies a reservation: its MAC address, or its client id
+// when it has none, as a dnsmasq reservation can.
+func staticLeaseKey(lease common.DHCPStaticLease) string {
+	if lease.MAC == "" && lease.CID != "" {
+		return "id:" + lease.CID
+	}
+
+	return lease.MAC
+}
+
 // compareStaticMappings compares DHCP static reservations between two configs.
 func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.DHCPStaticLease) []Change {
 	var changes []Change
 
-	// Build maps by MAC address (unique identifier for reservations)
+	// Build maps by MAC address, or client id (unique identifier for reservations)
 	oldByMAC := make(map[string]common.DHCPStaticLease, len(old))
 	newByMAC := make(map[string]common.DHCPStaticLease, len(newCfg))
 
 	for _, lease := range old {
-		oldByMAC[lease.MAC] = lease
+		oldByMAC[staticLeaseKey(lease)] = lease
 	}
 	for _, lease := range newCfg {
-		newByMAC[lease.MAC] = lease
+		newByMAC[staticLeaseKey(lease)] = lease
 	}
 
 	// Sort keys for deterministic output
@@ -196,6 +262,19 @@ func (a *Analyzer) compareStaticMappings(ifaceName string, old, newCfg []common.
 				NewValue:    newLease.Hostname,
 			})
 		}
+		// A reservation keyed by its MAC address can still change the client
+		// id it matches; one keyed by its client id has the same one on both
+		// sides.
+		if oldLease.CID != newLease.CID {
+			changes = append(changes, Change{
+				Type:        ChangeModified,
+				Section:     SectionDHCP,
+				Path:        fmt.Sprintf("dhcpd.%s.staticmap[%s].cid", ifaceName, mac),
+				Description: "Static reservation client ID changed for " + staticLeaseLabel(newLease),
+				OldValue:    oldLease.CID,
+				NewValue:    newLease.CID,
+			})
+		}
 	}
 
 	return changes
@@ -209,12 +288,15 @@ func staticLeaseLabel(lease common.DHCPStaticLease) string {
 	if lease.Description != "" {
 		return lease.Description
 	}
-	return lease.MAC
+	return staticLeaseKey(lease)
 }
 
 // formatStaticLease returns a formatted string for a static lease.
 func formatStaticLease(lease common.DHCPStaticLease) string {
 	parts := []string{"ip=" + lease.IPAddress, "mac=" + lease.MAC}
+	if lease.CID != "" {
+		parts = append(parts, "cid="+lease.CID)
+	}
 	if lease.Hostname != "" {
 		parts = append(parts, "hostname="+lease.Hostname)
 	}
@@ -222,4 +304,14 @@ func formatStaticLease(lease common.DHCPStaticLease) string {
 		parts = append(parts, "descr="+lease.Description)
 	}
 	return strings.Join(parts, ", ")
+}
+
+// formatOptionalRange renders a range that may be absent; an absent range is
+// the empty string.
+func formatOptionalRange(r *common.DHCPRange) string {
+	if r == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%s - %s", r.From, r.To)
 }

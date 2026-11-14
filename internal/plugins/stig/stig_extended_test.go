@@ -415,6 +415,31 @@ func TestHasUnnecessaryServicesEdgeCases(t *testing.T) {
 			true, // len(DHCP) > MaxDHCPInterfaces regardless of Enabled status
 		},
 		{
+			"DHCP with disabled dnsmasq scopes is not counted",
+			&common.CommonDevice{
+				DHCP: []common.DHCPScope{
+					{
+						Interface: "lan",
+						Enabled:   true,
+						Range:     common.DHCPRange{From: "192.168.1.100", To: "192.168.1.200"},
+					},
+					{
+						Interface: "opt1",
+						Source:    common.DHCPSourceDnsmasq,
+						Enabled:   false,
+						Range:     common.DHCPRange{From: "10.0.1.100", To: "10.0.1.200"},
+					},
+					{
+						Interface: "opt2",
+						Source:    common.DHCPSourceDnsmasq,
+						Enabled:   false,
+						Range:     common.DHCPRange{From: "172.16.1.100", To: "172.16.1.200"},
+					},
+				},
+			},
+			false, // a dnsmasq scope counts only while dnsmasq serves it
+		},
+		{
 			"Load balancer with empty monitor type is not flagged",
 			&common.CommonDevice{
 				LoadBalancer: common.LoadBalancerConfig{

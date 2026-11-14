@@ -135,11 +135,12 @@ yq '.firewallRules[] | select(.destination.port == "22")' config.yaml
 # List DHCP interfaces
 yq '[.dhcp[].interface]' config.yaml
 
-# Get DHCP range for a specific interface
-yq '.dhcp[] | select(.interface == "lan") | .range' config.yaml
+# Get the DHCP range served on a specific interface. An upgraded box can keep a
+# disabled ISC scope beside the dnsmasq one, so select the enabled scope.
+yq '.dhcp[] | select(.interface == "lan" and .enabled) | .range' config.yaml
 
-# List static mappings
-yq '.dhcp[].staticMappings[]' config.yaml
+# List static leases
+yq '.dhcp[].staticLeases[]' config.yaml
 ```
 
 ### DNS

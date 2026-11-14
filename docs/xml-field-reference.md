@@ -2,6 +2,58 @@
 
 This reference documents the OPNsense `config.xml` fields that opnDossier parses and validates, with XML examples showing each field's usage. This is useful for understanding how OPNsense represents configuration in XML.
 
+## dnsmasq DNS and DHCP
+
+From 25.1.2 `<dnsmasq>` is the Dnsmasq MVC model and carries a `version` attribute. Every list is written as the item's own element name, repeated directly under `<dnsmasq>`; there is no container element. An empty `<hosts/>` or `<domainoverrides/>` is a placeholder the legacy pages leave once the last entry is deleted, and opnDossier skips it.
+
+```xml
+<dnsmasq version="1.0.9">
+  <enable>1</enable>
+  <dnssec>1</dnssec>
+  <port />
+  <interface>lan,opt1</interface>
+  <dhcp>
+    <no_interface>opt2</no_interface>
+  </dhcp>
+  <hosts uuid="...">
+    <host>printer</host>
+    <domain>internal</domain>
+    <ip>192.168.1.50</ip>
+    <hwaddr>aa:bb:cc:dd:ee:01</hwaddr>
+    <descr>Printer</descr>
+    <aliases>print.internal</aliases>
+  </hosts>
+  <domainoverrides uuid="...">
+    <domain>corp.example</domain>
+    <ip>10.9.0.53</ip>
+    <port>5353</port>
+    <srcip />
+  </domainoverrides>
+  <dhcp_ranges uuid="...">
+    <interface>lan</interface>
+    <start_addr>192.168.1.100</start_addr>
+    <end_addr>192.168.1.199</end_addr>
+  </dhcp_ranges>
+  <dhcp_ranges uuid="...">
+    <interface>lan</interface>
+    <start_addr>::1000</start_addr>
+    <end_addr>::2000</end_addr>
+    <constructor>lan</constructor>
+    <ra_mode>slaac</ra_mode>
+  </dhcp_ranges>
+  <dhcp_options uuid="...">
+    <type>set</type>
+    <option>6</option>
+    <interface>lan</interface>
+    <value>9.9.9.9</value>
+  </dhcp_options>
+</dnsmasq>
+```
+
+`<dnssec>` set to `1` turns DNSSEC validation on, which FIREWALL-058 reads when Unbound is off and dnsmasq answers on port 53; an empty `<port>` means 53 and `0` turns DNS off. A `<hosts>` entry is a host override, and a DHCP reservation too when it has a `<client_id>` or a `<hwaddr>` holding a colon. A range is IPv6 when `<start_addr>` holds a colon. An IPv6 range with `ra-stateless` in its `<ra_mode>` answers stateless DHCPv6 and allocates no address, with or without an `<end_addr>`, so it makes a scope with no `rangeV6`. Any other IPv6 range with no `<end_addr>` only sends router advertisements and makes no scope. An `<end_addr>` makes dnsmasq serve DHCP from the range whatever else `<ra_mode>` holds, `ra-only` included.
+
+The ranges become `dhcp[]` scopes with `source: dnsmasq`, one per interface: the first IPv4 range in `range`, the first IPv6 range in `rangeV6`. A range whose `<interface>` is empty (Any) is served on the interface whose network holds it, or whose prefix its `<constructor>` names, and joins that interface's scope; one that no interface's network holds keeps a scope of its own with an empty `interface`. A reservation goes to every scope whose network holds one of its addresses, IPv4 or IPv6, once each; an address holding only a host part, such as `::50`, goes to every scope with a constructed range, and only a reservation with no address goes to the one scope with an IPv4 range. A range no interface's network holds is served through a relay agent on the network of its `<subnet_mask>`, or, without one, of its start address's class (/8, /16 or /24), as dnsmasq guesses. A dnsmasq scope counts toward STIG V-206690's limit of two DHCP interfaces only while dnsmasq serves DHCP on its interface; ISC and Kea scopes count whatever their enable flag. A range whose `<mode>` holds `static` serves reservations only and leaves `range` empty. Untagged DHCPv4 `set` options 3, 6, 42 and 44 fill the gateway, DNS, NTP and WINS servers, and other untagged DHCPv4 `set` options become number options. The legacy page before 25.1.2 wrote the same `<hosts>` and `<domainoverrides>` shape, with aliases as `<aliases><item><host/><domain/></item></aliases>` and the port and source address packed into `<ip>` as `ip#port@srcip`.
+
 ## Source and Destination Fields
 
 Firewall rule source and destination support multiple addressing modes. The fields `any`, `network`, and `address` are **mutually exclusive** -- only one should be present per source/destination block.
