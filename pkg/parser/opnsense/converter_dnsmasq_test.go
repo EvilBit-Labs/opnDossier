@@ -1211,6 +1211,14 @@ func rangeNetworks4Cases() []rangeNetworks4Case {
 			host: "10.0.1.60", wantScope: 1, wantSubnet: []string{"10.0.0.0/8", ""},
 		},
 		{
+			name: "a range on an interface with no static address has no network (dyn)",
+			ranges: `<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
+				`<end_addr>10.0.9.199</end_addr></dhcp_ranges>` +
+				`<dhcp_ranges><start_addr>10.77.0.100</start_addr><end_addr>10.77.0.199</end_addr>` +
+				`<subnet_mask>255.255.0.0</subnet_mask></dhcp_ranges>`,
+			host: "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.77.0.0/16"},
+		},
+		{
 			name:   "the relayed range takes what no interface holds (o1)",
 			ranges: o1Ranges,
 			host:   "10.77.0.9", wantScope: 1, wantSubnet: []string{"", "10.0.0.0/8"},
@@ -1235,11 +1243,27 @@ func rangeNetworks6Cases() []rangeNetworks4Case {
 			host: "fd00:2::50", wantScope: 0, wantSubnet: []string{""},
 		},
 		{
-			name: "a constructed range is matched on its own prefix_len",
+			name: "a constructed range is matched around the start dnsmasq builds",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr><end_addr>::2000</end_addr>` +
+				`<constructor>opt2</constructor><prefix_len>64</prefix_len></dhcp_ranges>`,
+			host:       "fd00:2::50",
+			wantScope:  0,
+			wantSubnet: []string{""},
+		},
+		{
+			name: "dnsmasq refuses a constructed range with a prefix_len above 64",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr><end_addr>::2000</end_addr>` +
+				`<constructor>opt2</constructor><prefix_len>112</prefix_len></dhcp_ranges>`,
+			host:       "fd00:2::1050",
+			wantScope:  -1,
+			wantSubnet: []string{""},
+		},
+		{
+			name: "a prefix_len shorter than the constructor's prefix builds no range",
 			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr><end_addr>::2000</end_addr>` +
 				`<constructor>opt2</constructor><prefix_len>48</prefix_len></dhcp_ranges>`,
-			host:       "fd00:2:0:9::50",
-			wantScope:  0,
+			host:       "fd00:2::50",
+			wantScope:  -1,
 			wantSubnet: []string{""},
 		},
 		{
