@@ -58,3 +58,49 @@ func TestCompareDHCP_DnsmasqRangeV6(t *testing.T) {
 	same := []common.DHCPScope{scope(&common.DHCPRange{From: "::1000", To: "::2000"})}
 	assert.Empty(t, NewAnalyzer().CompareDHCP(same, same))
 }
+
+// TestCompareDHCP_ScopesWithoutInterface keeps scopes that name no interface
+// apart: every Kea subnet, and dnsmasq ranges no interface's network holds.
+// With one name per server, the later scope hid a change to the earlier one.
+func TestCompareDHCP_ScopesWithoutInterface(t *testing.T) {
+	t.Parallel()
+
+	for _, source := range []common.DHCPSource{common.DHCPSourceDnsmasq, common.DHCPSourceKea} {
+		t.Run(string(source), func(t *testing.T) {
+			t.Parallel()
+
+			scopes := func(firstEnabled bool) []common.DHCPScope {
+				return []common.DHCPScope{
+					{
+						Source:  source,
+						Enabled: firstEnabled,
+						Range:   common.DHCPRange{From: "172.16.0.100", To: "172.16.0.199"},
+					},
+					{Source: source, Enabled: true, Range: common.DHCPRange{From: "172.17.0.100", To: "172.17.0.199"}},
+				}
+			}
+
+			changes := NewAnalyzer().CompareDHCP(scopes(true), scopes(false))
+			require.Len(t, changes, 1)
+			assert.Equal(t, "dhcpd."+string(source)+"[172.16.0.100].enabled", changes[0].Path)
+			assert.Empty(t, NewAnalyzer().CompareDHCP(scopes(true), scopes(true)))
+		})
+	}
+}
+
+// TestCompareDHCP_ScopesSharingAName numbers scopes that would share a name,
+// so the second is compared too.
+func TestCompareDHCP_ScopesSharingAName(t *testing.T) {
+	t.Parallel()
+
+	scopes := func(secondEnabled bool) []common.DHCPScope {
+		return []common.DHCPScope{
+			{Source: common.DHCPSourceKea, Enabled: true},
+			{Source: common.DHCPSourceKea, Enabled: secondEnabled},
+		}
+	}
+
+	changes := NewAnalyzer().CompareDHCP(scopes(true), scopes(false))
+	require.Len(t, changes, 1)
+	assert.Equal(t, "dhcpd.kea[]#2.enabled", changes[0].Path)
+}

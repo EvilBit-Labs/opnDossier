@@ -39,14 +39,8 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	// hold a scope for one interface, as on a box upgraded to dnsmasq that
 	// keeps its disabled ISC entry, and keying on the interface alone let
 	// the later scope hide the earlier one.
-	oldByIface := make(map[string]common.DHCPScope, len(old))
-	for _, scope := range old {
-		oldByIface[dhcpScopeKey(scope)] = scope
-	}
-	newByIface := make(map[string]common.DHCPScope, len(newCfg))
-	for _, scope := range newCfg {
-		newByIface[dhcpScopeKey(scope)] = scope
-	}
+	oldByIface := dhcpScopesByKey(old)
+	newByIface := dhcpScopesByKey(newCfg)
 
 	// Collect and sort names for deterministic output
 	oldNames := slices.Sorted(maps.Keys(oldByIface))
@@ -129,15 +123,51 @@ func (a *Analyzer) CompareDHCP(old, newCfg []common.DHCPScope) []Change {
 	return changes
 }
 
+// dhcpScopesByKey maps each scope to the name dhcpScopeKey gives it. Scopes
+// that would share a name, such as two with no interface and the same range
+// start, are told apart by their order: the second gets the suffix #2.
+func dhcpScopesByKey(scopes []common.DHCPScope) map[string]common.DHCPScope {
+	byKey := make(map[string]common.DHCPScope, len(scopes))
+	seen := make(map[string]int, len(scopes))
+	for _, scope := range scopes {
+		key := dhcpScopeKey(scope)
+		seen[key]++
+		if n := seen[key]; n > 1 {
+			key += "#" + strconv.Itoa(n)
+		}
+		byKey[key] = scope
+	}
+
+	return byKey
+}
+
 // dhcpScopeKey names a scope in diff paths and descriptions. An ISC scope
-// keeps the bare interface name, as before; a scope of another server is
-// prefixed with the server, such as dnsmasq.lan.
+// keeps the bare interface name; a scope of another server is prefixed with
+// the server, such as dnsmasq.lan.
+//
+// A scope with no interface, which every Kea subnet is and a dnsmasq range
+// no interface's network holds can be, is named by its server and the start
+// of its range instead, such as kea[10.0.1.100]: an empty interface would
+// give every such scope of one server the same name, and the later would
+// hide the earlier. A change to the range start reads as one scope removed
+// and another added.
 func dhcpScopeKey(scope common.DHCPScope) string {
-	if scope.Source == "" || scope.Source == common.DHCPSourceISC {
+	server := string(scope.Source)
+	if server == "" {
+		server = string(common.DHCPSourceISC)
+	}
+	if scope.Interface == "" {
+		start := scope.Range.From
+		if start == "" && scope.RangeV6 != nil {
+			start = scope.RangeV6.From
+		}
+		return server + "[" + start + "]"
+	}
+	if server == string(common.DHCPSourceISC) {
 		return scope.Interface
 	}
 
-	return string(scope.Source) + "." + scope.Interface
+	return server + "." + scope.Interface
 }
 
 // staticLeaseKey identifies a reservation: its MAC address, or its client id
