@@ -1,11 +1,14 @@
 package firewall
 
 import (
-	"bytes"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -75,5 +78,24 @@ func parseStoredCertificate(data string) (*x509.Certificate, error) {
 // DSA, Ed448 and MD5 certificates imported from elsewhere. A refusal must not
 // read as "signed by another key".
 func isSelfSigned(cert *x509.Certificate) bool {
-	return bytes.Equal(cert.RawIssuer, cert.RawSubject)
+	return maps.EqualFunc(nameAttributes(cert.Issuer), nameAttributes(cert.Subject), slices.Equal[[]string])
+}
+
+// nameAttributes groups the decoded values of a distinguished name by
+// attribute type, each type's values in the order they appear. OPNsense
+// compares issuer and subject as the strings certs_build_name builds from
+// openssl_x509_parse: decoded values, so a PrintableString and a UTF8String
+// holding the same text match, and attribute types sorted (ksort), so their
+// order does not matter, while repeated values of one type keep their order.
+// Comparing the DER bytes instead would read such a self-signed certificate
+// as issued by someone else.
+func nameAttributes(name pkix.Name) map[string][]string {
+	attrs := make(map[string][]string, len(name.Names))
+
+	for _, atv := range name.Names {
+		key := atv.Type.String()
+		attrs[key] = append(attrs[key], fmt.Sprint(atv.Value))
+	}
+
+	return attrs
 }

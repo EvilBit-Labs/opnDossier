@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/pem"
 	"math/big"
@@ -422,3 +423,130 @@ const ed448SelfSignedCertificate = "" +
 	"ZGEwV2xLY1JZQno4NXhKUzk3S3VzdzRqY044DQpHd0lPZkRxQVM2dFdPNzVTL2hB" +
 	"ZXdqenRqMnA3SWhWTGZaSVZrVmVoR3pTRWFnWUENCi0tLS0tRU5EIENFUlRJRklD" +
 	"QVRFLS0tLS0NCg=="
+
+// nameAttr is one attribute of a distinguished name, with the ASN.1 string
+// type its value is encoded in.
+type nameAttr struct {
+	oid   asn1.ObjectIdentifier
+	tag   int
+	value string
+}
+
+var (
+	oidCommonName = asn1.ObjectIdentifier{2, 5, 4, 3}
+	oidOrg        = asn1.ObjectIdentifier{2, 5, 4, 10}
+	oidOrgUnit    = asn1.ObjectIdentifier{2, 5, 4, 11}
+)
+
+// rawName encodes attrs as a distinguished name, one attribute per RDN, with
+// each value in the string type given.
+func rawName(t *testing.T, attrs ...nameAttr) []byte {
+	t.Helper()
+
+	seq := make(pkix.RDNSequence, 0, len(attrs))
+	for _, a := range attrs {
+		seq = append(seq, pkix.RelativeDistinguishedNameSET{{
+			Type:  a.oid,
+			Value: asn1.RawValue{Tag: a.tag, Bytes: []byte(a.value)},
+		}})
+	}
+
+	der, err := asn1.Marshal(seq)
+	require.NoError(t, err)
+
+	return der
+}
+
+// certificateWithNames returns stored certificate data for a certificate
+// whose issuer and subject are written exactly as given, signed by its own
+// key.
+func certificateWithNames(t *testing.T, issuer, subject []byte) string {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		RawSubject:   subject,
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(24 * time.Hour),
+	}
+	parent := *tmpl
+	parent.RawSubject = issuer
+
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, &parent, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	cert, err := x509.ParseCertificate(der)
+	require.NoError(t, err)
+	require.Equal(t, issuer, cert.RawIssuer)
+	require.Equal(t, subject, cert.RawSubject)
+
+	return storedCertificate(der)
+}
+
+// TestFirewallPlugin_ValidWebGUICertificate_NameEncodings pins how issuer and
+// subject are compared. OPNsense compares the strings certs_build_name builds
+// from openssl_x509_parse: decoded values, attribute types sorted, repeated
+// values of one type in order. A certificate whose issuer and subject hold the
+// same values in different string types, or in a different attribute order, is
+// self-signed there although its DER bytes differ.
+func TestFirewallPlugin_ValidWebGUICertificate_NameEncodings(t *testing.T) {
+	t.Parallel()
+
+	printable := func(oid asn1.ObjectIdentifier, v string) nameAttr {
+		return nameAttr{oid: oid, tag: asn1.TagPrintableString, value: v}
+	}
+	utf8 := func(oid asn1.ObjectIdentifier, v string) nameAttr {
+		return nameAttr{oid: oid, tag: asn1.TagUTF8String, value: v}
+	}
+
+	tests := []struct {
+		name    string
+		issuer  []byte
+		subject []byte
+		failed  bool
+	}{
+		{
+			name:    "same values, different string types",
+			issuer:  rawName(t, printable(oidCommonName, "fw.example.internal"), printable(oidOrg, "Example")),
+			subject: rawName(t, utf8(oidCommonName, "fw.example.internal"), utf8(oidOrg, "Example")),
+			failed:  true,
+		},
+		{
+			name:    "same values, attributes in a different order",
+			issuer:  rawName(t, utf8(oidCommonName, "fw.example.internal"), utf8(oidOrg, "Example")),
+			subject: rawName(t, utf8(oidOrg, "Example"), utf8(oidCommonName, "fw.example.internal")),
+			failed:  true,
+		},
+		// Repeated values of one type keep their order in certs_build_name.
+		{
+			name:    "repeated attribute values in a different order",
+			issuer:  rawName(t, utf8(oidOrgUnit, "a"), utf8(oidOrgUnit, "b")),
+			subject: rawName(t, utf8(oidOrgUnit, "b"), utf8(oidOrgUnit, "a")),
+		},
+		{
+			name:    "different values, different string types",
+			issuer:  rawName(t, printable(oidCommonName, "Internal Root CA")),
+			subject: rawName(t, utf8(oidCommonName, "fw.example.internal")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := &common.CommonDevice{
+				System: common.System{WebGUI: common.WebGUI{Protocol: "https", SSLCertRef: "web"}},
+				Certificates: []common.Certificate{{
+					RefID:       "web",
+					Certificate: certificateWithNames(t, tt.issuer, tt.subject),
+					PrivateKey:  storedKey,
+				}},
+			}
+
+			assert.Equal(t, certVerdict{evaluated: true, failed: tt.failed}, webGUICertVerdict(t, device))
+		})
+	}
+}

@@ -342,7 +342,7 @@ Resolves `System.WebGUI.SSLCertRef` against `Certificates` by reference ID and d
 - `System.WebGUI.Protocol` is not exactly `https`, so the GUI serves no certificate
 - the reference is empty or names no certificate in the store (the firewall then generates a self-signed one at start)
 - the certificate has no certificate data or no private key, so it cannot be served
-- the certificate is self-signed: its issuer equals its subject, the rule OPNsense applies when it imports a certificate
+- the certificate is self-signed: its issuer equals its subject, the rule OPNsense applies when it imports a certificate. As there, the names are compared by their decoded values, so the string type each value is encoded in and the order of the attribute types do not matter
 
 A certificate issued by any CA, internal or public, passes. The signature and the trust chain are not verified. Certificate data that cannot be decoded, such as truncated or placeholder data, leaves the control unknown.
 
