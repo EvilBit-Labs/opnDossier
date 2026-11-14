@@ -136,6 +136,27 @@ type Syslog struct {
 	IgmpProxy     BoolFlag `xml:"igmpproxy,omitempty"`
 	Created       string   `xml:"created,omitempty"`
 	Updated       string   `xml:"updated,omitempty"`
+
+	// PreserveLogs is the number of log archives OPNsense 20.7 to 24.1 kept.
+	// Migration M1_0_2 (24.7) copies it into the Syslog model's maxpreserve.
+	PreserveLogs string `xml:"preservelogs,omitempty"`
+	// MaxFileSize is the size in MB at which 24.1 rotated a log early.
+	MaxFileSize string `xml:"maxfilesize,omitempty"`
+	// DisableClog turned off the circular logs from 20.7 to 21.7, leaving the
+	// daily archives log_archive prunes. The syslog template tests it with
+	// helpers.empty and system.inc with empty(); both read 0 as unset.
+	DisableClog string `xml:"disable_clog,omitempty"`
+	// LogAll made 19.7 forward every message to the legacy remote servers,
+	// whatever the category flags say. 19.7 tests it with helpers.empty,
+	// which reads an empty value and 0, once trimmed, as unset; 19.1 used
+	// isset().
+	LogAll string `xml:"logall,omitempty"`
+	// DisableLocalLogging turned local logs off up to 24.1. Up to 21.7
+	// system.inc tests it with isset(), so any element, 0 included, reads
+	// as off; 22.1 to 24.1 test it in syslog-ng-local.conf with
+	// helpers.empty, which reads an empty element and 0 as unset.
+	// Migration M1_0_2 inverts it into the model's loglocal.
+	DisableLocalLogging *string `xml:"disablelocallogging,omitempty"`
 }
 
 // Monit represents the Monit system monitoring daemon configuration, including

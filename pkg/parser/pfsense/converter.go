@@ -48,6 +48,7 @@ var pfsenseKnownGaps = []string{
 	"NTP",
 	"HighAvailability",
 	"IDS",
+	"Syslog",
 	"Sysctl",
 	"Packages",
 	"Monit",

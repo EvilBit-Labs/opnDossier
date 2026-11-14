@@ -158,18 +158,11 @@ type OPNsense struct {
 		ActiveTimeout   string `xml:"activeTimeout"`
 	} `xml:"Netflow" json:"netflow"`
 
-	SyslogInternal struct {
-		Text    string `xml:",chardata" json:"text,omitempty"`
-		Version string `xml:"version,attr" json:"version,omitempty"`
-		General struct {
-			Text        string `xml:",chardata" json:"text,omitempty"`
-			Enabled     string `xml:"enabled"`
-			Loglocal    string `xml:"loglocal"`
-			Maxpreserve string `xml:"maxpreserve"`
-			Maxfilesize string `xml:"maxfilesize"`
-		} `xml:"general" json:"general"`
-		Destinations string `xml:"destinations"`
-	} `xml:"Syslog" json:"syslog_internal"`
+	// SyslogInternal is nil when the config has no Syslog model, which tells
+	// the converter the legacy <syslog> remote keys are the ones the firewall
+	// reads. It is a pointer so that an encode writes no empty model a second
+	// decode would take for a real one.
+	SyslogInternal *SyslogModel `xml:"Syslog,omitempty" json:"syslog_internal,omitempty"`
 
 	TrafficShaper struct {
 		Text    string `xml:",chardata" json:"text,omitempty"`

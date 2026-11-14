@@ -44,9 +44,10 @@ func (fp *Plugin) checkValidWebGUICertificate(device *common.CommonDevice) check
 // they were deleted. The controls remain in controls.go so the audit report
 // still labels them UNCONFIRMED.
 
-// checkRemoteSyslog checks that remote syslog forwarding is configured and
-// a remote server address is defined. Centralized logging is essential for
-// forensic analysis and compliance.
+// checkRemoteSyslog checks that a remote syslog destination is configured
+// and forwards, whatever its filters keep; FIREWALL-040 and FIREWALL-041 ask
+// which events it carries. Centralized logging is essential for forensic
+// analysis and compliance.
 func (fp *Plugin) checkRemoteSyslog(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
@@ -86,9 +87,12 @@ func (fp *Plugin) checkFirewallFilterLogging(device *common.CommonDevice) checkR
 	return checkResult{Result: device.Syslog.FilterLogging, Known: true}
 }
 
-// checkLogRetention checks that log retention is configured with a log file
-// size and rotation count. The presence of these settings indicates the
-// administrator has considered log management.
+// checkLogRetention checks that local logs are kept under a size or archive
+// limit. Where the OPNsense release is known from its Syslog model, the
+// converter fills in the limit the release applies by default, so this
+// passes whenever local logs are kept under a limit, configured or not. It
+// fails when local logging is off, or when a config without the model sets
+// no limit.
 func (fp *Plugin) checkLogRetention(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
