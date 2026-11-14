@@ -1249,7 +1249,7 @@ func rangeNetworksDynamicCases() []rangeNetworks4Case {
 			name: "a range on a DHCP interface holds only the smallest prefix around its pool",
 			ranges: `<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
 				`<end_addr>10.0.9.120</end_addr></dhcp_ranges>`,
-			host: "10.0.9.130", wantScope: -1, wantSubnet: []string{""},
+			host: "10.0.9.95", wantScope: -1, wantSubnet: []string{""},
 		},
 		{
 			name: "a relayed range takes an address outside a DHCP interface's range (dyn)",
@@ -1277,6 +1277,13 @@ func rangeNetworksDynamicCases() []rangeNetworks4Case {
 				`<dhcp_ranges><interface>wan</interface><start_addr>10.0.9.100</start_addr>` +
 				`<end_addr>10.0.9.199</end_addr></dhcp_ranges>`,
 			host: "10.0.9.150", wantScope: 1, wantSubnet: []string{"10.0.0.0/8", ""},
+		},
+		{
+			name: "a masked range on an interface the config does not define stays relayed",
+			ranges: `<dhcp_ranges><start_addr>10.50.0.100</start_addr><end_addr>10.50.0.199</end_addr></dhcp_ranges>` +
+				`<dhcp_ranges><interface>opt9</interface><start_addr>10.0.99.100</start_addr>` +
+				`<end_addr>10.0.99.199</end_addr><subnet_mask>255.255.255.0</subnet_mask></dhcp_ranges>`,
+			host: "10.0.99.150", wantScope: 0, wantSubnet: []string{"10.0.0.0/8", ""},
 		},
 	}
 }
@@ -1483,6 +1490,12 @@ func TestConverter_Dnsmasq_SharedNetworkRangesPairByRange(t *testing.T) {
 			name: "two DHCPv6 ranges in one relayed /64 listed in the other order (v6r)",
 			old:  wrap(v6a + v6b + h6),
 			new:  wrap(v6b + v6a + h6),
+			want: nil,
+		},
+		{
+			name: "two DHCPv6 ranges with two reservations listed in the other order (v6r2)",
+			old:  wrap(v6a + v6b + h6 + host("h7", "fd00:9::51", "62")),
+			new:  wrap(v6b + v6a + h6 + host("h7", "fd00:9::51", "62")),
 			want: nil,
 		},
 		{

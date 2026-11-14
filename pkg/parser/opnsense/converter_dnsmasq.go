@@ -721,10 +721,10 @@ func dnsmasqLeaseTargets(nets []dnsmasqScopeNets, ips string, fallback int) []in
 // -1. For IPv4 the ranges are tried in three tiers (dnsmasqRangeNetwork4):
 // local ranges whose interface network the config shows, then ranges on an
 // interface with no static IPv4 network, whose network is an estimate, then
-// relayed ranges. The first scope with a range in the first tier whose
-// network holds addr serves it, so an address a range on a known network
-// holds never goes to an estimated or relayed one. For IPv6 it is the first scope whose ranges'
-// prefixes hold it.
+// relayed ranges. The first scope with a range whose network holds addr, in
+// the earliest tier that has one, serves it, so an address a range on a known
+// network holds never goes to an estimated or relayed one. For IPv6 it is the
+// first scope whose ranges' prefixes hold it.
 func dnsmasqScopeHolding(nets []dnsmasqScopeNets, addr netip.Addr) int {
 	contains := func(p netip.Prefix) bool { return p.Contains(addr) }
 	if addr.Is6() {
