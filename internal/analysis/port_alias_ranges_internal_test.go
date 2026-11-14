@@ -1,8 +1,11 @@
 package analysis
 
 import (
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/stretchr/testify/assert"
@@ -509,6 +512,40 @@ func TestDetectShadowedRules_R10ComplementWithUnreadablePart(t *testing.T) {
 				assert.Equal(t, common.ConfidenceLow, findings[0].Confidence)
 			}
 		})
+	}
+}
+
+// TestLiteralPrefixes_VisitBudget feeds the literal walk a graph where each
+// level names the next ten times and the deepest alias is empty. Without a
+// visit budget that is 10^16 expansions, none of which adds a prefix, so the
+// member cap never stops it; with the budget it gives up, unproven, at once.
+func TestLiteralPrefixes_VisitBudget(t *testing.T) {
+	t.Parallel()
+
+	objects := make(common.NamedObjects, maxPortAliasDepth+1)
+	for depth := range maxPortAliasDepth + 1 {
+		name := "Fan" + strconv.Itoa(depth)
+		obj := common.NamedObject{Name: name, Type: common.NamedObjectTypeNetwork}
+		if depth < maxPortAliasDepth {
+			obj.Members = slices.Repeat([]string{"Fan" + strconv.Itoa(depth+1)}, 10)
+		}
+		objects[name] = obj
+	}
+
+	done := make(chan bool, 1)
+	go func() {
+		_, proven := literalPrefixes(
+			common.RuleEndpoint{Address: "Fan0", AddressRef: &common.ObjectRef{Name: "Fan0"}},
+			objects,
+		)
+		done <- proven
+	}()
+
+	select {
+	case proven := <-done:
+		assert.False(t, proven)
+	case <-time.After(30 * time.Second):
+		t.Fatal("the literal alias walk did not stop within its visit budget")
 	}
 }
 

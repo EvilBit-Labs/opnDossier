@@ -299,14 +299,20 @@ func literalPrefixes(ep common.RuleEndpoint, no common.NamedObjects) ([]netip.Pr
 type literalWalker struct {
 	no       common.NamedObjects
 	visiting map[string]struct{}
+	visits   int
 	prefixes []netip.Prefix
 }
 
 // walk adds the networks of the alias name and reports whether every member
-// was a literal address or network or an alias walk accepts.
+// was a literal address or network or an alias walk accepts. Like the port
+// alias walk it stops after maxPortAliasVisits expansions: aliases that name
+// each other many times, ending in empty ones, add no prefix, so the member
+// cap alone would not stop it.
 func (w *literalWalker) walk(name string, depth int) bool {
+	w.visits++
+
 	obj, exists := w.no[name]
-	if !exists || depth > maxPortAliasDepth || obj.Disabled ||
+	if !exists || depth > maxPortAliasDepth || w.visits > maxPortAliasVisits || obj.Disabled ||
 		(obj.Type != common.NamedObjectTypeHost && obj.Type != common.NamedObjectTypeNetwork) {
 		return false
 	}

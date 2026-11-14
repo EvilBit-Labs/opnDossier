@@ -14,8 +14,9 @@ const maxPort = 65535
 // NamedObjects.Resolve bounds every alias.
 const maxPortAliasDepth = 16
 
-// maxPortAliasVisits bounds how many alias expansions one endpoint may take, so
-// a graph of aliases that name each other many times cannot drive the walk
+// maxPortAliasVisits bounds how many alias expansions one endpoint may take, in
+// the port walk and in the literal address walk of the complement proof, so a
+// graph of aliases that name each other many times cannot drive either walk
 // into exponential work. Far above any real configuration.
 const maxPortAliasVisits = 4096
 
