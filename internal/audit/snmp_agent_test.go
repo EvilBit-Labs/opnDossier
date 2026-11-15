@@ -215,6 +215,59 @@ func TestSNMPAgent_ListenAddressesDecideWANExposure(t *testing.T) {
 	}
 }
 
+// TestSNMPAgent_LoopbackOnlyAgentStaysLocalWithPacketFilteringDisabled sets
+// <system><disablefilter>, which turns pf off, and varies the agent's listen
+// list. An agent bound only to loopback answers no other host with or without
+// pf, so it stays local and draws no WAN exposure, with or without a WAN rule
+// passing UDP 161. The cases with any other listen list keep that rule, and
+// they are reported as WAN-exposed.
+func TestSNMPAgent_LoopbackOnlyAgentStaysLocalWithPacketFilteringDisabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		listen  string
+		wanRule bool
+		local   bool
+	}{
+		{name: "IPv4 loopback, no rule", listen: "127.0.0.1", local: true},
+		{name: "IPv6 loopback, no rule", listen: "::1", local: true},
+		{name: "IPv4 loopback, WAN rule", listen: "127.0.0.1", wanRule: true, local: true},
+		{name: "both loopbacks, WAN rule", listen: "127.0.0.1,::1", wanRule: true, local: true},
+		{name: "loopback and a LAN address, WAN rule", listen: "127.0.0.1,192.168.1.1", wanRule: true},
+		{name: "no listen address, WAN rule", wanRule: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			model := strings.Replace(snmpNetsnmpPublic, "<listen/>", "<listen>"+tc.listen+"</listen>", 1)
+			config := strings.Replace(snmpAgentConfig("", model),
+				"</domain>", "</domain>\n    <disablefilter>enabled</disablefilter>", 1)
+			if !tc.wanRule {
+				start := strings.Index(config, "<filter>")
+				end := strings.Index(config, "</filter>") + len("</filter>")
+				config = config[:start] + "<filter/>" + config[end:]
+			}
+
+			device := parseConfig(t, config)
+
+			services := serviceExposures(device)
+			idx := slices.IndexFunc(services, func(s exposedService) bool { return s.name == "snmp" })
+			require.GreaterOrEqual(t, idx, 0, "snmp missing from the services red mode considers: %+v", services)
+			assert.Equal(t, tc.local, services[idx].reachability == analysis.Local,
+				"reachability %s", services[idx].reachability)
+
+			report := newRedReport(device)
+			runRedAnalysis(report)
+
+			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
+			assert.Equal(t, !tc.local, exposed, "red-mode SNMP exposure")
+		})
+	}
+}
+
 // TestSNMPAgent_SnmpdBindAddressIsNotRead pins what the model reference says
 // of an <snmpd> agent: no bind address is read for it, so it is judged by the
 // firewall rules alone. pfSense binds bsnmpd to <snmpd><bindip>, an address or
