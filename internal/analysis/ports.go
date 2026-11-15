@@ -17,8 +17,20 @@ const maxPortAliasDepth = 16
 // maxPortAliasVisits bounds how many alias expansions one endpoint may take, in
 // the port walk and in the literal address walk of the complement proof, so a
 // graph of aliases that name each other many times cannot drive either walk
-// into exponential work. Far above any real configuration.
+// into exponential work. The port walk expands an alias once unless a cycle
+// is involved, so there it stops only a graph of cycles. Far above any real
+// configuration.
 const maxPortAliasVisits = 4096
+
+// maxPortAliasWork bounds how many port ranges one port alias walk gathers,
+// counting an alias's ranges each time a parent takes them, so that many
+// aliases which each take a large set cannot keep the walk busy. A walk that
+// reaches it leaves the set incomplete. It is far above any real
+// configuration and far above maxResolvedMembers, so aliases whose sets
+// overlap are merged before the member cap is applied; it is reached only by
+// something like hundreds of aliases each naming one alias of thousands of
+// ports, which NamedObjects.Resolve would expand in full.
+const maxPortAliasWork = 1 << 20
 
 // wellKnownServicePorts maps the service names OPNsense's PortField accepts as
 // a rule port to their numbers (PortField.php $wellknownservices). It is the
@@ -163,66 +175,139 @@ func resolvePorts(ep common.RuleEndpoint, no common.NamedObjects) portValues {
 		return portValues{ranges: ranges, every: every}
 	}
 
-	w := portAliasWalker{no: no, visiting: make(map[string]struct{})}
-	w.walk(ep.PortRef.Name, 0)
+	w := portAliasWalker{
+		no:       no,
+		visiting: make(map[string]struct{}),
+		memo:     make(map[string]portSubtree),
+	}
+	sub, _ := w.walk(ep.PortRef.Name, 0)
 
-	if len(w.ranges) > maxResolvedMembers {
-		return portValues{cause: w.cause | causeAlias}
+	// The cap counts the merged set, so a port listed twice, or reached
+	// through two aliases, counts once, as both loaders keep it once.
+	if len(sub.ranges) > maxResolvedMembers {
+		return portValues{cause: sub.cause | causeAlias}
 	}
 
-	return portValues{ranges: mergeIntervals(w.ranges), cause: w.cause}
+	return portValues{ranges: sub.ranges, cause: sub.cause}
+}
+
+// portSubtree is what one port alias contributes to a set: its merged ranges,
+// why any part could not be read, and how many levels of nested aliases lie
+// below it.
+type portSubtree struct {
+	ranges []portRange
+	cause  blockCause
+	height int
 }
 
 // portAliasWalker expands one port alias tree for resolvePorts.
 type portAliasWalker struct {
 	no       common.NamedObjects
 	visiting map[string]struct{}
-	visits   int
-	ranges   []portRange
-	cause    blockCause
+	// memo holds each alias whose reading does not depend on the path that
+	// reached it, so an alias named many times is expanded once, as
+	// NamedObjects.Resolve caches a clean subtree.
+	memo   map[string]portSubtree
+	visits int
+	work   int
 }
 
-// walk adds the ports of the alias name to w. The loader keeps the rest of an
-// alias when one member is cyclic, so a cycle only marks the set incomplete.
-func (w *portAliasWalker) walk(name string, depth int) {
-	w.visits++
+// walk returns the ports of the alias name, reached at depth, and whether the
+// answer is the same on every path to it, so that it may be cached. A cycle,
+// the depth cap and the two work caps depend on the path or on what was walked
+// before, so an answer that met one is not cached. The loader keeps the rest
+// of an alias when one member is cyclic, so a cycle only marks the set
+// incomplete.
+func (w *portAliasWalker) walk(name string, depth int) (portSubtree, bool) {
+	if depth > maxPortAliasDepth {
+		return portSubtree{cause: causeAlias}, false
+	}
 
-	obj, exists := w.no[name]
-	if !exists || depth > maxPortAliasDepth || w.visits > maxPortAliasVisits ||
-		len(w.ranges) > maxResolvedMembers {
-		w.cause |= causeAlias
+	// An alias cached on a shorter path may reach past the depth cap on this
+	// one. It is then marked incomplete, as an uncached walk would mark it,
+	// but keeps every range, as OPNsense's loader, which has no depth cap,
+	// does. The set comes out the same in whichever order the two paths are
+	// walked.
+	if sub, cached := w.memo[name]; cached {
+		if depth+sub.height > maxPortAliasDepth {
+			sub.cause |= causeAlias
 
-		return
+			return sub, false
+		}
+
+		return sub, true
 	}
 
 	if _, cyclic := w.visiting[name]; cyclic {
-		w.cause |= causeAlias
-
-		return
+		return portSubtree{cause: causeAlias}, false
 	}
+
+	w.visits++
+	if w.visits > maxPortAliasVisits || w.work > maxPortAliasWork {
+		return portSubtree{cause: causeAlias}, false
+	}
+
+	obj, exists := w.no[name]
 
 	// The loader reads only aliases of type port. Anything else, such as a
 	// URL table of ports, is fetched at runtime or loaded differently by each
 	// vendor, so its ports are not known.
-	if obj.Type != common.NamedObjectTypePort {
-		w.cause |= causeAlias
-
-		return
+	if !exists || obj.Type != common.NamedObjectTypePort {
+		return portSubtree{cause: causeAlias}, true
 	}
 
 	// A disabled alias loads with no members (filter.lib.inc L153, and
 	// filter.inc L607-L611 turns an empty alias into a port that matches
 	// nothing). Only OPNsense's model can disable an alias.
 	if obj.Disabled {
-		return
+		return portSubtree{}, true
 	}
 
 	w.visiting[name] = struct{}{}
 	defer delete(w.visiting, name)
 
-	for _, member := range obj.Members {
+	sub, cacheable := w.members(obj.Members, depth)
+	if cacheable {
+		w.memo[name] = sub
+	}
+
+	return sub, cacheable
+}
+
+// members reads the members of one alias reached at depth, and reports
+// whether the answer may be cached. A member listed twice adds nothing the
+// first did not: the loader expands a nested alias the same way each time and
+// keeps a port it already holds once (filter.lib.inc in_array).
+func (w *portAliasWalker) members(members []string, depth int) (portSubtree, bool) {
+	var (
+		sub    portSubtree
+		ranges []portRange
+	)
+
+	cacheable := true
+	seen := make(map[string]struct{}, len(members))
+
+	for _, member := range members {
+		if _, repeated := seen[member]; repeated {
+			continue
+		}
+
+		seen[member] = struct{}{}
+
+		if w.work > maxPortAliasWork {
+			sub.cause |= causeAlias
+			cacheable = false
+
+			break
+		}
+
 		if _, nested := w.no[member]; nested {
-			w.walk(member, depth+1)
+			child, ok := w.walk(member, depth+1)
+			cacheable = cacheable && ok
+			sub.cause |= child.cause
+			sub.height = max(sub.height, child.height+1)
+			ranges = append(ranges, child.ranges...)
+			w.work += len(child.ranges)
 
 			continue
 		}
@@ -238,13 +323,18 @@ func (w *portAliasWalker) walk(name string, depth int) {
 		// right for a service name the analysis does not know.
 		r, ok := parsePortPart(member, aliasVocab)
 		if !ok {
-			w.cause |= causeValue
+			sub.cause |= causeValue
 
 			continue
 		}
 
-		w.ranges = append(w.ranges, r)
+		ranges = append(ranges, r)
+		w.work++
 	}
+
+	sub.ranges = mergeIntervals(ranges)
+
+	return sub, cacheable
 }
 
 // PortSet is the set of ports a rule endpoint matches once its port alias,
