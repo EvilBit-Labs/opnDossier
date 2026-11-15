@@ -317,9 +317,10 @@ func TestConverter_SNMP_SecretsNeverExported(t *testing.T) {
 }
 
 // TestConverter_SNMP_ModelVersionPins checks every version each os-net-snmp
-// model has carried converts without a warning, and that an unknown version
-// warns whether or not the agent is enabled: a renamed <enabled> would read
-// as an agent that is off, so the check cannot wait for an enabled one.
+// model has carried converts without a warning, and that an unknown version,
+// general 1.0.2 among them, warns whether or not the agent is enabled: a
+// renamed <enabled> would read as an agent that is off, so the check cannot
+// wait for an enabled one.
 func TestConverter_SNMP_ModelVersionPins(t *testing.T) {
 	t.Parallel()
 
@@ -343,6 +344,12 @@ func TestConverter_SNMP_ModelVersionPins(t *testing.T) {
 		{
 			name:      "unknown general version with the agent off",
 			body:      netsnmpBlock("1.0.8", "0", "public", "", ""),
+			wantField: "SNMP.Netsnmp.General.Version",
+		},
+		{
+			// The plugin's history skips general 1.0.2, so it is not pinned.
+			name:      "general version 1.0.2, which the plugin never used",
+			body:      netsnmpBlock("1.0.2", "1", "public", "", ""),
 			wantField: "SNMP.Netsnmp.General.Version",
 		},
 		{
