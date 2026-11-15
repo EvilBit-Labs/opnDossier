@@ -163,8 +163,9 @@ func snmpForwardAlias(uuid, name, aliasType, members string) string {
 // of UDP 161 to loopback reaches that agent, and the filter rule passing it
 // decides the agent's reachability as for any other listen list. Without such
 // a forward, a WAN rule to 127.0.0.1 of its own delivers nothing to the agent,
-// so it stays local. The cases vary what the forward targets, its flags in both
-// stored shapes, its place in the list, and the service it forwards.
+// so it stays local, as it does when the only forward to loopback cannot reach
+// UDP 161. The cases vary what the forward targets, its flags in both stored
+// shapes, its place in the list, and the service it forwards.
 func TestSNMPAgent_PortForwardToLoopbackKeepsWANExposure(t *testing.T) {
 	t.Parallel()
 
@@ -217,13 +218,11 @@ func TestSNMPAgent_PortForwardToLoopbackKeepsWANExposure(t *testing.T) {
 			exposed:  true,
 		},
 		{
-			// The forward's interface, protocol and ports are not read, so a
-			// transparent proxy's forward to loopback keeps the agent exposed
-			// by the rule. That over-reports.
+			// A transparent proxy's TCP forward to loopback cannot reach the
+			// agent on UDP 161.
 			name:     "rule to 127.0.0.1 of its own, LAN forward of TCP 80 to 127.0.0.1 port 3128",
 			rules:    snmpForwardRule(loopHost, ""),
 			forwards: snmpProxyForward(loopHost),
-			exposed:  true,
 		},
 		{
 			name:  "rule to 127.0.0.1 of its own, no forward",
@@ -272,23 +271,32 @@ func TestSNMPAgent_PortForwardToLoopbackKeepsWANExposure(t *testing.T) {
 				require.Equal(t, tc.noRDR, last.NoRDR, "no-RDR")
 			}
 
-			want := analysis.Local
-			if tc.exposed {
-				want = analysis.WANReachable
-			}
-
-			services := serviceExposures(device)
-			idx := slices.IndexFunc(services, func(s exposedService) bool { return s.name == serviceNameSNMP })
-			require.GreaterOrEqual(t, idx, 0, "snmp missing from the services red mode considers: %+v", services)
-			assert.Equal(t, want, services[idx].reachability)
-
-			report := newRedReport(device)
-			runRedAnalysis(report)
-
-			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
-			assert.Equal(t, tc.exposed, exposed, "red-mode SNMP exposure")
+			assertSNMPForwardExposure(t, device, tc.exposed)
 		})
 	}
+}
+
+// assertSNMPForwardExposure checks that red mode gives the SNMP agent on device
+// the reachability exposed implies, and reports it as WAN-exposed exactly when
+// exposed is true.
+func assertSNMPForwardExposure(t *testing.T, device *common.CommonDevice, exposed bool) {
+	t.Helper()
+
+	want := analysis.Local
+	if exposed {
+		want = analysis.WANReachable
+	}
+
+	services := serviceExposures(device)
+	idx := slices.IndexFunc(services, func(s exposedService) bool { return s.name == serviceNameSNMP })
+	require.GreaterOrEqual(t, idx, 0, "snmp missing from the services red mode considers: %+v", services)
+	assert.Equal(t, want, services[idx].reachability)
+
+	report := newRedReport(device)
+	runRedAnalysis(report)
+
+	_, reported := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
+	assert.Equal(t, exposed, reported, "red-mode SNMP exposure")
 }
 
 // TestForwardsToLoopback_TargetsAndFlags checks which port forwards count as

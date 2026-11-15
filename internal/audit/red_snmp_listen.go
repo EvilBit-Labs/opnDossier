@@ -3,6 +3,8 @@ package audit
 import (
 	"net/netip"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -16,16 +18,16 @@ const serviceNameSNMP = "snmp"
 var loopbackAddresses = []netip.Addr{netip.MustParseAddr("127.0.0.1"), netip.IPv6Loopback()}
 
 // applySNMPListen marks the SNMP agent in services as Local when the
-// os-net-snmp plugin binds it only to loopback and no port forward redirects
-// traffic to loopback. Such an agent answers no other host, so it is Local
-// whatever reachability services already gives it, and serviceExposures calls
-// this last. pf rewrites a forward's destination before the packet is
-// delivered, so a forward to loopback reaches an agent bound there, and the
-// agent then keeps the reachability services gives it (forwardsToLoopback). A
-// list holding any other address, or an empty list, leaves the agent as it is
-// too, judged as the other services are: an os-net-snmp agent with no listen
-// address binds every IPv4 address and the IPv6 loopback, and for an <snmpd>
-// agent no bind address is read.
+// os-net-snmp plugin binds it only to loopback and no port forward can
+// redirect its traffic to loopback. Such an agent answers no other host, so it
+// is Local whatever reachability services already gives it, and
+// serviceExposures calls this last. pf rewrites a forward's destination before
+// the packet is delivered, so a forward of UDP port 161 to loopback reaches an
+// agent bound there, and the agent then keeps the reachability services gives
+// it (forwardsToLoopback). A list holding any other address, or an empty list,
+// leaves the agent as it is too, judged as the other services are: an
+// os-net-snmp agent with no listen address binds every IPv4 address and the
+// IPv6 loopback, and for an <snmpd> agent no bind address is read.
 func applySNMPListen(device *common.CommonDevice, services []exposedService) {
 	if !listensOnLoopbackOnly(device.SNMP.ListenAddresses) || forwardsToLoopback(device) {
 		return
@@ -39,16 +41,49 @@ func applySNMPListen(device *common.CommonDevice, services []exposedService) {
 }
 
 // forwardsToLoopback reports whether an enabled port forward that redirects
-// traffic has a target holding a loopback address (targetHoldsLoopback). The
-// forward's interface, protocol and ports are not read, so a forward to
-// loopback for another service, such as a transparent proxy, also leaves the
-// SNMP agent as applySNMPListen found it. Nor is it read whether pf runs: with
-// <system><disablefilter> set, pf is off and no forward redirects anything.
-// Both can over-report, the safe direction.
+// traffic can redirect UDP to port 161 (forwardCanReachSNMPPort) and has a
+// target holding a loopback address (targetHoldsLoopback). A forward to
+// loopback that cannot, such as a DNS redirect to port 53 or a transparent
+// proxy's TCP forward, leaves the agent Local. The forward's interface is not
+// read, nor whether pf runs: with <system><disablefilter> set, pf is off and no
+// forward redirects anything. Both can over-report, the safe direction.
 func forwardsToLoopback(device *common.CommonDevice) bool {
 	return slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
-		return !nat.Disabled && !nat.NoRDR && targetHoldsLoopback(nat.InternalIP, device.NamedObjects)
+		return !nat.Disabled && !nat.NoRDR && forwardCanReachSNMPPort(nat) &&
+			targetHoldsLoopback(nat.InternalIP, device.NamedObjects)
 	})
+}
+
+// forwardCanReachSNMPPort reports whether a port forward can redirect UDP to
+// port 161, where the os-net-snmp template binds each agent address. OPNsense
+// reads a forward's ports only for tcp, udp and tcp/udp, so a forward with no
+// protocol or any, which matches every protocol, redirects every port and keeps
+// it, and one for another named protocol, tcp among them, redirects no UDP.
+// Without a local port pf keeps the destination port, which must then permit
+// 161. With one, pf rewrites each port the forward matches to the local port
+// when the destination port is a single number or any port, so the local port
+// decides; another destination port, such as a range, is read as reaching the
+// agent. A port alias or service name is read as permitting 161
+// (analysis.RulePortPermits).
+func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
+	if analysis.IsAnyProtocol(nat.Protocol) {
+		return true
+	}
+
+	if proto := strings.ToLower(strings.TrimSpace(nat.Protocol)); proto != "udp" && proto != "tcp/udp" {
+		return false
+	}
+
+	if nat.LocalPort == "" {
+		return analysis.RulePortPermits(nat.Destination.Port, portSNMP)
+	}
+
+	destination := strings.TrimSpace(nat.Destination.Port)
+	if _, err := strconv.Atoi(destination); err != nil && !analysis.IsAnyPort(destination) {
+		return true
+	}
+
+	return analysis.RulePortPermits(nat.LocalPort, portSNMP)
 }
 
 // targetHoldsLoopback reports whether a port forward's target is, or spans, a
