@@ -308,3 +308,47 @@ func TestEndpointPorts_CachedAliasPastTheDepthCap(t *testing.T) {
 		}
 	}
 }
+
+// TestEndpointPorts_VisitBudgetStopsCyclicFanOut pins the visit budget. When
+// every alias sits above a cycle none of them can be cached, and the budget is
+// what keeps the walk small: the depth cap still lets the paths multiply at
+// each level. A0 to A6 each name five aliases that all name the next level,
+// and A7 names A0 and port 23. Walked in full that is 195,311 expansions
+// within the depth cap; the budget stops it soon after 4096. Each member
+// still pending on the stack when the budget runs out costs one visit more,
+// hence the loose upper bound. The set is incomplete and keeps port 23, which
+// the first path down reads.
+func TestEndpointPorts_VisitBudgetStopsCyclicFanOut(t *testing.T) {
+	t.Parallel()
+
+	const levels, fan = 7, 5
+
+	objects := make(common.NamedObjects)
+
+	for level := range levels {
+		name := "A" + strconv.Itoa(level)
+		hops := make([]string, 0, fan)
+
+		for branch := range fan {
+			hop := name + "h" + strconv.Itoa(branch)
+			objects[hop] = portAlias(hop, "A"+strconv.Itoa(level+1))
+			hops = append(hops, hop)
+		}
+
+		objects[name] = portAlias(name, hops...)
+	}
+
+	last := "A" + strconv.Itoa(levels)
+	objects[last] = portAlias(last, "A0", "23")
+
+	w := portAliasWalker{no: objects, visiting: make(map[string]struct{}), memo: make(map[string]portSubtree)}
+	sub, _ := w.walk("A0", 0)
+
+	assert.Greater(t, w.visits, maxPortAliasVisits, "the graph reaches the budget")
+	assert.Less(t, w.visits, 2*maxPortAliasVisits, "the budget stops the walk")
+	assert.NotZero(t, sub.cause&causeAlias, "the set is incomplete")
+
+	set := walkWithin(t, portRef("A0"), objects)
+	assert.False(t, set.Complete())
+	assert.True(t, set.ContainsAny(23), "a port read before the budget ran out is kept")
+}
