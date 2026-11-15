@@ -27,9 +27,11 @@ const maxPortAliasDepth = 16
 const maxPortAliasVisits = 4096
 
 // maxPortAliasWork bounds how many port ranges one port alias walk gathers,
-// counting an alias's ranges each time a parent takes them, so that many
-// aliases which each take a large set cannot keep the walk busy. A walk that
-// reaches it leaves the set incomplete. It is far above any real
+// counting an alias's ranges each time a parent takes them. The cache spares
+// expanding an alias again for each alias that names it, but not copying its
+// ranges into each of them, so aliases that each take a large set cost a copy
+// apiece, and this budget is what bounds that cost. A walk that reaches it
+// leaves the set incomplete. It is far above any real
 // configuration and far above maxResolvedMembers, so aliases whose sets
 // overlap are merged before the member cap is applied. Reaching it takes
 // something like hundreds of aliases that each name one alias of thousands of

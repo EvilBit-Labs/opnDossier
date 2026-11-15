@@ -180,8 +180,9 @@ func TestEndpointPorts_MemberCapCountsDistinctPorts(t *testing.T) {
 
 // TestEndpointPorts_WorkBudget pins the bound on the ranges one walk gathers:
 // hundreds of aliases that each name one alias of four thousand ports merge to
-// a set under the member cap, but gathering it takes more than the budget, so
-// the set reads as incomplete rather than keeping the walk busy. An alias that
+// a set under the member cap, but each of them copies those ports, so gathering
+// the set takes more than the budget, the walk stops there and the set reads as
+// incomplete. An alias that
 // lists that alias hundreds of times takes its ports once and stays under it.
 func TestEndpointPorts_WorkBudget(t *testing.T) {
 	t.Parallel()
