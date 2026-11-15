@@ -9,11 +9,11 @@ import (
 )
 
 // TestApplySNMPListen_OverridesEarlierReachability checks that an agent bound
-// only to loopback is Local whatever reachability the list already gives it,
-// WAN-reachable included, so no decision made before applySNMPListen can
-// report it as exposed. The SNMP entry is second, ahead of SSH, and the other
-// services keep their reachability. Any other listen list leaves every entry
-// as it was.
+// only to loopback, on a device with no port forward, is Local whatever
+// reachability the list already gives it, WAN-reachable included, so no
+// decision made before applySNMPListen can report it as exposed. The SNMP
+// entry is second, ahead of SSH, and the other services keep their
+// reachability. Any other listen list leaves every entry as it was.
 func TestApplySNMPListen_OverridesEarlierReachability(t *testing.T) {
 	t.Parallel()
 

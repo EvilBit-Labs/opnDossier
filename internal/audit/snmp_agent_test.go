@@ -170,11 +170,11 @@ func TestSNMPAgent_ControlsFollowTheAgentTheConfigStarts(t *testing.T) {
 }
 
 // TestSNMPAgent_ListenAddressesDecideWANExposure keeps the WAN rule passing
-// UDP 161 and varies the agent's listen list. An agent bound only to loopback
-// answers no other host: it stays among the services red mode considers, as
-// local, and draws no WAN exposure. Any other address, an unparseable one, or
-// an empty list (every IPv4 address and the IPv6 loopback) is still judged by
-// the rule.
+// UDP 161 and varies the agent's listen list. With no port forward to
+// loopback, an agent bound only to loopback answers no other host: it stays
+// among the services red mode considers, as local, and draws no WAN exposure.
+// Any other address, an unparseable one, or an empty list (every IPv4 address
+// and the IPv6 loopback) is still judged by the rule.
 func TestSNMPAgent_ListenAddressesDecideWANExposure(t *testing.T) {
 	t.Parallel()
 
@@ -217,10 +217,10 @@ func TestSNMPAgent_ListenAddressesDecideWANExposure(t *testing.T) {
 
 // TestSNMPAgent_LoopbackOnlyAgentStaysLocalWithPacketFilteringDisabled sets
 // <system><disablefilter>, which turns pf off, and varies the agent's listen
-// list. An agent bound only to loopback answers no other host with or without
-// pf, so it stays local and draws no WAN exposure, with or without a WAN rule
-// passing UDP 161. The cases with any other listen list keep that rule, and
-// they are reported as WAN-exposed.
+// list. With no port forward to loopback, an agent bound only to loopback
+// answers no other host with or without pf, so it stays local and draws no WAN
+// exposure, with or without a WAN rule passing UDP 161. The cases with any
+// other listen list keep that rule, and they are reported as WAN-exposed.
 func TestSNMPAgent_LoopbackOnlyAgentStaysLocalWithPacketFilteringDisabled(t *testing.T) {
 	t.Parallel()
 
