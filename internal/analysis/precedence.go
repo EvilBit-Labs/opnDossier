@@ -48,9 +48,12 @@ type PrecedencePair struct {
 	// overlapping subset is shadowed. Never CoverNone or CoverIndeterminate;
 	// pairs with those coverage results produce no PrecedencePair.
 	Extent Coverage
-	// AliasBlocked mirrors the coverage() aliasBlocked signal computed for
-	// this pair, so consumers needing the R8 advisory path do not have to
-	// re-run coverage() themselves.
+	// AliasBlocked reports that coverage() returned a block cause for this
+	// pair: an alias it could not expand or a port value it could not read.
+	// It is true whenever ValueBlocked is, and makes the pair the R8
+	// advisory: reported with low confidence when it is Security-class and
+	// not reported otherwise, so consumers do not have to re-run coverage()
+	// themselves.
 	AliasBlocked bool
 
 	// ValueBlocked reports that what blocked the comparison was a port value

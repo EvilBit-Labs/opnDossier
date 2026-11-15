@@ -11,8 +11,9 @@ import (
 )
 
 // maxResolvedMembers bounds how many resolved alias members the containment
-// predicate will expand for a single endpoint. Above this, the endpoint is
-// treated as opaque (aliasBlocked) so the O(n*m) address/port containment
+// predicate will expand for a single endpoint; for a port alias it counts the
+// merged ranges (resolvePorts). Above this, the endpoint is treated as opaque
+// (causeAlias) so the O(n*m) address/port containment
 // cross product cannot be driven into a DoS by an attacker-supplied config
 // that defines pathologically large aliases. Set far above any realistic
 // firewall alias.
@@ -60,16 +61,20 @@ func (c Coverage) String() string {
 }
 
 // coverage reports how completely earlier's match set covers later's match
-// set, and whether an unresolvable or dynamic named-object reference, or a port
-// value the analysis cannot read, prevented a full member-set comparison on
-// any dimension (aliasBlocked).
+// set, and why any part of the comparison rests on something the analysis
+// could not read (the block cause): causeAlias when a named-object reference
+// could not be expanded, causeValue when a port value could not be read. A
+// zero cause means every part was read.
 //
-// aliasBlocked is a distinct signal from CoverNone: a genuinely
-// non-overlapping pair and a pair whose overlap could not be determined
-// because an alias was opaque both produce CoverNone on their own, but only
-// the latter sets aliasBlocked. Callers that want to advise on a possible
-// Security-class shadow that an unresolvable alias masked (R8) must inspect
-// aliasBlocked rather than inferring it from CoverNone alone.
+// The cause is a separate signal from the coverage. CoverNone with no cause
+// means the rules share no traffic, or that a dimension could not be compared
+// while every part was read; CoverNone with a cause means the overlap is
+// unknown. A blocked port dimension can still be CoverFull or CoverPartial
+// when what could be read proves it or both rules name the same alias, and a
+// dimension proven disjoint gives CoverNone with no cause whatever else could
+// not be read. Callers that want
+// to advise on a possible Security-class shadow that the unread part masked
+// (R8) must inspect the cause rather than infer it from CoverNone alone.
 //
 // Dimensions evaluated: IP family (gate, R11), source address, source port,
 // destination address, destination port, and layer-4 protocol. Full
@@ -521,8 +526,8 @@ func resolveAddressValues(ep common.RuleEndpoint, no common.NamedObjects) ([]str
 }
 
 // resolveEndpointValues expands ref/literal into their full set of concrete
-// member values (the first return), the shared logic behind
-// resolveAddressValues and resolvePortValues. A literal (nil ref) resolves
+// member values (the first return), the logic behind resolveAddressValues.
+// Port aliases are read by resolvePorts instead. A literal (nil ref) resolves
 // to itself. A named-object reference resolves via NamedObjects.Resolve;
 // when resolution fails (unresolvable name, dynamic/opaque type, or a nil
 // registry), it falls back to the literal value and the second return is
@@ -695,8 +700,8 @@ func sameEndpointPort(a, b common.RuleEndpoint) bool {
 }
 
 // exactSingletonCoverage compares two single-value sets for exact string
-// equality, the fallback comparison used whenever alias resolution failed or
-// a value could not be parsed into a richer representation. Anything other
+// equality, the fallback addressCoverage uses when an address alias could not
+// be resolved. Anything other
 // than two singleton sets with identical values is CoverNone: a resolved
 // multi-member set on one side compared against an unresolved singleton on
 // the other has no reliable containment relationship to claim, so this

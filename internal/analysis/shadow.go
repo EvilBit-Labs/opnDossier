@@ -276,14 +276,14 @@ func isTerminalDefaultDeny(pair PrecedencePair, cfg *common.CommonDevice) bool {
 }
 
 // detectAliasBlockedSecurityAdvisories scans every pf evaluation group for
-// candidate pairs whose coverage could not be resolved because of an
-// unresolvable named-object reference (aliasBlocked) and which — had the
-// alias resolved — might have been a Security-class shadow (a pass rule
-// possibly defeating a block/reject rule). ResolvePrecedence (U5) only
-// returns pairs whose coverage() call resolved to CoverFull or CoverPartial,
-// so a pair whose coverage folded back to CoverNone via U4's alias-blocked
-// exact-singleton fallback is invisible to it — this scan is the only place
-// such a pair surfaces, implementing R8's advisory carve-out (the same
+// candidate pairs whose coverage could not be resolved because part of it
+// could not be read (coverage's block cause: an alias it could not expand or
+// a port value it could not read) and which, had it been read, might have
+// been a Security-class shadow (a pass rule possibly defeating a block/reject
+// rule). ResolvePrecedence (U5) only returns pairs whose coverage() call
+// resolved to CoverFull or CoverPartial, so a pair whose coverage came back
+// CoverNone with a block cause is invisible to it. This scan is the only
+// place such a pair surfaces, implementing R8's advisory carve-out (the same
 // over-report bias GOTCHAS §8.4 documents for NAT-to-WAN correlation). A pair
 // whose coverage is CoverIndeterminate because an endpoint is negated, and
 // which also holds a part that could not be read, surfaces here too, since
@@ -321,11 +321,12 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 // resolveAliasBlockedAdvisoryPair mirrors resolvePair's winner/loser
 // derivation (precedence.go, derivePairWinnerLoser) for one candidate
 // (earlier, later) pair, but — unlike resolvePair — surfaces the pair even
-// when coverage() returns CoverNone, provided the CoverNone came from an
-// unresolvable alias (aliasBlocked) and the resulting winner/loser action
-// relationship would be Security. It also surfaces a CoverIndeterminate pair
-// with a block cause: negation hides the overlap, and the unreadable part
-// keeps it from being ruled out. A CoverIndeterminate from negation alone has
+// when coverage() returns CoverNone, provided it also returns a block cause
+// (an alias it could not expand or a port value it could not read) and the
+// resulting winner/loser action relationship would be Security. It also
+// surfaces a CoverIndeterminate pair with a block cause: negation hides the
+// overlap, and the unreadable part keeps it from being ruled out. A
+// CoverIndeterminate from negation alone has
 // no cause and stays silent, as it does in resolvePair. On either path a pair
 // stays silent when an address side is proven disjoint: one rule negates a set
 // the other matches only inside, through the same alias or literal networks

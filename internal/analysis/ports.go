@@ -34,9 +34,10 @@ const maxPortAliasWork = 1 << 20
 
 // wellKnownServicePorts maps the service names OPNsense's PortField accepts as
 // a rule port to their numbers (PortField.php $wellknownservices). It is the
-// same list as wellKnownPorts in pkg/parser/opnsense, which pkg/ cannot share
-// with internal/; both are pinned against PortField.php, so change them
-// together.
+// same list as wellKnownPorts in pkg/parser/opnsense, kept as a copy because
+// pkg/ must not import internal/ and sharing the converter's list would mean
+// exporting it as public API; both are pinned against PortField.php, so
+// change them together.
 //
 //nolint:gochecknoglobals // immutable lookup table copied from the vendor source
 var wellKnownServicePorts = map[string]string{
