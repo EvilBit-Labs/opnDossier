@@ -17,9 +17,10 @@ const maxPortAliasDepth = 16
 // maxPortAliasVisits bounds how many alias expansions one endpoint may take, in
 // the port walk and in the literal address walk of the complement proof, so a
 // graph of aliases that name each other many times cannot drive either walk
-// into exponential work. The port walk expands an alias once unless a cycle
-// is involved, so there it stops only a graph of cycles. Far above any real
-// configuration.
+// into exponential work. The port walk caches an alias it has expanded, and
+// expands it again only when a cycle or the depth cap was involved, so there
+// the budget stops a graph of cycles or a tree of more than 4096 aliases. Far
+// above any real configuration.
 const maxPortAliasVisits = 4096
 
 // maxPortAliasWork bounds how many port ranges one port alias walk gathers,
@@ -27,8 +28,8 @@ const maxPortAliasVisits = 4096
 // aliases which each take a large set cannot keep the walk busy. A walk that
 // reaches it leaves the set incomplete. It is far above any real
 // configuration and far above maxResolvedMembers, so aliases whose sets
-// overlap are merged before the member cap is applied; it is reached only by
-// something like hundreds of aliases each naming one alias of thousands of
+// overlap are merged before the member cap is applied. Reaching it takes
+// something like hundreds of aliases that each name one alias of thousands of
 // ports, which NamedObjects.Resolve would expand in full.
 const maxPortAliasWork = 1 << 20
 
