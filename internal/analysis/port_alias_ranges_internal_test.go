@@ -236,6 +236,13 @@ func TestPortCoverage_PartialSets(t *testing.T) {
 			wantCause: causeValue,
 		},
 		{
+			name:      "what could be read covers part of a later any-port rule",
+			earlier:   odd,
+			later:     common.RuleEndpoint{},
+			want:      CoverPartial,
+			wantCause: causeValue,
+		},
+		{
 			name:      "unresolvable alias",
 			earlier:   feed,
 			later:     common.RuleEndpoint{Port: "443"},
