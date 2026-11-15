@@ -123,8 +123,18 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 	}
 
 	if device.SNMP.IsEnabled() {
+		// An agent with no community, such as an os-net-snmp agent that
+		// answers only SNMPv3 users, is not told to migrate to SNMPv3, and its
+		// note does not name community authentication.
+		kind := exploitKindSNMP
+		recommendation := "Restrict SNMP to management networks, migrate to SNMPv3 with authPriv, or disable SNMP if unused."
+		if device.SNMP.ROCommunity == "" {
+			kind = exploitKindSNMPNoCommunity
+			recommendation = "Restrict SNMP to management networks, or disable SNMP if unused."
+		}
+
 		services = append(services, exposedService{
-			kind:            exploitKindSNMP,
+			kind:            kind,
 			name:            "snmp",
 			displayName:     "SNMP Management Service",
 			severity:        analysis.SeverityHigh,
@@ -132,7 +142,7 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 			port:            portSNMP,
 			reachability:    snmpReachability(device),
 			description:     "The SNMP management service is reachable from a WAN interface, exposing device and topology information to untrusted networks.",
-			recommendation:  "Restrict SNMP to management networks, migrate to SNMPv3 with authPriv, or disable SNMP if unused.",
+			recommendation:  recommendation,
 			vulnerabilities: []string{"exposed-snmp"},
 		})
 	}
