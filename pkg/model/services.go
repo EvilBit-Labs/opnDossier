@@ -405,8 +405,10 @@ type SNMPConfig struct {
 	// whether an agent runs.
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// ListenAddresses lists the addresses the agent binds; empty means the
-	// agent's default, which includes every IPv4 address.
+	// ListenAddresses lists the addresses the agent binds. Only the OPNsense
+	// os-net-snmp agent fills it; empty there means the agent's default,
+	// every IPv4 address and the IPv6 loopback. No bind address is read for
+	// an <snmpd> agent, on either vendor, so its list is always empty.
 	ListenAddresses []string `json:"listenAddresses,omitempty" yaml:"listenAddresses,omitempty"`
 
 	// Users lists the SNMPv3 users the agent loads. Their passwords and

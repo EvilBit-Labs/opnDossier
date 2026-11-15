@@ -15,9 +15,10 @@ type Netsnmp struct {
 }
 
 // NetsnmpGeneral is the general model of the os-net-snmp plugin
-// (Netsnmp/General.xml). Its element names are unchanged from model version
-// 1.0.0 to 1.0.7; the converter warns on a version it has not been checked
-// against.
+// (Netsnmp/General.xml). No element it binds was renamed or removed in any
+// model version the plugin shipped, 1.0.0, 1.0.1 and 1.0.3 to 1.0.7; later
+// versions only added elements. The converter warns on a version it has not
+// been checked against.
 type NetsnmpGeneral struct {
 	Version string `xml:"version,attr,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
 	Enabled string `xml:"enabled"                json:"enabled"           yaml:"enabled"`

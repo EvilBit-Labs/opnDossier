@@ -172,7 +172,7 @@ The `max-src-conn-rate` field uses the format `connections/seconds` (e.g., `15/5
 
 ## SNMP Agent
 
-On OPNsense from 19.1 the SNMP agent is the os-net-snmp plugin. opnDossier reads it from `<OPNsense><netsnmp>`, pinned to general model versions 1.0.0 to 1.0.7 and user model versions 1.0.0 and 1.0.1. The agent runs only with `<enabled>1</enabled>`, compared as raw text, so an absent or empty element is off. A user is loaded only with its own `<enabled>1</enabled>`, and `<readwrite>1</readwrite>` gives it read-write access. `<password>` and `<enckey>` are not read.
+On OPNsense from 19.1 the SNMP agent is the os-net-snmp plugin. opnDossier reads it from `<OPNsense><netsnmp>`, pinned to the general model versions the plugin has shipped, 1.0.0, 1.0.1 and 1.0.3 to 1.0.7 (it never used 1.0.2), and to user model versions 1.0.0 and 1.0.1. The agent runs only with `<enabled>1</enabled>`, compared as raw text, so an absent or empty element is off. A user is loaded only with its own `<enabled>1</enabled>`, and `<readwrite>1</readwrite>` gives it read-write access. `<password>` and `<enckey>` are not read.
 
 ```xml
 <OPNsense>

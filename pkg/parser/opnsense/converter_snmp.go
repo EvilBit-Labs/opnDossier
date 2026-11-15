@@ -19,9 +19,11 @@ var netsnmpGeneralVersions = strings.Fields("1.0.0 1.0.1 1.0.3 1.0.4 1.0.5 1.0.6
 var netsnmpUserVersions = strings.Fields("1.0.0 1.0.1")
 
 const (
-	// netsnmpOn is the value the plugin's templates and netsnmp_enabled()
-	// compare <enabled> and <readwrite> with. They read the raw config, so an
-	// absent element is off, and so is an empty one.
+	// netsnmpOn is the value the plugin's templates compare the general
+	// <enabled>, a user's <enabled> and a user's <readwrite> with. The
+	// templates, which write snmpd.conf and decide whether rc.d starts the
+	// agent, read the raw config, so an absent element is off, and so is an
+	// empty one, although User.xml defaults a user's <enabled> to 1.
 	netsnmpOn = "1"
 
 	snmpLegacyPath  = "SNMP.Snmpd"

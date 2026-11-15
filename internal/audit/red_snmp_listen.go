@@ -10,8 +10,10 @@ import (
 // snmpReachability is serviceReachability for the SNMP agent, which the
 // os-net-snmp plugin can bind to chosen addresses. An agent whose every listen
 // address is a loopback address answers no other host, so it is Local whatever
-// the firewall rules pass. Any other listen address, and an empty list, which
-// binds every IPv4 address, is judged by the rules as the other services are.
+// the firewall rules pass. Any other listen address, and an empty list, is
+// judged by the rules as the other services are: an os-net-snmp agent with no
+// listen address binds every IPv4 address and the IPv6 loopback, and for an
+// <snmpd> agent no bind address is read.
 func snmpReachability(device *common.CommonDevice) analysis.Reachability {
 	if listensOnLoopbackOnly(device.SNMP.ListenAddresses) {
 		return analysis.Local
