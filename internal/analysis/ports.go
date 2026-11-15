@@ -17,12 +17,13 @@ const maxPortAliasDepth = 16
 // maxPortAliasVisits bounds how many alias expansions one endpoint may take, in
 // the port walk and in the literal address walk of the complement proof, so a
 // graph of aliases that name each other many times cannot drive either walk
-// into exponential work. The port walk caches an alias it has expanded, and
-// expands it again only when a cycle or the depth cap was involved, so there
-// the budget stops a graph of cycles or a tree of more than 4096 aliases. The
+// into exponential work. The port walk caches every alias it has read,
+// disabled and non-port aliases included, unless a cycle, the depth cap or a
+// budget was involved, so there the budget counts distinct aliases, plus each
+// time a cycle or the depth cap makes the walk read an alias again. The
 // literal walk caches every alias it has proven, and any failure ends the
-// proof, so there the budget stops a graph of more than 4096 distinct aliases.
-// Far above any real configuration.
+// proof, so there the budget counts distinct aliases. Far above any real
+// configuration.
 const maxPortAliasVisits = 4096
 
 // maxPortAliasWork bounds how many port ranges one port alias walk gathers,
@@ -255,15 +256,22 @@ func (w *portAliasWalker) walk(name string, depth int) (portSubtree, bool) {
 
 	// The loader reads only aliases of type port. Anything else, such as a
 	// URL table of ports, is fetched at runtime or loaded differently by each
-	// vendor, so its ports are not known.
+	// vendor, so its ports are not known. The answer is the same on every
+	// path, so it is cached like any other, and many aliases that each name
+	// one such alias cost one visit for it, not one each.
 	if !exists || obj.Type != common.NamedObjectTypePort {
+		w.memo[name] = portSubtree{cause: causeAlias}
+
 		return portSubtree{cause: causeAlias}, true
 	}
 
 	// A disabled alias loads with no members (filter.lib.inc L153, and
 	// filter.inc L607-L611 turns an empty alias into a port that matches
-	// nothing). Only OPNsense's model can disable an alias.
+	// nothing). Only OPNsense's model can disable an alias. It is cached for
+	// the same reason.
 	if obj.Disabled {
+		w.memo[name] = portSubtree{}
+
 		return portSubtree{}, true
 	}
 

@@ -210,6 +210,53 @@ func TestEndpointPorts_WorkBudget(t *testing.T) {
 	assert.True(t, walkWithin(t, portRef("Repeat"), objects).Complete(), "a repeated member is taken once")
 }
 
+// TestEndpointPorts_SharedLeafAlias pins that a disabled alias and a non-port
+// alias are cached like any other. Root names 2100 aliases that each hold a
+// port of their own and name the same leaf: 2102 aliases, within the visit
+// budget when each is read once, and over it when the leaf costs a visit each
+// time it is named. A disabled leaf adds no port, so the set is complete; a
+// non-port leaf leaves it incomplete. Either way every port is read.
+func TestEndpointPorts_SharedLeafAlias(t *testing.T) {
+	t.Parallel()
+
+	const parents = 2100
+
+	leaves := map[string]common.NamedObject{
+		"disabled": {Name: "Leaf", Type: common.NamedObjectTypePort, Members: []string{"23"}, Disabled: true},
+		"non-port": {Name: "Leaf", Type: common.NamedObjectTypeNetwork, Members: []string{"10.0.0.0/8"}},
+	}
+
+	for kind, leaf := range leaves {
+		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
+
+			objects := common.NamedObjects{"Leaf": leaf}
+			names := make([]string, 0, parents)
+
+			for i := range parents {
+				name := "P" + strconv.Itoa(i)
+				objects[name] = portAlias(name, "Leaf", strconv.Itoa(1000+2*i))
+				names = append(names, name)
+			}
+
+			objects["Root"] = portAlias("Root", names...)
+
+			set := walkWithin(t, portRef("Root"), objects)
+
+			assert.Equal(t, kind == "disabled", set.Complete(), "complete")
+			assert.False(t, set.ContainsAny(23), "a disabled leaf adds no port")
+
+			for i := range parents {
+				if !set.ContainsAny(1000 + 2*i) {
+					t.Errorf("port %d of P%d was not read", 1000+2*i, i)
+
+					break
+				}
+			}
+		})
+	}
+}
+
 // TestEndpointPorts_CachedAliasPastTheDepthCap pins that the cache does not
 // make the depth cap depend on walk order. Inner is a chain ten levels deep.
 // Reached directly it is within the cap; reached through a seven-level chain
