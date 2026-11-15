@@ -214,3 +214,64 @@ func TestSNMPAgent_ListenAddressesDecideWANExposure(t *testing.T) {
 		})
 	}
 }
+
+// TestSNMPAgent_SnmpdBindAddressIsNotRead pins what the model reference says
+// of an <snmpd> agent: no bind address is read for it, so it is judged by the
+// firewall rules alone. pfSense binds bsnmpd to <snmpd><bindip>, an address or
+// an interface name, and an agent bound there to loopback is still reported as
+// WAN-exposed when a WAN rule passes UDP 161. That over-reports.
+func TestSNMPAgent_SnmpdBindAddressIsNotRead(t *testing.T) {
+	t.Parallel()
+
+	for _, bindip := range []string{"127.0.0.1", "lo0"} {
+		t.Run("bindip="+bindip, func(t *testing.T) {
+			t.Parallel()
+
+			device := parseConfig(t, `<?xml version="1.0"?>
+<pfsense>
+  <version>23.3</version>
+  <system>
+    <hostname>pf</hostname>
+    <domain>example.com</domain>
+  </system>
+  <interfaces>
+    <wan>
+      <enable></enable>
+      <if>vtnet0</if>
+      <ipaddr>dhcp</ipaddr>
+    </wan>
+  </interfaces>
+  <filter>
+    <rule>
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <protocol>udp</protocol>
+      <source>
+        <any></any>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>161</port>
+      </destination>
+      <descr>monitoring</descr>
+    </rule>
+  </filter>
+  <snmpd>
+    <rocommunity>pfcomm</rocommunity>
+    <enable></enable>
+    <bindip>`+bindip+`</bindip>
+    <ipprotocol>4</ipprotocol>
+  </snmpd>
+</pfsense>`)
+			require.True(t, device.SNMP.Enabled, "the agent runs")
+			assert.Empty(t, device.SNMP.ListenAddresses, "no bind address is read for an <snmpd> agent")
+
+			report := newRedReport(device)
+			runRedAnalysis(report)
+
+			_, exposed := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
+			assert.True(t, exposed, "judged by the WAN rule alone")
+		})
+	}
+}
