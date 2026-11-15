@@ -88,8 +88,8 @@ func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Cover
 
 	srcAddrCov, srcAddrBlocked := addressCoverage(earlier.Source, later.Source, no)
 	dstAddrCov, dstAddrBlocked := addressCoverage(earlier.Destination, later.Destination, no)
-	srcPortCov, srcPortCause := portCoverage(earlier.Source, later.Source, no)
-	dstPortCov, dstPortCause := portCoverage(earlier.Destination, later.Destination, no)
+	srcPort := portCoverage(earlier.Source, later.Source, no)
+	dstPort := portCoverage(earlier.Destination, later.Destination, no)
 	protoCov := protocolCoverage(earlier.Protocol, later.Protocol)
 
 	// proven says a CoverNone in that dimension shows the rules cannot
@@ -107,8 +107,8 @@ func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Cover
 	}{
 		{srcAddrCov, aliasCause(srcAddrBlocked), addressesComparable(earlier.Source, later.Source, no)},
 		{dstAddrCov, aliasCause(dstAddrBlocked), addressesComparable(earlier.Destination, later.Destination, no)},
-		{srcPortCov, srcPortCause, true},
-		{dstPortCov, dstPortCause, true},
+		{srcPort.cov, srcPort.cause, true},
+		{dstPort.cov, dstPort.cause, true},
 		{protoCov, 0, singleProtocol(earlier.Protocol) && singleProtocol(later.Protocol)},
 	}
 
@@ -122,12 +122,22 @@ func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Cover
 		cause |= d.cause
 	}
 
-	raw := combineDimensions(srcAddrCov, dstAddrCov, srcPortCov, dstPortCov, protoCov)
+	raw := combineDimensions(srcAddrCov, dstAddrCov, srcPort.cov, dstPort.cov, protoCov)
+
+	// A later port set that an any-port earlier rule covers whatever it holds
+	// leaves a Full or Partial pair confirmed. A pair that another dimension
+	// leaves unresolved keeps the part that could not be read, so it is still
+	// the R8 advisory, as it is when the earlier rule names a port.
+	covered := srcPort.covered | dstPort.covered
 
 	negated := earlier.Source.Negated || earlier.Destination.Negated ||
 		later.Source.Negated || later.Destination.Negated
 	if negated && (raw == CoverPartial || raw == CoverFull) {
-		return CoverIndeterminate, cause
+		return CoverIndeterminate, cause | covered
+	}
+
+	if raw == CoverNone {
+		return CoverNone, cause | covered
 	}
 
 	return raw, cause
@@ -602,10 +612,21 @@ type portRange struct {
 	lo, hi int
 }
 
+// portCover is portCoverage's answer for one endpoint pair.
+type portCover struct {
+	cov Coverage
+	// cause says why the comparison rests on a set known only in part, and
+	// is zero when both sets are known in full.
+	cause blockCause
+	// covered says why the later set is known only in part when the earlier
+	// set matches every port. It leaves cov at CoverFull, since every port
+	// covers any set, so coverage reports it only for a pair that another
+	// dimension leaves unresolved.
+	covered blockCause
+}
+
 // portCoverage classifies containment of one endpoint pair's port
 // dimension, resolving port aliases to their member sets first (resolvePorts).
-// The second return says why the comparison rests on a set known only in
-// part, and is zero when both sets are known in full.
 //
 // An earlier wildcard covers anything. Otherwise, when either set is known
 // only in part, the parts that could be read still prove an overlap they
@@ -613,7 +634,7 @@ type portRange struct {
 // among them proves nothing: the result is then CoverNone with the cause set,
 // which callers read as unknown rather than disjoint (R8). Two endpoints that
 // name the same alias or the same literal still match each other in full.
-func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (Coverage, blockCause) {
+func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) portCover {
 	earlierVals := resolvePorts(earlier, no)
 	laterVals := resolvePorts(later, no)
 
@@ -622,17 +643,17 @@ func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (C
 	// skips a rule whose port alias has no content (Rule.php). Such a rule
 	// neither covers another nor is covered by one, any-port rules included.
 	if earlierVals.matchesNothing() || laterVals.matchesNothing() {
-		return CoverNone, 0
+		return portCover{cov: CoverNone}
 	}
 
 	if earlierVals.every {
-		return CoverFull, 0
+		return portCover{cov: CoverFull, covered: laterVals.cause}
 	}
 
 	cause := earlierVals.cause | laterVals.cause
 	if cause != 0 {
 		if sameEndpointPort(earlier, later) {
-			return CoverFull, cause & causeAlias
+			return portCover{cov: CoverFull, cause: cause & causeAlias}
 		}
 
 		cov := partialPortCoverage(earlierVals, laterVals)
@@ -640,14 +661,14 @@ func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (C
 			cov = CoverPartial
 		}
 
-		return cov, cause
+		return portCover{cov: cov, cause: cause}
 	}
 
 	if laterVals.every {
-		return CoverPartial, 0
+		return portCover{cov: CoverPartial}
 	}
 
-	return aggregateCoverage(earlierVals.ranges, laterVals.ranges, portRangeRelation), 0
+	return portCover{cov: aggregateCoverage(earlierVals.ranges, laterVals.ranges, portRangeRelation)}
 }
 
 // partialPortCoverage compares what could be read of two port sets.

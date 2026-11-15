@@ -290,10 +290,49 @@ func TestPortCoverage_PartialSets(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, cause := portCoverage(tt.earlier, tt.later, objects)
+			got := portCoverage(tt.earlier, tt.later, objects)
 
-			assert.Equal(t, tt.want, got)
-			assert.Equal(t, tt.wantCause, cause)
+			assert.Equal(t, tt.want, got.cov)
+			assert.Equal(t, tt.wantCause, got.cause)
+		})
+	}
+}
+
+// TestPortCoverage_AnyPortKeepsLaterCause pins that a pass to every port
+// covers a later set whatever it holds, with no cause against the coverage,
+// and still reports why the later set is known only in part, for coverage to
+// use when another dimension leaves the pair unresolved.
+func TestPortCoverage_AnyPortKeepsLaterCause(t *testing.T) {
+	t.Parallel()
+
+	objects := common.NamedObjects{
+		"Odd":  {Name: "Odd", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
+		"Feed": {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
+	}
+	ref := func(name string) common.RuleEndpoint {
+		return common.RuleEndpoint{Port: name, PortRef: &common.ObjectRef{Name: name}}
+	}
+
+	tests := []struct {
+		name        string
+		later       common.RuleEndpoint
+		wantCovered blockCause
+	}{
+		{name: "unreadable member", later: ref("Odd"), wantCovered: causeValue},
+		{name: "unresolvable alias", later: ref("Feed"), wantCovered: causeAlias},
+		{name: "unreadable literal", later: common.RuleEndpoint{Port: "syslog"}, wantCovered: causeValue},
+		{name: "set read in full", later: common.RuleEndpoint{Port: "443"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := portCoverage(common.RuleEndpoint{}, tt.later, objects)
+
+			assert.Equal(t, CoverFull, got.cov)
+			assert.Zero(t, got.cause, "cause")
+			assert.Equal(t, tt.wantCovered, got.covered, "covered")
 		})
 	}
 }
@@ -409,6 +448,117 @@ func TestCoverage_DisjointDimensionWins(t *testing.T) {
 			got, cause := coverage(tt.earlier, tt.later, objects)
 
 			assert.Equal(t, CoverNone, got)
+			assert.Equal(t, tt.wantCause, cause)
+		})
+	}
+}
+
+// TestCoverage_AnyPortOverPartlyReadSet pins a pass to every port above a
+// block whose port set is known only in part. Every port covers that set, so a
+// pair whose other dimensions are covered is confirmed. A pair that another
+// dimension leaves unresolved still carries the part that could not be read,
+// as it does when the pass names a port, so it stays the R8 advisory. A
+// dimension proven disjoint still silences the pair.
+func TestCoverage_AnyPortOverPartlyReadSet(t *testing.T) {
+	t.Parallel()
+
+	objects := common.NamedObjects{
+		"Feed": {Name: "Feed", Type: "urltable_ports", Members: []string{"https://example.org/ports"}},
+		"Odd":  {Name: "Odd", Type: common.NamedObjectTypePort, Members: []string{"8000:8100", "no-such-service"}},
+	}
+	alias := func(name string) common.RuleEndpoint {
+		return common.RuleEndpoint{Port: name, PortRef: &common.ObjectRef{Name: name}}
+	}
+	from := func(address string, negated bool) common.RuleEndpoint {
+		return common.RuleEndpoint{Address: address, Negated: negated}
+	}
+	rule := func(action common.FirewallRuleType, proto string, src, dst common.RuleEndpoint) common.FirewallRule {
+		return common.FirewallRule{Type: action, Protocol: proto, Source: src, Destination: dst}
+	}
+	anyEP := common.RuleEndpoint{}
+
+	tests := []struct {
+		name      string
+		earlier   common.FirewallRule
+		later     common.FirewallRule
+		want      Coverage
+		wantCause blockCause
+	}{
+		{
+			name:    "every other dimension covered",
+			earlier: rule(common.RuleTypePass, "tcp", anyEP, anyEP),
+			later:   rule(common.RuleTypeBlock, "tcp", anyEP, alias("Feed")),
+			want:    CoverFull,
+		},
+		{
+			name:    "a narrower protocol leaves the pair confirmed in part",
+			earlier: rule(common.RuleTypePass, "tcp", anyEP, anyEP),
+			later:   rule(common.RuleTypeBlock, "", anyEP, alias("Feed")),
+			want:    CoverPartial,
+		},
+		{
+			name:      "combined protocol",
+			earlier:   rule(common.RuleTypePass, "tcp/udp", anyEP, anyEP),
+			later:     rule(common.RuleTypeBlock, "tcp", anyEP, alias("Feed")),
+			want:      CoverNone,
+			wantCause: causeAlias,
+		},
+		{
+			name:      "interface network against a host",
+			earlier:   rule(common.RuleTypePass, "tcp", from("lan", false), anyEP),
+			later:     rule(common.RuleTypeBlock, "tcp", from("192.168.1.50", false), alias("Feed")),
+			want:      CoverNone,
+			wantCause: causeAlias,
+		},
+		{
+			name:      "narrower network against any",
+			earlier:   rule(common.RuleTypePass, "tcp", from("10.0.0.0/8", false), anyEP),
+			later:     rule(common.RuleTypeBlock, "tcp", anyEP, alias("Feed")),
+			want:      CoverNone,
+			wantCause: causeAlias,
+		},
+		{
+			name:      "negated network against any",
+			earlier:   rule(common.RuleTypePass, "tcp", from("10.0.0.0/8", true), anyEP),
+			later:     rule(common.RuleTypeBlock, "tcp", anyEP, alias("Feed")),
+			want:      CoverNone,
+			wantCause: causeAlias,
+		},
+		{
+			name:      "both rules negate the same network",
+			earlier:   rule(common.RuleTypePass, "tcp", from("10.0.0.0/8", true), anyEP),
+			later:     rule(common.RuleTypeBlock, "tcp", from("10.0.0.0/8", true), alias("Feed")),
+			want:      CoverIndeterminate,
+			wantCause: causeAlias,
+		},
+		{
+			name:      "unreadable member with a combined protocol",
+			earlier:   rule(common.RuleTypePass, "tcp/udp", anyEP, anyEP),
+			later:     rule(common.RuleTypeBlock, "tcp", anyEP, alias("Odd")),
+			want:      CoverNone,
+			wantCause: causeValue,
+		},
+		{
+			name:    "other single protocol",
+			earlier: rule(common.RuleTypePass, "udp", anyEP, anyEP),
+			later:   rule(common.RuleTypeBlock, "tcp", anyEP, alias("Feed")),
+			want:    CoverNone,
+		},
+		{
+			name:    "other literal network",
+			earlier: rule(common.RuleTypePass, "tcp", from("10.0.0.0/8", false), anyEP),
+			later:   rule(common.RuleTypeBlock, "tcp", from("192.168.0.0/16", false), alias("Feed")),
+			want:    CoverNone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, cause := coverage(tt.earlier, tt.later, objects)
+
+			assert.Equal(t, tt.want, got)
 			assert.Equal(t, tt.wantCause, cause)
 		})
 	}
