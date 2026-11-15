@@ -63,8 +63,8 @@ func forwardsToLoopback(device *common.CommonDevice) bool {
 // 161. With one, pf rewrites each port the forward matches to the local port
 // when the destination port is a single number or any port, so the local port
 // decides; another destination port, such as a range, is read as reaching the
-// agent. A port alias or service name is read as permitting 161
-// (analysis.RulePortPermits).
+// agent. A port alias, or another port analysis.RulePortPermits cannot read,
+// is read as permitting 161.
 func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 	if analysis.IsAnyProtocol(nat.Protocol) {
 		return true

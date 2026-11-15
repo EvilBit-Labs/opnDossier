@@ -112,7 +112,8 @@ func TestSNMPAgent_ForwardProtocolAndPortsDecideExposure(t *testing.T) {
 // the agent whatever ports it names, and one for another protocol never does.
 // For udp and tcp/udp the destination port decides without a local port, and
 // the local port decides with one when the destination port is a single number
-// or any port. A range, alias or service name is read as reaching the agent.
+// or any port. A port alias is read as reaching the agent, as is a range
+// mapped to a local port.
 func TestForwardCanReachSNMPPort(t *testing.T) {
 	t.Parallel()
 
@@ -139,7 +140,7 @@ func TestForwardCanReachSNMPPort(t *testing.T) {
 		{name: "udp to a range holding 161", protocol: "udp", dstPort: "100-200", want: true},
 		{name: "udp to a range below 161", protocol: "udp", dstPort: "1-100"},
 		{name: "udp to a port alias", protocol: "udp", dstPort: "SNMP_PORTS", want: true},
-		{name: "udp to a service name", protocol: "udp", dstPort: "domain", want: true},
+		{name: "udp to the snmp service name", protocol: "udp", dstPort: "snmp", want: true},
 		{name: "udp 1161 to local port 161", protocol: "udp", dstPort: "1161", locPort: "161", want: true},
 		{name: "udp 161 to local port 1161", protocol: "udp", dstPort: "161", locPort: "1161"},
 		{name: "udp 161 to local port 53", protocol: "udp", dstPort: "161", locPort: "53"},
