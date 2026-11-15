@@ -65,12 +65,16 @@ func (c Coverage) String() string {
 // set, and why any part of the comparison rests on something the analysis
 // could not read (the block cause): causeAlias when a named-object reference
 // could not be expanded, causeValue when a port value could not be read. A
-// zero cause means every part was read.
+// zero cause means nothing the analysis could not read can change the answer.
+// It does not mean every part was read: an earlier rule that matches every
+// port covers a later port set whatever it holds, and two endpoints that name
+// the same port alias, or hold the same literal port, match each other
+// whatever port value in it could not be read.
 //
 // The cause is a separate signal from the coverage. CoverNone with no cause
 // means the rules share no traffic, or that a dimension could not be compared
-// while every part was read; CoverNone with a cause means the overlap is
-// unknown. A blocked port dimension can still be CoverFull or CoverPartial
+// while nothing unread bears on the answer; CoverNone with a cause means the
+// overlap is unknown. A blocked port dimension can still be CoverFull or CoverPartial
 // when what could be read proves it or both rules name the same alias, and a
 // dimension proven disjoint gives CoverNone with no cause whatever else could
 // not be read. Callers that want
