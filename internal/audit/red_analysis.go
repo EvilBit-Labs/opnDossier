@@ -75,7 +75,7 @@ type exposedService struct {
 // serviceExposures enumerates the in-scope management services present on the
 // device (WebGUI is always present; SSH and SNMP when enabled) and classifies
 // each as WAN-reachable or LAN-only by correlating its port against
-// WAN-reachable rules. An SNMP agent bound only to loopback is the one
+// WAN-reachable rules. An os-net-snmp agent bound only to loopback is the one
 // exception: it is Local (snmpReachability). For any other service Local is not
 // possible here — a configured management service is at least LAN-reachable.
 func serviceExposures(device *common.CommonDevice) []exposedService {
