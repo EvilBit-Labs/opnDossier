@@ -7,19 +7,26 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
-// snmpReachability is serviceReachability for the SNMP agent, which the
-// os-net-snmp plugin can bind to chosen addresses. An agent whose every listen
-// address is a loopback address answers no other host, so it is Local whatever
-// the firewall rules pass. Any other listen address, and an empty list, is
-// judged by the rules as the other services are: an os-net-snmp agent with no
-// listen address binds every IPv4 address and the IPv6 loopback, and for an
-// <snmpd> agent no bind address is read.
-func snmpReachability(device *common.CommonDevice) analysis.Reachability {
-	if listensOnLoopbackOnly(device.SNMP.ListenAddresses) {
-		return analysis.Local
+// serviceNameSNMP is the exposedService name of the SNMP agent.
+const serviceNameSNMP = "snmp"
+
+// applySNMPListen marks the SNMP agent in services as Local when the
+// os-net-snmp plugin binds it only to loopback. Such an agent answers no other
+// host, so it is Local whatever reachability services already gives it, and
+// serviceExposures calls this last. A list holding any other address, or an
+// empty list, leaves the agent as it is, judged as the other services are: an
+// os-net-snmp agent with no listen address binds every IPv4 address and the
+// IPv6 loopback, and for an <snmpd> agent no bind address is read.
+func applySNMPListen(device *common.CommonDevice, services []exposedService) {
+	if !listensOnLoopbackOnly(device.SNMP.ListenAddresses) {
+		return
 	}
 
-	return serviceReachability(device, portSNMP)
+	for i := range services {
+		if services[i].name == serviceNameSNMP {
+			services[i].reachability = analysis.Local
+		}
+	}
 }
 
 // listensOnLoopbackOnly reports whether addresses is non-empty and every entry
