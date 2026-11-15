@@ -197,6 +197,87 @@ func TestConverter_SNMP_AgentTheConfigStarts(t *testing.T) {
 	}
 }
 
+// TestConverter_SNMP_LegacyEnableBesideNetsnmpOff pins the fallback for a
+// legacy <snmpd> block with <enable> beside an os-net-snmp block that is
+// present but does not start the agent: the legacy agent is reported, with a
+// Low warning, and nothing is taken from the net-snmp block. An unknown model
+// version still warns at Medium beside it.
+func TestConverter_SNMP_LegacyEnableBesideNetsnmpOff(t *testing.T) {
+	t.Parallel()
+
+	legacy := func(enable string) string {
+		return `
+  <snmpd>
+    <syslocation>closet</syslocation>
+    <syscontact>ops</syscontact>
+    <rocommunity>legacycomm</rocommunity>
+    ` + enable + `
+  </snmpd>`
+	}
+
+	legacyAgent := common.SNMPConfig{
+		Enabled:     true,
+		ROCommunity: "legacycomm",
+		SysLocation: "closet",
+		SysContact:  "ops",
+	}
+	legacyWarning := "SNMP.Snmpd.Enable/" + string(common.SeverityLow)
+
+	tests := []struct {
+		name         string
+		body         string
+		wantWarnings []string
+	}{
+		{
+			name:         "net-snmp enabled is 0",
+			body:         legacy("<enable/>") + netsnmpBlock("1.0.7", "0", "public", "192.0.2.1", ""),
+			wantWarnings: []string{legacyWarning},
+		},
+		{
+			name:         "net-snmp enabled is empty",
+			body:         legacy("<enable>1</enable>") + netsnmpBlock("1.0.7", "", "public", "192.0.2.1", ""),
+			wantWarnings: []string{legacyWarning},
+		},
+		{
+			name: "net-snmp enabled is absent",
+			body: legacy("<enable/>") + strings.Replace(
+				netsnmpBlock("1.0.7", "1", "public", "192.0.2.1", ""), "<enabled>1</enabled>", "", 1),
+			wantWarnings: []string{legacyWarning},
+		},
+		{
+			name: "net-snmp block is empty",
+			body: legacy("<enable>1</enable>") + `
+  <OPNsense>
+    <netsnmp/>
+  </OPNsense>`,
+			wantWarnings: []string{legacyWarning},
+		},
+		{
+			name: "net-snmp off with an unknown general model version",
+			body: legacy("<enable/>") + netsnmpBlock("1.0.8", "0", "public", "192.0.2.1", ""),
+			wantWarnings: []string{
+				legacyWarning,
+				"SNMP.Netsnmp.General.Version/" + string(common.SeverityMedium),
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := convertSNMPConfig(t, tc.body)
+			assert.Equal(t, legacyAgent, device.SNMP)
+
+			got := make([]string, 0, len(warnings))
+			for _, w := range warnings {
+				got = append(got, w.Field+"/"+string(w.Severity))
+			}
+			assert.ElementsMatch(t, tc.wantWarnings, got)
+		})
+	}
+}
+
 // TestConverter_SNMP_UserDefaults pins the raw-value reading the agent's
 // templates apply: a user loads only with <enabled>1</enabled>, and read-write
 // access only with <readwrite>1</readwrite>, so an absent element means
