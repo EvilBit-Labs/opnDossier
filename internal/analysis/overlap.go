@@ -15,8 +15,9 @@ import (
 // merged ranges (resolvePorts). Above this, the endpoint is treated as opaque
 // (causeAlias) so the O(n*m) address/port containment
 // cross product cannot be driven into a DoS by an attacker-supplied config
-// that defines pathologically large aliases. Set far above any realistic
-// firewall alias.
+// that defines pathologically large aliases. The complement proof applies it
+// to the distinct networks of one endpoint and proves nothing above it
+// (literalPrefixes). Set far above any realistic firewall alias.
 const maxResolvedMembers = 4096
 
 // Coverage classifies how completely an earlier firewall rule's match set
@@ -301,8 +302,13 @@ func literalPrefixes(ep common.RuleEndpoint, no common.NamedObjects) ([]netip.Pr
 		return nil, false
 	}
 
-	w := literalWalker{no: no, visiting: make(map[string]struct{})}
-	if !w.walk(address, 0) || len(w.prefixes) == 0 {
+	w := literalWalker{
+		no:       no,
+		visiting: make(map[string]struct{}),
+		done:     make(map[string]int),
+		seen:     make(map[netip.Prefix]struct{}),
+	}
+	if _, ok := w.walk(address, 0); !ok || len(w.prefixes) == 0 {
 		return nil, false
 	}
 
@@ -314,51 +320,86 @@ func literalPrefixes(ep common.RuleEndpoint, no common.NamedObjects) ([]netip.Pr
 type literalWalker struct {
 	no       common.NamedObjects
 	visiting map[string]struct{}
+	// done holds each alias walked in full, with the number of levels of
+	// nested aliases below it. Its networks are in prefixes already, so an
+	// alias named again adds nothing, as a table holds each entry once.
+	done map[string]int
+	// seen holds the networks in prefixes, so that one listed twice is kept
+	// once and the member cap counts distinct networks.
+	seen     map[netip.Prefix]struct{}
 	visits   int
 	prefixes []netip.Prefix
 }
 
-// walk adds the networks of the alias name and reports whether every member
-// was a literal address or network or an alias walk accepts. Like the port
-// alias walk it stops after maxPortAliasVisits expansions: aliases that name
-// each other many times, ending in empty ones, add no prefix, so the member
-// cap alone would not stop it.
-func (w *literalWalker) walk(name string, depth int) bool {
-	w.visits++
+// walk adds the networks of the alias name, reached at depth, and reports how
+// many levels of nested aliases lie below it and whether every member was a
+// literal address or network or an alias walk accepts. Any failure leaves the
+// whole set unproven, so only an alias walked in full is remembered, and an
+// alias named many times is expanded once. A remembered alias is checked
+// against the depth cap again on each path, so the answer does not depend on
+// the order of the paths. Like the port alias walk it stops after
+// maxPortAliasVisits expansions, which here counts distinct aliases.
+func (w *literalWalker) walk(name string, depth int) (int, bool) {
+	if depth > maxPortAliasDepth {
+		return 0, false
+	}
 
-	obj, exists := w.no[name]
-	if !exists || depth > maxPortAliasDepth || w.visits > maxPortAliasVisits || obj.Disabled ||
-		(obj.Type != common.NamedObjectTypeHost && obj.Type != common.NamedObjectTypeNetwork) {
-		return false
+	if height, done := w.done[name]; done {
+		return height, depth+height <= maxPortAliasDepth
 	}
 
 	if _, cyclic := w.visiting[name]; cyclic {
-		return false
+		return 0, false
+	}
+
+	w.visits++
+
+	obj, exists := w.no[name]
+	if !exists || w.visits > maxPortAliasVisits || obj.Disabled ||
+		(obj.Type != common.NamedObjectTypeHost && obj.Type != common.NamedObjectTypeNetwork) {
+		return 0, false
 	}
 
 	w.visiting[name] = struct{}{}
 	defer delete(w.visiting, name)
 
+	height := 0
+
 	for _, member := range obj.Members {
 		member = strings.TrimSpace(member)
 
 		if _, nested := w.no[member]; nested {
-			if !w.walk(member, depth+1) {
-				return false
+			below, ok := w.walk(member, depth+1)
+			if !ok {
+				return 0, false
 			}
+
+			height = max(height, below+1)
 
 			continue
 		}
 
 		p, err := ParsePrefixOrAddr(member)
-		if err != nil || len(w.prefixes) >= maxResolvedMembers {
-			return false
+		if err != nil {
+			return 0, false
 		}
 
-		w.prefixes = append(w.prefixes, p.Masked())
+		p = p.Masked()
+		if _, dup := w.seen[p]; dup {
+			continue
+		}
+
+		if len(w.prefixes) >= maxResolvedMembers {
+			return 0, false
+		}
+
+		w.seen[p] = struct{}{}
+		w.prefixes = append(w.prefixes, p)
 	}
 
-	return true
+	w.done[name] = height
+
+	return height, true
 }
 
 // prefixContains reports whether network outer holds every address of inner.

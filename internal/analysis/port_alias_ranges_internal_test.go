@@ -673,9 +673,12 @@ func TestDetectShadowedRules_R10ComplementWithUnreadablePart(t *testing.T) {
 }
 
 // TestLiteralPrefixes_VisitBudget feeds the literal walk a graph where each
-// level names the next ten times and the deepest alias is empty. Without a
-// visit budget that is 10^16 expansions, none of which adds a prefix, so the
-// member cap never stops it; with the budget it gives up, unproven, at once.
+// level names the next ten times and the deepest alias is empty. Followed path
+// by path that is 10^16 expansions, none of which adds a prefix, so the member
+// cap never stops it. The walk expands each alias once, so it finds no network
+// and leaves the set unproven at once; without the cache the visit budget
+// stops it. TestLiteralPrefixes_VisitBudgetCountsDistinctAliases pins the
+// budget on a graph the cache does not shrink.
 func TestLiteralPrefixes_VisitBudget(t *testing.T) {
 	t.Parallel()
 

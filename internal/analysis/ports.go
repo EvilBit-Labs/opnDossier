@@ -19,8 +19,10 @@ const maxPortAliasDepth = 16
 // graph of aliases that name each other many times cannot drive either walk
 // into exponential work. The port walk caches an alias it has expanded, and
 // expands it again only when a cycle or the depth cap was involved, so there
-// the budget stops a graph of cycles or a tree of more than 4096 aliases. Far
-// above any real configuration.
+// the budget stops a graph of cycles or a tree of more than 4096 aliases. The
+// literal walk caches every alias it has proven, and any failure ends the
+// proof, so there the budget stops a graph of more than 4096 distinct aliases.
+// Far above any real configuration.
 const maxPortAliasVisits = 4096
 
 // maxPortAliasWork bounds how many port ranges one port alias walk gathers,
