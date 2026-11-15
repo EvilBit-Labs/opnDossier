@@ -264,6 +264,7 @@ func TestConverter_Dnsmasq_DHCPOptions(t *testing.T) {
     <dhcp_options><type>set</type><option>6</option><interface>opt2</interface><value>9.9.9.9,149.112.112.112</value></dhcp_options>
     <dhcp_options><type>set</type><option>3</option><interface>opt2</interface><value>10.0.2.254</value></dhcp_options>
     <dhcp_options><type>set</type><option>42</option><value>192.168.1.123</value></dhcp_options>
+    <dhcp_options><type>set</type><option>44</option><value>192.168.1.44</value></dhcp_options>
     <dhcp_options><type>set</type><option>66</option><interface>opt2</interface><value>tftp.example.com</value></dhcp_options>
     <dhcp_options uuid="00000000-0000-4000-8000-0000000000aa"><type>set</type><option>6</option><tag>11111111-1111-4111-8111-111111111111</tag><value>1.1.1.1</value></dhcp_options>
     <dhcp_options uuid="00000000-0000-4000-8000-0000000000bb"><type>set</type><option6>23</option6><value>[2001:db8::53]</value></dhcp_options>
@@ -275,6 +276,7 @@ func TestConverter_Dnsmasq_DHCPOptions(t *testing.T) {
 	assert.Equal(t, []string{"192.168.1.53"}, lan.DNSServers)
 	assert.Empty(t, lan.Gateway)
 	assert.Equal(t, "192.168.1.123", lan.NTPServer)
+	assert.Equal(t, "192.168.1.44", lan.WINSServer)
 	assert.Empty(t, lan.NumberOptions)
 
 	assert.Equal(t, []string{"9.9.9.9", "149.112.112.112"}, opt2.DNSServers)
@@ -756,6 +758,42 @@ func TestConverter_Dnsmasq_DiffClientIDReservation(t *testing.T) {
 	assert.Equal(t, "dhcpd.dnsmasq.lan.staticmap[id:01:02:03].ipaddr", changes[0].Path)
 	assert.Equal(t, "192.168.1.50", changes[0].OldValue)
 	assert.Equal(t, "192.168.1.60", changes[0].NewValue)
+}
+
+// TestConverter_Dnsmasq_DiffAddedReservationShowsClientID shows the client id
+// of a reservation added beside the others, since it may be the only key it
+// has.
+func TestConverter_Dnsmasq_DiffAddedReservationShowsClientID(t *testing.T) {
+	t.Parallel()
+
+	ranges := `<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr>` +
+		`<end_addr>192.168.1.199</end_addr></dhcp_ranges>`
+	held := `<hosts><host>a</host><ip>192.168.1.50</ip><client_id>01:02:03</client_id></hosts>`
+	added := `<hosts><host>c</host><ip>192.168.1.52</ip><client_id>01:02:07</client_id></hosts>`
+	oldDevice, _ := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>`+held+ranges+`</dnsmasq>`, "")
+	newDevice, _ := parseDnsmasqConfig(
+		t,
+		`<dnsmasq version="1.0.9"><enable>1</enable>`+held+added+ranges+`</dnsmasq>`,
+		"",
+	)
+
+	changes := diff.NewAnalyzer().CompareDHCP(oldDevice.DHCP, newDevice.DHCP)
+	require.Len(t, changes, 1)
+	assert.Equal(t, diff.ChangeAdded, changes[0].Type)
+	assert.Contains(t, changes[0].NewValue, "cid=01:02:07")
+}
+
+// TestConverter_Dnsmasq_ConstructorNamesTheInterface gives a range that names
+// no interface but a constructor the scope of the constructor's interface.
+func TestConverter_Dnsmasq_ConstructorNamesTheInterface(t *testing.T) {
+	t.Parallel()
+
+	device, _ := parseDnsmasqConfig(t, `<dnsmasq version="1.0.9"><enable>1</enable>
+    <dhcp_ranges><start_addr>::1000</start_addr><end_addr>::2000</end_addr><constructor>opt2</constructor></dhcp_ranges>
+  </dnsmasq>`, "")
+
+	require.Len(t, device.DHCP, 1)
+	assert.Equal(t, "opt2", device.DHCP[0].Interface)
 }
 
 // TestConverter_Dnsmasq_ISCScopesStillCount keeps counting every ISC scope
@@ -1311,6 +1349,12 @@ func rangeNetworks6Cases() []rangeNetworks4Case {
 		{
 			name:   "a host part reaches a range constructed on a track6 interface",
 			ranges: constructed("opt4", "64"), host: "::50", wantScope: 0, wantSubnet: []string{""},
+		},
+		{
+			name: "a constructor that names an interface the config does not define builds no range",
+			ranges: `<dhcp_ranges><interface>opt2</interface><start_addr>::1000</start_addr>` +
+				`<end_addr>::2000</end_addr><constructor>opt9</constructor><prefix_len>64</prefix_len></dhcp_ranges>`,
+			host: "::50", wantScope: -1, wantSubnet: []string{""},
 		},
 		{
 			name:   "a host part written out in full is a host part",
