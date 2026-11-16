@@ -112,7 +112,8 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // counts when a member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
 // config does not store), or when the alias, or an alias it names, gets its
-// addresses at runtime, as a URL table does (aliasNamesRuntimeTable).
+// addresses at runtime, as a URL table does, and as a host alias does for a
+// hostname it holds (aliasNamesRuntimeTable).
 // aliasHoldsFirewallAddress alone reads such an alias as holding no address,
 // which forwardsToAlias relies on. OPNsense also accepts an interface: its key
 // for the interface's network, and for wan, lan and optN the key and "ip" for
@@ -130,8 +131,9 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // and disables a forward to any other such name no alias defines as an invalid
 // target: the wider match can only over-report. A name no alias or interface
 // defines counts when it has the shape of an alias name, since it can name a
-// table the config does not store. A hostname with a domain tells nothing and
-// does not count. Through 26.1.1 ForwardRule.php maps a target only when an
+// table the config does not store. A target that is a hostname with a domain
+// does not count, since OPNsense disables a forward to it as an invalid
+// target. Through 26.1.1 ForwardRule.php maps a target only when an
 // alias of that name exists, of any type, and disables a forward to any other
 // name that is no address or network as an invalid target, (self) and
 // interface names among them, so on those releases the readings of (self) and
@@ -161,12 +163,14 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 }
 
 // aliasNamesRuntimeTable reports whether the alias name, or an alias it names
-// at any depth, is of a type in runtimeAliasTypes. What such an alias holds
-// arrives at runtime, and OPNsense loads every address a fetched list holds,
-// loopback addresses included, so it may hold one. A host, network or network
-// group alias can name an alias of any type. The walk follows each member that
-// names an alias, as aliasHoldsFirewallAddress does, and seen ends a nesting
-// loop.
+// at any depth, gets its addresses at runtime: it is of a type in
+// runtimeAliasTypes, or it is a host alias holding a member that names no
+// alias and that OPNsense resolves through DNS when it loads the alias, such
+// as a hostname (resolvedThroughDNS). OPNsense loads every address a fetched
+// list or a DNS answer holds, loopback addresses included, so such an alias may
+// hold one. A host, network or network group alias can name an alias of any
+// type. The walk follows each member that names an alias, as
+// aliasHoldsFirewallAddress does, and seen ends a nesting loop.
 func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 	seen := map[string]bool{name: true}
 	pending := []string{name}
@@ -181,7 +185,12 @@ func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 		}
 
 		for _, member := range object.Members {
-			if _, defined := objects[member]; defined && !seen[member] {
+			_, defined := objects[member]
+
+			switch {
+			case !defined && object.Type == common.NamedObjectTypeHost && resolvedThroughDNS(member):
+				return true
+			case defined && !seen[member]:
 				seen[member] = true
 				pending = append(pending, member)
 			}
@@ -189,6 +198,24 @@ func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 	}
 
 	return false
+}
+
+// resolvedThroughDNS reports whether member, an entry of an OPNsense host alias
+// that names no alias, is one the alias loader resolves through DNS: an entry
+// that is no address and no first-last range of addresses (iter_addresses in
+// OPNsense's alias/base.py), such as a hostname with or without a domain. An
+// entry with "/" is read as a network or a wildcard network, or dropped, and
+// the alias page accepts "!" only before an address, so neither is resolved.
+func resolvedThroughDNS(member string) bool {
+	if member == "" || strings.ContainsAny(member, "/!") {
+		return false
+	}
+
+	from, to, isRange := strings.Cut(member, "-")
+	_, errFrom := netip.ParseAddr(from)
+	_, errTo := netip.ParseAddr(to)
+
+	return errFrom != nil || (isRange && errTo != nil)
 }
 
 // listensOnLoopbackOnly reports whether addresses is non-empty and every entry
