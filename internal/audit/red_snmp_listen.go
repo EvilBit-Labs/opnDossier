@@ -88,8 +88,8 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 	return analysis.RulePortPermits(nat.LocalPort, portSNMP)
 }
 
-// targetHoldsLoopback reports whether a port forward's target is, or spans, a
-// loopback address. The target (self), This Firewall on the forward page,
+// targetHoldsLoopback reports whether a port forward's target is, spans or may
+// hold a loopback address. The target (self), This Firewall on the forward page,
 // counts: pf reads it as every address of every interface, lo0's among them.
 // OPNsense accepts an alias other than a port alias as the target, and pf then
 // redirects to the addresses it holds, so a target such an alias defines counts
