@@ -301,6 +301,15 @@ func assertSNMPForwardExposure(t *testing.T, device *common.CommonDevice, expose
 		want = analysis.WANReachable
 	}
 
+	assertSNMPReachability(t, device, want)
+}
+
+// assertSNMPReachability checks that red mode gives the SNMP agent on device
+// the reachability want, and reports it as WAN-exposed exactly when want is
+// WAN-reachable.
+func assertSNMPReachability(t *testing.T, device *common.CommonDevice, want analysis.Reachability) {
+	t.Helper()
+
 	services := serviceExposures(device)
 	idx := slices.IndexFunc(services, func(s exposedService) bool { return s.name == serviceNameSNMP })
 	require.GreaterOrEqual(t, idx, 0, "snmp missing from the services red mode considers: %+v", services)
@@ -310,17 +319,18 @@ func assertSNMPForwardExposure(t *testing.T, device *common.CommonDevice, expose
 	runRedAnalysis(report)
 
 	_, reported := findingByTitlePrefix(report.Findings, "WAN-Exposed Service: SNMP")
-	assert.Equal(t, exposed, reported, "red-mode SNMP exposure")
+	assert.Equal(t, want == analysis.WANReachable, reported, "red-mode SNMP exposure")
 }
 
 // TestForwardsToLoopback_TargetsAndFlags checks which port forwards count as
 // redirecting traffic to loopback. A target counts when it is, or spans, a
 // loopback address, in either family or IPv4-mapped; when it is (self), which
 // pf reads as every address of the firewall, while (SELF) is no target OPNsense
-// redirects to and does not count; when it is an alias, or
-// names one, that holds one; and when it is a name no alias defines that has
-// the shape of an alias name. A disabled or no-RDR forward never counts, and
-// the counting forward may sit anywhere in the list.
+// redirects to and does not count; when it is an alias, or names one, that
+// holds one or gets its addresses at runtime, as a URL table does; and when it
+// is a name no alias defines that has the shape of an alias name. A disabled
+// or no-RDR forward never counts, and the counting forward may sit anywhere in
+// the list.
 func TestForwardsToLoopback_TargetsAndFlags(t *testing.T) {
 	t.Parallel()
 
@@ -332,10 +342,15 @@ func TestForwardsToLoopback_TargetsAndFlags(t *testing.T) {
 			Type:    common.NamedObjectTypeHost,
 			Members: []string{"126.255.255.250-127.0.0.5"},
 		},
-		"UNSTORED":   {Name: "UNSTORED", Type: common.NamedObjectTypeHost, Members: []string{"bogons"}},
-		"URL_TABLE":  {Name: "URL_TABLE", Type: "urltable", Members: []string{"https://example.com/list.txt"}},
-		"SNMP_GROUP": {Name: "SNMP_GROUP", Type: aliasTypeNetworkGroup, Members: []string{"LAN_HOST", "LOOP_HOST"}},
-		"LAN_GROUP":  {Name: "LAN_GROUP", Type: aliasTypeNetworkGroup, Members: []string{"LAN_HOST"}},
+		"UNSTORED": {Name: "UNSTORED", Type: common.NamedObjectTypeHost, Members: []string{"bogons"}},
+		"URL_TABLE": {
+			Name:    "URL_TABLE",
+			Type:    aliasTypeURLTable,
+			Members: []string{"https://example.com/list.txt"},
+		},
+		"TABLE_GROUP": {Name: "TABLE_GROUP", Type: aliasTypeNetworkGroup, Members: []string{"LAN_HOST", "URL_TABLE"}},
+		"SNMP_GROUP":  {Name: "SNMP_GROUP", Type: aliasTypeNetworkGroup, Members: []string{"LAN_HOST", "LOOP_HOST"}},
+		"LAN_GROUP":   {Name: "LAN_GROUP", Type: aliasTypeNetworkGroup, Members: []string{"LAN_HOST"}},
 	}
 
 	forward := func(target string) common.InboundNATRule {
@@ -372,7 +387,12 @@ func TestForwardsToLoopback_TargetsAndFlags(t *testing.T) {
 			forwards: []common.InboundNATRule{forward("UNSTORED")},
 			want:     true,
 		},
-		{name: "URL table alias", forwards: []common.InboundNATRule{forward("URL_TABLE")}},
+		{name: "URL table alias", forwards: []common.InboundNATRule{forward("URL_TABLE")}, want: true},
+		{
+			name:     "network group naming the URL table second",
+			forwards: []common.InboundNATRule{forward("TABLE_GROUP")},
+			want:     true,
+		},
 		{
 			name:     "network group naming the loopback alias second",
 			forwards: []common.InboundNATRule{forward("SNMP_GROUP")},

@@ -17,6 +17,20 @@ const serviceNameSNMP = "snmp"
 // that a network or range spanning loopback counts as well as one inside it.
 var loopbackAddresses = []netip.Addr{netip.MustParseAddr("127.0.0.1"), netip.IPv6Loopback()}
 
+// The OPNsense alias types for a URL table and a URL table in JSON format. The
+// model has no constant for either, and the converter keeps the vendor type.
+const (
+	aliasTypeURLTable common.NamedObjectType = "urltable"
+	aliasTypeURLJSON  common.NamedObjectType = "urljson"
+)
+
+// runtimeAliasTypes are the OPNsense alias types whose addresses the firewall
+// fetches, or is given by another process, at runtime: a URL alias, a URL
+// table, a URL table in JSON format, and an external alias.
+var runtimeAliasTypes = []common.NamedObjectType{
+	common.NamedObjectTypeURL, aliasTypeURLTable, aliasTypeURLJSON, common.NamedObjectTypeExternal,
+}
+
 // applySNMPListen marks the SNMP agent in services as Local when the
 // os-net-snmp plugin binds it only to loopback and no port forward can
 // redirect its traffic to loopback. Such an agent answers no other host, so it
@@ -42,13 +56,14 @@ func applySNMPListen(device *common.CommonDevice, services []exposedService) {
 
 // forwardsToLoopback reports whether an enabled port forward that redirects
 // traffic can redirect UDP to port 161 (forwardCanReachSNMPPort) and has a
-// target that is, spans or may hold a loopback address (targetHoldsLoopback).
-// A forward to loopback that cannot, such as a DNS redirect to port 53 or a
-// transparent proxy's TCP forward, leaves the agent Local. The forward's
-// interface is not read, nor whether pf runs (with <system><disablefilter> set,
-// pf is off and no forward redirects anything), nor whether the target's address
-// family is one the agent listens on, so a forward to ::1 counts for an agent
-// bound only to 127.0.0.1. Each can over-report, the safe direction.
+// target that is, spans or may hold a loopback address, such as a URL table
+// (targetHoldsLoopback). A forward to loopback that cannot, such as a DNS
+// redirect to port 53 or a transparent proxy's TCP forward, leaves the agent
+// Local. The forward's interface is not read, nor whether pf runs (with
+// <system><disablefilter> set, pf is off and no forward redirects anything),
+// nor whether the target's address family is one the agent listens on, so a
+// forward to ::1 counts for an agent bound only to 127.0.0.1. Each can
+// over-report, the safe direction.
 func forwardsToLoopback(device *common.CommonDevice) bool {
 	return slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
 		return !nat.Disabled && !nat.NoRDR && forwardCanReachSNMPPort(nat) &&
@@ -92,13 +107,16 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // hold a loopback address. It reads the target as ForwardRule.php does from
 // OPNsense 26.7. The target (self), This Firewall on the forward page, counts:
 // pf reads it as every address of every interface, lo0's among them. OPNsense
-// accepts an alias other than a port alias as the target, and pf then
-// redirects to the addresses it holds, so a target such an alias defines counts
-// when a member of the alias, or of an alias it names, holds one
+// accepts an alias other than a port alias as the target, and pf then redirects
+// to the addresses it holds, so a target such an alias defines counts when a
+// member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
-// config does not store). OPNsense also accepts an interface: its key for the
-// interface's network, and for wan, lan and optN the key and "ip" for its
-// address. A target that is an interface's key, or its key and "ip", counts
+// config does not store), or when the alias, or an alias it names, gets its
+// addresses at runtime, as a URL table does (aliasNamesRuntimeTable).
+// aliasHoldsFirewallAddress alone reads such an alias as holding no address,
+// which forwardsToAlias relies on. OPNsense also accepts an interface: its key
+// for the interface's network, and for wan, lan and optN the key and "ip" for
+// its address. A target that is an interface's key, or its key and "ip", counts
 // only when that interface's own address is a loopback address, as on lo0, so a
 // forward to lanip or to the lan net leaves the agent Local. OPNsense maps the
 // interfaces first and then every alias but a port alias (loadAliasMap in
@@ -125,7 +143,8 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 
 	object, defined := device.NamedObjects[target]
 	if defined && object.Type != common.NamedObjectTypePort {
-		return aliasHoldsFirewallAddress(device.NamedObjects, target, loopbackAddresses)
+		return aliasHoldsFirewallAddress(device.NamedObjects, target, loopbackAddresses) ||
+			aliasNamesRuntimeTable(device.NamedObjects, target)
 	}
 
 	for _, iface := range device.Interfaces {
@@ -139,6 +158,37 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 	}
 
 	return holdsFirewallAddress(target, loopbackAddresses) || aliasNamePattern.MatchString(target)
+}
+
+// aliasNamesRuntimeTable reports whether the alias name, or an alias it names
+// at any depth, is of a type in runtimeAliasTypes. What such an alias holds
+// arrives at runtime, and OPNsense loads every address a fetched list holds,
+// loopback addresses included, so it may hold one. A host, network or network
+// group alias can name an alias of any type. The walk follows each member that
+// names an alias, as aliasHoldsFirewallAddress does, and seen ends a nesting
+// loop.
+func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
+	seen := map[string]bool{name: true}
+	pending := []string{name}
+
+	for len(pending) > 0 {
+		last := len(pending) - 1
+		object := objects[pending[last]]
+		pending = pending[:last]
+
+		if slices.Contains(runtimeAliasTypes, object.Type) {
+			return true
+		}
+
+		for _, member := range object.Members {
+			if _, defined := objects[member]; defined && !seen[member] {
+				seen[member] = true
+				pending = append(pending, member)
+			}
+		}
+	}
+
+	return false
 }
 
 // listensOnLoopbackOnly reports whether addresses is non-empty and every entry
