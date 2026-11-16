@@ -22,9 +22,9 @@ var loopbackAddresses = []netip.Addr{netip.MustParseAddr("127.0.0.1"), netip.IPv
 // redirect its traffic to loopback. Such an agent answers no other host, so it
 // is Local whatever reachability services already gives it, and
 // serviceExposures calls this last. pf rewrites a forward's destination before
-// the packet is delivered, so a forward of UDP port 161 to loopback reaches an
-// agent bound there, and the agent then keeps the reachability services gives
-// it (forwardsToLoopback). A list holding any other address, or an empty list,
+// the packet is delivered, so a forward of UDP port 161 to loopback can reach
+// an agent bound there, and the agent then keeps the reachability services
+// gives it (forwardsToLoopback). A list holding any other address, or an empty list,
 // leaves the agent as it is too, judged as the other services are: an
 // os-net-snmp agent with no listen address binds every IPv4 address and the
 // IPv6 loopback, and for an <snmpd> agent no bind address is read.
