@@ -108,8 +108,8 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // does not hold, if it is no address or network, as an invalid target. The key
 // and "ip" is matched for every interface, so lo0ip counts beside a lo0 that
 // holds loopback, although OPNsense maps that form only for wan, lan and optN
-// and disables a forward to any other such name as an invalid target: the wider
-// match can only over-report. A name no alias or interface defines counts when
+// and disables a forward to any other such name no alias defines as an invalid
+// target: the wider match can only over-report. A name no alias or interface defines counts when
 // it has the shape of an alias name, since it can name a table the config does
 // not store. A hostname with a domain tells nothing and does not count.
 func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
