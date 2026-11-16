@@ -218,6 +218,20 @@ func TestSNMPAgent_PortForwardToLoopbackKeepsWANExposure(t *testing.T) {
 			exposed:  true,
 		},
 		{
+			// pf reads (self) as every address of the firewall, lo0's among
+			// them.
+			name:     "forward to (self)",
+			rules:    snmpForwardNetworkRule("(self)"),
+			forwards: snmpLegacyForward("(self)", "nat_1", ""),
+			exposed:  true,
+		},
+		{
+			name:     "26.1 forward to (self)",
+			rules:    snmpForwardNetworkRule("(self)"),
+			forwards: snmpModelForward("(self)", "0"),
+			exposed:  true,
+		},
+		{
 			// A transparent proxy's TCP forward to loopback cannot reach the
 			// agent on UDP 161.
 			name:     "rule to 127.0.0.1 of its own, LAN forward of TCP 80 to 127.0.0.1 port 3128",
@@ -301,7 +315,9 @@ func assertSNMPForwardExposure(t *testing.T, device *common.CommonDevice, expose
 
 // TestForwardsToLoopback_TargetsAndFlags checks which port forwards count as
 // redirecting traffic to loopback. A target counts when it is, or spans, a
-// loopback address, in either family or IPv4-mapped; when it is an alias, or
+// loopback address, in either family or IPv4-mapped; when it is (self), which
+// pf reads as every address of the firewall, while (SELF) is no target OPNsense
+// redirects to and does not count; when it is an alias, or
 // names one, that holds one; and when it is a name no alias defines that has
 // the shape of an alias name. A disabled or no-RDR forward never counts, and
 // the counting forward may sit anywhere in the list.
@@ -337,6 +353,8 @@ func TestForwardsToLoopback_TargetsAndFlags(t *testing.T) {
 		{name: "IPv4-mapped loopback", forwards: []common.InboundNATRule{forward("::ffff:127.0.0.1")}, want: true},
 		{name: "loopback network", forwards: []common.InboundNATRule{forward("127.0.0.0/8")}, want: true},
 		{name: "network spanning loopback", forwards: []common.InboundNATRule{forward("0.0.0.0/0")}, want: true},
+		{name: "the firewall itself", forwards: []common.InboundNATRule{forward("(self)")}, want: true},
+		{name: "the firewall itself in upper case", forwards: []common.InboundNATRule{forward("(SELF)")}},
 		{name: "LAN host", forwards: []common.InboundNATRule{forward("192.168.1.50")}},
 		{name: "IPv6 host", forwards: []common.InboundNATRule{forward("2001:db8::50")}},
 		{name: "no target", forwards: []common.InboundNATRule{forward("")}},

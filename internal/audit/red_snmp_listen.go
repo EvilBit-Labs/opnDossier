@@ -89,7 +89,9 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 }
 
 // targetHoldsLoopback reports whether a port forward's target is, or spans, a
-// loopback address. OPNsense accepts an alias as the target, and pf then
+// loopback address. The target (self), This Firewall on the forward page,
+// counts: pf reads it as every address of every interface, lo0's among them.
+// OPNsense accepts an alias as the target, and pf then
 // redirects to the addresses it holds, so a target an alias defines counts when
 // a member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
@@ -102,6 +104,10 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // can name a table the config does not store. A hostname with a domain tells
 // nothing and does not count.
 func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
+	if target == "(self)" {
+		return true
+	}
+
 	if _, defined := device.NamedObjects[target]; defined {
 		return aliasHoldsFirewallAddress(device.NamedObjects, target, loopbackAddresses)
 	}

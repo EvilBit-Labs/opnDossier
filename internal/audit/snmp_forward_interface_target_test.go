@@ -42,7 +42,9 @@ func snmpForwardNetworkRule(network string) string {
 // and pf then redirects to that interface, where the agent does not listen, so
 // the agent stays Local. lo0 holds loopback, so a forward to it keeps the agent
 // exposed whether or not the config holds the lo0 interface, as do a forward to
-// 127.0.0.1, to an alias holding it, and to a name no alias defines.
+// 127.0.0.1, to an alias holding it, and to a name no alias defines. So does a
+// forward to This Firewall, (self), which pf reads as every address of every
+// interface, lo0's ::1 among them.
 func TestSNMPAgent_ForwardToInterfaceTarget(t *testing.T) {
 	t.Parallel()
 
@@ -77,6 +79,10 @@ func TestSNMPAgent_ForwardToInterfaceTarget(t *testing.T) {
 			target: "lo0", network: true, listen: "::1", lo0: true, exposed: true,
 		},
 		{name: "forward to the lo0 net without the lo0 interface", target: "lo0", network: true, exposed: true},
+		{
+			name:   "forward to (self), agent bound to ::1",
+			target: "(self)", network: true, listen: "::1", lo0: true, exposed: true,
+		},
 		{name: "forward to 127.0.0.1 with the lo0 interface", target: loopHost, lo0: true, exposed: true},
 		{name: "forward to an alias holding 127.0.0.1", target: "LOOP_HOST", lo0: true, exposed: true},
 		{name: "forward to a name no alias defines", target: "GONE", exposed: true},
