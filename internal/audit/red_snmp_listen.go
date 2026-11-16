@@ -91,18 +91,24 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // targetHoldsLoopback reports whether a port forward's target is, or spans, a
 // loopback address. The target (self), This Firewall on the forward page,
 // counts: pf reads it as every address of every interface, lo0's among them.
-// OPNsense accepts an alias as the target, and pf then
-// redirects to the addresses it holds, so a target an alias defines counts when
-// a member of the alias, or of an alias it names, holds one
+// OPNsense accepts an alias other than a port alias as the target, and pf then
+// redirects to the addresses it holds, so a target such an alias defines counts
+// when a member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
 // config does not store). OPNsense also accepts an interface: its key for the
 // interface's network, and for wan, lan and optN the key and "ip" for its
 // address. A target that is an interface's key, or its key and "ip", counts
-// only when that interface's own address is a loopback address, as on lo0, so
-// a forward to lanip or to the lan net leaves the agent Local. The key and "ip"
-// is matched for every interface, so lo0ip counts beside a lo0 that holds
-// loopback, although OPNsense maps that form only for wan, lan and optN and
-// disables a forward to any other such name as an invalid target: the wider
+// only when that interface's own address is a loopback address, as on lo0, so a
+// forward to lanip or to the lan net leaves the agent Local. OPNsense maps the
+// interfaces first and then every alias but a port alias (loadAliasMap in
+// Rule.php), so an alias named like an interface is read in its place. A port
+// alias holds ports and no address, and is not read: one named like an
+// interface leaves that interface's reading in place, and one named like no
+// interface does not count, since OPNsense disables a forward to a name the map
+// does not hold, if it is no address or network, as an invalid target. The key
+// and "ip" is matched for every interface, so lo0ip counts beside a lo0 that
+// holds loopback, although OPNsense maps that form only for wan, lan and optN
+// and disables a forward to any other such name as an invalid target: the wider
 // match can only over-report. A name no alias or interface defines counts when
 // it has the shape of an alias name, since it can name a table the config does
 // not store. A hostname with a domain tells nothing and does not count.
@@ -111,7 +117,8 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 		return true
 	}
 
-	if _, defined := device.NamedObjects[target]; defined {
+	object, defined := device.NamedObjects[target]
+	if defined && object.Type != common.NamedObjectTypePort {
 		return aliasHoldsFirewallAddress(device.NamedObjects, target, loopbackAddresses)
 	}
 
@@ -119,6 +126,10 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 		if target == iface.Name || target == iface.Name+"ip" {
 			return isLoopbackEntry(iface.IPAddress) || isLoopbackEntry(iface.IPv6Address)
 		}
+	}
+
+	if defined {
+		return false
 	}
 
 	return holdsFirewallAddress(target, loopbackAddresses) || aliasNamePattern.MatchString(target)

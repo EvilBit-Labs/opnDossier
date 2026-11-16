@@ -129,8 +129,12 @@ func TestSNMPAgent_ForwardToInterfaceTarget(t *testing.T) {
 // no interface exactly, including one in another case, falls back to the
 // alias-name reading and counts, as does lo0 on a config without the lo0
 // interface. An alias named like an interface is read in place of the
-// interface, as OPNsense's alias map adds aliases after interfaces, so it
-// counts only when its members hold loopback, whatever the interface holds.
+// interface, as OPNsense's alias map adds every alias but a port alias after
+// the interfaces, so it counts only when its members hold loopback, whatever
+// the interface holds. A port alias is not in that map, so one named like an
+// interface leaves the interface's reading in place, and one named like no
+// interface does not count, since OPNsense disables a forward to it as an
+// invalid target.
 func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 	t.Parallel()
 
@@ -152,6 +156,14 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 		"lo0":   {Name: "lo0", Type: common.NamedObjectTypeHost, Members: []string{"192.0.2.10"}},
 		"lan":   {Name: "lan", Type: common.NamedObjectTypeHost, Members: []string{"127.0.0.1"}},
 		"lanip": {Name: "lanip", Type: common.NamedObjectTypeHost, Members: []string{"127.0.0.1"}},
+	}
+
+	// portAliases holds port aliases named like the lo0 interface, like the
+	// lan address, and like no interface.
+	portAliases := common.NamedObjects{
+		"lo0":        {Name: "lo0", Type: common.NamedObjectTypePort, Members: []string{"161"}},
+		"lanip":      {Name: "lanip", Type: common.NamedObjectTypePort, Members: []string{"161"}},
+		"SNMP_PORTS": {Name: "SNMP_PORTS", Type: common.NamedObjectTypePort, Members: []string{"161"}},
 	}
 
 	tests := []struct {
@@ -206,6 +218,25 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 			objects:    aliasesNamedLikeInterfaces,
 			want:       true,
 		},
+		{
+			name:       "port alias named like lo0",
+			target:     "lo0",
+			interfaces: []common.Interface{lan, lo0},
+			objects:    portAliases,
+			want:       true,
+		},
+		{
+			name:       "port alias named like lanip",
+			target:     "lanip",
+			interfaces: []common.Interface{lo0, lan},
+			objects:    portAliases,
+		},
+		{
+			name:       "port alias named like no interface",
+			target:     "SNMP_PORTS",
+			interfaces: []common.Interface{lan, lo0},
+			objects:    portAliases,
+		},
 	}
 
 	for _, tc := range tests {
@@ -218,6 +249,46 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 			}
 
 			assert.Equal(t, tc.want, targetHoldsLoopback(tc.target, device))
+		})
+	}
+}
+
+// TestSNMPAgent_ForwardToPortAliasName drives OPNsense configs with a net-snmp
+// agent bound only to 127.0.0.1 and the lo0 interface through parse, convert
+// and red mode, each with a WAN forward of UDP 161 to a name a port alias
+// defines and a WAN rule passing UDP 161 to any destination. OPNsense leaves
+// port aliases out of the names a forward's target maps to, so a port alias
+// named lo0 leaves the forward to the lo0 net, which keeps the agent exposed,
+// and a forward to a port alias named like no interface is disabled as an
+// invalid target, which leaves the agent Local.
+func TestSNMPAgent_ForwardToPortAliasName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		target  string
+		exposed bool
+	}{
+		{name: "port alias named like the lo0 interface", target: "lo0", exposed: true},
+		{name: "port alias named like no interface", target: "SNMP_PORTS"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			rule := strings.Replace(snmpForwardRule(tc.target, ""),
+				"<address>"+tc.target+"</address>", "<any>1</any>", 1)
+			alias := snmpForwardAlias("d4d4d4d4-0000-4000-8000-000000000002", tc.target, "port", "161")
+			config := strings.Replace(snmpForwardConfig("127.0.0.1", rule, snmpLegacyForward(tc.target, "", ""), alias),
+				"\n  </interfaces>", snmpLoopbackInterface, 1)
+
+			device := parseConfig(t, config)
+			require.Equal(t, common.NamedObjectTypePort, device.NamedObjects[tc.target].Type, "alias type")
+			require.Len(t, device.NAT.InboundRules, 1)
+			require.Equal(t, tc.target, device.NAT.InboundRules[0].InternalIP, "target")
+
+			assertSNMPForwardExposure(t, device, tc.exposed)
 		})
 	}
 }
