@@ -89,9 +89,10 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 }
 
 // targetHoldsLoopback reports whether a port forward's target is, spans or may
-// hold a loopback address. The target (self), This Firewall on the forward page,
-// counts: pf reads it as every address of every interface, lo0's among them.
-// OPNsense accepts an alias other than a port alias as the target, and pf then
+// hold a loopback address. It reads the target as ForwardRule.php does from
+// OPNsense 26.7. The target (self), This Firewall on the forward page, counts:
+// pf reads it as every address of every interface, lo0's among them. OPNsense
+// accepts an alias other than a port alias as the target, and pf then
 // redirects to the addresses it holds, so a target such an alias defines counts
 // when a member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
@@ -109,9 +110,14 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // and "ip" is matched for every interface, so lo0ip counts beside a lo0 that
 // holds loopback, although OPNsense maps that form only for wan, lan and optN
 // and disables a forward to any other such name no alias defines as an invalid
-// target: the wider match can only over-report. A name no alias or interface defines counts when
-// it has the shape of an alias name, since it can name a table the config does
-// not store. A hostname with a domain tells nothing and does not count.
+// target: the wider match can only over-report. A name no alias or interface
+// defines counts when it has the shape of an alias name, since it can name a
+// table the config does not store. A hostname with a domain tells nothing and
+// does not count. Through 26.1 ForwardRule.php maps a target only when an alias
+// of that name exists, of any type, and disables a forward to any other name
+// that is no address or network as an invalid target, (self) and interface
+// names among them, so on those releases the readings of (self) and of an
+// interface can only over-report.
 func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 	if target == "(self)" {
 		return true
