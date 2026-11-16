@@ -126,7 +126,9 @@ func TestSNMPAgent_ForwardToInterfaceTarget(t *testing.T) {
 // the list. An interface with a dynamic address, or none, holds no loopback. A
 // name that matches no interface exactly, including one in another case, falls
 // back to the alias-name reading and counts, as does lo0 on a config without
-// the lo0 interface.
+// the lo0 interface. An alias named like an interface is read in place of the
+// interface, as OPNsense's alias map adds aliases after interfaces, so it
+// counts only when its members hold loopback, whatever the interface holds.
 func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 	t.Parallel()
 
@@ -141,11 +143,22 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 		"LOOP_HOST": {Name: "LOOP_HOST", Type: common.NamedObjectTypeHost, Members: []string{"127.0.0.1"}},
 	}
 
+	// aliasesNamedLikeInterfaces holds an alias named like the lo0 interface
+	// that holds no loopback, and aliases named like the lan interface and its
+	// address that hold 127.0.0.1.
+	aliasesNamedLikeInterfaces := common.NamedObjects{
+		"lo0":   {Name: "lo0", Type: common.NamedObjectTypeHost, Members: []string{"192.0.2.10"}},
+		"lan":   {Name: "lan", Type: common.NamedObjectTypeHost, Members: []string{"127.0.0.1"}},
+		"lanip": {Name: "lanip", Type: common.NamedObjectTypeHost, Members: []string{"127.0.0.1"}},
+	}
+
 	tests := []struct {
 		name       string
 		target     string
 		interfaces []common.Interface
-		want       bool
+		// objects replaces the device's aliases when set.
+		objects common.NamedObjects
+		want    bool
 	}{
 		{name: "lan net", target: "lan", interfaces: []common.Interface{lo0, lan}},
 		{name: "lan address", target: "lanip", interfaces: []common.Interface{lo0, lan}},
@@ -165,6 +178,26 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 		{name: "127.0.0.1", target: "127.0.0.1", interfaces: []common.Interface{lan, lo0}, want: true},
 		{name: "alias holding 127.0.0.1", target: "LOOP_HOST", interfaces: []common.Interface{lan}, want: true},
 		{name: "name no alias or interface defines", target: "GONE", interfaces: []common.Interface{lan}, want: true},
+		{
+			name:       "alias named like lo0 holding no loopback",
+			target:     "lo0",
+			interfaces: []common.Interface{lan, lo0},
+			objects:    aliasesNamedLikeInterfaces,
+		},
+		{
+			name:       "alias named like lan holding 127.0.0.1",
+			target:     "lan",
+			interfaces: []common.Interface{lo0, lan},
+			objects:    aliasesNamedLikeInterfaces,
+			want:       true,
+		},
+		{
+			name:       "alias named like lanip holding 127.0.0.1",
+			target:     "lanip",
+			interfaces: []common.Interface{lo0, lan},
+			objects:    aliasesNamedLikeInterfaces,
+			want:       true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -172,6 +205,10 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 			t.Parallel()
 
 			device := &common.CommonDevice{Interfaces: tc.interfaces, NamedObjects: objects}
+			if tc.objects != nil {
+				device.NamedObjects = tc.objects
+			}
+
 			assert.Equal(t, tc.want, targetHoldsLoopback(tc.target, device))
 		})
 	}
