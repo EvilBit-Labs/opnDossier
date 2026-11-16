@@ -45,12 +45,14 @@ func applySNMPListen(device *common.CommonDevice, services []exposedService) {
 // target holding a loopback address (targetHoldsLoopback). A forward to
 // loopback that cannot, such as a DNS redirect to port 53 or a transparent
 // proxy's TCP forward, leaves the agent Local. The forward's interface is not
-// read, nor whether pf runs: with <system><disablefilter> set, pf is off and no
-// forward redirects anything. Both can over-report, the safe direction.
+// read, nor whether pf runs (with <system><disablefilter> set, pf is off and no
+// forward redirects anything), nor whether the target's address family is one
+// the agent listens on, so a forward to ::1 counts for an agent bound only to
+// 127.0.0.1. Each can over-report, the safe direction.
 func forwardsToLoopback(device *common.CommonDevice) bool {
 	return slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
 		return !nat.Disabled && !nat.NoRDR && forwardCanReachSNMPPort(nat) &&
-			targetHoldsLoopback(nat.InternalIP, device.NamedObjects)
+			targetHoldsLoopback(nat.InternalIP, device)
 	})
 }
 
@@ -91,12 +93,23 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // redirects to the addresses it holds, so a target an alias defines counts when
 // a member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
-// config does not store). A name no alias defines counts too when it has the
-// shape of an alias name, since it can name such a table itself. A hostname
-// with a domain tells nothing and does not count.
-func targetHoldsLoopback(target string, objects common.NamedObjects) bool {
-	if _, defined := objects[target]; defined {
-		return aliasHoldsFirewallAddress(objects, target, loopbackAddresses)
+// config does not store). OPNsense also accepts an interface: its key for the
+// interface's network, and for wan, lan and optN the key and "ip" for its
+// address. A target that is an interface's key, or its key and "ip", counts
+// only when that interface's own address is a loopback address, as on lo0, so
+// a forward to lanip or to the lan net leaves the agent Local. A name no alias
+// or interface defines counts when it has the shape of an alias name, since it
+// can name a table the config does not store. A hostname with a domain tells
+// nothing and does not count.
+func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
+	if _, defined := device.NamedObjects[target]; defined {
+		return aliasHoldsFirewallAddress(device.NamedObjects, target, loopbackAddresses)
+	}
+
+	for _, iface := range device.Interfaces {
+		if target == iface.Name || target == iface.Name+"ip" {
+			return isLoopbackEntry(iface.IPAddress) || isLoopbackEntry(iface.IPv6Address)
+		}
 	}
 
 	return holdsFirewallAddress(target, loopbackAddresses) || aliasNamePattern.MatchString(target)
