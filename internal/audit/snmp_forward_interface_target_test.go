@@ -123,10 +123,12 @@ func TestSNMPAgent_ForwardToInterfaceTarget(t *testing.T) {
 // TestTargetHoldsLoopback_InterfaceTargets checks how a forward's target that
 // names an interface is read. It counts only when the interface's own IPv4 or
 // IPv6 address is a loopback address, whatever the place of the interface in
-// the list. An interface with a dynamic address, or none, holds no loopback. A
-// name that matches no interface exactly, including one in another case, falls
-// back to the alias-name reading and counts, as does lo0 on a config without
-// the lo0 interface. An alias named like an interface is read in place of the
+// the list. An interface with a dynamic address, or none, holds no loopback.
+// lo0ip counts beside a lo0 holding loopback, although OPNsense maps the key
+// and "ip" only for wan, lan and optN, which over-reports. A name that matches
+// no interface exactly, including one in another case, falls back to the
+// alias-name reading and counts, as does lo0 on a config without the lo0
+// interface. An alias named like an interface is read in place of the
 // interface, as OPNsense's alias map adds aliases after interfaces, so it
 // counts only when its members hold loopback, whatever the interface holds.
 func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
@@ -172,6 +174,12 @@ func TestTargetHoldsLoopback_InterfaceTargets(t *testing.T) {
 			name:       "address of an assigned loopback device",
 			target:     "opt2ip",
 			interfaces: []common.Interface{lan, loopbackDevice},
+			want:       true,
+		},
+		{
+			name:       "lo0 address, a name OPNsense does not map",
+			target:     "lo0ip",
+			interfaces: []common.Interface{lan, lo0},
 			want:       true,
 		},
 		{name: "interface name in another case", target: "LANip", interfaces: []common.Interface{lan}, want: true},

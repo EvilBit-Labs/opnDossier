@@ -42,13 +42,13 @@ func applySNMPListen(device *common.CommonDevice, services []exposedService) {
 
 // forwardsToLoopback reports whether an enabled port forward that redirects
 // traffic can redirect UDP to port 161 (forwardCanReachSNMPPort) and has a
-// target holding a loopback address (targetHoldsLoopback). A forward to
-// loopback that cannot, such as a DNS redirect to port 53 or a transparent
-// proxy's TCP forward, leaves the agent Local. The forward's interface is not
-// read, nor whether pf runs (with <system><disablefilter> set, pf is off and no
-// forward redirects anything), nor whether the target's address family is one
-// the agent listens on, so a forward to ::1 counts for an agent bound only to
-// 127.0.0.1. Each can over-report, the safe direction.
+// target that is, spans or may hold a loopback address (targetHoldsLoopback).
+// A forward to loopback that cannot, such as a DNS redirect to port 53 or a
+// transparent proxy's TCP forward, leaves the agent Local. The forward's
+// interface is not read, nor whether pf runs (with <system><disablefilter> set,
+// pf is off and no forward redirects anything), nor whether the target's address
+// family is one the agent listens on, so a forward to ::1 counts for an agent
+// bound only to 127.0.0.1. Each can over-report, the safe direction.
 func forwardsToLoopback(device *common.CommonDevice) bool {
 	return slices.ContainsFunc(device.NAT.InboundRules, func(nat common.InboundNATRule) bool {
 		return !nat.Disabled && !nat.NoRDR && forwardCanReachSNMPPort(nat) &&
@@ -99,10 +99,13 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // interface's network, and for wan, lan and optN the key and "ip" for its
 // address. A target that is an interface's key, or its key and "ip", counts
 // only when that interface's own address is a loopback address, as on lo0, so
-// a forward to lanip or to the lan net leaves the agent Local. A name no alias
-// or interface defines counts when it has the shape of an alias name, since it
-// can name a table the config does not store. A hostname with a domain tells
-// nothing and does not count.
+// a forward to lanip or to the lan net leaves the agent Local. The key and "ip"
+// is matched for every interface, so lo0ip counts beside a lo0 that holds
+// loopback, although OPNsense maps that form only for wan, lan and optN and
+// disables a forward to any other such name as an invalid target: the wider
+// match can only over-report. A name no alias or interface defines counts when
+// it has the shape of an alias name, since it can name a table the config does
+// not store. A hostname with a domain tells nothing and does not count.
 func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 	if target == "(self)" {
 		return true
