@@ -1962,6 +1962,10 @@ func (o *OpnSenseDocument) NATSummary() NATSummary
     document's System and Nat fields, providing a consolidated view for security
     analysis.
 
+    ReflectionDisabled reports the global <system><disablenatreflection> setting
+    only; a port forward can turn reflection back on with its own setting.
+    For the effective state use the converted device's NATSummary in pkg/model.
+
 func (o *OpnSenseDocument) NetworkConfig() NetworkConfig
     NetworkConfig returns the network configuration grouped by functionality.
 

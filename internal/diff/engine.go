@@ -136,7 +136,8 @@ func (e *Engine) compareSection(section Section) []Change {
 	case SectionFirewall:
 		return e.analyzer.CompareFirewallRules(e.oldConfig.FirewallRules, e.newConfig.FirewallRules)
 	case SectionNAT:
-		return e.analyzer.CompareNAT(e.oldConfig.NAT, e.newConfig.NAT)
+		return append(e.analyzer.CompareNAT(e.oldConfig.NAT, e.newConfig.NAT),
+			compareGlobalNATReflection(&e.oldConfig.System, &e.newConfig.System)...)
 	case SectionInterfaces:
 		return e.analyzer.CompareInterfaces(e.oldConfig.Interfaces, e.newConfig.Interfaces)
 	case SectionVLANs:
