@@ -201,7 +201,7 @@ func populateSystemStats(stats *common.Statistics, cfg *common.CommonDevice) {
 }
 
 func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice) {
-	blockPrivate, blockBogons := wanBlockingFlags(cfg.Interfaces)
+	blockPrivate, blockBogons := wanBlockingFlags(cfg)
 	if blockPrivate {
 		stats.SecurityFeatures = append(stats.SecurityFeatures, "Block Private Networks")
 	}
@@ -216,34 +216,34 @@ func populateSecurityFeatures(stats *common.Statistics, cfg *common.CommonDevice
 	}
 }
 
-// wanBlockingFlags reports whether ANY WAN-reachable interface has
-// BlockPrivate/BlockBogons enabled, respectively. Using the canonical
+// wanBlockingFlags reports whether every WAN-reachable interface has
+// BlockPrivate/BlockBogons enabled, respectively, and false for both when the
+// device has no WAN interface. It asks what FIREWALL-029 and FIREWALL-030 ask,
+// so the features list never claims a protection those controls fail on: one
+// uplink that blocks does not cover another that does not. Using the canonical
 // reachability helper (rather than a single exact-name lookup) means
-// multi-WAN configurations (e.g. "wan2") are no longer silently dropped from
-// SecurityFeatures. Each flag is a single boolean across all WAN interfaces
-// so a device with multiple WAN interfaces does not emit duplicate feature
+// multi-WAN configurations (e.g. "wan2", or a second uplink on an optN key)
+// are all checked. Each flag is a single boolean across all WAN interfaces so
+// a device with multiple WAN interfaces does not emit duplicate feature
 // strings.
 //
 //nolint:gocritic // unnamedResult retained; project-wide nonamedreturns disables the typical fix.
-func wanBlockingFlags(ifaces []common.Interface) (bool, bool) {
-	blockPrivate := false
-	blockBogons := false
+func wanBlockingFlags(cfg *common.CommonDevice) (bool, bool) {
+	foundWAN := false
+	blockPrivate := true
+	blockBogons := true
 
-	for _, iface := range ifaces {
-		if InterfaceReachability(iface) != WANReachable {
+	for _, iface := range cfg.Interfaces {
+		if InterfaceReachability(iface, cfg) != WANReachable {
 			continue
 		}
 
-		if iface.BlockPrivate {
-			blockPrivate = true
-		}
-
-		if iface.BlockBogons {
-			blockBogons = true
-		}
+		foundWAN = true
+		blockPrivate = blockPrivate && iface.BlockPrivate
+		blockBogons = blockBogons && iface.BlockBogons
 	}
 
-	return blockPrivate, blockBogons
+	return foundWAN && blockPrivate, foundWAN && blockBogons
 }
 
 // sortStatisticsLists enforces deterministic ordering on every slice-typed
