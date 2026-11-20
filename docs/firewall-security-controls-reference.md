@@ -461,6 +461,8 @@ The following controls are planned for future releases, organized by security do
 
 **Note:** Configuration inventory controls use `Type: "inventory"` and are excluded from compliance evaluation. They are rendered in a separate "Configuration Notes" section of audit reports and do not affect pass/fail compliance status.
 
+FIREWALL-063 counts enabled network interfaces only. Loopback devices, interface groups and the VPN pseudo-interfaces OPNsense registers (the OpenVPN and WireGuard groups, enc0) are not counted, the same rule SANS-FW-003 applies to zones.
+
 ## References
 
 - General network security best practices
