@@ -423,6 +423,17 @@ analysis:
           severity: high
           description: Rule 2 allows any source to pass traffic on WAN interface
           recommendation: Restrict source networks or add specific destination restrictions
+    shadowedRules:
+        - kind: full
+          impactClass: security
+          severity: high
+          confidence: low
+          ruleIndex: 0
+          shadowedByIndex: 1
+          interface: wan
+          direction: in
+          description: (unconfirmed, unreadable port value) Rule 1 (block) on interface wan (in) is fully shadowed by rule 2 (pass); the block rule never takes effect for the overlapping traffic under pf evaluation order. A port in this overlap is a value the analysis cannot read, such as a service name it does not know, so the shadow could not be confirmed with certainty.
+          recommendation: Check which port the unreadable value stands for, or write it as a number, to confirm whether this deny rule is bypassed; reorder or narrow the covering pass rule if confirmed.
 securityAssessment:
     overallScore: 75
     securityFeatures:
