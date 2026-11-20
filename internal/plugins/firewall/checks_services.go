@@ -61,20 +61,30 @@ func (fp *Plugin) checkNATReflectionDisabled(device *common.CommonDevice) checkR
 // EvaluatedControlIDs cleanup; control remains in controls.go so the report
 // labels it UNCONFIRMED.
 
-// checkDNSSECValidation checks that DNSSEC validation is enabled on the
-// Unbound DNS resolver. DNSSEC prevents DNS spoofing by cryptographically
-// verifying responses.
+// checkDNSSECValidation checks that DNSSEC validation is enabled on the DNS
+// resolver. DNSSEC prevents DNS spoofing by cryptographically verifying
+// responses.
+//
+// The resolver is Unbound when it is enabled. Otherwise it is dnsmasq when
+// dnsmasq answers DNS on port 53: an empty port means 53, and any other port,
+// 0 among them, leaves clients of the firewall without it (Dnsmasq.php sets
+// the effective port to 53 only when <port> is empty).
 func (fp *Plugin) checkDNSSECValidation(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	if !device.DNS.Unbound.Enabled {
-		// Unbound not enabled; DNSSEC cannot be validated.
-		return checkResult{Result: false, Known: true}
+	if device.DNS.Unbound.Enabled {
+		return checkResult{Result: device.DNS.Unbound.DNSSEC, Known: true}
 	}
 
-	return checkResult{Result: device.DNS.Unbound.DNSSEC, Known: true}
+	dnsmasq := device.DNS.DNSMasq
+	if dnsmasq.Enabled && (dnsmasq.Port == "" || dnsmasq.Port == "53") {
+		return checkResult{Result: dnsmasq.DNSSEC, Known: true}
+	}
+
+	// No resolver answers on the standard port; DNSSEC cannot be validated.
+	return checkResult{Result: false, Known: true}
 }
 
 // FIREWALL-059 (checkDNSResolverAccessRestriction) and FIREWALL-060

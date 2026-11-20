@@ -459,7 +459,7 @@ func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 	}
 
 	// Check for DHCP server on interfaces that might not need it
-	dhcpCount := len(device.DHCP)
+	dhcpCount := enabledDHCPScopes(device.DHCP)
 	if dhcpCount > 0 {
 		// Multiple DHCP interfaces might indicate unnecessary services
 		if dhcpCount > MaxDHCPInterfaces {
@@ -581,4 +581,21 @@ var broadNetworks = []string{
 	"172.16.0.0/12",      // Large private network
 	"192.168.0.0/16",     // Large private network
 	constants.NetworkAny, // Any network
+}
+
+// enabledDHCPScopes counts the DHCP scopes toward the limit. Every ISC and Kea
+// scope counts, as it always has. A dnsmasq scope counts only while dnsmasq
+// serves it: its ranges stay in the config when dnsmasq is turned off or
+// stops serving DHCP on the interface, and the 26.7.9 factory default keeps
+// them beside whichever server the operator picks.
+func enabledDHCPScopes(scopes []common.DHCPScope) int {
+	count := 0
+	for _, scope := range scopes {
+		if scope.Source == common.DHCPSourceDnsmasq && !scope.Enabled {
+			continue
+		}
+		count++
+	}
+
+	return count
 }

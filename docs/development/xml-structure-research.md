@@ -66,6 +66,8 @@ Element existing = true, absent = false. Content is irrelevant.
 
 **pfSense presence-based enable note:** pfSense correctly parses `Interface` and `DhcpdInterface` `<enable/>` elements as presence-based using BoolFlag types. The public API converts to string `"1"` for backward compatibility.
 
+**OPNsense dnsmasq `<dnssec>` note:** The element changed reading when the Dnsmasq MVC model arrived in 25.1.2. The legacy page tested it with `isset()`, so any `<dnssec>` element turned DNSSEC on; the model's template turns it on only for the value `1`. `DNSMasq.Dnssec` is a `*string`, and the converter reads presence when `<dnsmasq>` has no `version` attribute and the value `1` when it has one.
+
 ### 1b. Value-Based Booleans
 
 Element contains `1`, `yes`, or a specific value. Absent or empty = false.

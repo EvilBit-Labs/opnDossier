@@ -241,6 +241,7 @@ func (c *converter) convertKeaDHCPScopes(doc *schema.OpnSenseDocument) []common.
 
 		scope := common.DHCPScope{
 			Source:      common.DHCPSourceKea,
+			Subnet:      strings.TrimSpace(sub.Subnet),
 			Enabled:     enabled,
 			Description: sub.Description,
 		}
