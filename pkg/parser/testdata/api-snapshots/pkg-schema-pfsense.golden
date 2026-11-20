@@ -816,6 +816,11 @@ type WebGUI struct {
 	WebGUICSS         string            `xml:"webguicss,omitempty"         json:"webguiCss,omitempty"        yaml:"webguiCss,omitempty"`
 	LoginCSS          string            `xml:"logincss,omitempty"          json:"loginCss,omitempty"         yaml:"loginCss,omitempty"`
 	AltHostnames      string            `xml:"althostnames,omitempty"      json:"altHostnames,omitempty"     yaml:"altHostnames,omitempty"`
+
+	// NoDNSRebindCheck is "Disable DNS Rebinding Checks". pfSense tests it with
+	// config_path_enabled(), which is presence, so it is a pointer: Unbound
+	// then gets no private-address lines and dnsmasq no --stop-dns-rebind.
+	NoDNSRebindCheck *string `xml:"nodnsrebindcheck,omitempty" json:"noDnsRebindCheck,omitempty" yaml:"noDnsRebindCheck,omitempty"`
 }
     WebGUI represents the pfSense WebGUI configuration. It extends the OPNsense
     WebGUIConfig with pfSense-specific fields such as dashboard columns,

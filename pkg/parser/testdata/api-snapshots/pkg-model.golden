@@ -2845,7 +2845,9 @@ type UnboundConfig struct {
 	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	// DNSSEC enables DNSSEC validation.
 	DNSSEC bool `json:"dnssec,omitempty" yaml:"dnssec,omitempty"`
-	// DNSSECStripped enables DNSSEC stripped mode.
+	// DNSSECStripped is "Harden DNSSEC Data": Unbound runs with
+	// harden-dnssec-stripped, so it refuses an answer for a signed zone that
+	// arrives with its DNSSEC records removed. It is the secure setting.
 	DNSSECStripped bool `json:"dnssecStripped,omitempty" yaml:"dnssecStripped,omitempty"`
 
 	// PrivateAddress lists CIDR prefixes or IPs supplied to Unbound's
@@ -2876,11 +2878,13 @@ type UnboundConfig struct {
 	// messages close to expiration).
 	Prefetch bool `json:"prefetch,omitempty" yaml:"prefetch,omitempty"`
 }
-    UnboundConfig contains Unbound DNS resolver configuration. The first
-    three fields (Enabled, DNSSEC, DNSSECStripped) are sourced from the
-    legacy <unbound> element. The remaining fields are sourced from the MVC
-    <OPNsense><unboundplus> element; the OPNsense-specific converter handles the
-    split.
+    UnboundConfig contains Unbound DNS resolver configuration. On OPNsense
+    the first three fields (Enabled, DNSSEC, DNSSECStripped) come from the MVC
+    <OPNsense><unboundplus> model once its migrations have moved them there
+    (DNSSECStripped from model 1.0.3, the other two from 1.0.5, OPNsense 23.7),
+    and from the legacy <unbound> element before that. The remaining fields
+    are sourced from the MVC <OPNsense><unboundplus><advanced> element;
+    the OPNsense-specific converter handles the split.
 
 type UnusedInterfaceFinding struct {
 	// InterfaceName is the name of the unused interface.
@@ -3012,6 +3016,14 @@ type WebGUI struct {
 	LoginAutocomplete bool `json:"loginAutocomplete,omitempty" yaml:"loginAutocomplete,omitempty"`
 	// MaxProcesses is the maximum number of web server processes.
 	MaxProcesses string `json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`
+
+	// NoDNSRebindCheck is set when "Disable DNS Rebinding Checks" is ticked
+	// (<system><webgui><nodnsrebindcheck>). Despite its place among the web
+	// GUI settings, both vendors also drop the DNS resolvers' rebind filtering
+	// on it: Unbound loses its private-address lines and dnsmasq its
+	// stop-dns-rebind. Named for the vendor element, so a device built without
+	// it keeps the protection.
+	NoDNSRebindCheck bool `json:"noDnsRebindCheck,omitempty" yaml:"noDnsRebindCheck,omitempty"`
 }
     WebGUI contains web GUI configuration.
 

@@ -253,7 +253,7 @@ Disable IPv6 if not required:
 
 ### Description
 
-The Unbound DNS resolver should have a non-empty `private-address` list configured. This blocks DNS responses that resolve public domain names to private IP ranges, mitigating DNS rebinding attacks against internal services.
+DNS rebind checks should stay enabled, and the Unbound DNS resolver should have a non-empty `private-address` list configured. This blocks DNS responses that resolve public domain names to private IP ranges, mitigating DNS rebinding attacks against internal services.
 
 ### Rationale
 
@@ -261,24 +261,25 @@ DNS rebinding attacks exploit browser same-origin policy by resolving a public d
 
 ### What opnDossier Checks
 
-opnDossier parses the OPNsense Unbound MVC configuration from `<OPNsense><unboundplus><advanced>` and extracts the `<privateaddress>` field (CIDR ranges or bare IPs). Each entry is validated via `netip.ParsePrefix`/`netip.ParseAddr`; invalid entries are dropped with a conversion warning.
+opnDossier reads `<system><webgui><nodnsrebindcheck>` ("Disable DNS Rebinding Checks") on both OPNsense and pfSense. Both vendors test it for presence, and when it is set they write no `private-address` lines for Unbound and drop dnsmasq's `stop-dns-rebind`, whatever the private-address list holds. opnDossier also parses the OPNsense Unbound MVC configuration from `<OPNsense><unboundplus><advanced>` and extracts the `<privateaddress>` field (CIDR ranges or bare IPs). Each entry is validated via `netip.ParsePrefix`/`netip.ParseAddr`; invalid entries are dropped with a conversion warning.
 
 The check evaluates whether DNS rebind protection is configured:
 
-- **Pass**: Unbound is enabled AND the MVC `<privateaddress>` element was configured AND the list contains at least one valid entry.
-- **Fail**: Unbound is enabled AND the MVC `<privateaddress>` element was configured, but the list is empty (operator explicitly cleared it, or every entry failed CIDR/IP validation).
-- **Unknown**: Any of (a) Unbound is disabled — the install may be using DNSMasq, which has its own rebind-protection mechanism; (b) the MVC `<privateaddress>` element was never configured — common on older installs or minimal setups that have not touched the Unbound advanced block.
+- **Pass**: rebind checks are not disabled AND Unbound is enabled AND the MVC `<privateaddress>` element was configured AND the list contains at least one valid entry.
+- **Fail**: rebind checks are disabled while Unbound or dnsmasq is enabled; or Unbound is enabled AND the MVC `<privateaddress>` element was configured, but the list is empty (operator explicitly cleared it, or every entry failed CIDR/IP validation).
+- **Unknown**: Any of (a) neither resolver is enabled while rebind checks are disabled; (b) Unbound is disabled, and the install may be using DNSMasq, which has its own rebind-protection mechanism; (c) the MVC `<privateaddress>` element was never configured, which is common on older installs, on pfSense, or on minimal setups that have not touched the Unbound advanced block.
 
-A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal/plugins/firewall/firewall.go`) — i.e., when Unbound is active AND the element was configured AND the resulting list is empty.
+A finding is emitted when the check fails (`cr.Known && !cr.Result` in `internal/plugins/firewall/firewall.go`).
 
 ### Recommended Action
 
 Enable DNS rebind protection:
 
-1. Navigate to **Services > Unbound DNS > Advanced**
-2. Populate the **Private networks** list with the CIDR ranges that should never appear in public DNS responses (commonly `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and any internal public allocations)
-3. Save and apply changes
-4. Verify the behaviour by resolving a test hostname that would rebind to a private address — Unbound should refuse to return it
+1. Untick **Disable DNS Rebinding Checks** under **System > Settings > Administration** (OPNsense) or **System > Advanced > Admin Access** (pfSense)
+2. Navigate to **Services > Unbound DNS > Advanced**
+3. Populate the **Private networks** list with the CIDR ranges that should never appear in public DNS responses (commonly `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, and any internal public allocations)
+4. Save and apply changes
+5. Verify the behavior by resolving a test hostname that would rebind to a private address: Unbound should refuse to return it
 
 ---
 

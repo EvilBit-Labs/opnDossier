@@ -12,6 +12,12 @@ type WebGUIConfig struct {
 	SSLCertRef        string   `xml:"ssl-certref,omitempty"       json:"sslCertRef,omitempty"   yaml:"sslCertRef,omitempty"`
 	LoginAutocomplete BoolFlag `xml:"loginautocomplete,omitempty" json:"loginAutocomplete"      yaml:"loginAutocomplete,omitempty"`
 	MaxProcesses      string   `xml:"max_procs,omitempty"         json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`
+
+	// NoDNSRebindCheck is "Disable DNS Rebinding Checks". OPNsense tests it
+	// with isset(), so it is a pointer and any present element counts
+	// (GOTCHAS 3.2): Unbound then gets no private-address lines and dnsmasq
+	// no stop-dns-rebind.
+	NoDNSRebindCheck *string `xml:"nodnsrebindcheck,omitempty" json:"noDnsRebindCheck,omitempty" yaml:"noDnsRebindCheck,omitempty"`
 }
 
 // SSHConfig represents the SSH daemon configuration, including whether it is enabled,

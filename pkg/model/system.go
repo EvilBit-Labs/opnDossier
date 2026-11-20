@@ -95,6 +95,14 @@ type WebGUI struct {
 	LoginAutocomplete bool `json:"loginAutocomplete,omitempty" yaml:"loginAutocomplete,omitempty"`
 	// MaxProcesses is the maximum number of web server processes.
 	MaxProcesses string `json:"maxProcesses,omitempty" yaml:"maxProcesses,omitempty"`
+
+	// NoDNSRebindCheck is set when "Disable DNS Rebinding Checks" is ticked
+	// (<system><webgui><nodnsrebindcheck>). Despite its place among the web
+	// GUI settings, both vendors also drop the DNS resolvers' rebind filtering
+	// on it: Unbound loses its private-address lines and dnsmasq its
+	// stop-dns-rebind. Named for the vendor element, so a device built without
+	// it keeps the protection.
+	NoDNSRebindCheck bool `json:"noDnsRebindCheck,omitempty" yaml:"noDnsRebindCheck,omitempty"`
 }
 
 // SSH contains SSH service configuration.
