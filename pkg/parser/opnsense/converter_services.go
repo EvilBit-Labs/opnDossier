@@ -805,34 +805,6 @@ func mapsToDevice(list string, doc *schema.OpnSenseDocument) bool {
 	})
 }
 
-// convertSyslog maps doc.Syslog to common.SyslogConfig.
-func (c *converter) convertSyslog(doc *schema.OpnSenseDocument) common.SyslogConfig {
-	sl := doc.Syslog
-
-	return common.SyslogConfig{
-		Enabled:           bool(sl.Enable),
-		SystemLogging:     bool(sl.System),
-		AuthLogging:       bool(sl.Auth),
-		FilterLogging:     bool(sl.Filter),
-		DHCPLogging:       bool(sl.Dhcp),
-		VPNLogging:        bool(sl.VPN),
-		PortalAuthLogging: bool(sl.Portalauth),
-		DPingerLogging:    bool(sl.DPinger),
-		HostapdLogging:    bool(sl.Hostapd),
-		ResolverLogging:   bool(sl.Resolver),
-		PPPLogging:        bool(sl.PPP),
-		IGMPProxyLogging:  bool(sl.IgmpProxy),
-		RemoteServer:      sl.Remoteserver,
-		RemoteServer2:     sl.Remoteserver2,
-		RemoteServer3:     sl.Remoteserver3,
-		SourceIP:          sl.Sourceip,
-		IPProtocol:        sl.IPProtocol,
-		LogFileSize:       sl.LogFilesize,
-		RotateCount:       sl.RotateCount,
-		Format:            sl.Format,
-	}
-}
-
 // convertUsers maps doc.System.User to []common.User.
 func (c *converter) convertUsers(doc *schema.OpnSenseDocument) []common.User {
 	if len(doc.System.User) == 0 {

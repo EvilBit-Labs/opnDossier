@@ -333,6 +333,10 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | Monit.General | HttpdEnabled | `string` | MVC field, value-based                      |
 | Monit.Alert   | Enabled      | `string` | MVC field, value-based                      |
 | MonitService  | Enabled      | `string` | MVC field, value-based                      |
+| Syslog        | PreserveLogs | `string` | Daily archives kept, 20.7 to 24.1           |
+| Syslog        | MaxFileSize  | `string` | MB; 24.1, then the model's maxfilesize      |
+| Syslog        | DisableClog  | `string` | empty() and helpers.empty: 0 reads unset    |
+| Syslog        | LogAll       | `string` | 19.7 helpers.empty: 0 reads unset           |
 
 ### 5c. OPNsense module (opnsense.go) — value-based, kept as string
 
@@ -353,6 +357,9 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 | UnboundPlus.Dnsbl      | Safesearch          | `string` | MVC field, value-based |
 | UnboundPlus.Forwarding | Enabled             | `string` | MVC field, value-based |
 | SyslogInternal.General | Enabled             | `string` | MVC field, value-based |
+| SyslogDestination      | Enabled             | `string` | MVC field, value-based |
+| SyslogDestination      | RFC5424             | `string` | MVC field, value-based |
+| SyslogDestination      | Suppress            | `string` | MVC field, value-based |
 | Netflow.Capture        | EgressOnly          | `string` | MVC field, value-based |
 | Netflow.Collect        | Enable              | `string` | MVC field, value-based |
 | Interfaces.Settings    | DisableIPv6         | `string` | MVC field, inverted    |
@@ -472,6 +479,8 @@ Port forwards are the exception to the split: the 26.1 Destination NAT model is 
 Gateways use a chosen store, not a merge. OPNsense 24.1 migration `M1_0_0` copies `<gateways><gateway_item>` into `<OPNsense><Gateways>` and, once one is stored, deletes the originals. OPNsense then reads the model when it holds a gateway and `<gateways>` otherwise, and the converter does the same (GOTCHAS §3.7). A `<gateway_item>` with no child element does not count in either store, as on current releases (OPNsense 24.1 to 24.1.2 still loaded one under `<gateways>`), and one with any child element does, whatever the child holds (GOTCHAS §3.4). The model keeps its items by the `uuid` attribute, bound on `GatewayModelItem`, so of two items with one uuid it holds the later, at the place of the earlier. An item with no attribute gets a fresh uuid on every release. An empty uuid or `0` gets a fresh one from 25.7 and is the key as it stands through 25.1.12, where two such items collide. The model version does not tell those releases apart, so the converter keeps both items with a warning. `GatewayModelItem.UUID` is a `*string` to keep absent apart from empty. Gateway groups stay under `<gateways>`.
 
 The model writes its flags as `0` or `1` where the 23.7 page wrote `1` or left the element out. From 24.1 `defaultgw` and `monitor_disable` read with `!empty()` in both stores. `monitor_disable` is a `*string` because an absent element means `1` in the model and `0` under `<gateways>`. `fargw` reads with `isset()` up to 24.1.7 and `!empty()` from 24.1.8. From 24.1 `disabled` reads with `!empty()` in both stores too. In the model it is a `*string` on `GatewayModelItem`, read the same way; under `<gateways>` it stays a `BoolFlag`, on a type pfSense shares.
+
+Remote logging uses a chosen store as well. From 20.1 OPNsense forwards only to `<OPNsense><Syslog><destinations>`; 19.7 also read the remote keys under `<syslog>`, and no migration removes them. The converter reads the destinations whenever the config carries the model, and the legacy keys, as written, only when it does not, warning when it ignores a legacy server. Retention follows the model version: the legacy keys up to 1.0.1, which the converter reads with the defaults the release applies, and `<general>` from 1.0.2, which migration `M1_0_2` fills from them. Local logging gates it: `<syslog><disablelocallogging>`, bound as a `*string`, tested with `isset()` up to 21.7 and, for model 1.0.1 (22.1 to 24.1), with `helpers.empty` in `syslog-ng-local.conf`, which reads an empty element and `0` as unset; and `<general><loglocal>` from 1.0.2. Without the model the release is unknown, since a config of any release lacks the node until something saves it, so no default is filled in.
 
 ---
 

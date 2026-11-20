@@ -559,9 +559,11 @@ func (sp *Plugin) hasDoSPreventionFilters(device *common.CommonDevice) bool {
 	return false
 }
 
-// hasSyslogEnabled checks whether syslog is enabled with remote forwarding configured.
+// hasSyslogEnabled checks whether firewall traffic logs are forwarded to a
+// remote server. V-206678 to V-206681 ask what the traffic log records, so a
+// destination that drops filter events does not satisfy them.
 func (sp *Plugin) hasSyslogEnabled(device *common.CommonDevice) bool {
-	return device.Syslog.Enabled && device.Syslog.RemoteServer != ""
+	return device.Syslog.Enabled && device.Syslog.RemoteServer != "" && device.Syslog.FilterLogging
 }
 
 // hasDoSAlerting checks whether IDS/IPS is enabled, which provides DoS detection capability.
