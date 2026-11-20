@@ -52,6 +52,13 @@ func CalculateSecurityScore(data *common.CommonDevice) int {
 		score -= managementOnWANPenalty
 	}
 
+	// With packet filtering disabled no rule is loaded and every management
+	// service is reachable from the WAN, so both penalties above apply in full,
+	// counted once whatever the rules say.
+	if data.System.PacketFilterDisabled {
+		score = min(score, initialSecurityScore-firewallMissingPenalty-managementOnWANPenalty)
+	}
+
 	securityTunables := map[string]string{
 		"net.inet.ip.forwarding":   "0",
 		"net.inet6.ip6.forwarding": "0",

@@ -27,6 +27,8 @@ Each firewall compliance check returns one of three states:
 | FIREWALL-007 | DNS Rebind Protection            | DNS Security          | Medium   | Implemented |
 | FIREWALL-008 | HTTPS Web Management             | Management Access     | High     | Implemented |
 
+With `<system><disablefilter>` ("Disable all packet filtering") set, FIREWALL-022, -023, -024, -027, -028, -029, -030, -032 and -041 are reported Non-Compliant with a "Packet Filtering Disabled" finding, whatever the configured rules say, because the firewall then enforces none of them. See [Compliance Standards](compliance-standards.md#packet-filtering-disabled).
+
 ---
 
 ## FIREWALL-001: SSH Warning Banner Configuration

@@ -292,6 +292,10 @@ func DetectSecurityIssues(cfg *common.CommonDevice) []common.SecurityFinding {
 
 	var findings []common.SecurityFinding
 
+	if cfg.System.PacketFilterDisabled {
+		findings = append(findings, packetFilterDisabledFinding())
+	}
+
 	if cfg.System.WebGUI.Protocol != "" && cfg.System.WebGUI.Protocol != constants.ProtocolHTTPS {
 		findings = append(findings, common.SecurityFinding{
 			Component:      "system.webgui.protocol",

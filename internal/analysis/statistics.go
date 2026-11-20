@@ -30,6 +30,7 @@ func ComputeStatistics(cfg *common.CommonDevice) *common.Statistics {
 	populateServiceStats(stats, cfg)
 	populateSystemStats(stats, cfg)
 	populateSecurityFeatures(stats, cfg)
+	dropPacketFilterFeatures(stats, cfg)
 	sortStatisticsLists(stats)
 	finalizeStatisticsSummary(stats, cfg)
 
@@ -298,8 +299,9 @@ func ComputeSecurityScore(cfg *common.CommonDevice, stats *common.Statistics) in
 	// Security features contribute to score
 	score += len(stats.SecurityFeatures) * constants.SecurityFeatureMultiplier
 
-	// Firewall rules indicate active security configuration
-	if stats.TotalFirewallRules > 0 {
+	// Firewall rules indicate active security configuration, but only while
+	// pf loads them.
+	if stats.TotalFirewallRules > 0 && !cfg.System.PacketFilterDisabled {
 		score += 20
 	}
 

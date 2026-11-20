@@ -60,6 +60,8 @@ The security score provides a 0-100 rating based on configuration analysis. Ever
 | Insecure Sysctl Settings | -5 each  | Kernel tunables control low-level network behavior. Misconfigured tunables can allow IP spoofing, enable packet forwarding when it should be disabled, or make the firewall respond to port scans.                                       |
 | Default User Accounts    | -15 each | Default accounts (`admin`, `root`, `user`) with unchanged names are predictable targets for brute-force attacks. Renaming or removing default accounts is a basic hardening step.                                                        |
 
+With packet filtering disabled the firewall loads no rule and every service is reachable from the WAN, so the No Firewall Rules and Management on WAN penalties apply in full, counted once: the score before the sysctl and user penalties is at most 50.
+
 ### Interpreting the Score
 
 | Score Range | General Assessment                                        |

@@ -53,6 +53,8 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<nottagged/>`              | `<rule>` (filter)                            | Match packets NOT tagged                                                                                                                                 |
 | `<trigger_initial_wizard/>` | `<opnsense>` (root)                          | First-boot wizard trigger                                                                                                                                |
 | `<ipv6allow/>`              | `<system>`                                   | `isset($config['system']['ipv6allow'])`, before 26.1                                                                                                     |
+| `<disablefilter/>`          | `<system>` (both vendors)                    | `isset($config['system']['disablefilter'])` in filter.inc turns pf off; the OPNsense page writes `enabled`                                               |
+| `<noantilockout/>`          | `<system><webgui>` (both vendors)            | `isset($config['system']['webgui']['noantilockout'])` in filter.lib.inc (OPNsense), `config_path_enabled` in filter.inc (pfSense)                        |
 | `<enable/>`                 | `<interfaces><wan>`                          | Interface enabled (pfSense uses BoolFlag)                                                                                                                |
 | `<enable/>`                 | `<dhcpd><lan>`                               | DHCP scope enabled (pfSense uses BoolFlag)                                                                                                               |
 

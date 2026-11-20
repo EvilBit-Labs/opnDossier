@@ -39,20 +39,20 @@ STIGs are cybersecurity methodologies for standardizing security configuration w
 
 The [SANS SCORE Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf) (prepared by Krishni Naidu) is a practical security audit checklist containing 24 numbered security elements for firewall configuration and management. It covers ruleset management, application-layer controls, logging, patching, DMZ architecture, anti-spoofing, port security, remote access, traffic filtering, and availability.
 
-The current SANS plugin defines 4 controls with placeholder check logic. The checklist has been fully analyzed and 16 additional controls are planned for implementation, covering the complete SANS checklist.
+The SANS plugin defines SANS-FW-001 to SANS-FW-025. The four controls in the table below were implemented first; the sections after it map the rest of the checklist. Some controls, such as SANS-FW-010 and SANS-FW-011, cannot be decided from config.xml and report Unknown.
 
 #### Implemented SANS Controls
 
 | Control ID  | SANS # | Category               | Title                       | Severity | Status      |
 | ----------- | ------ | ---------------------- | --------------------------- | -------- | ----------- |
-| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Placeholder |
-| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
-| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Placeholder |
-| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Placeholder |
+| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Implemented |
+| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Implemented |
+| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Implemented |
+| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Implemented |
 
 #### Planned SANS Controls
 
-The following controls map to specific SANS SCORE Firewall Checklist items and are planned for implementation. "Implementability" indicates whether the control can be evaluated from config.xml data alone.
+The following sections map each remaining control to its SANS SCORE Firewall Checklist item. "Implementability" indicates whether the control can be evaluated from config.xml data alone.
 
 ##### Ruleset and Filtering (SANS Checklist #1, #2, #3)
 
@@ -137,7 +137,6 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 
 - **Implemented** - Check logic evaluates config.xml data and produces compliant/non-compliant results
 - **Unknown** - Control is defined but the required data is not available in config.xml (OS-level or model gap); the check always returns Unknown and no finding is emitted
-- **Placeholder** - Control is defined with placeholder check logic that always returns compliant; real analysis will be added in a future release
 
 #### Planned Firewall Security Controls
 
@@ -302,7 +301,7 @@ The audit engine performs the following checks per plugin:
 
 #### STIG Compliance Checks
 
-1. **Default Deny Policy (V-206694)** - Looks for explicit block/reject rules in the rule set and checks that no any/any pass rules override them. If no rules exist, assumes default deny (conservative approach).
+1. **Default Deny Policy (V-206694)** - Looks for explicit block/reject rules in the rule set and checks that no any/any pass rules override them. If no rules exist, assumes default deny (conservative approach). With packet filtering disabled it fails whatever the rules hold (see [Packet Filtering Disabled](#packet-filtering-disabled)).
 
 2. **Packet Filtering (V-206674)** - Scans pass rules for overly broad source/destination addresses (any, 0.0.0.0/0, ::/0, RFC 1918 ranges) and flags rules without specific port restrictions.
 
@@ -312,12 +311,12 @@ The audit engine performs the following checks per plugin:
 
 #### SANS Compliance Checks
 
-All four SANS checks currently use placeholder logic:
+The SANS checks look at the following:
 
-1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
-2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
-3. **Network Zone Separation (SANS-FW-003)** - Placeholder: always returns compliant
-4. **Comprehensive Logging (SANS-FW-004)** - Placeholder: always returns compliant
+1. **Default Deny Policy (SANS-FW-001)** - Looks for an enabled any-to-any pass rule with no enabled block or reject rule.
+2. **Explicit Rule Configuration (SANS-FW-002)** - Looks for enabled pass rules without a description.
+3. **Network Zone Separation (SANS-FW-003)** - Counts enabled network interfaces; at least two are required.
+4. **Comprehensive Logging (SANS-FW-004)** - Looks for remote syslog that carries filter or authentication logging.
 
 #### Firewall Security Compliance Checks
 
@@ -336,6 +335,18 @@ All four SANS checks currently use placeholder logic:
 7. **DNS Rebind Check (FIREWALL-007)** - Always returns Unknown. The CommonDevice model does not yet expose this setting (tracked in [#296](https://github.com/EvilBit-Labs/opnDossier/issues/296)).
 
 8. **HTTPS Web Management (FIREWALL-008)** - Checks `System.WebGUI.Protocol` for case-insensitive match against "https".
+
+### Packet Filtering Disabled
+
+When `<system><disablefilter>` ("Disable all packet filtering") is set, the firewall loads no rule, block option or NAT. Each plugin then reports the controls below as non-compliant with a "Packet Filtering Disabled" finding, whatever their own checks found, because a pass verdict on any of them means pf restricts, separates, inspects, logs or translates traffic. A control that already fails keeps its own finding. Every other control is evaluated as usual.
+
+| Plugin   | Controls that fail with packet filtering disabled                                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Firewall | FIREWALL-022, -023, -024, -027, -028, -029, -030, -032, -041                                                                                        |
+| SANS     | SANS-FW-001, -002, -003, -007, -009, -012, -014, -015, -017 to -022, -024; SANS-FW-016 only when the config holds an FTP port forward, else Unknown |
+| STIG     | V-206694, V-206674, V-206701, V-206682                                                                                                              |
+
+The shared engine also raises a critical "Packet Filtering Disabled" finding, which red mode reports as an exposed weakness, and red mode reports every management service as reachable from the WAN.
 
 ### Blue Team Reports
 
@@ -462,10 +473,9 @@ Additional DISA Firewall SRG controls under consideration:
 
 ### Planned Features
 
-1. **Real SANS Check Logic**: Replace placeholder stubs with actual analysis
-2. **Automated Remediation**: Generate configuration fixes
-3. **Compliance Monitoring**: Track compliance over time
-4. **Integration**: SIEM and ticketing system integration
+1. **Automated Remediation**: Generate configuration fixes
+2. **Compliance Monitoring**: Track compliance over time
+3. **Integration**: SIEM and ticketing system integration
 
 ## References
 
