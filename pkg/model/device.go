@@ -94,7 +94,9 @@ func ParseDeviceType(s string) DeviceType {
 type CommonDevice struct {
 	// DeviceType identifies the platform (OPNsense, pfSense, etc.) that produced this configuration.
 	DeviceType DeviceType `json:"device_type" yaml:"device_type"`
-	// Version is the firmware or configuration version string.
+	// Version is the config format version the vendor writes at the top level
+	// of config.xml (pfSense globals.inc latest_config), not the installed
+	// release.
 	Version string `json:"version,omitempty" yaml:"version,omitempty"`
 	// Theme is the web GUI theme name.
 	Theme string `json:"theme,omitempty" yaml:"theme,omitempty"`
