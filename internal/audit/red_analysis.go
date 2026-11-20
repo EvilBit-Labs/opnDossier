@@ -73,15 +73,31 @@ type exposedService struct {
 }
 
 // serviceExposures enumerates the in-scope management services present on the
-// device (WebGUI is always present; SSH when enabled; SNMP when a read-only
-// community is configured) and classifies each as WAN-reachable or LAN-only by
-// correlating its port against WAN-reachable rules. Local-only services are not
+// device (WebGUI is always present; SSH and SNMP when enabled) and classifies
+// each as WAN-reachable or LAN-only by correlating its port against
+// WAN-reachable rules. An os-net-snmp agent bound only to loopback, when no
+// port forward can redirect UDP port 161 to loopback, is the one
+// exception: it is Local (applySNMPListen). For any other service Local is not
 // possible here — a configured management service is at least LAN-reachable.
 func serviceExposures(device *common.CommonDevice) []exposedService {
 	if device == nil {
 		return nil
 	}
 
+	services := managementServices(device)
+
+	// The SNMP agent's bind address is applied last, after every other
+	// reachability decision: an agent bound only to loopback answers no other
+	// host, whatever the firewall passes, unless a port forward can redirect
+	// UDP port 161 to loopback (forwardsToLoopback).
+	applySNMPListen(device, services)
+
+	return services
+}
+
+// managementServices builds the list serviceExposures returns, before the SNMP
+// agent's bind address is applied.
+func managementServices(device *common.CommonDevice) []exposedService {
 	services := make([]exposedService, 0, maxManagementServices)
 
 	// WebGUI is always listening; the only question is its reachability. Both
@@ -122,17 +138,27 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 		})
 	}
 
-	if device.SNMP.ROCommunity != "" {
+	if device.SNMP.IsEnabled() {
+		// An agent with no community, such as an os-net-snmp agent that
+		// answers only SNMPv3 users, is not told to migrate to SNMPv3, and its
+		// note does not name community authentication.
+		kind := exploitKindSNMP
+		recommendation := "Restrict SNMP to management networks, migrate to SNMPv3 with authPriv, or disable SNMP if unused."
+		if device.SNMP.ROCommunity == "" {
+			kind = exploitKindSNMPNoCommunity
+			recommendation = "Restrict SNMP to management networks, or disable SNMP if unused."
+		}
+
 		services = append(services, exposedService{
-			kind:            exploitKindSNMP,
-			name:            "snmp",
+			kind:            kind,
+			name:            serviceNameSNMP,
 			displayName:     "SNMP Management Service",
 			severity:        analysis.SeverityHigh,
 			component:       "snmpd",
 			port:            portSNMP,
 			reachability:    serviceReachability(device, portSNMP),
 			description:     "The SNMP management service is reachable from a WAN interface, exposing device and topology information to untrusted networks.",
-			recommendation:  "Restrict SNMP to management networks, migrate to SNMPv3 with authPriv, or disable SNMP if unused.",
+			recommendation:  recommendation,
 			vulnerabilities: []string{"exposed-snmp"},
 		})
 	}

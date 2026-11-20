@@ -41,6 +41,8 @@ Caught by CodeRabbit on PR #695.
 
 > **Later change:** `wanRulePermitsPort` reads `device.NAT.InboundRules` again, through `forwardsToAnotherHost`, to recognize the filter rule a port forward stores for itself. The rules there can only take a pass rule out of the count, never add one, so a NAT rule is still never evidence of exposure and the invariant on this page holds. Do not remove that read as a regression of this bug. The code and comments quoted below are as they stood in #695; `GOTCHAS.md` §8.4 has the current behavior.
 
+> **Another read:** what the note above concludes holds for the read through `forwardsToAnotherHost` only. `applySNMPListen` reads `device.NAT.InboundRules` too, through `forwardsToLoopback`. An enabled forward that can redirect UDP port 161 and may target loopback (`GOTCHAS.md` section 8.4 lists the targets that count) keeps an os-net-snmp agent bound only to loopback from being set Local, since pf rewrites the destination before the packet is delivered. The forward never makes the agent reachable by itself: the agent keeps the reachability the earlier steps gave it, such as from a WAN pass rule for UDP 161. For that agent, though, the forward is what lets that rule count, so here a NAT rule does bear on whether a firewall-local service is reported as exposed. Do not remove that read as a regression of this bug either.
+
 Before, `wanRulePermitsPort` iterated both `device.FirewallRules` and `device.NAT.InboundRules`:
 
 ```go

@@ -934,15 +934,6 @@ func (c *converter) convertNTP(doc *schema.OpnSenseDocument) common.NTPConfig {
 	}
 }
 
-// convertSNMP maps doc.Snmpd to common.SNMPConfig.
-func (c *converter) convertSNMP(doc *schema.OpnSenseDocument) common.SNMPConfig {
-	return common.SNMPConfig{
-		ROCommunity: doc.Snmpd.ROCommunity,
-		SysLocation: doc.Snmpd.SysLocation,
-		SysContact:  doc.Snmpd.SysContact,
-	}
-}
-
 // convertLoadBalancer maps doc.LoadBalancer.MonitorType to common.LoadBalancerConfig.
 func (c *converter) convertLoadBalancer(doc *schema.OpnSenseDocument) common.LoadBalancerConfig {
 	monitors := doc.LoadBalancer.MonitorType

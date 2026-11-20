@@ -26,6 +26,11 @@ type Snmpd struct {
 	SysLocation string `xml:"syslocation"`
 	SysContact  string `xml:"syscontact"`
 	ROCommunity string `xml:"rocommunity"`
+
+	// Enable is nil when the element is absent. pfSense, and OPNsense up to
+	// 18.7, test it with isset(), so any <enable> element, empty or not,
+	// starts the agent (GOTCHAS 3.2).
+	Enable *string `xml:"enable,omitempty"`
 }
 
 // Rrd contains the RRDtool (Round-Robin Database) configuration for time-series data collection.
