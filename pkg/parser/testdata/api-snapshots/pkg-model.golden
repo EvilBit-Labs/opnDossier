@@ -145,7 +145,9 @@ type CertificateAuthority struct {
 type CommonDevice struct {
 	// DeviceType identifies the platform (OPNsense, pfSense, etc.) that produced this configuration.
 	DeviceType DeviceType `json:"device_type" yaml:"device_type"`
-	// Version is the firmware or configuration version string.
+	// Version is the config format version the vendor writes at the top level
+	// of config.xml (pfSense globals.inc latest_config), not the installed
+	// release.
 	Version string `json:"version,omitempty" yaml:"version,omitempty"`
 	// Theme is the web GUI theme name.
 	Theme string `json:"theme,omitempty" yaml:"theme,omitempty"`
@@ -955,7 +957,9 @@ func (t FirewallRuleType) IsValid() bool
     IsValid reports whether t is a recognized firewall rule type.
 
 type Firmware struct {
-	// Version is the firmware version string.
+	// Version is the installed firmware release. Neither parser fills it:
+	// config.xml does not record the release, and the version values it does
+	// carry are schema or config format versions.
 	Version string `json:"version,omitempty" yaml:"version,omitempty"`
 	// Mirror is the firmware update mirror URL.
 	Mirror string `json:"mirror,omitempty" yaml:"mirror,omitempty"`

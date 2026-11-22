@@ -142,6 +142,10 @@ func (c *converter) ToCommonDevice(
 	// signature. Must be set before the device literal below is evaluated.
 	c.namedObjects = namedObjects
 
+	// doc.Version is the config format version (globals.inc latest_config,
+	// such as 22.2 on 2.6.0), not the installed release, so it is kept here and
+	// not copied into System.Firmware.Version, which reports print as the
+	// platform release.
 	device := &common.CommonDevice{
 		DeviceType:    common.DeviceTypePfSense,
 		Version:       doc.Version,
@@ -177,7 +181,6 @@ func (c *converter) convertSystem(doc *pfsense.Document) common.System {
 	return common.System{
 		Hostname:                      sys.Hostname,
 		Domain:                        sys.Domain,
-		Firmware:                      common.Firmware{Version: doc.Version},
 		Optimization:                  sys.Optimization,
 		Language:                      sys.Language,
 		Timezone:                      sys.Timezone,

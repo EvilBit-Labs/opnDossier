@@ -147,22 +147,17 @@ func (sp *Plugin) checkExplicitRules(device *common.CommonDevice) checkResult {
 	return checkResult{Result: true, Known: true}
 }
 
-// checkZoneSeparation verifies the device has at least 2 enabled interfaces
-// for network zone separation.
+// checkZoneSeparation verifies the device has at least 2 enabled network
+// interfaces for network zone separation. Loopback, interface groups and the
+// other pseudo-interfaces OPNsense registers are not zones
+// (analysis.IsNetworkZone).
 func (sp *Plugin) checkZoneSeparation(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	enabledCount := 0
-	for _, iface := range device.Interfaces {
-		if iface.Enabled {
-			enabledCount++
-		}
-	}
-
 	//nolint:mnd // Zone separation requires at minimum 2 interfaces (e.g., WAN + LAN)
-	return checkResult{Result: enabledCount >= 2, Known: true}
+	return checkResult{Result: analysis.CountNetworkZones(device) >= 2, Known: true}
 }
 
 // checkComprehensiveLogging verifies syslog is enabled with at least
@@ -289,19 +284,6 @@ func (sp *Plugin) checkStatefulInspection(device *common.CommonDevice) checkResu
 	}
 
 	return checkResult{Result: true, Known: true}
-}
-
-// checkFirmwareCurrency verifies the firmware version string is present.
-// This is a PARTIAL check — it confirms version exists but cannot verify currency.
-func (sp *Plugin) checkFirmwareCurrency(device *common.CommonDevice) checkResult {
-	if device == nil {
-		return checkResult{Result: false, Known: true}
-	}
-
-	return checkResult{
-		Result: strings.TrimSpace(device.System.Firmware.Version) != "",
-		Known:  true,
-	}
 }
 
 // checkDMZConfiguration verifies a DMZ or OPT interface is configured.
