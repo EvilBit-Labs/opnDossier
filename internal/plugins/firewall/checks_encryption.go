@@ -26,15 +26,30 @@ var defaultSNMPCommunities = []string{"public", "private"}
 
 const minimumNTPServers = 2
 
-// checkValidWebGUICertificate checks that the web GUI has a TLS certificate
-// reference configured. An empty SSLCertRef means the system is using a
-// self-signed or missing certificate.
+// checkValidWebGUICertificate checks that the web GUI serves a certificate
+// that is not self-signed. One issued by an internal CA passes. A reference
+// alone proves nothing: a box that has started its GUI over https holds one
+// even when no operator assigned a certificate, pointing at the self-signed
+// certificate the firewall generated for itself. A certificate with no private key cannot be served,
+// and pfSense replaces it with a self-signed one at start. Certificate data
+// that cannot be decoded, such as truncated or placeholder data, leaves the
+// control unknown.
 func (fp *Plugin) checkValidWebGUICertificate(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	return checkResult{Result: device.System.WebGUI.SSLCertRef != "", Known: true}
+	cert, ok := webGUICertificate(device)
+	if !ok || strings.TrimSpace(cert.Certificate) == "" || strings.TrimSpace(cert.PrivateKey) == "" {
+		return checkResult{Result: false, Known: true}
+	}
+
+	parsed, err := parseStoredCertificate(cert.Certificate)
+	if err != nil {
+		return unknown
+	}
+
+	return checkResult{Result: !isSelfSigned(parsed), Known: true}
 }
 
 // FIREWALL-037 (checkCertificateExpiration) and FIREWALL-038
