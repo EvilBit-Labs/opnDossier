@@ -60,7 +60,7 @@ func (a *Analyzer) CompareNAT(old, newCfg common.NATConfig) []Change {
 			Type:        ChangeModified,
 			Section:     SectionNAT,
 			Path:        "nat.reflectionDisabled",
-			Description: "NAT reflection setting changed",
+			Description: "NAT reflection changed (global setting or a port forward override)",
 			OldValue:    strconv.FormatBool(old.ReflectionDisabled),
 			NewValue:    strconv.FormatBool(newCfg.ReflectionDisabled),
 		})

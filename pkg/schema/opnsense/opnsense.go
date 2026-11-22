@@ -307,6 +307,10 @@ func (o *OpnSenseDocument) ServiceConfig() ServiceConfig {
 
 // NATSummary returns a [NATSummary] aggregating NAT configuration from the document's
 // System and Nat fields, providing a consolidated view for security analysis.
+//
+// ReflectionDisabled reports the global <system><disablenatreflection> setting
+// only; a port forward can turn reflection back on with its own setting. For
+// the effective state use the converted device's NATSummary in pkg/model.
 func (o *OpnSenseDocument) NATSummary() NATSummary {
 	// Initialize with safe defaults
 	summary := NATSummary{
