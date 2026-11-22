@@ -735,5 +735,5 @@ func TestParser_LegacyPortForwardsFixture_TypelessCompanionIsPass(t *testing.T) 
 	require.NotNil(t, companion)
 	assert.Equal(t, common.RuleTypePass, companion.Type)
 	assert.Equal(t, analysis.WANReachable, analysis.InboundNATRuleReachability(
-		device.NAT.InboundRules[0], device.Interfaces, device.FirewallRules))
+		device.NAT.InboundRules[0], device))
 }
