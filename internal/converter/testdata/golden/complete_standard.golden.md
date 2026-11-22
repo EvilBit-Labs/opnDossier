@@ -170,7 +170,7 @@
 #### NAT Summary
 **NAT Mode**: automatic
   
-**NAT Reflection**: ✗
+**NAT Reflection Disabled (global and port forwards)**: ✗
   
 **Port Forward State Sharing**: ✗
   
