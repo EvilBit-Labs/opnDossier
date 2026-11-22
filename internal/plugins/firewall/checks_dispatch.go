@@ -295,10 +295,13 @@ func (fp *Plugin) newChecksTable() []newCheckEntry {
 			component:      "nat-config", tags: []string{"nat-security", "outbound-nat", "firewall-controls"},
 		},
 		{
-			controlID: "FIREWALL-056", checkFn: (*Plugin).checkNATReflectionDisabled,
-			title: "NAT Reflection Enabled", description: "NAT reflection is not disabled",
-			recommendation: "Disable NAT reflection in Firewall > Settings > Advanced",
-			component:      "nat-config", tags: []string{"nat-security", "nat-reflection", "firewall-controls"},
+			controlID:      "FIREWALL-056",
+			checkFn:        (*Plugin).checkNATReflectionDisabled,
+			title:          "NAT Reflection Enabled",
+			description:    "NAT reflection is not disabled",
+			recommendation: "Disable NAT reflection in Firewall > Settings > Advanced, and set NAT reflection to Disable or the system default on each port forward that enables it",
+			component:      "nat-config",
+			tags:           []string{"nat-security", "nat-reflection", "firewall-controls"},
 		},
 		// 057: returns unknown — not in table
 		{

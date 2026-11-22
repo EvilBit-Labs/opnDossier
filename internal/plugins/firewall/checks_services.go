@@ -48,6 +48,10 @@ func (fp *Plugin) checkOutboundNATControl(device *common.CommonDevice) checkResu
 // checkNATReflectionDisabled checks that NAT reflection (hairpin NAT) is
 // disabled. NAT reflection allows internal hosts to access services via the
 // external IP, which can complicate firewall rule auditing.
+//
+// It reads NATConfig.ReflectionDisabled, which the parsers decide per port
+// forward: a forward that enables reflection fails the control even when the
+// global setting is off, since the firewall reflects it.
 func (fp *Plugin) checkNATReflectionDisabled(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: true, Known: true}
