@@ -31,7 +31,6 @@ func TestSANSPlugin_RunChecks(t *testing.T) {
 				"SANS-FW-003", // zone separation (0 enabled interfaces)
 				"SANS-FW-004", // logging not enabled
 				"SANS-FW-006", // no proxy packages
-				"SANS-FW-008", // no firmware version
 				"SANS-FW-009", // no DMZ interface
 				"SANS-FW-015", // SSH not enabled
 				"SANS-FW-019", // NAT not configured

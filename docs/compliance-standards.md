@@ -68,11 +68,11 @@ The following sections map each remaining control to its SANS SCORE Firewall Che
 
 ##### Maintenance and Compliance (SANS Checklist #5, #7, #8)
 
-| Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                   |
-| ----------- | ------ | ------------------------------- | -------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| SANS-FW-008 | 5      | Firmware Currency               | High     | Partial          | Check device firmware version against known current versions; verify update mirror uses HTTPS |
-| SANS-FW-010 | 7      | Vulnerability Testing Procedure | Medium   | Advisory only    | Advisory: verify that open port testing and ruleset validation procedures are documented      |
-| SANS-FW-011 | 8      | Security Policy Compliance      | High     | Advisory only    | Advisory: verify ruleset compliance with organizational security policy                       |
+| Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                        |
+| ----------- | ------ | ------------------------------- | -------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| SANS-FW-008 | 5      | Firmware Currency               | High     | Advisory only    | Advisory: config.xml does not record the installed release; verify firmware currency on the device |
+| SANS-FW-010 | 7      | Vulnerability Testing Procedure | Medium   | Advisory only    | Advisory: verify that open port testing and ruleset validation procedures are documented           |
+| SANS-FW-011 | 8      | Security Policy Compliance      | High     | Advisory only    | Advisory: verify ruleset compliance with organizational security policy                            |
 
 ##### Anti-Spoofing and Traffic Validation (SANS Checklist #9, #10, #18)
 
@@ -436,7 +436,7 @@ FIREWALL-018 (least privilege), FIREWALL-054-056 (NAT controls), FIREWALL-032 (V
 
 Controls requiring deeper algorithmic analysis or external data:
 
-SANS-FW-008 (firmware version comparison), FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filtering)
+FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filtering)
 
 ## Benefits
 
