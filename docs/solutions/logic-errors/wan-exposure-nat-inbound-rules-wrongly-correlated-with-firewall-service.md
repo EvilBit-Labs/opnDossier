@@ -39,14 +39,14 @@ Caught by CodeRabbit on PR #695.
 
 ## Solution
 
-> **Later change:** `wanRulePermitsPort` reads `device.NAT.InboundRules` again, through `forwardsToAnotherHost`, to recognize the filter rule a port forward stores for itself. The rules there can only take a pass rule out of the count, never add one, so a NAT rule is still never evidence of exposure and the invariant on this page holds. Do not remove that read as a regression of this bug. The code and comments quoted below are as they stood in #695; `GOTCHAS.md` §8.4 has the current behavior.
+> **Later change:** `wanRulePermitsPort` reads `device.NAT.InboundRules` again, through `forwardsToAnotherHost`, to recognize the filter rule a port forward stores for itself. The rules there can only take a pass rule out of the count, never add one, so a NAT rule is still never evidence of exposure and the invariant on this page holds. Do not remove that read as a regression of this bug. The code and comments quoted below are as they stood in #695, except that the reachability calls are shown with their current signatures: `RuleReachability` and `InboundNATRuleReachability` now take the device, so they can read interface groups and gateways. `GOTCHAS.md` §8.4 has the current behavior.
 
 Before, `wanRulePermitsPort` iterated both `device.FirewallRules` and `device.NAT.InboundRules`:
 
 ```go
 // (removed) second loop previously in wanRulePermitsPort:
 for _, nat := range device.NAT.InboundRules {
-    if analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
+    if analysis.InboundNATRuleReachability(nat, device) != analysis.WANReachable {
         continue
     }
 
@@ -73,7 +73,7 @@ func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
    continue
   }
 
-  if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable {
+  if analysis.RuleReachability(rule, device) != analysis.WANReachable {
    continue
   }
 
@@ -113,7 +113,7 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 }
 ```
 
-`addWeakNATRules` (~line 347, unchanged) continues to report NAT port-forward exposure correctly and independently, by checking `analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules)` directly against each `InboundNATRule` and emitting a distinct "WAN-Reachable Port Forward" finding scoped to `nat.inbound[i]`, not to any management-service component.
+`addWeakNATRules` (~line 347, unchanged) continues to report NAT port-forward exposure correctly and independently, by checking `analysis.InboundNATRuleReachability(nat, device)` directly against each `InboundNATRule` and emitting a distinct "WAN-Reachable Port Forward" finding scoped to `nat.inbound[i]`, not to any management-service component.
 
 Regression test: `TestRedMode_NATForward_DoesNotExposeFirewallLocalService` in `internal/audit/mode_controller_red_test.go` (~line 671). It builds a device with SSH enabled on port 22, a firewall pass rule that only permits WAN port 80, and an inbound NAT rule forwarding WAN port 22 to `192.0.2.50:22`. It asserts:
 

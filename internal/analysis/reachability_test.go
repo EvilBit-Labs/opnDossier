@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestIsWANInterfaceName_Characterization pins the current isWANInterface
-// behavior (case-insensitive "wan" prefix match) that previously lived,
-// duplicated, in internal/plugins/sans and internal/plugins/firewall. This
-// characterization test is the baseline the U1 consolidation must not
-// regress. Covers AE5.
-func TestIsWANInterfaceName_Characterization(t *testing.T) {
+// TestIsWANInterface_KeyPrefixWithoutDevice pins the case-insensitive "wan" key
+// prefix that previously lived, duplicated, in internal/plugins/sans and
+// internal/plugins/firewall. With no device there are no gateways or groups
+// to consult, so the prefix is all that decides. This characterization test is
+// the baseline the U1 consolidation must not regress. Covers AE5.
+func TestIsWANInterface_KeyPrefixWithoutDevice(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -36,7 +36,7 @@ func TestIsWANInterfaceName_Characterization(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tt.want, analysis.IsWANInterfaceName(tt.name))
+			assert.Equal(t, tt.want, analysis.IsWANInterface(nil, tt.name))
 		})
 	}
 }
@@ -87,7 +87,14 @@ func TestInterfaceReachability(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tt.want, analysis.InterfaceReachability(tt.iface))
+			assert.Equal(
+				t,
+				tt.want,
+				analysis.InterfaceReachability(
+					tt.iface,
+					&common.CommonDevice{Interfaces: []common.Interface{tt.iface}},
+				),
+			)
 		})
 	}
 }
@@ -170,7 +177,7 @@ func TestRuleReachability(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tt.want, analysis.RuleReachability(tt.rule, tt.ifaces))
+			assert.Equal(t, tt.want, analysis.RuleReachability(tt.rule, &common.CommonDevice{Interfaces: tt.ifaces}))
 		})
 	}
 }
@@ -231,7 +238,10 @@ func TestInboundNATRuleReachability(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := analysis.InboundNATRuleReachability(tt.nat, ifaces, tt.passRules)
+			got := analysis.InboundNATRuleReachability(
+				tt.nat,
+				&common.CommonDevice{Interfaces: ifaces, FirewallRules: tt.passRules},
+			)
 			assert.Equal(t, tt.want, got)
 		})
 	}
