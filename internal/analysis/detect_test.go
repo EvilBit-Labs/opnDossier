@@ -956,14 +956,42 @@ func TestDetectConsistency(t *testing.T) {
 			wantCount: 0,
 		},
 		{
-			name: "invalid gateway format",
+			name: "undefined gateway name",
 			cfg: &common.CommonDevice{
 				Interfaces: []common.Interface{
 					{Name: "wan", IPAddress: "1.2.3.4", Subnet: "24", Gateway: "invalid-gw"},
 				},
 			},
 			wantCount:  1,
-			wantIssues: []string{"Invalid Gateway Format"},
+			wantIssues: []string{"Undefined Interface Gateway"},
+		},
+		{
+			name: "gateway selection none not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "lan", IPAddress: "192.168.1.1", Subnet: "24", Gateway: "none"},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "undefined gateway on an interface with no static address not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", IPAddress: "dhcp", Gateway: "invalid-gw"},
+					{Name: "opt1", IPAddress: "10.0.1.1", Gateway: "invalid-gw"},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "undefined gateway on a dhcp interface that keeps a subnet not flagged",
+			cfg: &common.CommonDevice{
+				Interfaces: []common.Interface{
+					{Name: "wan", IPAddress: "dhcp", Subnet: "24", Gateway: "invalid-gw"},
+				},
+			},
+			wantCount: 0,
 		},
 		{
 			name: "valid gateway not flagged",
