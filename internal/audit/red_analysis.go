@@ -167,7 +167,9 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 
 // wanRulePermitsPort reports whether any WAN-reachable enabled firewall pass
 // rule permits the given port on the firewall itself. A rule that passes a port
-// forward's traffic to another host does not count (forwardsToAnotherHost).
+// forward's traffic to another host does not count (forwardsToAnotherHost), and
+// neither does a rule that matches only outbound traffic, which never admits a
+// connection to the firewall's own services.
 // Port matching biases toward over-reporting exposure (the safe direction for a
 // security tool): an empty or "any" rule port permits every port, a port,
 // service name or range, or a comma list of them, is matched by containment,
@@ -179,11 +181,11 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 // analysis.RulePortPermits.
 func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	for _, rule := range device.FirewallRules {
-		if rule.Disabled || rule.Type != common.RuleTypePass {
+		if rule.Disabled || rule.Type != common.RuleTypePass || rule.Direction == common.DirectionOut {
 			continue
 		}
 
-		if analysis.RuleReachability(rule, device.Interfaces) != analysis.WANReachable ||
+		if analysis.RuleReachability(rule, device) != analysis.WANReachable ||
 			forwardsToAnotherHost(rule, device) {
 			continue
 		}
@@ -505,7 +507,7 @@ func (r *Report) addWeakNATRules(blackhat bool) {
 	count := 0
 	for i, nat := range device.NAT.InboundRules {
 		if nat.NoRDR ||
-			analysis.InboundNATRuleReachability(nat, device.Interfaces, device.FirewallRules) != analysis.WANReachable {
+			analysis.InboundNATRuleReachability(nat, device) != analysis.WANReachable {
 			continue
 		}
 
@@ -653,7 +655,7 @@ func (r *Report) addEnumerationData() {
 	if cfg := r.Configuration; cfg != nil {
 		data.Interfaces = len(cfg.Interfaces)
 		for _, iface := range cfg.Interfaces {
-			if analysis.InterfaceReachability(iface) == analysis.WANReachable {
+			if analysis.InterfaceReachability(iface, cfg) == analysis.WANReachable {
 				data.WANInterfaces++
 			}
 		}
