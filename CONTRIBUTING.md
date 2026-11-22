@@ -24,7 +24,7 @@ opnDossier follows strict coding standards and development practices:
 
 #### Go Support Policy
 
-opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. The module minimum is `go 1.26.0` in `go.mod`, which is `oldstable` today. CI currently tests one Go version, the one pinned in `mise.toml` (1.27.2 today): `just test` runs through `mise exec`, so the `stable` entry in the `.github/workflows/ci.yml` matrix does not change which toolchain the tests use. Making the matrix drive the toolchain and restoring `oldstable` are workflow changes tracked separately. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
+opnDossier supports the current and previous stable Go releases (N and N-1), matching Go's upstream release policy. The module minimum is `go 1.26.0` in `go.mod`, which is `oldstable` today. CI currently tests one Go version, the one pinned in `mise.toml` (1.27.4 today): `just test` runs through `mise exec`, so the `stable` entry in the `.github/workflows/ci.yml` matrix does not change which toolchain the tests use. Making the matrix drive the toolchain and restoring `oldstable` are workflow changes tracked separately. Once Go releases a new version, the previous `oldstable` drops out of support and may be removed in a subsequent minor release.
 
 ### Development Setup
 
