@@ -1,7 +1,6 @@
 package formatters
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/analysis"
@@ -99,14 +98,14 @@ func AssessServiceRisk(serviceName string) string {
 	return AssessRiskLevel("info")
 }
 
-// hasManagementOnWAN checks whether any enabled pass rule allows inbound traffic to common management ports on the WAN interface.
+// hasManagementOnWAN checks whether any enabled pass rule allows inbound traffic to common management ports on a WAN interface.
 func hasManagementOnWAN(data *common.CommonDevice) bool {
 	mgmtPorts := []int{443, 80, 22, 8080}
 
 	for _, rule := range data.FirewallRules {
-		if !slices.ContainsFunc(rule.Interfaces, func(s string) bool {
-			return strings.EqualFold(s, "wan")
-		}) {
+		// The shared classifier, so a rule on a second uplink, on an interface
+		// group with a WAN member, or floating on every interface counts too.
+		if analysis.RuleReachability(rule, data) != analysis.WANReachable {
 			continue
 		}
 		// A rule the firewall skips, or one that does not pass traffic, exposes
