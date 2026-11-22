@@ -133,7 +133,9 @@ type TrustConfig struct {
 
 // Firmware contains firmware and update configuration.
 type Firmware struct {
-	// Version is the firmware version string.
+	// Version is the installed firmware release. Neither parser fills it:
+	// config.xml does not record the release, and the version values it does
+	// carry are schema or config format versions.
 	Version string `json:"version,omitempty" yaml:"version,omitempty"`
 	// Mirror is the firmware update mirror URL.
 	Mirror string `json:"mirror,omitempty" yaml:"mirror,omitempty"`
