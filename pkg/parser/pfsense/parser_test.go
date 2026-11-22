@@ -1801,7 +1801,7 @@ func TestConverter_FirmwareVersion(t *testing.T) {
 
 	device, _, err := pfsense.ConvertDocument(doc)
 	require.NoError(t, err)
-	assert.Equal(t, "22.9", device.System.Firmware.Version)
+	assert.Empty(t, device.System.Firmware.Version, "the config format version is not a firmware release")
 	assert.Equal(t, "22.9", device.Version)
 }
 
