@@ -104,6 +104,8 @@ The following controls map to specific SANS SCORE Firewall Checklist items and a
 | SANS-FW-016 | 13     | FTP Server Isolation  | Medium   | Partial          | Check that FTP-related (TCP 21) pass rules route to DMZ/separate interface, not internal network                      |
 | SANS-FW-019 | 16     | NAT / IP Masquerading | High     | Full             | Verify outbound NAT configured on WAN; check `NATConfig.OutboundMode`; ensure internal IPs are not exposed externally |
 
+SANS-FW-003 counts only enabled network interfaces as zones. Loopback devices (lo0 and any assigned lo1 and up), interface groups and the VPN pseudo-interfaces OPNsense registers (the OpenVPN and WireGuard groups, enc0) do not count. Assigned VLAN, bridge, LAGG, OpenVPN, WireGuard and IPsec VTI devices do.
+
 ##### Server Protection and Availability (SANS Checklist #19, #22, #23, #24)
 
 | Control ID  | SANS # | Title                      | Severity | Implementability | Description                                                                                                             |
