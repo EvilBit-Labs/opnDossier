@@ -43,16 +43,16 @@ STIGs are cybersecurity methodologies for standardizing security configuration w
 
 The [SANS SCORE Firewall Checklist](https://www.sans.org/media/score/checklists/FirewallChecklist.pdf) (prepared by Krishni Naidu) is a practical security audit checklist containing 24 numbered security elements for firewall configuration and management. It covers ruleset management, application-layer controls, logging, patching, DMZ architecture, anti-spoofing, port security, remote access, traffic filtering, and availability.
 
-The current SANS plugin defines 4 controls with placeholder check logic. The checklist has been fully analyzed and 16 additional controls are planned for implementation, covering the complete SANS checklist.
+The SANS plugin defines SANS-FW-001 to SANS-FW-025. The four controls in the table below were implemented first; the sections after it map the rest of the checklist. Some controls, such as SANS-FW-010 and SANS-FW-011, cannot be decided from config.xml and report Unknown.
 
 #### Implemented SANS Controls
 
 | Control ID  | SANS # | Category               | Title                       | Severity | Status      |
 | ----------- | ------ | ---------------------- | --------------------------- | -------- | ----------- |
-| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Placeholder |
-| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Placeholder |
-| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Placeholder |
-| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Placeholder |
+| SANS-FW-001 | 1, 9   | Access Control         | Default Deny Policy         | High     | Implemented |
+| SANS-FW-002 | 1      | Rule Management        | Explicit Rule Configuration | Medium   | Implemented |
+| SANS-FW-003 | 6      | Network Segmentation   | Network Zone Separation     | High     | Implemented |
+| SANS-FW-004 | 4      | Logging and Monitoring | Comprehensive Logging       | Medium   | Implemented |
 
 #### Planned SANS Controls
 
@@ -68,11 +68,11 @@ The following controls map to specific SANS SCORE Firewall Checklist items and a
 
 ##### Maintenance and Compliance (SANS Checklist #5, #7, #8)
 
-| Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                   |
-| ----------- | ------ | ------------------------------- | -------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| SANS-FW-008 | 5      | Firmware Currency               | High     | Partial          | Check device firmware version against known current versions; verify update mirror uses HTTPS |
-| SANS-FW-010 | 7      | Vulnerability Testing Procedure | Medium   | Advisory only    | Advisory: verify that open port testing and ruleset validation procedures are documented      |
-| SANS-FW-011 | 8      | Security Policy Compliance      | High     | Advisory only    | Advisory: verify ruleset compliance with organizational security policy                       |
+| Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                        |
+| ----------- | ------ | ------------------------------- | -------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| SANS-FW-008 | 5      | Firmware Currency               | High     | Advisory only    | Advisory: config.xml does not record the installed release; verify firmware currency on the device |
+| SANS-FW-010 | 7      | Vulnerability Testing Procedure | Medium   | Advisory only    | Advisory: verify that open port testing and ruleset validation procedures are documented           |
+| SANS-FW-011 | 8      | Security Policy Compliance      | High     | Advisory only    | Advisory: verify ruleset compliance with organizational security policy                            |
 
 ##### Anti-Spoofing and Traffic Validation (SANS Checklist #9, #10, #18)
 
@@ -99,6 +99,8 @@ The following controls map to specific SANS SCORE Firewall Checklist items and a
 | SANS-FW-009 | 6      | DMZ Configuration     | High     | Full             | Check for DMZ interface existence; verify rules enforce DMZ-to-WAN and DMZ-to-LAN segmentation                        |
 | SANS-FW-016 | 13     | FTP Server Isolation  | Medium   | Partial          | Check that FTP-related (TCP 21) pass rules route to DMZ/separate interface, not internal network                      |
 | SANS-FW-019 | 16     | NAT / IP Masquerading | High     | Full             | Verify outbound NAT configured on WAN; check `NATConfig.OutboundMode`; ensure internal IPs are not exposed externally |
+
+SANS-FW-003 counts only enabled network interfaces as zones. Loopback devices (lo0 and any assigned lo1 and up), interface groups and the VPN pseudo-interfaces OPNsense registers (the OpenVPN and WireGuard groups, enc0) do not count. Assigned VLAN, bridge, LAGG, OpenVPN, WireGuard and IPsec VTI devices do.
 
 ##### Server Protection and Availability (SANS Checklist #19, #22, #23, #24)
 
@@ -141,7 +143,6 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 
 - **Implemented** - Check logic evaluates config.xml data and produces compliant/non-compliant results
 - **Unknown** - Control is defined but the required data is not available in config.xml (OS-level or model gap); the check always returns Unknown and no finding is emitted
-- **Placeholder** - Control is defined with placeholder check logic that always returns compliant; real analysis will be added in a future release
 
 #### Planned Firewall Security Controls
 
@@ -316,12 +317,12 @@ The audit engine performs the following checks per plugin:
 
 #### SANS Compliance Checks
 
-All four SANS checks currently use placeholder logic:
+The SANS checks look at the following:
 
-1. **Default Deny Policy (SANS-FW-001)** - Placeholder: always returns compliant
-2. **Explicit Rule Configuration (SANS-FW-002)** - Placeholder: always returns compliant
-3. **Network Zone Separation (SANS-FW-003)** - Placeholder: always returns compliant
-4. **Comprehensive Logging (SANS-FW-004)** - Placeholder: always returns compliant
+1. **Default Deny Policy (SANS-FW-001)** - Looks for an enabled any-to-any pass rule with no enabled block or reject rule.
+2. **Explicit Rule Configuration (SANS-FW-002)** - Looks for enabled pass rules without a description.
+3. **Network Zone Separation (SANS-FW-003)** - Counts enabled network interfaces; at least two are required.
+4. **Comprehensive Logging (SANS-FW-004)** - Looks for remote syslog that carries filter or authentication logging.
 
 #### Firewall Security Compliance Checks
 
@@ -423,7 +424,7 @@ FIREWALL-018 (least privilege), FIREWALL-054-056 (NAT controls), FIREWALL-032 (V
 
 Controls requiring deeper algorithmic analysis or external data:
 
-SANS-FW-008 (firmware version comparison), FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filtering)
+FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filtering)
 
 ## Benefits
 
@@ -466,10 +467,9 @@ Additional DISA Firewall SRG controls under consideration:
 
 ### Planned Features
 
-1. **Real SANS Check Logic**: Replace placeholder stubs with actual analysis
-2. **Automated Remediation**: Generate configuration fixes
-3. **Compliance Monitoring**: Track compliance over time
-4. **Integration**: SIEM and ticketing system integration
+1. **Automated Remediation**: Generate configuration fixes
+2. **Compliance Monitoring**: Track compliance over time
+3. **Integration**: SIEM and ticketing system integration
 
 ## References
 
