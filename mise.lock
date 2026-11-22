@@ -308,52 +308,52 @@ url_api = "https://api.github.com/repos/anchore/quill/releases/assets/370939478"
 provenance = "github-attestations"
 
 [[tools.go]]
-version = "1.27.2"
+version = "1.27.4"
 backend = "core:go"
 
 [tools.go."platforms.linux-arm64"]
-checksum = "sha256:94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8"
-url = "https://dl.google.com/go/go1.27.2.linux-arm64.tar.gz"
+checksum = "sha256:3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92"
+url = "https://dl.google.com/go/go1.27.4.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-arm64-musl"]
-checksum = "sha256:94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8"
-url = "https://dl.google.com/go/go1.27.2.linux-arm64.tar.gz"
+checksum = "sha256:3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92"
+url = "https://dl.google.com/go/go1.27.4.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-x64"]
-checksum = "sha256:ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5"
-url = "https://dl.google.com/go/go1.27.2.linux-amd64.tar.gz"
+checksum = "sha256:7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840"
+url = "https://dl.google.com/go/go1.27.4.linux-amd64.tar.gz"
 
 [tools.go."platforms.linux-x64-baseline"]
-checksum = "sha256:ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5"
-url = "https://dl.google.com/go/go1.27.2.linux-amd64.tar.gz"
+checksum = "sha256:7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840"
+url = "https://dl.google.com/go/go1.27.4.linux-amd64.tar.gz"
 
 [tools.go."platforms.linux-x64-musl"]
-checksum = "sha256:ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5"
-url = "https://dl.google.com/go/go1.27.2.linux-amd64.tar.gz"
+checksum = "sha256:7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840"
+url = "https://dl.google.com/go/go1.27.4.linux-amd64.tar.gz"
 
 [tools.go."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5"
-url = "https://dl.google.com/go/go1.27.2.linux-amd64.tar.gz"
+checksum = "sha256:7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840"
+url = "https://dl.google.com/go/go1.27.4.linux-amd64.tar.gz"
 
 [tools.go."platforms.macos-arm64"]
-checksum = "sha256:76812b213b1b2302c978d28fa52fa92d541704b9e7d9d5db8002c50e4018c4c5"
-url = "https://dl.google.com/go/go1.27.2.darwin-arm64.tar.gz"
+checksum = "sha256:91a44a2b8a716600ad94a4f143e156116620db8828086a6e3602291be9bd0bb4"
+url = "https://dl.google.com/go/go1.27.4.darwin-arm64.tar.gz"
 
 [tools.go."platforms.macos-x64"]
-checksum = "sha256:587b59182488b23aa6e5fc25110405a3e0e5b38ed2f5b2f46ed13c32aee356fe"
-url = "https://dl.google.com/go/go1.27.2.darwin-amd64.tar.gz"
+checksum = "sha256:2b799377704ef12db39bd254995d5c348c9cc8d86562ca817724390e56c38f43"
+url = "https://dl.google.com/go/go1.27.4.darwin-amd64.tar.gz"
 
 [tools.go."platforms.macos-x64-baseline"]
-checksum = "sha256:587b59182488b23aa6e5fc25110405a3e0e5b38ed2f5b2f46ed13c32aee356fe"
-url = "https://dl.google.com/go/go1.27.2.darwin-amd64.tar.gz"
+checksum = "sha256:2b799377704ef12db39bd254995d5c348c9cc8d86562ca817724390e56c38f43"
+url = "https://dl.google.com/go/go1.27.4.darwin-amd64.tar.gz"
 
 [tools.go."platforms.windows-x64"]
-checksum = "sha256:1314008898bd40df77af4b014f777f08873dbdfbcd3d92308728ee03304fe04f"
-url = "https://dl.google.com/go/go1.27.2.windows-amd64.zip"
+checksum = "sha256:178ab98950ac69ab25069307dc6ade79f3816e414cce95b4da166a115cde1e7e"
+url = "https://dl.google.com/go/go1.27.4.windows-amd64.zip"
 
 [tools.go."platforms.windows-x64-baseline"]
-checksum = "sha256:1314008898bd40df77af4b014f777f08873dbdfbcd3d92308728ee03304fe04f"
-url = "https://dl.google.com/go/go1.27.2.windows-amd64.zip"
+checksum = "sha256:178ab98950ac69ab25069307dc6ade79f3816e414cce95b4da166a115cde1e7e"
+url = "https://dl.google.com/go/go1.27.4.windows-amd64.zip"
 
 [[tools."go:github.com/google/go-licenses"]]
 version = "1.6.0"
