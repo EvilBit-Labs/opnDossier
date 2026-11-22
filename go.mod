@@ -2,7 +2,7 @@ module github.com/EvilBit-Labs/opnDossier
 
 go 1.26.0
 
-toolchain go1.27.2
+toolchain go1.27.4
 
 require (
 	github.com/charmbracelet/fang v1.0.0
