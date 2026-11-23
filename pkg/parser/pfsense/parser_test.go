@@ -247,10 +247,10 @@ func TestConverter_System(t *testing.T) {
 		LoginAutocomplete: true,
 		MaxProcesses:      "2",
 	}
-	doc.System.SSH = opnsense.SSHConfig{
-		Enabled: true,
-		Port:    "2222",
-		Group:   "admins",
+	doc.System.SSH = pfsenseSchema.SSHConfig{
+		Enable: new(string),
+		Port:   "2222",
+		Group:  "admins",
 	}
 
 	device, warnings, err := pfsense.ConvertDocument(doc)
@@ -1029,6 +1029,8 @@ func TestParser_ParseFixture_2_6_x(t *testing.T) {
 	assert.Equal(t, "fw-test", device.System.Hostname)
 	assert.Equal(t, "test.local", device.System.Domain)
 	assert.Equal(t, "21.02", device.Version)
+	// <ssh><enable>enabled</enable></ssh>, as the pfSense page writes it.
+	assert.True(t, device.System.SSH.Enabled)
 	assert.GreaterOrEqual(t, len(device.Interfaces), 2)
 	assert.GreaterOrEqual(t, len(device.FirewallRules), 2)
 	assert.GreaterOrEqual(t, len(device.DHCP), 1)
@@ -1172,6 +1174,8 @@ func TestParser_ParseFixture_2_7_x(t *testing.T) {
 	assert.Equal(t, common.DeviceTypePfSense, device.DeviceType)
 	assert.Equal(t, "pf-edge", device.System.Hostname)
 	assert.Equal(t, "23.09", device.Version)
+	// <ssh><enable>enabled</enable></ssh>, as the pfSense page writes it.
+	assert.True(t, device.System.SSH.Enabled)
 	assert.GreaterOrEqual(t, len(device.Interfaces), 2)
 	assert.GreaterOrEqual(t, len(device.FirewallRules), 1)
 	assert.Len(t, device.VLANs, 1)

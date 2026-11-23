@@ -11,33 +11,33 @@ import (
 //
 // Use [NewSystem] to create a System with all slice fields pre-initialized.
 type System struct {
-	Optimization                  string             `xml:"optimization"                            json:"optimization,omitempty"                  yaml:"optimization,omitempty"`
-	Hostname                      string             `xml:"hostname"                                json:"hostname"                                yaml:"hostname"`
-	Domain                        string             `xml:"domain"                                  json:"domain"                                  yaml:"domain"`
-	DNSAllowOverride              opnsense.BoolFlag  `xml:"dnsallowoverride,omitempty"              json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
-	DNSServers                    []string           `xml:"dnsserver"                               json:"dnsServers,omitempty"                    yaml:"dnsServers,omitempty"`
-	DNS1GW                        string             `xml:"dns1gw,omitempty"                        json:"dns1gw,omitempty"                        yaml:"dns1gw,omitempty"`
-	DNS2GW                        string             `xml:"dns2gw,omitempty"                        json:"dns2gw,omitempty"                        yaml:"dns2gw,omitempty"`
-	Language                      string             `xml:"language"                                json:"language,omitempty"                      yaml:"language,omitempty"`
-	Group                         []Group            `xml:"group"                                   json:"groups,omitempty"                        yaml:"groups,omitempty"`
-	User                          []User             `xml:"user"                                    json:"users,omitempty"                         yaml:"users,omitempty"`
-	WebGUI                        WebGUI             `xml:"webgui"                                  json:"webgui"                                  yaml:"webgui,omitempty"`
-	SSH                           opnsense.SSHConfig `xml:"ssh"                                     json:"ssh"                                     yaml:"ssh,omitempty"`
-	Timezone                      string             `xml:"timezone"                                json:"timezone,omitempty"                      yaml:"timezone,omitempty"`
-	TimeServers                   string             `xml:"timeservers"                             json:"timeServers,omitempty"                   yaml:"timeServers,omitempty"`
-	DisableNATReflection          string             `xml:"disablenatreflection"                    json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
-	DisableSegmentationOffloading opnsense.BoolFlag  `xml:"disablesegmentationoffloading,omitempty" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
-	DisableLargeReceiveOffloading opnsense.BoolFlag  `xml:"disablelargereceiveoffloading,omitempty" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
-	IPv6Allow                     *string            `xml:"ipv6allow,omitempty"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
-	MaximumTableEntries           string             `xml:"maximumtableentries,omitempty"           json:"maximumTableEntries,omitempty"           yaml:"maximumTableEntries,omitempty"`
-	CryptoHardware                string             `xml:"crypto_hardware,omitempty"               json:"cryptoHardware,omitempty"                yaml:"cryptoHardware,omitempty"`
-	EnableSerial                  opnsense.BoolFlag  `xml:"enableserial,omitempty"                  json:"enableSerial"                            yaml:"enableSerial,omitempty"`
-	AlreadyRunConfigUpgrade       opnsense.BoolFlag  `xml:"already_run_config_upgrade,omitempty"    json:"alreadyRunConfigUpgrade"                 yaml:"alreadyRunConfigUpgrade,omitempty"`
-	NextUID                       int                `xml:"nextuid"                                 json:"nextUid,omitempty"                       yaml:"nextUid,omitempty"`
-	NextGID                       int                `xml:"nextgid"                                 json:"nextGid,omitempty"                       yaml:"nextGid,omitempty"`
-	PowerdACMode                  string             `xml:"powerd_ac_mode"                          json:"powerdAcMode,omitempty"                  yaml:"powerdAcMode,omitempty"`
-	PowerdBatteryMode             string             `xml:"powerd_battery_mode"                     json:"powerdBatteryMode,omitempty"             yaml:"powerdBatteryMode,omitempty"`
-	PowerdNormalMode              string             `xml:"powerd_normal_mode"                      json:"powerdNormalMode,omitempty"              yaml:"powerdNormalMode,omitempty"`
+	Optimization                  string            `xml:"optimization"                            json:"optimization,omitempty"                  yaml:"optimization,omitempty"`
+	Hostname                      string            `xml:"hostname"                                json:"hostname"                                yaml:"hostname"`
+	Domain                        string            `xml:"domain"                                  json:"domain"                                  yaml:"domain"`
+	DNSAllowOverride              opnsense.BoolFlag `xml:"dnsallowoverride,omitempty"              json:"dnsAllowOverride,omitempty"              yaml:"dnsAllowOverride,omitempty"`
+	DNSServers                    []string          `xml:"dnsserver"                               json:"dnsServers,omitempty"                    yaml:"dnsServers,omitempty"`
+	DNS1GW                        string            `xml:"dns1gw,omitempty"                        json:"dns1gw,omitempty"                        yaml:"dns1gw,omitempty"`
+	DNS2GW                        string            `xml:"dns2gw,omitempty"                        json:"dns2gw,omitempty"                        yaml:"dns2gw,omitempty"`
+	Language                      string            `xml:"language"                                json:"language,omitempty"                      yaml:"language,omitempty"`
+	Group                         []Group           `xml:"group"                                   json:"groups,omitempty"                        yaml:"groups,omitempty"`
+	User                          []User            `xml:"user"                                    json:"users,omitempty"                         yaml:"users,omitempty"`
+	WebGUI                        WebGUI            `xml:"webgui"                                  json:"webgui"                                  yaml:"webgui,omitempty"`
+	SSH                           SSHConfig         `xml:"ssh"                                     json:"ssh"                                     yaml:"ssh,omitempty"`
+	Timezone                      string            `xml:"timezone"                                json:"timezone,omitempty"                      yaml:"timezone,omitempty"`
+	TimeServers                   string            `xml:"timeservers"                             json:"timeServers,omitempty"                   yaml:"timeServers,omitempty"`
+	DisableNATReflection          string            `xml:"disablenatreflection"                    json:"disableNatReflection,omitempty"          yaml:"disableNatReflection,omitempty"`
+	DisableSegmentationOffloading opnsense.BoolFlag `xml:"disablesegmentationoffloading,omitempty" json:"disableSegmentationOffloading,omitempty" yaml:"disableSegmentationOffloading,omitempty"`
+	DisableLargeReceiveOffloading opnsense.BoolFlag `xml:"disablelargereceiveoffloading,omitempty" json:"disableLargeReceiveOffloading,omitempty" yaml:"disableLargeReceiveOffloading,omitempty"`
+	IPv6Allow                     *string           `xml:"ipv6allow,omitempty"                     json:"ipv6Allow,omitempty"                     yaml:"ipv6Allow,omitempty"`
+	MaximumTableEntries           string            `xml:"maximumtableentries,omitempty"           json:"maximumTableEntries,omitempty"           yaml:"maximumTableEntries,omitempty"`
+	CryptoHardware                string            `xml:"crypto_hardware,omitempty"               json:"cryptoHardware,omitempty"                yaml:"cryptoHardware,omitempty"`
+	EnableSerial                  opnsense.BoolFlag `xml:"enableserial,omitempty"                  json:"enableSerial"                            yaml:"enableSerial,omitempty"`
+	AlreadyRunConfigUpgrade       opnsense.BoolFlag `xml:"already_run_config_upgrade,omitempty"    json:"alreadyRunConfigUpgrade"                 yaml:"alreadyRunConfigUpgrade,omitempty"`
+	NextUID                       int               `xml:"nextuid"                                 json:"nextUid,omitempty"                       yaml:"nextUid,omitempty"`
+	NextGID                       int               `xml:"nextgid"                                 json:"nextGid,omitempty"                       yaml:"nextGid,omitempty"`
+	PowerdACMode                  string            `xml:"powerd_ac_mode"                          json:"powerdAcMode,omitempty"                  yaml:"powerdAcMode,omitempty"`
+	PowerdBatteryMode             string            `xml:"powerd_battery_mode"                     json:"powerdBatteryMode,omitempty"             yaml:"powerdBatteryMode,omitempty"`
+	PowerdNormalMode              string            `xml:"powerd_normal_mode"                      json:"powerdNormalMode,omitempty"              yaml:"powerdNormalMode,omitempty"`
 	Bogons                        struct {
 		Interval string `xml:"interval" json:"interval,omitempty" yaml:"interval,omitempty"`
 	} `xml:"bogons"                                  json:"bogons"                                  yaml:"bogons,omitempty"`
@@ -47,6 +47,25 @@ type System struct {
 	// isset(), and turns pf off before any rule or NAT is loaded, so any body
 	// counts.
 	DisableFilter *string `xml:"disablefilter,omitempty" json:"disableFilter,omitempty" yaml:"disableFilter,omitempty"`
+
+	// EnableSSHD is the SSH switch of configs older than version 18.9, the
+	// version in which pfSense 2.4.4 moved it to <ssh><enable>
+	// (upgrade_188_to_189). pfSense 2.3 and 2.4.3 test it with isset(), as the
+	// upgrade does, so any body counts.
+	EnableSSHD *string `xml:"enablesshd,omitempty" json:"enableSshd,omitempty" yaml:"enableSshd,omitempty"`
+}
+
+// SSHConfig is the pfSense <system><ssh> element. It is forked from
+// opnsense.SSHConfig because the switch has another name: the pfSense page
+// writes <enable>enabled</enable> and deletes the element when unticked
+// (system_advanced_admin.inc), and sshd and the anti-lockout rule test it with
+// config_path_enabled('system/ssh'), which is isset() on <enable>. Enable is a
+// pointer for that reason, so any body counts. Neither reads the <enabled>
+// element OPNsense writes, so this type does not bind it.
+type SSHConfig struct {
+	Enable *string `xml:"enable,omitempty" json:"enable,omitempty" yaml:"enable,omitempty"`
+	Port   string  `xml:"port,omitempty"   json:"port,omitempty"   yaml:"port,omitempty"`
+	Group  string  `xml:"group"            json:"group"            yaml:"group"`
 }
 
 // Group represents a pfSense group.

@@ -41,10 +41,8 @@ var packetFilterControlsByPlugin = map[string][]string{
 // vendor's fixture and drives it through parse, convert, the compliance plugins
 // and red mode. Both vendors test the element with isset() and turn pf off, so
 // the page's "enabled" and an empty element must both read as disabled, and only
-// an absent element as filtering. SSH is enabled on OPNsense, in the form its
-// page writes, so that red mode covers a second service there; the pfSense
-// schema reads an SSH element pfSense does not write, so pfSense covers the web
-// GUI only.
+// an absent element as filtering. SSH is enabled on each vendor, in the form
+// its page writes, so that red mode covers a second service.
 func TestPacketFilterDisabled_EndToEnd(t *testing.T) {
 	t.Parallel()
 
@@ -55,7 +53,10 @@ func TestPacketFilterDisabled_EndToEnd(t *testing.T) {
 			name: "opnsense", fixture: "config.xml.sample", ssh: "<ssh>\n      <group>admins</group>",
 			withSSH: "<ssh><enabled>enabled</enabled><group>admins</group>",
 		},
-		{name: "pfsense", fixture: "pfsense/config-pfSense.xml"},
+		{
+			name: "pfsense", fixture: "pfsense/config-pfSense.xml",
+			ssh: pfSenseSSHAnchor, withSSH: pfSenseSSHAnchor + pfSenseSSHEnabled,
+		},
 	}
 
 	shapes := []struct {
@@ -70,14 +71,9 @@ func TestPacketFilterDisabled_EndToEnd(t *testing.T) {
 
 	for _, vendor := range vendors {
 		raw := readFixture(t, vendor.fixture)
-		requireFixtureHolds(t, raw, map[string]int{packetFilterAnchor: 1, "<disablefilter": 0})
-
-		portals := []string{"webgui"}
-		if vendor.ssh != "" {
-			requireFixtureHolds(t, raw, map[string]int{vendor.ssh: 1})
-			raw = strings.Replace(raw, vendor.ssh, vendor.withSSH, 1)
-			portals = append(portals, "ssh")
-		}
+		requireFixtureHolds(t, raw, map[string]int{packetFilterAnchor: 1, "<disablefilter": 0, vendor.ssh: 1})
+		raw = strings.Replace(raw, vendor.ssh, vendor.withSSH, 1)
+		portals := []string{"webgui", "ssh"}
 
 		for _, shape := range shapes {
 			t.Run(vendor.name+"/"+shape.name, func(t *testing.T) {

@@ -57,7 +57,7 @@ vlan, wolentry
 | Section                    | File          | Reuses OPNsense?              | Notes                                                                          |
 | -------------------------- | ------------- | ----------------------------- | ------------------------------------------------------------------------------ |
 | `<pfsense>` root           | `document.go` | Partial                       | Root document with all top-level fields                                        |
-| `system`                   | `system.go`   | Partial (Group, SSHConfig)    | pfSense-specific User, WebGUI, DNS arrays                                      |
+| `system`                   | `system.go`   | No (pfSense-specific)         | pfSense-specific Group, User, WebGUI, SSH, DNS arrays                          |
 | `interfaces`               | `document.go` | Yes (full)                    | Map-based, identical structure                                                 |
 | `filter`                   | `security.go` | Partial (Source, Destination) | pfSense-specific FilterRule                                                    |
 | `nat` (inbound + outbound) | `security.go` | Outbound reused               | Inbound forked: the OPNsense rule has elements pfSense does not write          |
