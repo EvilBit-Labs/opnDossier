@@ -150,7 +150,7 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 
 #### Extended Firewall Security Controls
 
-The following controls are organized by security domain and extend the core firewall controls above. The audit engine evaluates all of them except FIREWALL-010 to FIREWALL-013, FIREWALL-015, FIREWALL-019, FIREWALL-035, FIREWALL-037, FIREWALL-038, FIREWALL-057, FIREWALL-059 and FIREWALL-060, which are defined but not yet evaluated and produce no finding. Controls are sourced from NIST SP 800-41, PCI DSS v4.0 Requirement 1, CIS Benchmarks, NSA/CISA guidance, and OPNsense/pfSense-specific best practices.
+The following controls are organized by security domain and extend the core firewall controls above. The audit engine evaluates all of them except FIREWALL-009 to FIREWALL-013, FIREWALL-015, FIREWALL-019, FIREWALL-035, FIREWALL-037, FIREWALL-038, FIREWALL-057, FIREWALL-059 and FIREWALL-060, which are defined but not yet evaluated and produce no finding. Controls are sourced from NIST SP 800-41, PCI DSS v4.0 Requirement 1, CIS Benchmarks, NSA/CISA guidance, and OPNsense/pfSense-specific best practices.
 
 ##### Management Plane Security
 
