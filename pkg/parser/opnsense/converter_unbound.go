@@ -66,7 +66,6 @@ func readUnboundServiceFlags(doc *schema.OpnSenseDocument) unboundServiceFlags {
 	return flags
 }
 
-// legacyFlagOff is the body a hand edit gives a legacy flag meant to be off.
 const legacyFlagOff = "0"
 
 // warnOnLegacyZeroFlag warns about a legacy flag element that holds 0. The

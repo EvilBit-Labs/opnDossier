@@ -170,8 +170,7 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 // list or a DNS answer holds, loopback addresses included, so such an alias may
 // hold one. A host, network or network group alias can name an alias of any
 // type. The walk follows each member that names an alias, as
-// aliasHoldsFirewallAddress does, and seen ends a nesting loop. A disabled
-// alias is not followed, unless it is external.
+// aliasHoldsFirewallAddress does, and seen ends a nesting loop.
 func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 	seen := map[string]bool{name: true}
 	pending := []string{name}

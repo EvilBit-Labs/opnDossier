@@ -53,11 +53,13 @@ func (c *converter) convertDNSMasq(doc *schema.OpnSenseDocument) common.DNSMasqC
 		}
 	}
 
-	if dm.Version == "" && dm.Dnssec != nil {
-		c.warnOnLegacyZeroFlag("DNS.DNSMasq.DNSSEC", *dm.Dnssec)
-	}
-	if dm.Version == "" && dm.Enable != nil {
-		c.warnOnLegacyZeroFlag("DNS.DNSMasq.Enabled", *dm.Enable)
+	if dm.Version == "" {
+		if dm.Dnssec != nil {
+			c.warnOnLegacyZeroFlag("DNS.DNSMasq.DNSSEC", *dm.Dnssec)
+		}
+		if dm.Enable != nil {
+			c.warnOnLegacyZeroFlag("DNS.DNSMasq.Enabled", *dm.Enable)
+		}
 	}
 
 	return common.DNSMasqConfig{
@@ -199,6 +201,7 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 	}
 
 	servesOn := dnsmasqServesOn(dm)
+	enabled := dnsmasqEnabled(dm)
 	var (
 		scopes []common.DHCPScope
 		nets   []dnsmasqScopeNets
@@ -220,8 +223,7 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 				common.SeverityLow)
 			continue
 		}
-		if v6 && constructedOnLongPrefix(doc, r) {
-			constructor := strings.TrimSpace(r.Constructor)
+		if constructor := strings.TrimSpace(r.Constructor); v6 && constructedOnLongPrefix(doc, constructor) {
 			c.addWarning("dnsmasq.dhcp_ranges.constructor", constructor,
 				fmt.Sprintf("dnsmasq builds no DHCPv6 range on interface %q: its IPv6 prefix is longer than /64; "+
 					"the range serves no address and is not exported", constructor),
@@ -242,7 +244,7 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 			scopes = append(scopes, common.DHCPScope{
 				Interface:   iface,
 				Source:      common.DHCPSourceDnsmasq,
-				Enabled:     dnsmasqEnabled(dm) && servesOn(iface),
+				Enabled:     enabled && servesOn(iface),
 				Description: r.Description,
 			})
 			nets = append(nets, dnsmasqScopeNets{})
@@ -598,12 +600,8 @@ func interfacePrefix6(iface schema.Interface) (netip.Prefix, bool) {
 // most the range's (construct_worker in dhcp6.c), so such a range serves no
 // address. A prefix the config does not show is assigned at runtime and may
 // be short enough, so it does not count.
-func constructedOnLongPrefix(doc *schema.OpnSenseDocument, r schema.DNSMasqDHCPRange) bool {
-	iface, ok := doc.Interfaces.Items[strings.TrimSpace(r.Constructor)]
-	if !ok {
-		return false
-	}
-	prefix, ok := interfacePrefix6(iface)
+func constructedOnLongPrefix(doc *schema.OpnSenseDocument, constructor string) bool {
+	prefix, ok := interfaceNetwork6(doc, constructor)
 
 	return ok && prefix.Bits() > dnsmasqIPv6Prefix
 }
@@ -856,8 +854,8 @@ func interfaceNetwork6(doc *schema.OpnSenseDocument, name string) (netip.Prefix,
 	if !ok {
 		return netip.Prefix{}, false
 	}
-	prefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddrv6) + "/" + strings.TrimSpace(iface.Subnetv6))
-	if err != nil || !prefix.Addr().Is6() {
+	prefix, ok := interfacePrefix6(iface)
+	if !ok {
 		return netip.Prefix{}, false
 	}
 
