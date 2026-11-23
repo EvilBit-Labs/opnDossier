@@ -85,9 +85,11 @@ func adaptSecurityFindings(findings []common.SecurityFinding) []Observation {
 // SNMP community) are not bound to a specific interface, and correlating
 // them against exposing firewall/NAT rules is red mode's WAN-exposed-service
 // enumeration (R17), out of scope for this slice — so they are tagged Local
-// here rather than guessed.
+// here rather than guessed. The exception is a firewall with packet filtering
+// disabled: nothing filters any interface, so the finding is WAN-reachable by
+// definition.
 func securityFindingReachability(f common.SecurityFinding) Reachability {
-	if strings.HasPrefix(f.Component, "filter.rule[") {
+	if strings.HasPrefix(f.Component, "filter.rule[") || f.Component == PacketFilterDisabledComponent {
 		return WANReachable
 	}
 

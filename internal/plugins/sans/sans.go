@@ -289,7 +289,7 @@ func (sp *Plugin) RunChecks(
 		))
 	}
 
-	return findings, evaluated, nil
+	return sp.failPacketFilterControls(device, findings, evaluated)
 }
 
 // GetControls returns all SANS controls. The returned slice is a deep copy to

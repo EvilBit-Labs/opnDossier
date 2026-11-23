@@ -599,7 +599,6 @@ The `<system>` section has many fields beyond what is currently implemented. Not
 | `maximumstates`       | Max firewall states            |
 | `maximumtableentries` | Max pf table entries           |
 | `maximumfrags`        | Max fragment entries           |
-| `disablefilter`       | Disable firewall entirely      |
 | `scrubnodf`           | Clear DF bit                   |
 | `scrubrnid`           | Randomize IP ID                |
 | `disablescrub`        | Disable scrub                  |
@@ -667,7 +666,6 @@ The `<system>` section has many fields beyond what is currently implemented. Not
 | `session_timeout`     | Session timeout (minutes)                   |
 | `authmode`            | Authentication mode                         |
 | `nohttpreferercheck`  | Disable HTTP referer check                  |
-| `noantilockout`       | Disable anti-lockout rule                   |
 | `roaming`             | Allow roaming (multi-IP sessions)           |
 | `pwhash`              | Password hash algorithm (`bcrypt`/`sha512`) |
 | `pagenamefirst`       | Page name first in title                    |

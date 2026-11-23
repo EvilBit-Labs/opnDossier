@@ -90,5 +90,7 @@ func (a *Analyzer) CompareSystem(old, newCfg *common.System) []Change {
 		})
 	}
 
+	changes = append(changes, compareImplicitFilterSettings(old, newCfg)...)
+
 	return changes
 }
