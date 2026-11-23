@@ -43,6 +43,8 @@ A rule or port forward on an interface group applies on every member of the grou
 | FIREWALL-008 | HTTPS Web Management             | Management Access     | High     | Implemented |
 | FIREWALL-036 | Valid Web GUI Certificate        | Encryption            | Medium   | Implemented |
 
+With `<system><disablefilter>` ("Disable all packet filtering") set, FIREWALL-022, -023, -024, -027, -028, -029, -030, -032 and -041 are reported Non-Compliant with a "Packet Filtering Disabled" finding, whatever the configured rules say, because the firewall then enforces none of them. See [Compliance Standards](compliance-standards.md#packet-filtering-disabled).
+
 ---
 
 ## FIREWALL-001: SSH Warning Banner Configuration
