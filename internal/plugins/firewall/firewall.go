@@ -293,7 +293,7 @@ func (fp *Plugin) RunChecks(
 	// they are informational and do not participate in compliance pass/fail.
 	findings = append(findings, fp.runInventoryChecks(device)...)
 
-	return findings, evaluated, nil
+	return fp.failPacketFilterControls(device, findings, evaluated)
 }
 
 // GetControls returns all Firewall controls. The returned slice is a deep copy to

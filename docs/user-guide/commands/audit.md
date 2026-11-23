@@ -65,6 +65,8 @@ Exploit notes describe impact and context only, never attack steps. `--audit-bla
 
 A service is reported as WAN-exposed when it is enabled and a WAN pass rule permits its port. A port forward needs only to be on a WAN interface while any enabled pass rule on a WAN interface exists; that rule need not admit the forwarded traffic, so the report errs toward listing a forward rather than missing one. A WAN interface includes a second uplink on an `optN` key, and a rule or forward on an interface group counts when a member is a WAN interface; see [How WAN Interfaces Are Identified](../../firewall-security-controls-reference.md#how-wan-interfaces-are-identified).
 
+Two cases are reported as WAN-exposed without any pass rule in the config. With "Disable all packet filtering" (`<system><disablefilter>`) set, the firewall filters nothing, so every management service is reported as WAN-exposed and the setting itself is reported as an exposed weakness. When the anti-lockout rule lands on the WAN, which happens on a firewall with no LAN or OPT interface assigned unless `<system><webgui><noantilockout>` is set, the web GUI and, when enabled, SSH are reported as WAN-exposed. See [Firewall-Wide Settings](../../xml-field-reference.md#firewall-wide-settings).
+
 ## Compliance Plugins
 
 opnDossier ships with three **built-in compliance plugins** that are compiled directly into the `opndossier` binary. They are always available — no separate install, download, or configuration — and the `--plugin-dir` flag does **not** affect them.
