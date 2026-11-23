@@ -34,6 +34,17 @@ var dangerousPorts = []int{
 // smtpPorts lists the mail submission and relay ports.
 var smtpPorts = []int{smtpPort, submissionPort, smtpsPort}
 
+// Protocol values that pass TCP and ICMP. Both vendors' legacy stores write
+// tcp/udp for a rule that passes TCP and UDP, and convertFilterModelRule
+// lower-cases the filter model's TCP/UDP to it. The filter model can also name
+// ICMPv6 as IPV6-ICMP, its protocol list being /etc/protocols, and both
+// firewalls load icmp with inet6 as that same protocol (FilterRule.php
+// L317-L319, filter.inc L4488-L4489), so the two spellings count alike.
+var (
+	tcpProtocols  = []string{"tcp", "tcp/udp"}
+	icmpProtocols = []string{"icmp", "ipv6-icmp"}
+)
+
 // defaultUsernames contains factory-default account names that indicate
 // credentials have not been customized. Comparisons are case-insensitive.
 var defaultUsernames = []string{"admin", "root"}
@@ -65,6 +76,19 @@ func enabledPassRules(device *common.CommonDevice) []common.FirewallRule {
 		}
 	}
 	return rules
+}
+
+// ruleMatchesProtocol reports whether r passes one of protocols, compared
+// without regard to case, or has an empty or any protocol, which passes every
+// protocol (analysis.IsAnyProtocol).
+func ruleMatchesProtocol(r common.FirewallRule, protocols []string) bool {
+	if analysis.IsAnyProtocol(r.Protocol) {
+		return true
+	}
+
+	return slices.ContainsFunc(protocols, func(p string) bool {
+		return strings.EqualFold(r.Protocol, p)
+	})
 }
 
 // ruleAppliesToWAN reports whether a firewall rule applies to any WAN
@@ -313,8 +337,9 @@ func (sp *Plugin) checkAppLayerFiltering(device *common.CommonDevice) checkResul
 	return checkResult{Result: false, Known: true}
 }
 
-// checkStatefulInspection verifies all TCP pass rules have a StateType
-// containing "state" (e.g., "keep state", "sloppy state").
+// checkStatefulInspection verifies all pass rules that pass TCP, tcp/udp and
+// any-protocol rules included, have a StateType containing "state" (e.g.,
+// "keep state", "sloppy state").
 func (sp *Plugin) checkStatefulInspection(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
@@ -322,7 +347,7 @@ func (sp *Plugin) checkStatefulInspection(device *common.CommonDevice) checkResu
 
 	hasTCPPass := false
 	for _, r := range enabledPassRules(device) {
-		if !strings.EqualFold(r.Protocol, "tcp") {
+		if !ruleMatchesProtocol(r, tcpProtocols) {
 			continue
 		}
 		hasTCPPass = true
@@ -558,14 +583,17 @@ func (sp *Plugin) checkMailRestriction(device *common.CommonDevice) checkResult 
 
 // checkICMPFiltering checks whether ICMP pass rules exist on WAN interfaces.
 // Returns true (Result) if ICMP IS allowed on WAN — callers emit a finding
-// when Result is true.
+// when Result is true. An empty or any protocol passes ICMP too. pfSense
+// compiles an empty protocol with a port as proto tcp (filter.inc
+// L4497-L4499), which passes no ICMP; its GUI clears the ports of such a
+// rule, and a hand-written one is counted, the over-report direction.
 func (sp *Plugin) checkICMPFiltering(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
 	for _, r := range enabledPassRules(device) {
-		if strings.EqualFold(r.Protocol, "icmp") && ruleAppliesToWAN(r, device) {
+		if ruleMatchesProtocol(r, icmpProtocols) && ruleAppliesToWAN(r, device) {
 			return checkResult{Result: true, Known: true}
 		}
 	}
@@ -601,7 +629,18 @@ func (sp *Plugin) checkDNSZoneTransfer(device *common.CommonDevice) checkResult 
 		if !ruleAppliesToWAN(r, device) {
 			continue
 		}
-		if !strings.EqualFold(r.Protocol, "tcp") || !analysis.IsAnyEndpoint(r.Source) ||
+		// A tcp/udp rule's port applies as a tcp rule's does. An empty or any
+		// protocol passes TCP too, but neither firewall applies its port:
+		// OPNsense keeps a legacy rule's port only for tcp, udp and tcp/udp
+		// (Rule.php L379-L385) and its filter model refuses a port on any
+		// other protocol (Filter.php L72-L83); pfSense writes a port only for
+		// get_ipprotocols('portsonly') (filter.inc L3929-L3930) and compiles
+		// an empty protocol with a port as proto tcp (L4497-L4499). Such a
+		// rule passes TCP to every port. The control still reads it by the
+		// port it names, as it reads a tcp rule: one naming 53 counts, and
+		// one naming another port is left out, as a tcp rule open to every
+		// port is.
+		if !ruleMatchesProtocol(r, tcpProtocols) || !analysis.IsAnyEndpoint(r.Source) ||
 			matchesNoPort(r, device.NamedObjects) {
 			continue
 		}
@@ -695,6 +734,12 @@ func (sp *Plugin) checkDefaultCredentials(device *common.CommonDevice) checkResu
 }
 
 // checkTCPStateEnforcement verifies all TCP pass rules have a StateType set.
+// It reads tcp rules only, not tcp/udp or any-protocol rules as
+// checkStatefulInspection does: it fails only on an empty StateType, which
+// both converters fill with keep state, so it cannot see a none state, and
+// widening the protocol would turn a stateless tcp/udp or any-protocol rule
+// from not evaluated into a pass. The wider protocol belongs with a fix that
+// reads none.
 func (sp *Plugin) checkTCPStateEnforcement(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
