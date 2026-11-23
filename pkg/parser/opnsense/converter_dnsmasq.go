@@ -599,11 +599,19 @@ func interfacePrefix6(iface schema.Interface) (netip.Prefix, bool) {
 // context for a constructed range only when the interface's prefix is at
 // most the range's (construct_worker in dhcp6.c), so such a range serves no
 // address. A prefix the config does not show is assigned at runtime and may
-// be short enough, so it does not count.
+// be short enough, so it does not count. Neither does an interface that
+// carries an IPv6 virtual IP: dnsmasq tries every address of the interface,
+// and the schema does not read a virtual IP's prefix length, so the range may
+// be built from that address.
 func constructedOnLongPrefix(doc *schema.OpnSenseDocument, constructor string) bool {
 	prefix, ok := interfaceNetwork6(doc, constructor)
+	if !ok || prefix.Bits() <= dnsmasqIPv6Prefix {
+		return false
+	}
 
-	return ok && prefix.Bits() > dnsmasqIPv6Prefix
+	return !slices.ContainsFunc(doc.VirtualIP.Vip, func(vip schema.VIP) bool {
+		return strings.TrimSpace(vip.Interface) == constructor && strings.Contains(vip.Subnet, ":")
+	})
 }
 
 // dnsmasqIPv6Prefix is the prefix_len the template writes when it is empty,

@@ -137,7 +137,10 @@ yq '[.dhcp[].interface]' config.yaml
 
 # Get the DHCP ranges served on a specific interface. An upgraded box can keep a
 # disabled ISC scope beside the dnsmasq one, so select the enabled scope. A
-# DHCPv6 pool is in rangeV6, and a scope can hold either or both.
+# DHCPv6 pool is in rangeV6, and a scope can hold either or both. A dnsmasq
+# scope holds only the first range of each address family; a conversion warning
+# names any further one. A Kea scope has no interface name and is selected by
+# .subnet instead.
 yq '.dhcp[] | select(.interface == "lan" and .enabled) | {"range": .range, "rangeV6": .rangeV6}' config.yaml
 
 # List static leases

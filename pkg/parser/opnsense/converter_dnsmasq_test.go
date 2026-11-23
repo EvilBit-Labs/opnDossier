@@ -1662,7 +1662,8 @@ func TestConverter_Dnsmasq_SharedNetworkReservationChanges(t *testing.T) {
 // dnsmasq builds a context only when the interface's prefix is at most the
 // range's 64 (construct_worker in dhcp6.c), so such a range serves nothing
 // and exports no pool. An interface whose prefix the config does not show
-// gets one at runtime and keeps its pool.
+// gets one at runtime and keeps its pool, and so does one carrying an IPv6
+// virtual IP, which dnsmasq can build the range from.
 func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
 	t.Parallel()
 
@@ -1676,6 +1677,7 @@ func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
 	cases := []struct {
 		name       string
 		ranges     string
+		extra      string
 		iface      string
 		wantScope  bool
 		wantPool   bool
@@ -1683,6 +1685,20 @@ func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
 		wantWarned bool
 	}{
 		{name: "static /80 builds no range", ranges: constructed("opt6"), iface: "opt6", wantWarned: true},
+		{
+			name:   "an IPv6 virtual IP on the interface keeps the pool",
+			ranges: constructed("opt6"),
+			extra: `<virtualip><vip><mode>ipalias</mode><interface>opt6</interface>` +
+				`<subnet>fd00:60::1</subnet><subnet_bits>64</subnet_bits></vip></virtualip>`,
+			iface: "opt6", wantScope: true, wantPool: true,
+		},
+		{
+			name:   "an IPv4 virtual IP on the interface changes nothing",
+			ranges: constructed("opt6"),
+			extra: `<virtualip><vip><mode>ipalias</mode><interface>opt6</interface>` +
+				`<subnet>10.0.60.1</subnet><subnet_bits>24</subnet_bits></vip></virtualip>`,
+			iface: "opt6", wantWarned: true,
+		},
 		{
 			name:      "static /48 keeps its pool",
 			ranges:    constructed("opt5"),
@@ -1707,7 +1723,7 @@ func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
 			t.Parallel()
 
 			device, warnings := parseDnsmasqConfig(t,
-				`<dnsmasq version="1.0.9"><enable>1</enable>`+tc.ranges+`</dnsmasq>`, "")
+				`<dnsmasq version="1.0.9"><enable>1</enable>`+tc.ranges+`</dnsmasq>`, tc.extra)
 
 			var scope *common.DHCPScope
 			for i := range device.DHCP {
