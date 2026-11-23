@@ -21,6 +21,8 @@ var loopbackAddresses = []netip.Addr{netip.MustParseAddr("127.0.0.1"), netip.IPv
 // model has no constant for either, and the converter keeps the vendor type.
 const (
 	aliasTypeURLTable common.NamedObjectType = "urltable"
+	// aliasTypeInternal is a table OPNsense itself fills, such as bogons.
+	aliasTypeInternal common.NamedObjectType = "internal"
 	aliasTypeURLJSON  common.NamedObjectType = "urljson"
 )
 
@@ -164,9 +166,11 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 
 // loadsEmpty reports whether OPNsense loads the alias with no members, so
 // that it holds no address and names no alias: it is disabled. The alias
-// loader skips an external alias, whose table stays as it is when disabled.
+// loader skips an external and an internal alias, whose tables stay as they
+// are when disabled.
 func loadsEmpty(object common.NamedObject) bool {
-	return object.Disabled && object.Type != common.NamedObjectTypeExternal
+	return object.Disabled &&
+		object.Type != common.NamedObjectTypeExternal && object.Type != aliasTypeInternal
 }
 
 // loadedAliases returns the aliases with the members of every alias that
