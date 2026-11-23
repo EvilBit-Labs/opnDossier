@@ -41,10 +41,13 @@ func sysctlItem(uuid, tunable, value string) string {
 // for the source-route tunables on 15.1 and 15.7, which list no default for
 // them. The kernel's value agrees for these tunables, so all three controls
 // pass on each shape. An explicit value still decides, and the later of two
-// rows wins. A row naming a tunable with trailing whitespace, which OPNsense
-// 16.7 to 20.1 apply and later releases skip, leaves that tunable read as
-// written: unknown with no exact row, and not the value a control asks for
-// when the exact row holds the keyword or is empty.
+// rows wins. A row naming a tunable with trailing whitespace or a trailing
+// dot, which OPNsense 16.7 to 20.1 apply and later releases skip, makes each
+// control read that tunable as it did before tunables were resolved: the
+// first exact row as written for FIREWALL-033 and FIREWALL-034, the last
+// exact row of each source-route tunable as written for SANS-FW-013.
+//
+//nolint:funlen // test table or data declaration; length is in data not logic
 func TestSourceRouteAndSYNCookieControls_TunableDefaults_EndToEnd(t *testing.T) {
 	t.Parallel()
 
@@ -115,6 +118,40 @@ func TestSourceRouteAndSYNCookieControls_TunableDefaults_EndToEnd(t *testing.T) 
 				sysctlItem("e5", sc+"\t", "<value>0</value>"),
 			),
 			wantFail: []string{"FIREWALL-033", "FIREWALL-034", "SANS-FW-013"},
+		},
+		{
+			// OPNsense 16.7 to 20.1 apply the exact name where its first row
+			// stands, with its last value 0, and then the padded name, so the
+			// firewall runs 1; 20.7 and later skip the padded name and run 0.
+			// FIREWALL-033 reads the first exact row, 1. SANS-FW-013 reads the
+			// last, 0, and the keyword beside it as written.
+			name: "padded row between two exact rows",
+			sysctl: block(
+				sysctlItem("f1", asr, "<value>default</value>"),
+				sysctlItem("f2", sr, "<value>1</value>"),
+				sysctlItem("f3", sr+" ", "<value>1</value>"),
+				sysctlItem("f4", sr, "<value>0</value>"),
+				sysctlItem("f5", sc, "<value>default</value>"),
+			),
+			wantFail: []string{"FIREWALL-033", "SANS-FW-013"},
+		},
+		{
+			name: "lone padded source-route row",
+			sysctl: block(
+				sysctlItem("g1", sr+" ", "<value>0</value>"),
+				sysctlItem("g2", sc, "<value>default</value>"),
+			),
+			wantUnknown: []string{"FIREWALL-033", "SANS-FW-013"},
+		},
+		{
+			name: "exact safe values with padded unsafe twins",
+			sysctl: block(
+				sysctlItem("h1", asr, "<value>0</value>"),
+				sysctlItem("h2", sr, "<value>0</value>"),
+				sysctlItem("h3", sr+".", "<value>1</value>"),
+				sysctlItem("h4", sc, "<value>1</value>"),
+				sysctlItem("h5", sc+" ", "<value>0</value>"),
+			),
 		},
 	}
 

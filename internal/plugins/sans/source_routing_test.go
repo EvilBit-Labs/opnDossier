@@ -70,20 +70,83 @@ func TestSANSPlugin_SourceRouting(t *testing.T) {
 			t.Parallel()
 
 			device := &common.CommonDevice{DeviceType: tt.device, Sysctl: tt.sysctl}
-			findings, evaluated, err := plugin.RunChecks(device)
-			require.NoError(t, err)
+			assert.Equal(t, tt.want, sourceRoutingVerdict(t, plugin, device))
+		})
+	}
+}
 
-			got := unk
-			if slices.Contains(evaluated, "SANS-FW-013") {
-				got = pass
-				if slices.ContainsFunc(findings, func(f compliance.Finding) bool {
-					return f.Reference == "SANS-FW-013"
-				}) {
-					got = fail
-				}
-			}
+// sourceRoutingVerdict runs the plugin and reads SANS-FW-013's verdict:
+// "unknown" when it was not evaluated, "fail" when it has a finding, and
+// "pass" otherwise.
+func sourceRoutingVerdict(t *testing.T, plugin *sans.Plugin, device *common.CommonDevice) string {
+	t.Helper()
 
-			assert.Equal(t, tt.want, got)
+	findings, evaluated, err := plugin.RunChecks(device)
+	require.NoError(t, err)
+
+	if !slices.Contains(evaluated, "SANS-FW-013") {
+		return "unknown"
+	}
+
+	if slices.ContainsFunc(findings, func(f compliance.Finding) bool { return f.Reference == "SANS-FW-013" }) {
+		return "fail"
+	}
+
+	return "pass"
+}
+
+// TestSANSPlugin_SourceRouting_PaddedRowReadsAsBefore pins SANS-FW-013 on
+// OPNsense when a padded row names either source-route tunable. OPNsense 16.7
+// to 20.1 apply that row and later releases skip it, so the value in effect
+// depends on the release, and the check reads both tunables as it did before
+// tunables were resolved: the last row naming each exactly, as written,
+// unknown when neither has one, and failing when only one has.
+func TestSANSPlugin_SourceRouting_PaddedRowReadsAsBefore(t *testing.T) {
+	t.Parallel()
+
+	const (
+		sr   = "net.inet.ip.sourceroute"
+		asr  = "net.inet.ip.accept_sourceroute"
+		sc   = "net.inet.tcp.syncookies"
+		pass = "pass"
+		fail = "fail"
+		unk  = "unknown"
+	)
+
+	rows := func(pairs ...string) []common.SysctlItem {
+		items := make([]common.SysctlItem, 0, len(pairs)/2)
+		for i := 0; i+1 < len(pairs); i += 2 {
+			items = append(items, common.SysctlItem{Tunable: pairs[i], Value: pairs[i+1]})
+		}
+
+		return items
+	}
+
+	tests := []struct {
+		name   string
+		sysctl []common.SysctlItem
+		want   string
+	}{
+		{
+			"padded row between two exact rows, keyword beside",
+			rows(asr, "default", sr, "1", sr+" ", "1", sr, "0"), fail,
+		},
+		{"padded row between two exact rows, 0 beside", rows(asr, "0", sr, "1", sr+" ", "1", sr, "0"), pass},
+		{"lone padded row", rows(sr+" ", "0", sc, "1"), unk},
+		{"lone padded row beside the other tunable", rows(sr+" ", "0", asr, "0"), fail},
+		{"keyword then padded 1", rows(sr, "default", sr+".", "1", asr, "default"), fail},
+		{"padded accept_sourceroute", rows(asr+" ", "1", asr, "0", sr, "0"), pass},
+		{"empty accept_sourceroute then padded 0", rows(asr, "", asr+"\t", "0", sr, "0"), fail},
+	}
+
+	plugin := sans.NewPlugin()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := &common.CommonDevice{DeviceType: common.DeviceTypeOPNsense, Sysctl: tt.sysctl}
+			assert.Equal(t, tt.want, sourceRoutingVerdict(t, plugin, device))
 		})
 	}
 }

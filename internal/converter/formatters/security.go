@@ -141,7 +141,22 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 // value. A tunable left at its default reads as the value in effect on the
 // firewall (analysis.EffectiveSysctl), and one whose value cannot be told
 // counts as not holding it.
+//
+// When a padded row names the tunable (analysis.SysctlNamePadded), the value
+// in effect depends on the release, so the tunable is read as it was at
+// a5e66959: the first row naming it exactly must hold the expected value as
+// written.
 func checkTunable(data *common.CommonDevice, name, expected string) bool {
+	if analysis.SysctlNamePadded(data, name) {
+		for _, item := range data.Sysctl {
+			if item.Tunable == name {
+				return item.Value == expected
+			}
+		}
+
+		return false
+	}
+
 	value, known := analysis.EffectiveSysctl(data, name)
 	return known && value == expected
 }

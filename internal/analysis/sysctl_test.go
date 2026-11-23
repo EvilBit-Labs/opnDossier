@@ -103,30 +103,30 @@ func TestEffectiveSysctl(t *testing.T) {
 		{"opnsense upper-case keyword read as written", opn, r(sc, "DEFAULT"), sc, "DEFAULT", true},
 		{"opnsense padded keyword read as written", opn, r(sc, " default"), sc, " default", true},
 
-		// Trailing whitespace is dropped by FreeBSD's sysctl, so OPNsense 16.7
-		// to 20.1 apply that row as well, and from 20.7 OPNsense skips it. The
-		// value then depends on the release: the tunable is read as written,
-		// and an exact row with a value still decides.
+		// On OPNsense a padded row (TestSysctlNamePadded) makes the value
+		// depend on the release, so the tunable is unknown here and each
+		// control falls back to the reading it had before. A padded row of
+		// another tunable changes nothing.
 		{"opnsense trailing space, no exact row", opn, r(sr+" ", "1"), sr, "", false},
 		{"opnsense trailing tab, no exact row", opn, r(sc+"\t", "0"), sc, "", false},
 		{"opnsense trailing newline, no exact row", opn, r(asr+"\n", "1"), asr, "", false},
-		{"opnsense keyword then trailing-space row", opn, r(sr, kw, sr+" ", "1"), sr, kw, true},
-		{"opnsense empty then trailing-space row", opn, r(sc, "", sc+" ", "0"), sc, "", true},
-		{"opnsense trailing-space row then keyword", opn, r(sr+"\r", "1", sr, kw), sr, kw, true},
-		{"opnsense blackhole keyword with trailing-space row", opn, r(tb, kw, tb+" ", "0"), tb, kw, true},
-		{"opnsense exact value then trailing-space row", opn, r(sr, "1", sr+" ", "0"), sr, "1", true},
+		{"opnsense keyword then trailing-space row", opn, r(sr, kw, sr+" ", "1"), sr, "", false},
+		{"opnsense empty then trailing-space row", opn, r(sc, "", sc+" ", "0"), sc, "", false},
+		{"opnsense trailing-space row then keyword", opn, r(sr+"\r", "1", sr, kw), sr, "", false},
+		{"opnsense blackhole keyword with trailing-space row", opn, r(tb, kw, tb+" ", "0"), tb, "", false},
+		{"opnsense exact value then trailing-space row", opn, r(sr, "1", sr+" ", "0"), sr, "", false},
+		{"opnsense exact and padded rows agreeing", opn, r(sr, "0", sr+" ", "0"), sr, "", false},
+		{"opnsense padded row between two exact rows", opn, r(sr, "1", sr+" ", "1", sr, "0"), sr, "", false},
 		{"opnsense trailing-space row of another tunable", opn, r(sc+" ", "0"), sr, "0", true},
-		// The kernel also accepts one trailing dot after sysctl has dropped the
-		// whitespace (sys/kern/kern_sysctl.c name2oid), so such a row stops the
-		// resolution the same way. Two dots, or a dot after a space, name no
-		// tunable.
 		{"opnsense trailing dot, no exact row", opn, r(sr+".", "1"), sr, "", false},
-		{"opnsense trailing dot then space, no exact row", opn, r(sc+". ", "0"), sc, "", false},
-		{"opnsense keyword then trailing-dot row", opn, r(sr, kw, sr+".", "1"), sr, kw, true},
+		{"opnsense keyword then trailing-dot row", opn, r(sr, kw, sr+".", "1"), sr, "", false},
 		{"opnsense two trailing dots is another tunable", opn, r(sr+"..", "1"), sr, "0", true},
 		{"opnsense space then dot is another tunable", opn, r(sr+" .", "1"), sr, "0", true},
+		// Any other device ignores a padded row and reads the last exact row as
+		// written.
 		{"pfsense trailing-space row", pf, r(sr+" ", "1"), sr, "", false},
 		{"pfsense keyword with trailing-space row", pf, r(sc, kw, sc+" ", "0"), sc, kw, true},
+		{"pfsense padded row between two exact rows", pf, r(sr, "1", sr+" ", "1", sr, "0"), sr, "0", true},
 	}
 
 	for _, tt := range tests {
@@ -147,4 +147,54 @@ func TestEffectiveSysctl_NilDevice(t *testing.T) {
 	value, known := analysis.EffectiveSysctl(nil, "net.inet.ip.sourceroute")
 	assert.False(t, known)
 	assert.Empty(t, value)
+}
+
+// TestSysctlNamePadded pins which rows count as padded. FreeBSD's sysctl drops
+// trailing whitespace from a name and the kernel then accepts one trailing
+// dot, so OPNsense 16.7 to 20.1 apply such a row to the tunable. Leading
+// whitespace, a second dot, a dot after a space and upper case name another
+// tunable. Off OPNsense rows are read as written, so nothing is padded.
+func TestSysctlNamePadded(t *testing.T) {
+	t.Parallel()
+
+	const sr = "net.inet.ip.sourceroute"
+
+	opn := common.DeviceTypeOPNsense
+	r := sysctlRows
+
+	tests := []struct {
+		name   string
+		device common.DeviceType
+		rows   []common.SysctlItem
+		want   bool
+	}{
+		{"trailing space", opn, r(sr+" ", "0"), true},
+		{"trailing tab", opn, r(sr+"\t", "0"), true},
+		{"trailing newline", opn, r(sr+"\n", "0"), true},
+		{"trailing carriage return", opn, r(sr+"\r", "0"), true},
+		{"trailing vertical tab and form feed", opn, r(sr+"\v\f", "0"), true},
+		{"trailing dot", opn, r(sr+".", "0"), true},
+		{"trailing dot then spaces", opn, r(sr+".  ", "0"), true},
+		{"padded row beside an exact row", opn, r(sr, "1", sr+" ", "1"), true},
+		{"exact row only", opn, r(sr, "1"), false},
+		{"no rows", opn, nil, false},
+		{"leading space", opn, r(" "+sr, "0"), false},
+		{"two trailing dots", opn, r(sr+"..", "0"), false},
+		{"space then dot", opn, r(sr+" .", "0"), false},
+		{"upper case", opn, r("NET.INET.IP.SOURCEROUTE ", "0"), false},
+		{"another tunable padded", opn, r("net.inet.ip.accept_sourceroute ", "0"), false},
+		{"pfsense trailing space", common.DeviceTypePfSense, r(sr+" ", "0"), false},
+		{"unknown device trailing space", common.DeviceTypeUnknown, r(sr+" ", "0"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			device := &common.CommonDevice{DeviceType: tt.device, Sysctl: tt.rows}
+			assert.Equal(t, tt.want, analysis.SysctlNamePadded(device, sr))
+		})
+	}
+
+	assert.False(t, analysis.SysctlNamePadded(nil, sr), "nil device")
 }

@@ -378,16 +378,30 @@ func (sp *Plugin) checkAntiSpoofing(device *common.CommonDevice) checkResult {
 	return checkResult{Result: true, Known: true}
 }
 
+// sysctlSourceRoute and sysctlAcceptSourceRoute are the tunables SANS-FW-013
+// reads.
+const (
+	sysctlSourceRoute       = "net.inet.ip.sourceroute"
+	sysctlAcceptSourceRoute = "net.inet.ip.accept_sourceroute"
+)
+
 // checkSourceRouting verifies sysctl settings disable IP source routing. A
 // tunable left at its default reads as the value in effect on the firewall
-// (analysis.EffectiveSysctl).
+// (analysis.EffectiveSysctl). When a padded row names either tunable
+// (analysis.SysctlNamePadded), the check reads both as written
+// (checkSourceRoutingAsWritten).
 func (sp *Plugin) checkSourceRouting(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	sourceRoute, sourceRouteKnown := analysis.EffectiveSysctl(device, "net.inet.ip.sourceroute")
-	acceptSourceRoute, acceptSourceRouteKnown := analysis.EffectiveSysctl(device, "net.inet.ip.accept_sourceroute")
+	if analysis.SysctlNamePadded(device, sysctlSourceRoute) ||
+		analysis.SysctlNamePadded(device, sysctlAcceptSourceRoute) {
+		return checkSourceRoutingAsWritten(device)
+	}
+
+	sourceRoute, sourceRouteKnown := analysis.EffectiveSysctl(device, sysctlSourceRoute)
+	acceptSourceRoute, acceptSourceRouteKnown := analysis.EffectiveSysctl(device, sysctlAcceptSourceRoute)
 
 	// If neither tunable can be read, we cannot evaluate.
 	if !sourceRouteKnown && !acceptSourceRouteKnown {
@@ -397,6 +411,39 @@ func (sp *Plugin) checkSourceRouting(device *common.CommonDevice) checkResult {
 	// Both must be known and set to 0 for full compliance.
 	result := sourceRouteKnown && acceptSourceRouteKnown &&
 		sourceRoute == "0" && acceptSourceRoute == "0"
+
+	return checkResult{Result: result, Known: true}
+}
+
+// checkSourceRoutingAsWritten is SANS-FW-013 as it read the two tunables at
+// a5e66959: the last row naming each exactly, as written. A padded row makes
+// the value in effect depend on the release, so the check keeps that reading
+// while one names either tunable.
+func checkSourceRoutingAsWritten(device *common.CommonDevice) checkResult {
+	sourceRouteFound := false
+	acceptSourceRouteFound := false
+	sourceRouteDisabled := false
+	acceptSourceRouteDisabled := false
+
+	for _, item := range device.Sysctl {
+		switch item.Tunable {
+		case sysctlSourceRoute:
+			sourceRouteFound = true
+			sourceRouteDisabled = item.Value == "0"
+		case sysctlAcceptSourceRoute:
+			acceptSourceRouteFound = true
+			acceptSourceRouteDisabled = item.Value == "0"
+		}
+	}
+
+	// If neither tunable is found, we cannot evaluate.
+	if !sourceRouteFound && !acceptSourceRouteFound {
+		return unknown
+	}
+
+	// Both must be found and set to 0 for full compliance.
+	result := sourceRouteFound && acceptSourceRouteFound &&
+		sourceRouteDisabled && acceptSourceRouteDisabled
 
 	return checkResult{Result: result, Known: true}
 }

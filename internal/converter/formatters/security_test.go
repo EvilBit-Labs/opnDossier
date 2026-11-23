@@ -601,6 +601,50 @@ func TestCheckTunable(t *testing.T) {
 	}
 }
 
+// TestCheckTunable_PaddedRowReadsAsBefore pins checkTunable on OPNsense when a
+// padded row names the tunable. OPNsense 16.7 to 20.1 apply that row and later
+// releases skip it, so the tunable is read as it was before tunables were
+// resolved: the first row naming it exactly must hold the expected value as
+// written.
+func TestCheckTunable_PaddedRowReadsAsBefore(t *testing.T) {
+	t.Parallel()
+
+	const tb = "net.inet.tcp.blackhole"
+
+	tests := []struct {
+		name string
+		rows []common.SysctlItem
+		want bool
+	}{
+		{
+			"expected value then padded row",
+			[]common.SysctlItem{{Tunable: tb, Value: "2"}, {Tunable: tb + " ", Value: "0"}},
+			true,
+		},
+		{
+			"first exact row decides",
+			[]common.SysctlItem{{Tunable: tb, Value: "0"}, {Tunable: tb + " ", Value: "2"}, {Tunable: tb, Value: "2"}},
+			false,
+		},
+		{
+			"keyword read as written",
+			[]common.SysctlItem{{Tunable: tb, Value: "default"}, {Tunable: tb + ".", Value: "2"}},
+			false,
+		},
+		{"padded row only", []common.SysctlItem{{Tunable: tb + " ", Value: "2"}}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			device := &common.CommonDevice{DeviceType: common.DeviceTypeOPNsense, Sysctl: tt.rows}
+			if got := checkTunable(device, tb, "2"); got != tt.want {
+				t.Errorf("checkTunable(%s, 2) = %v, want %v", tb, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsDefaultUser(t *testing.T) {
 	t.Parallel()
 
