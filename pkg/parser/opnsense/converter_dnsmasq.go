@@ -56,9 +56,12 @@ func (c *converter) convertDNSMasq(doc *schema.OpnSenseDocument) common.DNSMasqC
 	if dm.Version == "" && dm.Dnssec != nil {
 		c.warnOnLegacyZeroFlag("DNS.DNSMasq.DNSSEC", *dm.Dnssec)
 	}
+	if dm.Version == "" && dm.Enable != nil {
+		c.warnOnLegacyZeroFlag("DNS.DNSMasq.Enabled", *dm.Enable)
+	}
 
 	return common.DNSMasqConfig{
-		Enabled:         bool(dm.Enable),
+		Enabled:         dnsmasqEnabled(dm),
 		DNSSEC:          dnsmasqDNSSEC(dm),
 		Port:            strings.TrimSpace(dm.Port),
 		Hosts:           convertDnsmasqHosts(dm.Hosts),
@@ -135,6 +138,19 @@ func convertDnsmasqDomainOverrides(overrides []schema.DomainOverride) []common.D
 	return result
 }
 
+// dnsmasqEnabled reports whether the firewall runs dnsmasq. A legacy config,
+// which has no model version, is enabled by the presence of <enable>:
+// dnsmasq_enabled() tests it with isset() up to 25.1.1. From 25.1.2, the
+// release the model arrived in, it tests !empty(), so a 0 or an empty element
+// is off.
+func dnsmasqEnabled(dm schema.DNSMasq) bool {
+	if dm.Enable == nil {
+		return false
+	}
+
+	return dm.Version == "" || modelFlagSet(*dm.Enable)
+}
+
 // dnsmasqScopeNets holds what a dnsmasq scope's ranges say about the
 // addresses it serves, which the scope model has no field for.
 type dnsmasqScopeNets struct {
@@ -204,6 +220,14 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 				common.SeverityLow)
 			continue
 		}
+		if v6 && constructedOnLongPrefix(doc, r) {
+			constructor := strings.TrimSpace(r.Constructor)
+			c.addWarning("dnsmasq.dhcp_ranges.constructor", constructor,
+				fmt.Sprintf("dnsmasq builds no DHCPv6 range on interface %q: its IPv6 prefix is longer than /64; "+
+					"the range serves no address and is not exported", constructor),
+				common.SeverityLow)
+			continue
+		}
 
 		iface := dnsmasqRangeInterface(doc, r, start)
 		key := iface
@@ -218,7 +242,7 @@ func (c *converter) convertDnsmasqDHCPScopes(doc *schema.OpnSenseDocument) []com
 			scopes = append(scopes, common.DHCPScope{
 				Interface:   iface,
 				Source:      common.DHCPSourceDnsmasq,
-				Enabled:     bool(dm.Enable) && servesOn(iface),
+				Enabled:     dnsmasqEnabled(dm) && servesOn(iface),
 				Description: r.Description,
 			})
 			nets = append(nets, dnsmasqScopeNets{})
@@ -542,8 +566,8 @@ func addConstructedNetwork6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets
 	if !ok {
 		return
 	}
-	ifPrefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddrv6) + "/" + strings.TrimSpace(iface.Subnetv6))
-	if err != nil || !ifPrefix.Addr().Is6() {
+	ifPrefix, ok := interfacePrefix6(iface)
+	if !ok {
 		nets.constructed = true
 		return
 	}
@@ -554,6 +578,34 @@ func addConstructedNetwork6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets
 	if p, err := ifPrefix.Addr().Prefix(dnsmasqIPv6Prefix); err == nil {
 		nets.v6 = append(nets.v6, p)
 	}
+}
+
+// interfacePrefix6 returns the static IPv6 prefix of an interface. ok is
+// false when the config shows none, as for an interface that gets its
+// address at runtime.
+func interfacePrefix6(iface schema.Interface) (netip.Prefix, bool) {
+	prefix, err := netip.ParsePrefix(strings.TrimSpace(iface.IPAddrv6) + "/" + strings.TrimSpace(iface.Subnetv6))
+	if err != nil || !prefix.Addr().Is6() {
+		return netip.Prefix{}, false
+	}
+
+	return prefix, true
+}
+
+// constructedOnLongPrefix reports whether a range's constructor names an
+// interface whose static IPv6 prefix is longer than 64. dnsmasq builds a
+// context for a constructed range only when the interface's prefix is at
+// most the range's (construct_worker in dhcp6.c), so such a range serves no
+// address. A prefix the config does not show is assigned at runtime and may
+// be short enough, so it does not count.
+func constructedOnLongPrefix(doc *schema.OpnSenseDocument, r schema.DNSMasqDHCPRange) bool {
+	iface, ok := doc.Interfaces.Items[strings.TrimSpace(r.Constructor)]
+	if !ok {
+		return false
+	}
+	prefix, ok := interfacePrefix6(iface)
+
+	return ok && prefix.Bits() > dnsmasqIPv6Prefix
 }
 
 // dnsmasqIPv6Prefix is the prefix_len the template writes when it is empty,
