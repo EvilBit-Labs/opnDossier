@@ -573,10 +573,13 @@ func addConstructedNetwork6(doc *schema.OpnSenseDocument, nets *dnsmasqScopeNets
 		nets.constructed = true
 		return
 	}
+	// A range kept on a longer prefix is built from another address of the
+	// interface, such as a virtual IP, so it is constructed, on a network
+	// the config does not show.
+	nets.constructed = true
 	if ifPrefix.Bits() > dnsmasqIPv6Prefix {
 		return
 	}
-	nets.constructed = true
 	if p, err := ifPrefix.Addr().Prefix(dnsmasqIPv6Prefix); err == nil {
 		nets.v6 = append(nets.v6, p)
 	}

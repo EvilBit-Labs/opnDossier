@@ -1683,14 +1683,18 @@ func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
 		wantPool   bool
 		wantRange4 bool
 		wantWarned bool
+		wantLeases int
 	}{
 		{name: "static /80 builds no range", ranges: constructed("opt6"), iface: "opt6", wantWarned: true},
 		{
-			name:   "an IPv6 virtual IP on the interface keeps the pool",
-			ranges: constructed("opt6"),
+			name: "an IPv6 virtual IP on the interface keeps the pool",
+			// The reservation holds only a host part, which applies to a
+			// constructed range.
+			ranges: constructed("opt6") +
+				`<hosts><host>h</host><ip>::50</ip><hwaddr>aa:bb:cc:dd:ee:80</hwaddr></hosts>`,
 			extra: `<virtualip><vip><mode>ipalias</mode><interface>opt6</interface>` +
 				`<subnet>fd00:60::1</subnet><subnet_bits>64</subnet_bits></vip></virtualip>`,
-			iface: "opt6", wantScope: true, wantPool: true,
+			iface: "opt6", wantScope: true, wantPool: true, wantLeases: 1,
 		},
 		{
 			name:   "an IPv4 virtual IP on the interface changes nothing",
@@ -1736,6 +1740,7 @@ func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
 			if scope != nil {
 				assert.Equal(t, tc.wantPool, scope.RangeV6 != nil, "IPv6 pool")
 				assert.Equal(t, tc.wantRange4, scope.Range != (common.DHCPRange{}), "IPv4 pool")
+				assert.Len(t, scope.StaticLeases, tc.wantLeases, "reservations")
 			}
 
 			warning := findWarning(warnings, warningField, tc.iface)
