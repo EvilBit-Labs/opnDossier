@@ -114,6 +114,7 @@ Core system settings including hostname, DNS, web GUI, and SSH.
 | `SSLCertRef`        | `string` | `system.webGui.sslCertRef`        | SSL certificate reference ID  |
 | `LoginAutocomplete` | `bool`   | `system.webGui.loginAutocomplete` | Browser autocomplete on login |
 | `MaxProcesses`      | `string` | `system.webGui.maxProcesses`      | Max web server processes      |
+| `NoDNSRebindCheck`  | `bool`   | `system.webGui.noDnsRebindCheck`  | DNS rebind filtering disabled |
 
 ### Firmware
 
@@ -367,7 +368,7 @@ Both converters fill these fields only for an agent they report as running, and 
 | ---------------- | ------ | ---------------------------- | ------------------------- |
 | `Enabled`        | `bool` | `dns.unbound.enabled`        | Unbound resolver active   |
 | `DNSSEC`         | `bool` | `dns.unbound.dnssec`         | DNSSEC validation enabled |
-| `DNSSECStripped` | `bool` | `dns.unbound.dnssecStripped` | DNSSEC stripped mode      |
+| `DNSSECStripped` | `bool` | `dns.unbound.dnssecStripped` | Harden DNSSEC data on     |
 
 ### DNS (dnsmasq)
 

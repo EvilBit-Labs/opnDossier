@@ -358,7 +358,7 @@ func TestHasUnnecessaryServicesEdgeCases(t *testing.T) {
 			false,
 		},
 		{
-			"Unbound enabled without DNSSEC stripping is not flagged",
+			"Unbound enabled without DNSSEC hardening is not flagged",
 			&common.CommonDevice{
 				DNS: common.DNSConfig{
 					Unbound: common.UnboundConfig{

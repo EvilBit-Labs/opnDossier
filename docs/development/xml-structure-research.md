@@ -40,6 +40,7 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<log/>`                    | `<rule>` (filter)                            | `isset($rule['log'])` sets `$filterent['log'] = true`                                                                                                    |
 | `<quick/>`                  | `<rule>` (OPNsense filter, legacy and model) | `parseBool,quick` (`!empty`): content matters, `<quick/>` is not quick. Both `FirewallFilterRule.Quick` and the legacy `Rule.Quick` are `*string` (#976) |
 | `<disableconsolemenu/>`     | `<system>`                                   | config.xml.sample: self-closing                                                                                                                          |
+| `<nodnsrebindcheck/>`       | `<system><webgui>`                           | `isset($config['system']['webgui']['nodnsrebindcheck'])` in unbound.inc; pfSense `config_path_enabled()`                                                 |
 | `<enable/>`                 | `<rrd>`                                      | config.xml.sample: self-closing                                                                                                                          |
 | `<enable/>`                 | `<snmpd>`                                    | `isset()` (OPNsense up to 18.7), `config_path_enabled('snmpd')` (pfSense); `Snmpd.Enable` is `*string`                                                   |
 | `<tcpflags_any/>`           | `<rule>` (filter)                            | `isset($rule['tcpflags_any'])`                                                                                                                           |
@@ -287,6 +288,7 @@ Helper methods `IsAny()`, `EffectiveAddress()`, and `Equal()` were added to both
 **Converted to `*string` (presence only, the body is ignored):**
 
 - System: IPv6Allow (system.go, and pfSense system.go)
+- WebGUIConfig: NoDNSRebindCheck (system.go), and pfSense WebGUI: NoDNSRebindCheck (system.go)
 - FilterRule: Floating, Quick, Disabled (pfSense security.go). The direction check also reads `Floating`'s body (section 1a)
 - Rule: Floating (security.go)
 
@@ -333,7 +335,7 @@ The following fields use OPNsense MVC value-based semantics where `<field>0</fie
 
 | Struct        | Field        | Type     | Rationale                                   |
 | ------------- | ------------ | -------- | ------------------------------------------- |
-| Unbound       | Enable       | `string` | Heavily used with `== "1"` across 10+ files |
+| Unbound       | Enable       | `string` | Legacy; read as set for any body, `isset()` |
 | Monit.General | Enabled      | `string` | MVC field, value-based                      |
 | Monit.General | Ssl          | `string` | MVC field, value-based                      |
 | Monit.General | Sslverify    | `string` | MVC field, value-based                      |

@@ -448,15 +448,6 @@ func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 		return true
 	}
 
-	// Check for enabled services that might be unnecessary
-	// Unbound DNS resolver with DNSSEC stripping
-	if device.DNS.Unbound.Enabled {
-		// Check if it's configured with insecure settings
-		if device.DNS.Unbound.DNSSECStripped {
-			return true // DNSSEC stripping is a security concern
-		}
-	}
-
 	// Check for DHCP server on interfaces that might not need it
 	dhcpCount := enabledDHCPScopes(device.DHCP)
 	if dhcpCount > 0 {
