@@ -14,6 +14,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -452,6 +453,32 @@ func TestConverter_Dnsmasq_DNSSEC(t *testing.T) {
 			device, _ := parseDnsmasqConfig(t, tt.dnsmasq, "")
 			assert.Equal(t, tt.want, device.DNS.DNSMasq.DNSSEC)
 		})
+	}
+}
+
+// TestConverter_Dnsmasq_LegacyDNSSECZeroWarns covers a hand-written
+// <dnssec>0</dnssec> on a config with no model version. The legacy code tests
+// the element with isset(), so validation is on, and the converter says so
+// with a warning, since the edit most likely meant off. The model reads the
+// value, so the same element under a version draws none.
+func TestConverter_Dnsmasq_LegacyDNSSECZeroWarns(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq><dnssec>0</dnssec></dnsmasq>`, "")
+	assert.True(t, device.DNS.DNSMasq.DNSSEC)
+
+	got := dnsmasqWarnings(warnings)
+	require.Len(t, got, 1)
+	assert.Equal(t, "DNS.DNSMasq.DNSSEC", got[0].Field)
+	assert.Equal(t, common.SeverityLow, got[0].Severity)
+
+	for _, quiet := range []string{
+		`<dnsmasq><dnssec>1</dnssec></dnsmasq>`,
+		`<dnsmasq><dnssec/></dnsmasq>`,
+		`<dnsmasq version="1.0.9"><dnssec>0</dnssec></dnsmasq>`,
+	} {
+		_, warnings := parseDnsmasqConfig(t, quiet, "")
+		assert.Empty(t, dnsmasqWarnings(warnings), quiet)
 	}
 }
 

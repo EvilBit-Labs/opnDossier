@@ -53,6 +53,10 @@ func (c *converter) convertDNSMasq(doc *schema.OpnSenseDocument) common.DNSMasqC
 		}
 	}
 
+	if dm.Version == "" && dm.Dnssec != nil {
+		c.warnOnLegacyZeroFlag("DNS.DNSMasq.DNSSEC", *dm.Dnssec)
+	}
+
 	return common.DNSMasqConfig{
 		Enabled:         bool(dm.Enable),
 		DNSSEC:          dnsmasqDNSSEC(dm),

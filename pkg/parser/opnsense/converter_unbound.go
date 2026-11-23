@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	schema "github.com/EvilBit-Labs/opnDossier/pkg/schema/opnsense"
 )
 
@@ -63,6 +64,39 @@ func readUnboundServiceFlags(doc *schema.OpnSenseDocument) unboundServiceFlags {
 	}
 
 	return flags
+}
+
+// legacyFlagOff is the body a hand edit gives a legacy flag meant to be off.
+const legacyFlagOff = "0"
+
+// warnOnLegacyZeroFlag warns about a legacy flag element that holds 0. The
+// legacy Unbound and dnsmasq code tests <enable> and <dnssec> with isset()
+// (unbound.inc, dnsmasq.inc), and their pages write the element only for a
+// ticked box, so a 0 comes from a hand edit that most likely meant off, while
+// the firewall and this converter read the setting as on.
+func (c *converter) warnOnLegacyZeroFlag(field, body string) {
+	if strings.TrimSpace(body) != legacyFlagOff {
+		return
+	}
+
+	c.addWarning(
+		field,
+		body,
+		"legacy element holds 0; OPNsense tests it for presence, so the setting is reported as on",
+		common.SeverityLow,
+	)
+}
+
+// warnOnLegacyUnboundZeroFlags applies warnOnLegacyZeroFlag to the legacy
+// <unbound> flags, when readUnboundServiceFlags reads them from there.
+func (c *converter) warnOnLegacyUnboundZeroFlags(doc *schema.OpnSenseDocument) {
+	plus := doc.OPNsense.UnboundPlus
+	if unboundModelHolds(plus.Version, unboundGeneralSincePatch, plus.General.Enabled != "") {
+		return
+	}
+
+	c.warnOnLegacyZeroFlag("DNS.Unbound.Enabled", doc.Unbound.Enable)
+	c.warnOnLegacyZeroFlag("DNS.Unbound.DNSSEC", doc.Unbound.Dnssec)
 }
 
 // unboundModelHolds reports whether a model at version holds a setting that
