@@ -206,17 +206,18 @@ func (k ShadowKind) IsValid() bool {
 
 // Confidence classifies how certain a firewall-rule shadow finding is,
 // distinct from Severity: every finding is ConfidenceHigh except the R8
-// advisory path (an unresolvable alias sitting inside what would otherwise
-// be a Security-class overlap), which is ConfidenceLow (see
-// ShadowedRuleFinding.Confidence).
+// advisory path (an unresolvable alias, or a port value the analysis cannot
+// read, sitting inside what would otherwise be a Security-class overlap),
+// which is ConfidenceLow (see ShadowedRuleFinding.Confidence).
 type Confidence string
 
 // Confidence level constants for ShadowedRuleFinding.Confidence.
 const (
 	// ConfidenceHigh indicates a confirmed, non-advisory finding.
 	ConfidenceHigh Confidence = "high"
-	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias
-	// prevented the shadow from being confirmed with certainty.
+	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias, or a
+	// port value the analysis cannot read, prevented the shadow from being
+	// confirmed with certainty.
 	ConfidenceLow Confidence = "low"
 )
 
@@ -267,7 +268,8 @@ type ShadowedRuleFinding struct {
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
 	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Confidence indicates how certain the finding is: ConfidenceHigh, or
-	// ConfidenceLow for the unresolved-alias advisory path.
+	// ConfidenceLow for the advisory path (an unresolved alias or an
+	// unreadable port value).
 	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
 	// RuleIndex is the position of the shadowed (loser) rule in the filter
 	// rule list. No omitempty: index 0 (the first rule) must be

@@ -197,11 +197,14 @@ func serviceReachability(device *common.CommonDevice, port int) analysis.Reachab
 // neither does a rule that matches only outbound traffic, which never admits a
 // connection to the firewall's own services.
 // Port matching biases toward over-reporting exposure (the safe direction for a
-// security tool): an empty or "any" rule port permits every port, a numeric
-// range or comma-list is matched by containment, and an unresolvable port alias
-// is treated as permitting the port rather than silently classifying the service
-// as safely LAN-only. As far as ports go, only a concrete numeric port that does
-// not contain the service port is treated as non-permitting. See analysis.RulePortPermits.
+// security tool): an empty or "any" rule port permits every port, a port,
+// service name or range, or a comma list of them, is matched by containment,
+// and a token analysis.RulePortPermits cannot read, such as a port alias name
+// or a service name it does not know, is treated as permitting the port
+// rather than silently classifying the service as safely LAN-only. As far as
+// ports go, a rule is non-permitting only when every token reads as a port,
+// service name or range that does not contain the service port. See
+// analysis.RulePortPermits.
 func wanRulePermitsPort(device *common.CommonDevice, port int) bool {
 	for _, rule := range device.FirewallRules {
 		if rule.Disabled || rule.Type != common.RuleTypePass || rule.Direction == common.DirectionOut {

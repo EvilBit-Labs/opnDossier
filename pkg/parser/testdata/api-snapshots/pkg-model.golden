@@ -416,16 +416,17 @@ func (r ComplianceResults) HasData() bool
 
 type Confidence string
     Confidence classifies how certain a firewall-rule shadow finding is,
-    distinct from Severity: every finding is ConfidenceHigh except the
-    R8 advisory path (an unresolvable alias sitting inside what would
-    otherwise be a Security-class overlap), which is ConfidenceLow (see
-    ShadowedRuleFinding.Confidence).
+    distinct from Severity: every finding is ConfidenceHigh except the R8
+    advisory path (an unresolvable alias, or a port value the analysis cannot
+    read, sitting inside what would otherwise be a Security-class overlap),
+    which is ConfidenceLow (see ShadowedRuleFinding.Confidence).
 
 const (
 	// ConfidenceHigh indicates a confirmed, non-advisory finding.
 	ConfidenceHigh Confidence = "high"
-	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias
-	// prevented the shadow from being confirmed with certainty.
+	// ConfidenceLow indicates the R8 advisory path: an unresolvable alias, or a
+	// port value the analysis cannot read, prevented the shadow from being
+	// confirmed with certainty.
 	ConfidenceLow Confidence = "low"
 )
     Confidence level constants for ShadowedRuleFinding.Confidence.
@@ -1870,7 +1871,11 @@ type MonitorType struct {
 type NATConfig struct {
 	// OutboundMode is the outbound NAT mode (automatic, hybrid, advanced, or disabled).
 	OutboundMode NATOutboundMode `json:"outboundMode,omitempty" yaml:"outboundMode,omitempty"`
-	// ReflectionDisabled indicates NAT reflection is turned off.
+	// ReflectionDisabled reports that NAT reflection is disabled globally
+	// (System.DisableNATReflection) and that no enabled port forward that
+	// redirects turns it back on with its own setting. A global enable is never
+	// reported as disabled, even when every forward opts out, since the next
+	// forward added would reflect. 1:1 NAT reflection is not covered.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
@@ -1958,7 +1963,8 @@ type NATRule struct {
 type NATSummary struct {
 	// Mode is the outbound NAT mode.
 	Mode NATOutboundMode `json:"mode,omitempty" yaml:"mode,omitempty"`
-	// ReflectionDisabled indicates NAT reflection is turned off.
+	// ReflectionDisabled is NATConfig.ReflectionDisabled: reflection is
+	// disabled globally and no port forward turns it back on.
 	ReflectionDisabled bool `json:"reflectionDisabled,omitempty" yaml:"reflectionDisabled,omitempty"`
 	// PfShareForward enables pf share-forward for NAT.
 	PfShareForward bool `json:"pfShareForward,omitempty" yaml:"pfShareForward,omitempty"`
@@ -2575,7 +2581,8 @@ type ShadowedRuleFinding struct {
 	// Severity is the severity level (e.g., "critical", "high", "medium", "low").
 	Severity Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	// Confidence indicates how certain the finding is: ConfidenceHigh, or
-	// ConfidenceLow for the unresolved-alias advisory path.
+	// ConfidenceLow for the advisory path (an unresolved alias or an
+	// unreadable port value).
 	Confidence Confidence `json:"confidence,omitempty" yaml:"confidence,omitempty"`
 	// RuleIndex is the position of the shadowed (loser) rule in the filter
 	// rule list. No omitempty: index 0 (the first rule) must be
