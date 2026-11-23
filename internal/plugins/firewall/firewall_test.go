@@ -1054,6 +1054,49 @@ func TestFirewallPlugin_SourceRouteRejection(t *testing.T) {
 			},
 			expectFinding: false,
 		},
+		{
+			name: "OPNsense keyword default - no finding",
+			config: &common.CommonDevice{
+				DeviceType: common.DeviceTypeOPNsense,
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.ip.accept_sourceroute", Value: "1"},
+					{Tunable: "net.inet.ip.sourceroute", Value: "default"},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			name: "OPNsense empty value - no finding",
+			config: &common.CommonDevice{
+				DeviceType: common.DeviceTypeOPNsense,
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.ip.accept_sourceroute", Value: "1"},
+					{Tunable: "net.inet.ip.sourceroute", Value: ""},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			name: "OPNsense explicit 1 - finding expected",
+			config: &common.CommonDevice{
+				DeviceType: common.DeviceTypeOPNsense,
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.ip.accept_sourceroute", Value: "0"},
+					{Tunable: "net.inet.ip.sourceroute", Value: "1"},
+				},
+			},
+			expectFinding: true,
+		},
+		{
+			name: "Later row wins over an earlier one - finding expected",
+			config: &common.CommonDevice{
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.ip.sourceroute", Value: "0"},
+					{Tunable: "net.inet.ip.sourceroute", Value: "1"},
+				},
+			},
+			expectFinding: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1084,6 +1127,58 @@ func TestFirewallPlugin_SYNFloodProtection(t *testing.T) {
 			name: "Syncookies disabled - finding expected",
 			config: &common.CommonDevice{
 				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.tcp.syncookies", Value: "0"},
+				},
+			},
+			expectFinding: true,
+		},
+		{
+			name: "Sysctl not present - no finding (unknown)",
+			config: &common.CommonDevice{
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.tcp.blackhole", Value: "2"},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			name: "OPNsense keyword default - no finding",
+			config: &common.CommonDevice{
+				DeviceType: common.DeviceTypeOPNsense,
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.tcp.blackhole", Value: "0"},
+					{Tunable: "net.inet.tcp.syncookies", Value: "default"},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			name: "OPNsense empty value - no finding",
+			config: &common.CommonDevice{
+				DeviceType: common.DeviceTypeOPNsense,
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.tcp.blackhole", Value: "0"},
+					{Tunable: "net.inet.tcp.syncookies", Value: ""},
+				},
+			},
+			expectFinding: false,
+		},
+		{
+			name: "OPNsense explicit 0 - finding expected",
+			config: &common.CommonDevice{
+				DeviceType: common.DeviceTypeOPNsense,
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.tcp.blackhole", Value: "2"},
+					{Tunable: "net.inet.tcp.syncookies", Value: "0"},
+				},
+			},
+			expectFinding: true,
+		},
+		{
+			name: "Later row wins over an earlier one - finding expected",
+			config: &common.CommonDevice{
+				Sysctl: []common.SysctlItem{
+					{Tunable: "net.inet.tcp.syncookies", Value: "1"},
 					{Tunable: "net.inet.tcp.syncookies", Value: "0"},
 				},
 			},

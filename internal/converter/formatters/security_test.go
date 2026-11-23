@@ -507,6 +507,7 @@ func TestCheckTunable(t *testing.T) {
 
 	tests := []struct {
 		name        string
+		deviceType  common.DeviceType
 		tunables    []common.SysctlItem
 		tunableName string
 		expected    string
@@ -557,12 +558,42 @@ func TestCheckTunable(t *testing.T) {
 			expected:    "2",
 			want:        true,
 		},
+		{
+			name:       "opnsense keyword reads as the firewall default",
+			deviceType: common.DeviceTypeOPNsense,
+			tunables: []common.SysctlItem{
+				{Tunable: "net.inet.ip.forwarding", Value: "0"},
+				{Tunable: "net.inet.tcp.blackhole", Value: "default"},
+			},
+			tunableName: "net.inet.tcp.blackhole",
+			expected:    "2",
+			want:        true,
+		},
+		{
+			name:       "opnsense empty blackhole depends on the release",
+			deviceType: common.DeviceTypeOPNsense,
+			tunables: []common.SysctlItem{
+				{Tunable: "net.inet.ip.forwarding", Value: "0"},
+				{Tunable: "net.inet.udp.blackhole", Value: ""},
+			},
+			tunableName: "net.inet.udp.blackhole",
+			expected:    "1",
+			want:        false,
+		},
+		{
+			name:        "keyword on a device of unknown type is read as written",
+			tunables:    []common.SysctlItem{{Tunable: "net.inet.tcp.blackhole", Value: "default"}},
+			tunableName: "net.inet.tcp.blackhole",
+			expected:    "2",
+			want:        false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := checkTunable(tt.tunables, tt.tunableName, tt.expected)
+			device := &common.CommonDevice{DeviceType: tt.deviceType, Sysctl: tt.tunables}
+			got := checkTunable(device, tt.tunableName, tt.expected)
 			if got != tt.want {
 				t.Errorf("checkTunable(%s, %s) = %v, want %v", tt.tunableName, tt.expected, got, tt.want)
 			}

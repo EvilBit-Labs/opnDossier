@@ -378,40 +378,25 @@ func (sp *Plugin) checkAntiSpoofing(device *common.CommonDevice) checkResult {
 	return checkResult{Result: true, Known: true}
 }
 
-// checkSourceRouting verifies sysctl settings disable IP source routing.
+// checkSourceRouting verifies sysctl settings disable IP source routing. A
+// tunable left at its default reads as the value in effect on the firewall
+// (analysis.EffectiveSysctl).
 func (sp *Plugin) checkSourceRouting(device *common.CommonDevice) checkResult {
 	if device == nil {
 		return checkResult{Result: false, Known: true}
 	}
 
-	if len(device.Sysctl) == 0 {
+	sourceRoute, sourceRouteKnown := analysis.EffectiveSysctl(device, "net.inet.ip.sourceroute")
+	acceptSourceRoute, acceptSourceRouteKnown := analysis.EffectiveSysctl(device, "net.inet.ip.accept_sourceroute")
+
+	// If neither tunable can be read, we cannot evaluate.
+	if !sourceRouteKnown && !acceptSourceRouteKnown {
 		return unknown
 	}
 
-	sourceRouteFound := false
-	acceptSourceRouteFound := false
-	sourceRouteDisabled := false
-	acceptSourceRouteDisabled := false
-
-	for _, item := range device.Sysctl {
-		switch item.Tunable {
-		case "net.inet.ip.sourceroute":
-			sourceRouteFound = true
-			sourceRouteDisabled = item.Value == "0"
-		case "net.inet.ip.accept_sourceroute":
-			acceptSourceRouteFound = true
-			acceptSourceRouteDisabled = item.Value == "0"
-		}
-	}
-
-	// If neither tunable is found, we cannot evaluate.
-	if !sourceRouteFound && !acceptSourceRouteFound {
-		return unknown
-	}
-
-	// Both must be found and set to 0 for full compliance.
-	result := sourceRouteFound && acceptSourceRouteFound &&
-		sourceRouteDisabled && acceptSourceRouteDisabled
+	// Both must be known and set to 0 for full compliance.
+	result := sourceRouteKnown && acceptSourceRouteKnown &&
+		sourceRoute == "0" && acceptSourceRoute == "0"
 
 	return checkResult{Result: result, Known: true}
 }

@@ -259,40 +259,32 @@ const sourceRouteSysctl = "net.inet.ip.sourceroute"
 
 // checkSourceRouteRejection checks that IP source routing is disabled via
 // the net.inet.ip.sourceroute sysctl. Source routing allows an attacker to
-// specify the route packets take through the network.
+// specify the route packets take through the network. A tunable left at its
+// default reads as the value in effect on the firewall
+// (analysis.EffectiveSysctl).
 func (fp *Plugin) checkSourceRouteRejection(device *common.CommonDevice) checkResult {
-	if device == nil {
+	value, known := analysis.EffectiveSysctl(device, sourceRouteSysctl)
+	if !known {
 		return unknown
 	}
 
-	for _, item := range device.Sysctl {
-		if item.Tunable == sourceRouteSysctl {
-			return checkResult{Result: item.Value == "0", Known: true}
-		}
-	}
-
-	// Tunable not present in config; cannot determine state.
-	return unknown
+	return checkResult{Result: value == "0", Known: true}
 }
 
 // syncookiesSysctl is the sysctl tunable that controls TCP SYN cookie protection.
 const syncookiesSysctl = "net.inet.tcp.syncookies"
 
 // checkSYNFloodProtection checks that TCP SYN cookies are enabled via the
-// net.inet.tcp.syncookies sysctl to mitigate SYN flood denial-of-service attacks.
+// net.inet.tcp.syncookies sysctl to mitigate SYN flood denial-of-service
+// attacks. A tunable left at its default reads as the value in effect on the
+// firewall (analysis.EffectiveSysctl).
 func (fp *Plugin) checkSYNFloodProtection(device *common.CommonDevice) checkResult {
-	if device == nil {
+	value, known := analysis.EffectiveSysctl(device, syncookiesSysctl)
+	if !known {
 		return unknown
 	}
 
-	for _, item := range device.Sysctl {
-		if item.Tunable == syncookiesSysctl {
-			return checkResult{Result: item.Value == "1", Known: true}
-		}
-	}
-
-	// Tunable not present in config; cannot determine state.
-	return unknown
+	return checkResult{Result: value == "1", Known: true}
 }
 
 // FIREWALL-035 (checkConnectionStateLimits) was a no-op returning unknown —

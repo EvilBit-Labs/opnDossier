@@ -65,7 +65,7 @@ func CalculateSecurityScore(data *common.CommonDevice) int {
 		"net.inet.udp.blackhole":   "1",
 	}
 	for tunable, expected := range securityTunables {
-		if !checkTunable(data.Sysctl, tunable, expected) {
+		if !checkTunable(data, tunable, expected) {
 			score -= insecureTunablePenalty
 		}
 	}
@@ -137,14 +137,13 @@ func hasManagementOnWAN(data *common.CommonDevice) bool {
 	return false
 }
 
-// checkTunable returns true if a sysctl tunable with the given name exists and has the expected value.
-func checkTunable(tunables []common.SysctlItem, name, expected string) bool {
-	for _, tunable := range tunables {
-		if tunable.Tunable == name {
-			return tunable.Value == expected
-		}
-	}
-	return false
+// checkTunable returns true if a sysctl tunable is known to hold the expected
+// value. A tunable left at its default reads as the value in effect on the
+// firewall (analysis.EffectiveSysctl), and one whose value cannot be told
+// counts as not holding it.
+func checkTunable(data *common.CommonDevice, name, expected string) bool {
+	value, known := analysis.EffectiveSysctl(data, name)
+	return known && value == expected
 }
 
 // isDefaultUser returns true if the user has a well-known default username such as admin, root, or user.

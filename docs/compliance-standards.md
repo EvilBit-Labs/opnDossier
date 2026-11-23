@@ -86,6 +86,8 @@ The following sections map each remaining control to its SANS SCORE Firewall Che
 | SANS-FW-013 | 10     | Source Routing Prevention       | High     | Full             | Verify `net.inet.ip.sourceroute=0` and `net.inet.ip.accept_sourceroute=0` in system tunables                                |
 | SANS-FW-021 | 18     | Egress Filtering                | High     | Full             | Verify outbound rules restrict source addresses to internal network ranges; flag rules allowing non-internal source IPs out |
 
+On OPNsense, SANS-FW-013 reads a source-route tunable set to `default`, left empty or not listed as 0, the value in effect on the firewall. A row that names the tunable with trailing whitespace or one trailing dot, which OPNsense 16.7 to 20.1 apply as well, stops that reading: the tunable is then read as written, or is unknown when no row names it exactly.
+
 ##### Port and Service Filtering (SANS Checklist #11, #12, #14, #15, #17)
 
 | Control ID  | SANS # | Title                           | Severity | Implementability | Description                                                                                                                                                                                                                                                                                                                                |
@@ -203,6 +205,8 @@ The following controls are organized by security domain and represent the full p
 | FIREWALL-033 | Source Route Rejection  | High     | Full             | IP source routing disabled via `net.inet.ip.sourceroute=0` in system tunables |
 | FIREWALL-034 | SYN Flood Protection    | Medium   | Full             | SYN cookies enabled via `net.inet.tcp.syncookies=1` in system tunables        |
 | FIREWALL-035 | Connection State Limits | Medium   | Full             | Maximum state table entries configured (`System.MaximumStates`)               |
+
+On OPNsense, FIREWALL-033 and FIREWALL-034 read a tunable set to `default`, left empty or not listed as the value in effect on the firewall: 0 for `net.inet.ip.sourceroute` and 1 for `net.inet.tcp.syncookies`. A row that names the tunable with trailing whitespace or one trailing dot, which OPNsense 16.7 to 20.1 apply as well, stops that reading: the tunable is then read as written, or is unknown when no row names it exactly.
 
 ##### Encryption and TLS
 

@@ -321,8 +321,12 @@ func validateUserScope(user schema.User, index int) []ValidationError {
 	return errors
 }
 
-// validateSysctl checks sysctl tunable items for required fields, uniqueness, valid naming format, and presence of values.
-// It returns a slice of ValidationError for any missing, duplicate, or improperly formatted tunable names, or missing values.
+// validateSysctl checks sysctl tunable items for a name, uniqueness and valid naming format.
+// It returns a slice of ValidationError for any missing, duplicate, or improperly formatted tunable names.
+//
+// An empty value is valid. From OPNsense 25.1.3 on it selects the tunable's default
+// (system_sysctl_get in src/etc/inc/system.inc), and the tunables model rewrites the keyword
+// "default" to it (TunableField.php).
 func validateSysctl(items []schema.SysctlItem) []ValidationError {
 	var errors []ValidationError
 
@@ -350,14 +354,6 @@ func validateSysctl(items []schema.SysctlItem) []ValidationError {
 			errors = append(errors, ValidationError{
 				Field:   fmt.Sprintf("sysctl[%d].tunable", i),
 				Message: fmt.Sprintf("tunable name '%s' has invalid format", item.Tunable),
-			})
-		}
-
-		// Value is required
-		if item.Value == "" {
-			errors = append(errors, ValidationError{
-				Field:   fmt.Sprintf("sysctl[%d].value", i),
-				Message: "tunable value is required",
 			})
 		}
 	}
