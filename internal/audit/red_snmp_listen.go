@@ -170,7 +170,8 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 // list or a DNS answer holds, loopback addresses included, so such an alias may
 // hold one. A host, network or network group alias can name an alias of any
 // type. The walk follows each member that names an alias, as
-// aliasHoldsFirewallAddress does, and seen ends a nesting loop.
+// aliasHoldsFirewallAddress does, and seen ends a nesting loop. A disabled
+// alias is not followed, unless it is external.
 func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 	seen := map[string]bool{name: true}
 	pending := []string{name}
@@ -179,6 +180,13 @@ func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 		last := len(pending) - 1
 		object := objects[pending[last]]
 		pending = pending[:last]
+
+		// OPNsense loads a disabled alias with no members, so it holds no
+		// address and names no alias. The alias loader skips an external
+		// alias, whose table stays as it is when disabled.
+		if object.Disabled && object.Type != common.NamedObjectTypeExternal {
+			continue
+		}
 
 		if slices.Contains(runtimeAliasTypes, object.Type) {
 			return true

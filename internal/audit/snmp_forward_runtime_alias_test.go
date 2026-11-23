@@ -15,7 +15,9 @@ import (
 // config are URLs or nothing, so they cannot show what it holds, and it may
 // hold a loopback address. Such a target counts, as does an alias that names
 // one at any depth, an alias of that name read in place of an interface, and a
-// disabled one. A GeoIP alias holds country networks, which no loopback address
+// disabled external alias, whose table OPNsense leaves as it is. A disabled URL
+// table loads with no members, so it does not count, nor does a group naming
+// only it. A GeoIP alias holds country networks, which no loopback address
 // is in, and a network group naming only it and a LAN host holds no loopback,
 // so neither counts, and a nesting loop among aliases with no such alias ends.
 func TestTargetHoldsLoopback_RuntimeAliases(t *testing.T) {
@@ -36,16 +38,18 @@ func TestTargetHoldsLoopback_RuntimeAliases(t *testing.T) {
 			Members:  []string{"https://example.com/off.txt"},
 			Disabled: true,
 		},
-		"COUNTRIES":   alias("COUNTRIES", common.NamedObjectTypeGeoIP, "NL"),
-		"LAN_HOST":    alias("LAN_HOST", common.NamedObjectTypeHost, "192.168.1.50"),
-		"TABLE_GROUP": alias("TABLE_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "URL_TABLE"),
-		"OUTER_GROUP": alias("OUTER_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "TABLE_GROUP"),
-		"JSON_HOST":   alias("JSON_HOST", common.NamedObjectTypeHost, "192.168.1.51", "URL_JSON"),
-		"URL_NET":     alias("URL_NET", common.NamedObjectTypeNetwork, "192.168.2.0/24", "URL_LIST"),
-		"GEO_GROUP":   alias("GEO_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "COUNTRIES"),
-		"LOOP_A":      alias("LOOP_A", aliasTypeNetworkGroup, "LAN_HOST", "LOOP_B"),
-		"LOOP_B":      alias("LOOP_B", aliasTypeNetworkGroup, "LOOP_A"),
-		"lan":         alias("lan", aliasTypeURLTable, "https://example.com/lan.txt"),
+		"OFF_EXTERNAL": {Name: "OFF_EXTERNAL", Type: common.NamedObjectTypeExternal, Disabled: true},
+		"OFF_GROUP":    alias("OFF_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "OFF_TABLE"),
+		"COUNTRIES":    alias("COUNTRIES", common.NamedObjectTypeGeoIP, "NL"),
+		"LAN_HOST":     alias("LAN_HOST", common.NamedObjectTypeHost, "192.168.1.50"),
+		"TABLE_GROUP":  alias("TABLE_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "URL_TABLE"),
+		"OUTER_GROUP":  alias("OUTER_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "TABLE_GROUP"),
+		"JSON_HOST":    alias("JSON_HOST", common.NamedObjectTypeHost, "192.168.1.51", "URL_JSON"),
+		"URL_NET":      alias("URL_NET", common.NamedObjectTypeNetwork, "192.168.2.0/24", "URL_LIST"),
+		"GEO_GROUP":    alias("GEO_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "COUNTRIES"),
+		"LOOP_A":       alias("LOOP_A", aliasTypeNetworkGroup, "LAN_HOST", "LOOP_B"),
+		"LOOP_B":       alias("LOOP_B", aliasTypeNetworkGroup, "LOOP_A"),
+		"lan":          alias("lan", aliasTypeURLTable, "https://example.com/lan.txt"),
 	}
 
 	interfaces := []common.Interface{
@@ -62,7 +66,9 @@ func TestTargetHoldsLoopback_RuntimeAliases(t *testing.T) {
 		{name: "URL table", target: "URL_TABLE", want: true},
 		{name: "URL table in JSON format", target: "URL_JSON", want: true},
 		{name: "external alias", target: "EXTERNAL", want: true},
-		{name: "disabled URL table", target: "OFF_TABLE", want: true},
+		{name: "disabled URL table", target: "OFF_TABLE"},
+		{name: "network group naming a disabled URL table", target: "OFF_GROUP"},
+		{name: "disabled external alias", target: "OFF_EXTERNAL", want: true},
 		{name: "network group naming the URL table second", target: "TABLE_GROUP", want: true},
 		{name: "network group naming that group second", target: "OUTER_GROUP", want: true},
 		{name: "host alias naming the JSON table second", target: "JSON_HOST", want: true},

@@ -12,7 +12,10 @@ import (
 func TestPacketFilterControls_List(t *testing.T) {
 	t.Parallel()
 
-	want := []string{"V-206694", "V-206674", "V-206701", "V-206682"}
+	want := []string{
+		"V-206694", "V-206674", "V-206701", "V-206682",
+		"V-206680", "V-206679", "V-206678", "V-206681",
+	}
 
 	if !slices.Equal(packetFilterControls, want) {
 		t.Errorf("packetFilterControls = %v, want %v", packetFilterControls, want)

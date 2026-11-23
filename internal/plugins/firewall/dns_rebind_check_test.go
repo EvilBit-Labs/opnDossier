@@ -95,6 +95,16 @@ func TestFirewallPlugin_DNSRebindCheckDisabled_OPNsense(t *testing.T) {
 		{"empty element still disables", opnsenseRebindConfig(`<nodnsrebindcheck/>`, unbound267), true, true},
 		{"dnsmasq only, checks off", opnsenseRebindConfig(rebindCheckOff, dnsmasqOnly), true, true},
 		{"no resolver, checks off", opnsenseRebindConfig(rebindCheckOff, ``), false, false},
+		{
+			"dnsmasq serving DHCP only, checks off",
+			opnsenseRebindConfig(rebindCheckOff, `<dnsmasq><enable>1</enable><port>0</port></dnsmasq>`),
+			false, false,
+		},
+		{
+			"dnsmasq on another port, checks off",
+			opnsenseRebindConfig(rebindCheckOff, `<dnsmasq><enable>1</enable><port>5353</port></dnsmasq>`),
+			true, true,
+		},
 	}
 
 	for _, tc := range cases {

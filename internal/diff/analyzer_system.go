@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"strconv"
 	"strings"
 
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
@@ -87,6 +88,26 @@ func (a *Analyzer) CompareSystem(old, newCfg *common.System) []Change {
 			OldValue:       old.WebGUI.Protocol,
 			NewValue:       newCfg.WebGUI.Protocol,
 			SecurityImpact: "medium",
+		})
+	}
+
+	// Setting nodnsrebindcheck drops rebind filtering from Unbound and dnsmasq
+	// whatever their private-address lists hold, so it rates medium; clearing
+	// it restores the filtering and rates low.
+	if old.WebGUI.NoDNSRebindCheck != newCfg.WebGUI.NoDNSRebindCheck {
+		description, impact := "DNS rebinding checks enabled", SecurityImpactLow
+		if newCfg.WebGUI.NoDNSRebindCheck {
+			description, impact = "DNS rebinding checks disabled", SecurityImpactMedium
+		}
+
+		changes = append(changes, Change{
+			Type:           ChangeModified,
+			Section:        SectionSystem,
+			Path:           "system.webgui.nodnsrebindcheck",
+			Description:    description,
+			OldValue:       strconv.FormatBool(old.WebGUI.NoDNSRebindCheck),
+			NewValue:       strconv.FormatBool(newCfg.WebGUI.NoDNSRebindCheck),
+			SecurityImpact: string(impact),
 		})
 	}
 
