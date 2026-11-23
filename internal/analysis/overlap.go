@@ -2,8 +2,8 @@ package analysis
 
 import (
 	"net/netip"
+	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/EvilBit-Labs/opnDossier/internal/constants"
@@ -11,11 +11,13 @@ import (
 )
 
 // maxResolvedMembers bounds how many resolved alias members the containment
-// predicate will expand for a single endpoint. Above this, the endpoint is
-// treated as opaque (aliasBlocked) so the O(n*m) address/port containment
+// predicate will expand for a single endpoint; for a port alias it counts the
+// merged ranges (resolvePorts). Above this, the endpoint is treated as opaque
+// (causeAlias) so the O(n*m) address/port containment
 // cross product cannot be driven into a DoS by an attacker-supplied config
-// that defines pathologically large aliases. Set far above any realistic
-// firewall alias.
+// that defines pathologically large aliases. The complement proof applies it
+// to the distinct networks of one endpoint and proves nothing above it
+// (literalPrefixes). Set far above any realistic firewall alias.
 const maxResolvedMembers = 4096
 
 // Coverage classifies how completely an earlier firewall rule's match set
@@ -36,7 +38,9 @@ const (
 	CoverFull
 	// CoverIndeterminate indicates negation makes the overlap relationship
 	// impossible to determine with confidence; callers must not report a
-	// finding for this result (R10).
+	// confirmed finding for this result (R10). The R8 advisory scan may
+	// report one when part of the pair could not be read, unless an address
+	// side proves the two disjoint (complementDisjoint).
 	CoverIndeterminate
 )
 
@@ -58,15 +62,24 @@ func (c Coverage) String() string {
 }
 
 // coverage reports how completely earlier's match set covers later's match
-// set, and whether an unresolvable or dynamic named-object reference
-// prevented a full member-set comparison on any dimension (aliasBlocked).
+// set, and why any part of the comparison rests on something the analysis
+// could not read (the block cause): causeAlias when a named-object reference
+// could not be expanded, causeValue when a port value could not be read. A
+// zero cause means nothing the analysis could not read can change the answer.
+// It does not mean every part was read: an earlier rule that matches every
+// port covers a later port set whatever it holds, and two endpoints that name
+// the same port alias, or hold the same literal port, match each other
+// whatever port value in it could not be read.
 //
-// aliasBlocked is a distinct signal from CoverNone: a genuinely
-// non-overlapping pair and a pair whose overlap could not be determined
-// because an alias was opaque both produce CoverNone on their own, but only
-// the latter sets aliasBlocked. Callers that want to advise on a possible
-// Security-class shadow that an unresolvable alias masked (R8) must inspect
-// aliasBlocked rather than inferring it from CoverNone alone.
+// The cause is a separate signal from the coverage. CoverNone with no cause
+// means the rules share no traffic, or that a dimension could not be compared
+// while nothing unread bears on the answer; CoverNone with a cause means the
+// overlap is unknown. A blocked port dimension can still be CoverFull or CoverPartial
+// when what could be read proves it or both rules name the same alias, and a
+// dimension proven disjoint gives CoverNone with no cause whatever else could
+// not be read. Callers that want
+// to advise on a possible Security-class shadow that the unread part masked
+// (R8) must inspect the cause rather than infer it from CoverNone alone.
 //
 // Dimensions evaluated: IP family (gate, R11), source address, source port,
 // destination address, destination port, and layer-4 protocol. Full
@@ -78,28 +91,340 @@ func (c Coverage) String() string {
 // untrustworthy (a negated "10.0.0.0/8" matches everything OUTSIDE that
 // range, not inside it), so even an exact-literal match that resolves to
 // CoverFull must not be reported as a confirmed shadow.
-func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Coverage, bool) {
+func coverage(earlier, later common.FirewallRule, no common.NamedObjects) (Coverage, blockCause) {
 	if !familiesCompatible(earlier.IPProtocol, later.IPProtocol) {
-		return CoverNone, false
+		return CoverNone, 0
 	}
 
 	srcAddrCov, srcAddrBlocked := addressCoverage(earlier.Source, later.Source, no)
 	dstAddrCov, dstAddrBlocked := addressCoverage(earlier.Destination, later.Destination, no)
-	srcPortCov, srcPortBlocked := portCoverage(earlier.Source, later.Source, no)
-	dstPortCov, dstPortBlocked := portCoverage(earlier.Destination, later.Destination, no)
+	srcPort := portCoverage(earlier.Source, later.Source, no)
+	dstPort := portCoverage(earlier.Destination, later.Destination, no)
 	protoCov := protocolCoverage(earlier.Protocol, later.Protocol)
 
-	aliasBlocked := srcAddrBlocked || dstAddrBlocked || srcPortBlocked || dstPortBlocked
+	// proven says a CoverNone in that dimension shows the rules cannot
+	// overlap. Ports read in full and single protocols are compared exactly;
+	// protocolCoverage reads tcp/udp against tcp as CoverNone although the
+	// two overlap, so a combined protocol proves nothing. An address
+	// CoverNone is proof only when both sides are literal addresses or
+	// networks: addressRelation also returns CoverNone for values it cannot
+	// compare, such as an interface network like lan, (self), a hostname or
+	// a negated endpoint.
+	dims := []struct {
+		cov    Coverage
+		cause  blockCause
+		proven bool
+	}{
+		{srcAddrCov, aliasCause(srcAddrBlocked), addressesComparable(earlier.Source, later.Source, no)},
+		{dstAddrCov, aliasCause(dstAddrBlocked), addressesComparable(earlier.Destination, later.Destination, no)},
+		{srcPort.cov, srcPort.cause, true},
+		{dstPort.cov, dstPort.cause, true},
+		{protoCov, 0, singleProtocol(earlier.Protocol) && singleProtocol(later.Protocol)},
+	}
 
-	raw := combineDimensions(srcAddrCov, dstAddrCov, srcPortCov, dstPortCov, protoCov)
+	var cause blockCause
+
+	for _, d := range dims {
+		if d.cov == CoverNone && d.cause == 0 && d.proven {
+			return CoverNone, 0
+		}
+
+		cause |= d.cause
+	}
+
+	raw := combineDimensions(srcAddrCov, dstAddrCov, srcPort.cov, dstPort.cov, protoCov)
+
+	// A later port set that an any-port earlier rule covers whatever it holds
+	// leaves a Full or Partial pair confirmed. A pair that another dimension
+	// leaves unresolved keeps the part that could not be read, so it is still
+	// the R8 advisory, as it is when the earlier rule names a port.
+	covered := srcPort.covered | dstPort.covered
 
 	negated := earlier.Source.Negated || earlier.Destination.Negated ||
 		later.Source.Negated || later.Destination.Negated
 	if negated && (raw == CoverPartial || raw == CoverFull) {
-		return CoverIndeterminate, aliasBlocked
+		return CoverIndeterminate, cause | covered
 	}
 
-	return raw, aliasBlocked
+	if raw == CoverNone {
+		return CoverNone, cause | covered
+	}
+
+	return raw, cause
+}
+
+// addressesComparable reports whether every address both endpoints resolve
+// to is a literal IP address or network and neither endpoint is negated, so
+// that addressRelation's answer for the pair is exact.
+func addressesComparable(a, b common.RuleEndpoint, no common.NamedObjects) bool {
+	if a.Negated || b.Negated {
+		return false
+	}
+
+	for _, ep := range []common.RuleEndpoint{a, b} {
+		vals, blocked := resolveAddressValues(ep, no)
+		if blocked {
+			return false
+		}
+
+		for _, v := range vals {
+			if _, err := ParsePrefixOrAddr(v); err != nil {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// complementDisjoint reports whether one endpoint negates an address set and
+// the other, not negated, matches only addresses inside that set, so the two
+// endpoints share no address: a pass from !10.0.0.0/8 never meets a block from
+// 10.0.0.0/8 (R10). It proves this in two shapes only:
+//
+//   - both endpoints name the same alias, alone: the firewall loads an alias
+//     as one table, so !<X> and <X> are complements whatever X holds, even
+//     when it is disabled, holds an exclusion member or fetches its content;
+//   - every value on both sides is a literal address or network, read
+//     through enabled host and network aliases only (literalPrefixes), and
+//     each network on the plain side lies inside one on the negated side.
+//
+// Anything else proves nothing here. An interface token such as lan or
+// (self) does not parse as a literal, and sameInterfaceToken handles the case
+// where both sides hold the same one. A hostname, a geoip or URL alias and a
+// value that does not parse are left out.
+func complementDisjoint(a, b common.RuleEndpoint, no common.NamedObjects) bool {
+	if a.Negated == b.Negated {
+		return false
+	}
+
+	negated, plain := a, b
+	if b.Negated {
+		negated, plain = b, a
+	}
+
+	if sameAlias(negated, plain) {
+		return true
+	}
+
+	outside, ok := literalPrefixes(negated, no)
+	if !ok {
+		return false
+	}
+
+	inside, ok := literalPrefixes(plain, no)
+	if !ok {
+		return false
+	}
+
+	for _, p := range inside {
+		if !slices.ContainsFunc(outside, func(n netip.Prefix) bool { return prefixContains(n, p) }) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// addressSidesDisjoint reports whether the source or the destination of two
+// rules proves they share no traffic: a complement (complementDisjoint), or
+// the same (self) or interface address token, negated on one rule only
+// (sameInterfaceToken).
+func addressSidesDisjoint(a, b common.FirewallRule, no common.NamedObjects, ifaces []common.Interface) bool {
+	return complementDisjoint(a.Source, b.Source, no) ||
+		complementDisjoint(a.Destination, b.Destination, no) ||
+		sameInterfaceToken(a.Source, b.Source, ifaces) ||
+		sameInterfaceToken(a.Destination, b.Destination, ifaces)
+}
+
+// sameInterfaceToken reports whether two endpoints name the same (self) or
+// interface address (lanip) token, one of them negated. Every release checked
+// writes each as a single pf expression: OPNsense 26.7 maps (self) to (self)
+// and lanip to (vtnet1) (Rule.php loadAliasMap), and OPNsense 17.1 and pfSense
+// 2.6.0 write the interface's primary address alone. The negated copy is then
+// the complement of the other.
+//
+// An interface network such as lan is left out. OPNsense 26.7 writes it as
+// (vtnet1:network), but adds fe80::/10 on an IPv6 rule before negating it, and
+// OPNsense up to 17.1 and pfSense up to at least 2.6.0 write it as a braced
+// list when the interface carries a virtual IP outside its subnet. pf negates
+// each entry of a list, so the negated copy then matches every address. A
+// hostname is never such a token either: a negated name with several records
+// negates each one.
+func sameInterfaceToken(a, b common.RuleEndpoint, ifaces []common.Interface) bool {
+	if a.Negated == b.Negated || a.AddressRef != nil || b.AddressRef != nil {
+		return false
+	}
+
+	token := strings.TrimSpace(a.Address)
+	if token != strings.TrimSpace(b.Address) {
+		return false
+	}
+
+	if token == "(self)" {
+		return true
+	}
+
+	// A token that names an interface is its network, even when it also ends
+	// in "ip".
+	if slices.ContainsFunc(ifaces, func(iface common.Interface) bool { return iface.Name == token }) {
+		return false
+	}
+
+	return slices.ContainsFunc(ifaces, func(iface common.Interface) bool {
+		return iface.Name != "" && iface.Name+"ip" == token
+	})
+}
+
+// sameAlias reports whether both endpoints name one alias and nothing else.
+func sameAlias(a, b common.RuleEndpoint) bool {
+	return a.AddressRef != nil && b.AddressRef != nil &&
+		a.AddressRef.Name == b.AddressRef.Name &&
+		strings.TrimSpace(a.Address) == a.AddressRef.Name &&
+		strings.TrimSpace(b.Address) == b.AddressRef.Name
+}
+
+// literalPrefixes returns the networks an endpoint's address names when every
+// value is a literal address or network. An alias is followed only when it
+// and every alias it names is an enabled host or network alias: a disabled
+// alias loads with no members (filter.lib.inc), and an exclusion member such
+// as !10.1.0.0/16 (AliasContentField.php) or a hostname does not parse, so
+// either leaves the set unproven. An empty result is unproven too.
+func literalPrefixes(ep common.RuleEndpoint, no common.NamedObjects) ([]netip.Prefix, bool) {
+	address := strings.TrimSpace(ep.Address)
+
+	if ep.AddressRef == nil {
+		p, err := ParsePrefixOrAddr(address)
+		if err != nil {
+			return nil, false
+		}
+
+		return []netip.Prefix{p.Masked()}, true
+	}
+
+	if address != ep.AddressRef.Name {
+		return nil, false
+	}
+
+	w := literalWalker{
+		no:       no,
+		visiting: make(map[string]struct{}),
+		done:     make(map[string]int),
+		seen:     make(map[netip.Prefix]struct{}),
+	}
+	if _, ok := w.walk(address, 0); !ok || len(w.prefixes) == 0 {
+		return nil, false
+	}
+
+	return w.prefixes, true
+}
+
+// literalWalker collects the literal networks of a host or network alias tree
+// for literalPrefixes.
+type literalWalker struct {
+	no       common.NamedObjects
+	visiting map[string]struct{}
+	// done holds each alias walked in full, with the number of levels of
+	// nested aliases below it. Its networks are in prefixes already, so an
+	// alias named again adds nothing, as a table holds each entry once.
+	done map[string]int
+	// seen holds the networks in prefixes, so that one listed twice is kept
+	// once and the member cap counts distinct networks.
+	seen     map[netip.Prefix]struct{}
+	visits   int
+	prefixes []netip.Prefix
+}
+
+// walk adds the networks of the alias name, reached at depth, and reports how
+// many levels of nested aliases lie below it and whether every member was a
+// literal address or network or an alias walk accepts. Any failure leaves the
+// whole set unproven, so only an alias walked in full is remembered, and an
+// alias named many times is expanded once. A remembered alias is checked
+// against the depth cap again on each path, so the answer does not depend on
+// the order of the paths. Like the port alias walk it stops after
+// maxPortAliasVisits expansions, which here counts distinct aliases.
+func (w *literalWalker) walk(name string, depth int) (int, bool) {
+	if depth > maxPortAliasDepth {
+		return 0, false
+	}
+
+	if height, done := w.done[name]; done {
+		return height, depth+height <= maxPortAliasDepth
+	}
+
+	if _, cyclic := w.visiting[name]; cyclic {
+		return 0, false
+	}
+
+	w.visits++
+
+	obj, exists := w.no[name]
+	if !exists || w.visits > maxPortAliasVisits || obj.Disabled ||
+		(obj.Type != common.NamedObjectTypeHost && obj.Type != common.NamedObjectTypeNetwork) {
+		return 0, false
+	}
+
+	w.visiting[name] = struct{}{}
+	defer delete(w.visiting, name)
+
+	height := 0
+
+	for _, member := range obj.Members {
+		member = strings.TrimSpace(member)
+
+		if _, nested := w.no[member]; nested {
+			below, ok := w.walk(member, depth+1)
+			if !ok {
+				return 0, false
+			}
+
+			height = max(height, below+1)
+
+			continue
+		}
+
+		p, err := ParsePrefixOrAddr(member)
+		if err != nil {
+			return 0, false
+		}
+
+		p = p.Masked()
+		if _, dup := w.seen[p]; dup {
+			continue
+		}
+
+		if len(w.prefixes) >= maxResolvedMembers {
+			return 0, false
+		}
+
+		w.seen[p] = struct{}{}
+		w.prefixes = append(w.prefixes, p)
+	}
+
+	w.done[name] = height
+
+	return height, true
+}
+
+// prefixContains reports whether network outer holds every address of inner.
+// Contains already rejects an address of the other family.
+func prefixContains(outer, inner netip.Prefix) bool {
+	return outer.Bits() <= inner.Bits() && outer.Contains(inner.Addr())
+}
+
+// singleProtocol reports whether p names one protocol, not a combination
+// such as tcp/udp.
+func singleProtocol(p string) bool {
+	return !strings.Contains(p, "/")
+}
+
+// aliasCause maps an address dimension's blocked flag to its cause.
+func aliasCause(blocked bool) blockCause {
+	if blocked {
+		return causeAlias
+	}
+
+	return 0
 }
 
 // combineDimensions folds per-dimension Coverage results into a single
@@ -246,8 +571,8 @@ func resolveAddressValues(ep common.RuleEndpoint, no common.NamedObjects) ([]str
 }
 
 // resolveEndpointValues expands ref/literal into their full set of concrete
-// member values (the first return), the shared logic behind
-// resolveAddressValues and resolvePortValues. A literal (nil ref) resolves
+// member values (the first return), the logic behind resolveAddressValues.
+// Port aliases are read by resolvePorts instead. A literal (nil ref) resolves
 // to itself. A named-object reference resolves via NamedObjects.Resolve;
 // when resolution fails (unresolvable name, dynamic/opaque type, or a nil
 // registry), it falls back to the literal value and the second return is
@@ -337,49 +662,91 @@ type portRange struct {
 	lo, hi int
 }
 
-// portCoverage classifies containment of one endpoint pair's port
-// dimension, resolving named-object references to their member sets first.
-func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) (Coverage, bool) {
-	earlierVals, earlierBlocked := resolvePortValues(earlier, no)
-	laterVals, laterBlocked := resolvePortValues(later, no)
-
-	if earlierBlocked || laterBlocked {
-		return exactSingletonCoverage(earlierVals, laterVals), true
-	}
-
-	earlierIntervals, earlierAny, earlierOK := parsePortMembers(earlierVals)
-	laterIntervals, laterAny, laterOK := parsePortMembers(laterVals)
-
-	if !earlierOK || !laterOK {
-		// Unparseable port specs (neither a recognized number, range, nor
-		// list) fall back to exact-string equality rather than failing
-		// closed on the whole predicate.
-		return exactSingletonCoverage(earlierVals, laterVals), false
-	}
-
-	if earlierAny {
-		return CoverFull, false
-	}
-
-	if laterAny {
-		return CoverPartial, false
-	}
-
-	merged := mergeIntervals(earlierIntervals)
-
-	return aggregateCoverage(merged, laterIntervals, portRangeRelation), false
+// portCover is portCoverage's answer for one endpoint pair.
+type portCover struct {
+	cov Coverage
+	// cause says why the comparison rests on a set known only in part, and
+	// is zero when both sets are known in full.
+	cause blockCause
+	// covered says why the later set is known only in part when the earlier
+	// set matches every port. It leaves cov at CoverFull, since every port
+	// covers any set, so coverage reports it only for a pair that another
+	// dimension leaves unresolved.
+	covered blockCause
 }
 
-// resolvePortValues expands an endpoint's port spec into its full set of
-// concrete member values, mirroring resolveAddressValues for the Port/PortRef
-// pair.
-func resolvePortValues(ep common.RuleEndpoint, no common.NamedObjects) ([]string, bool) {
-	return resolveEndpointValues(ep.PortRef, ep.Port, no)
+// portCoverage classifies containment of one endpoint pair's port
+// dimension, resolving port aliases to their member sets first (resolvePorts).
+//
+// An earlier wildcard covers anything. Otherwise, when either set is known
+// only in part, the parts that could be read still prove an overlap they
+// share, but never that the later set is covered in full, and no overlap
+// among them proves nothing: the result is then CoverNone with the cause set,
+// which callers read as unknown rather than disjoint (R8). Two endpoints that
+// name the same alias or the same literal still match each other in full.
+func portCoverage(earlier, later common.RuleEndpoint, no common.NamedObjects) portCover {
+	earlierVals := resolvePorts(earlier, no)
+	laterVals := resolvePorts(later, no)
+
+	// A set read in full that holds no port matches no traffic: a disabled
+	// alias loads as { 0 <> 65535 } (filter.inc L607-L611), and the ruleset
+	// skips a rule whose port alias has no content (Rule.php). Such a rule
+	// neither covers another nor is covered by one, any-port rules included.
+	if earlierVals.matchesNothing() || laterVals.matchesNothing() {
+		return portCover{cov: CoverNone}
+	}
+
+	if earlierVals.every {
+		return portCover{cov: CoverFull, covered: laterVals.cause}
+	}
+
+	cause := earlierVals.cause | laterVals.cause
+	if cause != 0 {
+		if sameEndpointPort(earlier, later) {
+			return portCover{cov: CoverFull, cause: cause & causeAlias}
+		}
+
+		cov := partialPortCoverage(earlierVals, laterVals)
+		if cov == CoverFull && !laterVals.complete() {
+			cov = CoverPartial
+		}
+
+		return portCover{cov: cov, cause: cause}
+	}
+
+	if laterVals.every {
+		return portCover{cov: CoverPartial}
+	}
+
+	return portCover{cov: aggregateCoverage(earlierVals.ranges, laterVals.ranges, portRangeRelation)}
+}
+
+// partialPortCoverage compares what could be read of two port sets.
+func partialPortCoverage(earlier, later portValues) Coverage {
+	if len(earlier.ranges) == 0 {
+		return CoverNone
+	}
+
+	if later.every {
+		return CoverPartial
+	}
+
+	return aggregateCoverage(earlier.ranges, later.ranges, portRangeRelation)
+}
+
+// sameEndpointPort reports whether two endpoints name the same port alias, or
+// hold the same literal port with no alias.
+func sameEndpointPort(a, b common.RuleEndpoint) bool {
+	if a.PortRef != nil || b.PortRef != nil {
+		return a.PortRef != nil && b.PortRef != nil && a.PortRef.Name == b.PortRef.Name
+	}
+
+	return a.Port == b.Port
 }
 
 // exactSingletonCoverage compares two single-value sets for exact string
-// equality, the fallback comparison used whenever alias resolution failed or
-// a value could not be parsed into a richer representation. Anything other
+// equality, the fallback addressCoverage uses when an address alias could not
+// be resolved. Anything other
 // than two singleton sets with identical values is CoverNone: a resolved
 // multi-member set on one side compared against an unresolved singleton on
 // the other has no reliable containment relationship to claim, so this
@@ -392,79 +759,77 @@ func exactSingletonCoverage(earlierVals, laterVals []string) Coverage {
 	return CoverNone
 }
 
-// parsePortMembers parses every member value (each a single port, a
-// "lo-hi" range, or a comma-separated list of either) into a merged set of
-// normalized intervals (the first return). The second return is true if any
-// member is the any/empty wildcard, in which case the intervals are not
-// meaningful. The third return is false if any member could not be parsed
-// at all.
-func parsePortMembers(vals []string) ([]portRange, bool, bool) {
-	var all []portRange
-
-	for _, v := range vals {
-		sub, subAny, subOK := parsePortSpec(v)
-		if !subOK {
-			return nil, false, false
-		}
-
-		if subAny {
-			return nil, true, true
-		}
-
-		all = append(all, sub...)
-	}
-
-	return mergeIntervals(all), false, true
-}
-
-// parsePortSpec parses a single port specification: "" or "any" (the
-// wildcard), a single port number, a "lo-hi" range, or a comma-separated
-// list of the above.
+// parsePortSpec parses a rule's own port specification: "" or "any" (the
+// wildcard), a single port number or service name, or a "lo-hi" or "lo:hi"
+// range. It returns the ranges, whether the spec is the wildcard, and whether
+// the spec could be read. A comma list is never read, whatever it holds:
+// neither firewall loads one as ports. OPNsense disables the rule when the
+// port is not an alias, a port, a range or a known name (Rule.php L104-L123;
+// Util::isPort splits on ":" only), and pfSense writes no port statement for
+// a value alias_expand cannot read, so the rule passes every port (filter.inc
+// filter_generate_port). A port alias member is read separately.
 func parsePortSpec(s string) ([]portRange, bool, bool) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" || strings.EqualFold(trimmed, constants.NetworkAny) {
 		return nil, true, true
 	}
 
-	var ranges []portRange
-
-	for part := range strings.SplitSeq(trimmed, ",") {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		r, ok := parsePortPart(part)
-		if !ok {
-			return nil, false, false
-		}
-
-		ranges = append(ranges, r)
-	}
-
-	if len(ranges) == 0 {
+	if strings.Contains(trimmed, ",") {
 		return nil, false, false
 	}
 
-	return ranges, false, true
+	r, ok := parsePortPart(trimmed, ruleVocab)
+	if !ok {
+		return nil, false, false
+	}
+
+	return []portRange{r}, false, true
 }
 
-// parsePortPart parses one comma-list element: either "N" or "lo-hi".
-func parsePortPart(part string) (portRange, bool) {
-	lo, hi, isRange := strings.Cut(part, "-")
-	if !isRange {
-		n, err := strconv.Atoi(part)
-		if err != nil {
-			return portRange{}, false
-		}
-
+// parsePortPart parses one comma-list element: a port number or service name,
+// or a range of two. A port alias member can write a range only as "lo:hi":
+// the alias model validates it with Util::isPort, which splits on ":", and the
+// ruleset loads a member only when is_port or is_portrange accepts it, and
+// is_portrange splits on ":" too (filter.lib.inc filter_core_get_port_alias,
+// util.inc). A rule port writes "lo-hi", and the ruleset turns every dash into
+// a colon before it reads the port (FilterRuleContainer/Rule.php), so a range
+// of two names such as http-https is a range there too. A service name may
+// itself hold dashes, so a whole name is tried first, and then every dash in
+// turn as the separator. Either bound may be a service name vocab accepts.
+// An alias member never takes the dash form: the loader drops "20-25", since
+// is_port and is_portrange both split on ":" only.
+func parsePortPart(part string, vocab portVocab) (portRange, bool) {
+	if n, ok := parsePortNumber(part, vocab); ok {
 		return portRange{lo: n, hi: n}, true
 	}
 
-	loN, errLo := strconv.Atoi(strings.TrimSpace(lo))
-	hiN, errHi := strconv.Atoi(strings.TrimSpace(hi))
+	if lo, hi, isRange := strings.Cut(part, ":"); isRange {
+		return portBounds(lo, hi, vocab)
+	}
 
-	if errLo != nil || errHi != nil || loN > hiN {
+	if vocab == aliasVocab {
+		return portRange{}, false
+	}
+
+	for i := range len(part) {
+		if part[i] != '-' {
+			continue
+		}
+
+		if r, ok := portBounds(part[:i], part[i+1:], vocab); ok {
+			return r, true
+		}
+	}
+
+	return portRange{}, false
+}
+
+// portBounds parses the two bounds of a range, which must be in order.
+func portBounds(lo, hi string, vocab portVocab) (portRange, bool) {
+	loN, okLo := parsePortNumber(lo, vocab)
+	hiN, okHi := parsePortNumber(hi, vocab)
+
+	if !okLo || !okHi || loN > hiN {
 		return portRange{}, false
 	}
 
