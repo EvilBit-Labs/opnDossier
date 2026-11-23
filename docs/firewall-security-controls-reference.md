@@ -381,9 +381,9 @@ A certificate issued by any CA, internal or public, passes. The signature and th
 | **Low**    | Recommended security controls for enhanced security posture. Non-compliance is acceptable in some environments.   |
 | **Info**   | Informational observations about configuration. Not a security failure; provided for awareness and documentation. |
 
-## Future Controls
+## Extended Controls
 
-The following controls are planned for future releases, organized by security domain. They are not implemented in the current audit engine. For the full cross-standard view (including SANS and STIG), see [Compliance Standards](compliance-standards.md).
+The following controls extend the core set above, organized by security domain. The audit engine evaluates all of them except FIREWALL-010 to FIREWALL-013, FIREWALL-015, FIREWALL-019, FIREWALL-035, FIREWALL-037, FIREWALL-038, FIREWALL-057, FIREWALL-059 and FIREWALL-060, which are defined but not yet evaluated and produce no finding. FIREWALL-062 and FIREWALL-063 are inventory entries, not pass/fail controls (see the note under [Configuration Inventory](#configuration-inventory)). For the full cross-standard view (including SANS and STIG), see [Compliance Standards](compliance-standards.md).
 
 ### Management Plane Security
 

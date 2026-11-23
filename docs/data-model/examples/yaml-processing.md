@@ -135,9 +135,10 @@ yq '.firewallRules[] | select(.destination.port == "22")' config.yaml
 # List DHCP interfaces
 yq '[.dhcp[].interface]' config.yaml
 
-# Get the DHCP range served on a specific interface. An upgraded box can keep a
-# disabled ISC scope beside the dnsmasq one, so select the enabled scope.
-yq '.dhcp[] | select(.interface == "lan" and .enabled) | .range' config.yaml
+# Get the DHCP ranges served on a specific interface. An upgraded box can keep a
+# disabled ISC scope beside the dnsmasq one, so select the enabled scope. A
+# DHCPv6 pool is in rangeV6, and a scope can hold either or both.
+yq '.dhcp[] | select(.interface == "lan" and .enabled) | {"range": .range, "rangeV6": .rangeV6}' config.yaml
 
 # List static leases
 yq '.dhcp[].staticLeases[]' config.yaml
