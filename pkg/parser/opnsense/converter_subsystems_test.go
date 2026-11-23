@@ -740,6 +740,8 @@ func TestConverter_KeaDHCP_ISCAndKeaCoexist(t *testing.T) {
 			iscCount++
 		case common.DHCPSourceKea:
 			keaCount++
+		case common.DHCPSourceDnsmasq:
+			t.Errorf("unexpected dnsmasq scope %q", s.Interface)
 		}
 	}
 
