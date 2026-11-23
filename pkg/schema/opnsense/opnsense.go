@@ -93,6 +93,9 @@ type OPNsense struct {
 	// Monitoring components - now using references
 	Monit *Monit `xml:"monit,omitempty" json:"monit,omitempty"`
 
+	// Netsnmp is nil when the os-net-snmp plugin never saved its settings.
+	Netsnmp *Netsnmp `xml:"netsnmp,omitempty" json:"netsnmp,omitempty"`
+
 	// Network components
 	Interfaces struct {
 		Text      string `xml:",chardata" json:"text,omitempty"`

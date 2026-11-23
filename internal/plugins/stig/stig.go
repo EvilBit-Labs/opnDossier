@@ -438,14 +438,13 @@ func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 }
 
 // hasUnnecessaryServices checks whether the device has network services enabled that
-// increase the attack surface, including SNMP with community strings, insecure DNS
-// settings, excessive DHCP interfaces, or load balancer configurations.
+// increase the attack surface: an enabled SNMP agent, more than two DHCP scopes, or
+// load balancer configurations.
 func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 	// Check for unnecessary network services
 
-	// Check SNMP configuration - SNMP with community strings can be a security risk
-	if device.SNMP.ROCommunity != "" {
-		// SNMP is enabled with community string - could be unnecessary
+	// An SNMP agent could be unnecessary
+	if device.SNMP.IsEnabled() {
 		return true
 	}
 
