@@ -67,7 +67,7 @@ func buildShadowFinding(pair PrecedencePair, cfg *common.CommonDevice) (common.S
 		Direction:       pair.Direction,
 		Port:            eclipsedPort(pair, kind),
 		Description:     buildShadowDescription(pair, kind, pair.AliasBlocked),
-		Recommendation:  recommendationFor(impactClass, pair.AliasBlocked),
+		Recommendation:  recommendationFor(impactClass, pair),
 	}, true
 }
 
@@ -113,7 +113,7 @@ func effectiveRuleType(ruleType common.FirewallRuleType) common.FirewallRuleType
 // shadowKindFor maps a PrecedencePair's coverage Extent to the KTD-8
 // full/partial Kind. Extent is never CoverNone or CoverIndeterminate for a
 // pair reaching this point (ResolvePrecedence guarantees Full/Partial; the
-// R8 advisory scan's CoverNone pairs are given an explicit conservative
+// R8 advisory scan's CoverNone and CoverIndeterminate pairs are given an explicit conservative
 // Extent by resolveAliasBlockedAdvisoryPair).
 func shadowKindFor(extent Coverage) common.ShadowKind {
 	if extent == CoverFull {
@@ -207,6 +207,13 @@ func buildShadowDescription(pair PrecedencePair, kind common.ShadowKind, advisor
 		loserType,
 	)
 
+	if advisory && pair.ValueBlocked {
+		return fmt.Sprintf(
+			"(unconfirmed, unreadable port value) %s A port in this overlap is a value the analysis cannot read, such as a service name it does not know, so the shadow could not be confirmed with certainty.",
+			desc,
+		)
+	}
+
 	if advisory {
 		return fmt.Sprintf(
 			"(unconfirmed — unresolved alias) %s This overlap involves a named object (alias) that could not be fully resolved, so the shadow could not be confirmed with certainty.",
@@ -217,11 +224,15 @@ func buildShadowDescription(pair PrecedencePair, kind common.ShadowKind, advisor
 	return desc
 }
 
-// recommendationFor suggests a corrective action for impactClass.
-func recommendationFor(impactClass common.ImpactClass, advisory bool) string {
+// recommendationFor suggests a corrective action for pair's impactClass.
+func recommendationFor(impactClass common.ImpactClass, pair PrecedencePair) string {
 	switch impactClass {
 	case common.ImpactClassSecurity:
-		if advisory {
+		if pair.AliasBlocked && pair.ValueBlocked {
+			return "Check which port the unreadable value stands for, or write it as a number, to confirm whether this deny rule is bypassed; reorder or narrow the covering pass rule if confirmed."
+		}
+
+		if pair.AliasBlocked {
 			return "Resolve the alias reference and re-run analysis to confirm whether this deny rule is bypassed; reorder or narrow the covering pass rule if confirmed."
 		}
 
@@ -265,15 +276,20 @@ func isTerminalDefaultDeny(pair PrecedencePair, cfg *common.CommonDevice) bool {
 }
 
 // detectAliasBlockedSecurityAdvisories scans every pf evaluation group for
-// candidate pairs whose coverage could not be resolved because of an
-// unresolvable named-object reference (aliasBlocked) and which — had the
-// alias resolved — might have been a Security-class shadow (a pass rule
-// possibly defeating a block/reject rule). ResolvePrecedence (U5) only
-// returns pairs whose coverage() call resolved to CoverFull or CoverPartial,
-// so a pair whose coverage folded back to CoverNone via U4's alias-blocked
-// exact-singleton fallback is invisible to it — this scan is the only place
-// such a pair surfaces, implementing R8's advisory carve-out (the same
-// over-report bias GOTCHAS §8.4 documents for NAT-to-WAN correlation).
+// candidate pairs whose coverage could not be resolved because part of it
+// could not be read (coverage's block cause: an alias it could not expand or
+// a port value it could not read) and which, had it been read, might have
+// been a Security-class shadow (a pass rule possibly defeating a block/reject
+// rule). ResolvePrecedence (U5) only returns pairs whose coverage() call
+// resolved to CoverFull or CoverPartial, so a pair whose coverage came back
+// CoverNone with a block cause is invisible to it. This scan is the only
+// place such a pair surfaces, implementing R8's advisory carve-out (the same
+// over-report bias GOTCHAS §8.4 documents for NAT-to-WAN correlation). A pair
+// whose coverage is CoverIndeterminate because an endpoint is negated, and
+// which also holds a part that could not be read, surfaces here too, since
+// ResolvePrecedence drops it as well. No pair surfaces when an address side
+// proves the two rules disjoint (addressSidesDisjoint), whatever could not be
+// read elsewhere.
 //
 // Pairs whose coverage() call did resolve to CoverFull or CoverPartial with
 // AliasBlocked=true are NOT re-derived here — ResolvePrecedence already
@@ -289,7 +305,10 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 
 		for i := range ordered {
 			for j := i + 1; j < len(ordered); j++ {
-				if pair, ok := resolveAliasBlockedAdvisoryPair(key, ordered[i], ordered[j], cfg.NamedObjects); ok {
+				pair, ok := resolveAliasBlockedAdvisoryPair(
+					key, ordered[i], ordered[j], cfg.NamedObjects, cfg.Interfaces,
+				)
+				if ok {
 					pairs = append(pairs, pair)
 				}
 			}
@@ -302,20 +321,34 @@ func detectAliasBlockedSecurityAdvisories(cfg *common.CommonDevice) []Precedence
 // resolveAliasBlockedAdvisoryPair mirrors resolvePair's winner/loser
 // derivation (precedence.go, derivePairWinnerLoser) for one candidate
 // (earlier, later) pair, but — unlike resolvePair — surfaces the pair even
-// when coverage() returns CoverNone, provided the CoverNone came from an
-// unresolvable alias (aliasBlocked) and the resulting winner/loser action
-// relationship would be Security. The pair's Extent is set to CoverFull: the
-// true extent is unknown (that is precisely what "unresolved" means), and
+// when coverage() returns CoverNone, provided it also returns a block cause
+// (an alias it could not expand or a port value it could not read) and the
+// resulting winner/loser action relationship would be Security. It also
+// surfaces a CoverIndeterminate pair with a block cause: negation hides the
+// overlap, and the unreadable part keeps it from being ruled out. A
+// CoverIndeterminate from negation alone has
+// no cause and stays silent, as it does in resolvePair. On either path a pair
+// stays silent when an address side is proven disjoint: one rule negates a set
+// the other matches only inside, through the same alias or literal networks
+// (complementDisjoint), or the two name the same (self) or interface address
+// token, one of them negated (sameInterfaceToken). The pair's Extent is set
+// to CoverFull: the true extent is unknown (that is precisely what
+// "unresolved" means), and
 // R8's over-report bias for security correlation prefers the conservative
 // (full) framing over silently under-reporting a partial one.
 func resolveAliasBlockedAdvisoryPair(
 	key precedenceGroupKey,
 	earlier, later IndexedRule,
 	no common.NamedObjects,
+	ifaces []common.Interface,
 ) (PrecedencePair, bool) {
-	wl, cov, aliasBlocked := derivePairWinnerLoser(earlier, later, no)
+	wl, cov, cause := derivePairWinnerLoser(earlier, later, no)
 
-	if !aliasBlocked || cov != CoverNone {
+	if cause == 0 || (cov != CoverNone && cov != CoverIndeterminate) {
+		return PrecedencePair{}, false
+	}
+
+	if addressSidesDisjoint(wl.winner.Rule, wl.loser.Rule, no, ifaces) {
 		return PrecedencePair{}, false
 	}
 
@@ -330,6 +363,7 @@ func resolveAliasBlockedAdvisoryPair(
 		Loser:        wl.loser,
 		Extent:       CoverFull,
 		AliasBlocked: true,
+		ValueBlocked: cause == causeValue,
 	}, true
 }
 
