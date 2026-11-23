@@ -443,9 +443,8 @@ func (sp *Plugin) hasOverlyPermissiveRules(device *common.CommonDevice) bool {
 func (sp *Plugin) hasUnnecessaryServices(device *common.CommonDevice) bool {
 	// Check for unnecessary network services
 
-	// Check SNMP configuration - SNMP with community strings can be a security risk
-	if device.SNMP.ROCommunity != "" {
-		// SNMP is enabled with community string - could be unnecessary
+	// An SNMP agent could be unnecessary
+	if device.SNMP.IsEnabled() {
 		return true
 	}
 
