@@ -38,6 +38,10 @@ STIGs are cybersecurity methodologies for standardizing security configuration w
 | V-206674   | Firewall must use packet headers and attributes for filtering | High     | Packet Filtering    | Implemented |
 | V-206690   | Firewall must disable unnecessary network services            | Medium   | Service Hardening   | Implemented |
 | V-206682   | Firewall must generate comprehensive traffic logs             | Medium   | Logging             | Implemented |
+| V-206678   | Firewall must log event type information                      | Medium   | Logging             | Implemented |
+| V-206679   | Firewall must log event timestamps                            | Medium   | Logging             | Implemented |
+| V-206680   | Firewall must log network location information                | Medium   | Logging             | Implemented |
+| V-206681   | Firewall must log source information for events               | Medium   | Logging             | Implemented |
 
 ### SANS Firewall Checklist
 
@@ -210,12 +214,12 @@ The following controls are organized by security domain and represent the full p
 
 ##### Logging and Monitoring
 
-| Control ID   | Title                        | Severity | Implementability | Description                                                                                |
-| ------------ | ---------------------------- | -------- | ---------------- | ------------------------------------------------------------------------------------------ |
-| FIREWALL-039 | Remote Syslog Configured     | High     | Full             | Logs forwarded to remote syslog/SIEM server (`Syslog.RemoteServer` non-empty)              |
-| FIREWALL-040 | Authentication Event Logging | Medium   | Full             | Auth logging enabled (`Syslog.AuthLogging`)                                                |
-| FIREWALL-041 | Firewall Filter Logging      | Medium   | Full             | Firewall filter logging enabled (`Syslog.FilterLogging`)                                   |
-| FIREWALL-042 | Log Retention Configuration  | Low      | Full             | Local log rotation and size limits configured (`Syslog.LogFileSize`, `Syslog.RotateCount`) |
+| Control ID   | Title                        | Severity | Implementability | Description                                                                                                                                                      |
+| ------------ | ---------------------------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIREWALL-039 | Remote Syslog Configured     | High     | Full             | Logs forwarded to remote syslog/SIEM server (`Syslog.RemoteServer` non-empty)                                                                                    |
+| FIREWALL-040 | Authentication Event Logging | Medium   | Full             | Auth logging enabled (`Syslog.AuthLogging`)                                                                                                                      |
+| FIREWALL-041 | Firewall Filter Logging      | Medium   | Full             | Firewall filter logging enabled (`Syslog.FilterLogging`)                                                                                                         |
+| FIREWALL-042 | Log Retention Configuration  | Info     | Full             | A local log size or archive limit is in effect, configured or the release default; fails while local logging is off (`Syslog.LogFileSize`, `Syslog.RotateCount`) |
 
 ##### Time Synchronization
 
@@ -314,6 +318,8 @@ The audit engine performs the following checks per plugin:
 3. **Service Hardening (V-206690)** - Checks for an enabled SNMP agent, more than 2 DHCP interfaces, and configured load balancer services.
 
 4. **Logging Configuration (V-206682)** - Analyzes syslog configuration for system and auth logging. Returns comprehensive, partial, not-configured, or unable-to-determine status. Finds non-compliant when syslog is disabled, logging is only partial, or logging status cannot be determined (e.g., rules exist but syslog is not configured).
+
+5. **Logging Detail (V-206678 to V-206681)** - Requires firewall traffic logs to be forwarded: a remote destination that forwards and carries filter logging (`Syslog.FilterLogging`). A destination whose program, level or facility filter drops filterlog's entries does not satisfy them.
 
 #### SANS Compliance Checks
 
@@ -463,10 +469,6 @@ FIREWALL-034-035 (DoS protection tunables), SANS-FW-006 (application layer filte
 Additional DISA Firewall SRG controls under consideration:
 
 - V-206701: DoS attack prevention filters
-- V-206680: Network location information logging
-- V-206679: Event timestamp logging
-- V-206678: Event type logging
-- V-206681: Source information logging
 - V-206711: DoS incident alerting
 
 ### Additional Standards
