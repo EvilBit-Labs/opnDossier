@@ -427,6 +427,37 @@ type SNMPConfig struct {
 	SysLocation string `json:"sysLocation,omitempty" yaml:"sysLocation,omitempty"`
 	// SysContact is the SNMP system contact.
 	SysContact string `json:"sysContact,omitempty" yaml:"sysContact,omitempty"`
+
+	// Enabled reports that the config starts an SNMP agent. Both converters
+	// set it, and fill the other fields only when they do, so a settings
+	// block no agent reads leaves the whole struct empty. A hand-built device
+	// may set only ROCommunity; use IsEnabled rather than this field to ask
+	// whether an agent runs.
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+
+	// ListenAddresses lists the addresses the agent binds. Only the OPNsense
+	// os-net-snmp agent fills it; empty there means the agent's default,
+	// every IPv4 address and the IPv6 loopback. No bind address is read for
+	// an <snmpd> agent, on either vendor, so its list is always empty.
+	ListenAddresses []string `json:"listenAddresses,omitempty" yaml:"listenAddresses,omitempty"`
+
+	// Users lists the SNMPv3 users the agent loads. Their passwords and
+	// privacy keys are never carried.
+	Users []SNMPUser `json:"users,omitempty" yaml:"users,omitempty"`
+}
+
+// IsEnabled reports whether an SNMP agent runs: Enabled is set, or a
+// community is configured, which is how a hand-built device may report one.
+func (c SNMPConfig) IsEnabled() bool {
+	return c.Enabled || c.ROCommunity != ""
+}
+
+// SNMPUser is an SNMPv3 user of the SNMP agent.
+type SNMPUser struct {
+	// Username is the SNMPv3 security name.
+	Username string `json:"username" yaml:"username"`
+	// ReadWrite reports read-write access; false is read-only.
+	ReadWrite bool `json:"readWrite,omitempty" yaml:"readWrite,omitempty"`
 }
 
 // LoadBalancerConfig contains load balancer configuration.
