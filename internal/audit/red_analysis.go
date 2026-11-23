@@ -77,6 +77,8 @@ type exposedService struct {
 // community is configured) and classifies each as WAN-reachable or LAN-only by
 // correlating its port against WAN-reachable rules. Local-only services are not
 // possible here — a configured management service is at least LAN-reachable.
+// markImplicitWANExposure then adds the exposure the firewall creates with no
+// rule in the config, such as with packet filtering disabled.
 func serviceExposures(device *common.CommonDevice) []exposedService {
 	if device == nil {
 		return nil
@@ -136,6 +138,8 @@ func serviceExposures(device *common.CommonDevice) []exposedService {
 			vulnerabilities: []string{"exposed-snmp"},
 		})
 	}
+
+	markImplicitWANExposure(device, services)
 
 	return services
 }
