@@ -87,7 +87,7 @@ func (c *converter) ToCommonDevice(
 		NamedObjects:     namedObjects,
 		FirewallRules:    firewallRules,
 		NAT:              c.convertNAT(doc),
-		DHCP:             append(c.convertDHCP(doc), c.convertKeaDHCPScopes(doc)...),
+		DHCP:             c.convertAllDHCPScopes(doc),
 		DNS:              c.convertDNS(doc),
 		NTP:              c.convertNTP(doc),
 		SNMP:             c.convertSNMP(doc),

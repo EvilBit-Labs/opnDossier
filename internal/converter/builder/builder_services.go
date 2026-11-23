@@ -23,8 +23,9 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 		hasNumberOptions := len(dhcp.NumberOptions) > 0
 		hasAdvanced := HasAdvancedDHCPConfig(dhcp)
 		hasIPv6 := HasDHCPv6Config(dhcp)
+		hasRangeV6 := dhcp.RangeV6 != nil
 
-		if !hasStaticLeases && !hasNumberOptions && !hasAdvanced && !hasIPv6 {
+		if !hasStaticLeases && !hasNumberOptions && !hasAdvanced && !hasIPv6 && !hasRangeV6 {
 			continue
 		}
 
@@ -34,6 +35,14 @@ func (b *MarkdownBuilder) writeServicesSection(md *markdown.Markdown, data *comm
 			headerName = strings.ToUpper(dhcp.Interface[:1]) + strings.ToLower(dhcp.Interface[1:])
 		}
 		md.H4(headerName + " DHCP Details")
+
+		// The summary table shows the IPv4 range only; a dnsmasq scope can
+		// also serve a DHCPv6 range.
+		if hasRangeV6 {
+			md.PlainTextf("%s: %s - %s", markdown.Bold("DHCPv6 Range"),
+				formatters.EscapeMarkdownValue(dhcp.RangeV6.From),
+				formatters.EscapeMarkdownValue(dhcp.RangeV6.To)).LF()
+		}
 
 		// Static leases table
 		if hasStaticLeases {
