@@ -372,6 +372,30 @@ Both converters fill these fields only for an agent they report as running, and 
 | --------- | ------ | --------------------- | ------------------------ |
 | `Enabled` | `bool` | `dns.dnsMasq.enabled` | dnsmasq forwarder active |
 
+### Syslog
+
+Remote logging and local log retention. On OPNsense configs that carry the Syslog model (`<OPNsense><Syslog>`), the remote fields summarize the destinations that forward; older configs are read from the legacy `<syslog>` keys. pfSense does not populate this section yet.
+
+| Field                                                | Type                  | JSON Key                    | Description                                                                                                                                          |
+| ---------------------------------------------------- | --------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Enabled`                                            | `bool`                | `syslog.enabled`            | At least one remote destination forwards                                                                                                             |
+| `SystemLogging`, `AuthLogging`, `FilterLogging`, ... | `bool`                | `syslog.systemLogging`, ... | A forwarding destination carries that category; `FilterLogging` follows what filterlog writes (program `filterlog`, facility `local0`, level `info`) |
+| `RemoteServer`, `RemoteServer2`, `RemoteServer3`     | `string`              | `syslog.remoteServer`, ...  | First three forwarding destinations                                                                                                                  |
+| `LogFileSize`                                        | `string`              | `syslog.logFileSize`        | Local log size limit in bytes; with the Syslog model, the release's default when none is set; empty while local logging is off                       |
+| `RotateCount`                                        | `string`              | `syslog.rotateCount`        | Number of daily log archives kept; with the Syslog model, the release's default when none is set; empty while local logging is off                   |
+| `Destinations`                                       | `[]SyslogDestination` | `syslog.destinations`       | Every remote destination of the Syslog model, disabled ones included                                                                                 |
+
+### SyslogDestination
+
+| Field                              | Type       | JSON Key                              | Description                                                                                                                                                                                                                  |
+| ---------------------------------- | ---------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Enabled`                          | `bool`     | `syslog.destinations[].enabled`       | `<enabled>` is `1`                                                                                                                                                                                                           |
+| `Transport`                        | `string`   | `syslog.destinations[].transport`     | `udp4`, `tcp4`, `udp6`, `tcp6`, `tls4` or `tls6`                                                                                                                                                                             |
+| `Hostname`                         | `string`   | `syslog.destinations[].hostname`      | Receiving server                                                                                                                                                                                                             |
+| `Port`                             | `string`   | `syslog.destinations[].port`          | Receiving port                                                                                                                                                                                                               |
+| `Programs`, `Levels`, `Facilities` | `[]string` | `syslog.destinations[].programs`, ... | Filters the firewall applies together: a message is forwarded only when it passes every non-empty one, and an empty filter does not restrict its own field; program entries are kept untrimmed, as the firewall matches them |
+| `Description`                      | `string`   | `syslog.destinations[].description`   | Operator's label                                                                                                                                                                                                             |
+
 ---
 
 ## VPN Configuration
