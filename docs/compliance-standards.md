@@ -150,9 +150,9 @@ See the [Firewall Security Controls Reference](firewall-security-controls-refere
 - **Implemented** - Check logic evaluates config.xml data and produces compliant/non-compliant results
 - **Unknown** - Control is defined but the required data is not available in config.xml (OS-level or model gap); the check always returns Unknown and no finding is emitted
 
-#### Planned Firewall Security Controls
+#### Extended Firewall Security Controls
 
-The following controls are organized by security domain and represent the full planned expansion of the firewall plugin. Controls are sourced from NIST SP 800-41, PCI DSS v4.0 Requirement 1, CIS Benchmarks, NSA/CISA guidance, and OPNsense/pfSense-specific best practices.
+The following controls are organized by security domain and extend the core firewall controls above. The audit engine evaluates all of them except FIREWALL-009 to FIREWALL-013, FIREWALL-015, FIREWALL-019, FIREWALL-035, FIREWALL-037, FIREWALL-038, FIREWALL-057, FIREWALL-059 and FIREWALL-060, which are defined but not yet evaluated and produce no finding. Controls are sourced from NIST SP 800-41, PCI DSS v4.0 Requirement 1, CIS Benchmarks, NSA/CISA guidance, and OPNsense/pfSense-specific best practices.
 
 ##### Management Plane Security
 
@@ -360,7 +360,7 @@ When `<system><disablefilter>` ("Disable all packet filtering") is set, the fire
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Firewall | FIREWALL-022, -023, -024, -027, -028, -029, -030, -032, -041                                                                                        |
 | SANS     | SANS-FW-001, -002, -003, -007, -009, -012, -014, -015, -017 to -022, -024; SANS-FW-016 only when the config holds an FTP port forward, else Unknown |
-| STIG     | V-206694, V-206674, V-206701, V-206682                                                                                                              |
+| STIG     | V-206694, V-206674, V-206701, V-206682, V-206678 to V-206681                                                                                        |
 
 The shared engine also raises a critical "Packet Filtering Disabled" finding, which red mode reports as an exposed weakness, and red mode reports every management service as reachable from the WAN.
 

@@ -15,7 +15,9 @@ import (
 // config are URLs or nothing, so they cannot show what it holds, and it may
 // hold a loopback address. Such a target counts, as does an alias that names
 // one at any depth, an alias of that name read in place of an interface, and a
-// disabled one. A GeoIP alias holds country networks, which no loopback address
+// disabled external alias, whose table OPNsense leaves as it is. A disabled URL
+// table loads with no members, so it does not count, nor does a group naming
+// only it; the same holds for a disabled host alias holding a loopback address. A GeoIP alias holds country networks, which no loopback address
 // is in, and a network group naming only it and a LAN host holds no loopback,
 // so neither counts, and a nesting loop among aliases with no such alias ends.
 func TestTargetHoldsLoopback_RuntimeAliases(t *testing.T) {
@@ -34,6 +36,22 @@ func TestTargetHoldsLoopback_RuntimeAliases(t *testing.T) {
 			Name:     "OFF_TABLE",
 			Type:     aliasTypeURLTable,
 			Members:  []string{"https://example.com/off.txt"},
+			Disabled: true,
+		},
+		"OFF_EXTERNAL": {Name: "OFF_EXTERNAL", Type: common.NamedObjectTypeExternal, Disabled: true},
+		"OFF_GROUP":    alias("OFF_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "OFF_TABLE"),
+		"LOOP_HOST":    alias("LOOP_HOST", common.NamedObjectTypeHost, "127.0.0.1"),
+		"OFF_LOOP_HOST": {
+			Name:     "OFF_LOOP_HOST",
+			Type:     common.NamedObjectTypeHost,
+			Members:  []string{"127.0.0.1"},
+			Disabled: true,
+		},
+		"OFF_LOOP_GROUP": alias("OFF_LOOP_GROUP", aliasTypeNetworkGroup, "LAN_HOST", "OFF_LOOP_HOST"),
+		"OFF_INTERNAL": {
+			Name:     "OFF_INTERNAL",
+			Type:     aliasTypeInternal,
+			Members:  []string{"127.0.0.1"},
 			Disabled: true,
 		},
 		"COUNTRIES":   alias("COUNTRIES", common.NamedObjectTypeGeoIP, "NL"),
@@ -62,7 +80,13 @@ func TestTargetHoldsLoopback_RuntimeAliases(t *testing.T) {
 		{name: "URL table", target: "URL_TABLE", want: true},
 		{name: "URL table in JSON format", target: "URL_JSON", want: true},
 		{name: "external alias", target: "EXTERNAL", want: true},
-		{name: "disabled URL table", target: "OFF_TABLE", want: true},
+		{name: "disabled URL table", target: "OFF_TABLE"},
+		{name: "network group naming a disabled URL table", target: "OFF_GROUP"},
+		{name: "disabled external alias", target: "OFF_EXTERNAL", want: true},
+		{name: "host alias holding a loopback address", target: "LOOP_HOST", want: true},
+		{name: "disabled host alias holding a loopback address", target: "OFF_LOOP_HOST"},
+		{name: "network group naming that disabled host alias", target: "OFF_LOOP_GROUP"},
+		{name: "disabled internal alias holding a loopback address", target: "OFF_INTERNAL", want: true},
 		{name: "network group naming the URL table second", target: "TABLE_GROUP", want: true},
 		{name: "network group naming that group second", target: "OUTER_GROUP", want: true},
 		{name: "host alias naming the JSON table second", target: "JSON_HOST", want: true},

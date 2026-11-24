@@ -309,7 +309,7 @@ The `analysis.unusedObjects` array lists named objects defined in the config but
 
 ### DHCPScope
 
-DHCP scopes are a flat array with one entry per DHCP server and interface. A Kea subnet names no interface and carries its network in `subnet`. A dnsmasq range that names no interface and lies in no interface's network gets an entry of its own with an empty `interface`, and `subnet` holds the network dnsmasq assumes for it. `diff` identifies a scope by its interface, else by its server and `subnet`, as in `dhcpd.kea[10.0.1.0/24]`. A scope whose identity no other scope on either side has pairs only with the scope of the same identity, or is reported removed or added. Scopes with no identity, or sharing one, are paired by identical content and then by similarity, each only within its group, and a shared name is told apart by the range start, as in `dhcpd.dnsmasq[10.0.0.0/8,10.1.0.100]`. An interface can have an ISC and a dnsmasq scope at once, typically a disabled ISC scope left beside the dnsmasq one; `source` tells them apart.
+DHCP scopes are a flat array with one entry per DHCP server and interface. A Kea subnet names no interface and carries its network in `subnet`. A dnsmasq range that names no interface and lies in no interface's network gets an entry of its own with an empty `interface`, and `subnet` holds the network dnsmasq assumes for it. `diff` identifies a scope by its interface, else by its server and `subnet`, as in `dhcpd.kea[10.0.1.0/24]`. A scope whose identity no other scope on either side has pairs only with the scope of the same identity, or is reported removed or added. Scopes with no identity, or sharing one, are paired by identical content and then by similarity, each only within its group, and a shared name is told apart by the range start, as in `dhcpd.dnsmasq[10.0.0.0/8,10.1.0.100]`. An interface can have an ISC and a dnsmasq scope at once, typically a disabled ISC scope left beside the dnsmasq one; `source` tells them apart, and so do the `diff` paths: `dhcpd.lan` for the ISC scope and `dhcpd.dnsmasq.lan` for the dnsmasq one. A name still shared after the range start is added gets `#2`, `#3` and so on in order.
 
 | Field          | Type                | JSON Key              | Description                             |
 | -------------- | ------------------- | --------------------- | --------------------------------------- |
@@ -321,7 +321,7 @@ DHCP scopes are a flat array with one entry per DHCP server and interface. A Kea
 | `DNSServers`   | `[]string`          | `dhcp[].dnsServers`   | DNS servers for clients                 |
 | `NTPServer`    | `string`            | `dhcp[].ntpServer`    | NTP server for clients                  |
 | `WINSServer`   | `string`            | `dhcp[].winsServer`   | WINS server for clients                 |
-| `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Fixed MAC-to-IP mappings                |
+| `StaticLeases` | `[]DHCPStaticLease` | `dhcp[].staticLeases` | Reservations by MAC or client ID        |
 | `Source`       | `DHCPSource`        | `dhcp[].source`       | `isc`, `kea` or `dnsmasq`               |
 | `RangeV6`      | `*DHCPRange`        | `dhcp[].rangeV6`      | DHCPv6 range (dnsmasq only)             |
 | `Subnet`       | `string`            | `dhcp[].subnet`       | Network of a scope without an interface |
@@ -338,6 +338,7 @@ DHCP scopes are a flat array with one entry per DHCP server and interface. A Kea
 | Field         | Type     | JSON Key                            | Description          |
 | ------------- | -------- | ----------------------------------- | -------------------- |
 | `MAC`         | `string` | `dhcp[].staticLeases[].mac`         | Hardware MAC address |
+| `CID`         | `string` | `dhcp[].staticLeases[].cid`         | DHCP client ID       |
 | `IPAddress`   | `string` | `dhcp[].staticLeases[].ipAddress`   | Fixed IP address     |
 | `Hostname`    | `string` | `dhcp[].staticLeases[].hostname`    | Assigned hostname    |
 | `Description` | `string` | `dhcp[].staticLeases[].description` | Description          |
@@ -380,9 +381,11 @@ The DHCP ranges dnsmasq serves are reported as `dhcp[]` scopes with `source` set
 | `DNSSEC`          | `bool`             | `dns.dnsMasq.dnssec`          | DNSSEC validation enabled         |
 | `Port`            | `string`           | `dns.dnsMasq.port`            | DNS port; empty is 53, `0` is off |
 | `Hosts`           | `[]DNSMasqHost`    | `dns.dnsMasq.hosts`           | Host overrides                    |
-| `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Per-domain DNS servers            |
+| `DomainOverrides` | `[]DomainOverride` | `dns.dnsMasq.domainOverrides` | Domain overrides                  |
 
 ### DomainOverride
+
+An OPNsense override can also name a firewall alias (`<ipset>`) that dnsmasq fills with the addresses it resolves for the domain. The alias is not exported, so an override that names one and no server appears with its domain alone.
 
 | Field         | Type     | JSON Key                                    | Description                                                        |
 | ------------- | -------- | ------------------------------------------- | ------------------------------------------------------------------ |
