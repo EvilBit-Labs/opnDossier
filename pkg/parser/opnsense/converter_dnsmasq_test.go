@@ -14,6 +14,7 @@ import (
 	"github.com/EvilBit-Labs/opnDossier/internal/plugins/stig"
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 	"github.com/EvilBit-Labs/opnDossier/pkg/parser"
+	_ "github.com/EvilBit-Labs/opnDossier/pkg/parser/opnsense"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -452,6 +453,32 @@ func TestConverter_Dnsmasq_DNSSEC(t *testing.T) {
 			device, _ := parseDnsmasqConfig(t, tt.dnsmasq, "")
 			assert.Equal(t, tt.want, device.DNS.DNSMasq.DNSSEC)
 		})
+	}
+}
+
+// TestConverter_Dnsmasq_LegacyDNSSECZeroWarns covers a hand-written
+// <dnssec>0</dnssec> on a config with no model version. The legacy code tests
+// the element with isset(), so validation is on, and the converter says so
+// with a warning, since the edit most likely meant off. The model reads the
+// value, so the same element under a version draws none.
+func TestConverter_Dnsmasq_LegacyDNSSECZeroWarns(t *testing.T) {
+	t.Parallel()
+
+	device, warnings := parseDnsmasqConfig(t, `<dnsmasq><dnssec>0</dnssec></dnsmasq>`, "")
+	assert.True(t, device.DNS.DNSMasq.DNSSEC)
+
+	got := dnsmasqWarnings(warnings)
+	require.Len(t, got, 1)
+	assert.Equal(t, "DNS.DNSMasq.DNSSEC", got[0].Field)
+	assert.Equal(t, common.SeverityLow, got[0].Severity)
+
+	for _, quiet := range []string{
+		`<dnsmasq><dnssec>1</dnssec></dnsmasq>`,
+		`<dnsmasq><dnssec/></dnsmasq>`,
+		`<dnsmasq version="1.0.9"><dnssec>0</dnssec></dnsmasq>`,
+	} {
+		_, warnings := parseDnsmasqConfig(t, quiet, "")
+		assert.Empty(t, dnsmasqWarnings(warnings), quiet)
 	}
 }
 
@@ -1367,10 +1394,6 @@ func rangeNetworks6Cases() []rangeNetworks4Case {
 			host: "fd00:9::50", wantScope: -1, wantSubnet: []string{""},
 		},
 		{
-			name:   "dnsmasq builds no range on an interface whose prefix is longer than 64",
-			ranges: constructed("opt6", "64"), host: "::50", wantScope: -1, wantSubnet: []string{""},
-		},
-		{
 			name:   "a range constructed on a /48 serves the /64 around the address",
 			ranges: constructed("opt5", "64"), host: "fd00:5::1500", wantScope: 0, wantSubnet: []string{""},
 		},
@@ -1630,6 +1653,153 @@ func TestConverter_Dnsmasq_SharedNetworkReservationChanges(t *testing.T) {
 			oldDevice, _ := parseDnsmasqConfig(t, tt.old, "")
 			newDevice, _ := parseDnsmasqConfig(t, tt.new, "")
 			assert.Contains(t, diffPaths(oldDevice, newDevice), tt.want)
+		})
+	}
+}
+
+// TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix covers a range built
+// from a constructor interface whose static IPv6 prefix is longer than 64.
+// dnsmasq builds a context only when the interface's prefix is at most the
+// range's 64 (construct_worker in dhcp6.c), so such a range serves nothing
+// and exports no pool. An interface whose prefix the config does not show
+// gets one at runtime and keeps its pool, and so does one carrying an IPv6
+// virtual IP, which dnsmasq can build the range from.
+func TestConverter_Dnsmasq_ConstructedRangeOnLongPrefix(t *testing.T) {
+	t.Parallel()
+
+	const warningField = "dnsmasq.dhcp_ranges.constructor"
+
+	constructed := func(iface string) string {
+		return `<dhcp_ranges><interface>` + iface + `</interface><start_addr>::1000</start_addr>` +
+			`<end_addr>::2000</end_addr><constructor>` + iface + `</constructor></dhcp_ranges>`
+	}
+
+	cases := []struct {
+		name       string
+		ranges     string
+		extra      string
+		iface      string
+		wantScope  bool
+		wantPool   bool
+		wantRange4 bool
+		wantWarned bool
+		wantLeases int
+	}{
+		{name: "static /80 builds no range", ranges: constructed("opt6"), iface: "opt6", wantWarned: true},
+		{
+			name: "an IPv6 virtual IP on the interface keeps the pool",
+			// The reservation holds only a host part, which applies to a
+			// constructed range.
+			ranges: constructed("opt6") +
+				`<hosts><host>h</host><ip>::50</ip><hwaddr>aa:bb:cc:dd:ee:80</hwaddr></hosts>`,
+			extra: `<virtualip><vip><mode>ipalias</mode><interface>opt6</interface>` +
+				`<subnet>fd00:60::1</subnet><subnet_bits>64</subnet_bits></vip></virtualip>`,
+			iface: "opt6", wantScope: true, wantPool: true, wantLeases: 1,
+		},
+		{
+			name:   "an IPv4 virtual IP on the interface changes nothing",
+			ranges: constructed("opt6"),
+			extra: `<virtualip><vip><mode>ipalias</mode><interface>opt6</interface>` +
+				`<subnet>10.0.60.1</subnet><subnet_bits>24</subnet_bits></vip></virtualip>`,
+			iface: "opt6", wantWarned: true,
+		},
+		{
+			name:      "static /48 keeps its pool",
+			ranges:    constructed("opt5"),
+			iface:     "opt5",
+			wantScope: true,
+			wantPool:  true,
+		},
+		{
+			name:   "a prefix assigned at runtime keeps its pool",
+			ranges: constructed("opt4"), iface: "opt4", wantScope: true, wantPool: true,
+		},
+		{
+			name: "the IPv4 range beside it keeps its scope",
+			ranges: `<dhcp_ranges><interface>opt6</interface><start_addr>10.0.6.100</start_addr>` +
+				`<end_addr>10.0.6.199</end_addr></dhcp_ranges>` + constructed("opt6"),
+			iface: "opt6", wantScope: true, wantRange4: true, wantWarned: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := parseDnsmasqConfig(t,
+				`<dnsmasq version="1.0.9"><enable>1</enable>`+tc.ranges+`</dnsmasq>`, tc.extra)
+
+			var scope *common.DHCPScope
+			for i := range device.DHCP {
+				if device.DHCP[i].Interface == tc.iface {
+					scope = &device.DHCP[i]
+				}
+			}
+
+			require.Equal(t, tc.wantScope, scope != nil, "scope present")
+			if scope != nil {
+				assert.Equal(t, tc.wantPool, scope.RangeV6 != nil, "IPv6 pool")
+				assert.Equal(t, tc.wantRange4, scope.Range != (common.DHCPRange{}), "IPv4 pool")
+				assert.Len(t, scope.StaticLeases, tc.wantLeases, "reservations")
+			}
+
+			warning := findWarning(warnings, warningField, tc.iface)
+			assert.Equal(t, tc.wantWarned, warning != nil, "warning naming the constructor")
+			if warning != nil {
+				assert.Equal(t, common.SeverityLow, warning.Severity)
+			}
+		})
+	}
+}
+
+// TestConverter_Dnsmasq_EnableFollowsTheRelease reads <enable> as the
+// firewall does. Up to 25.1.1 dnsmasq_enabled() tests the element with
+// isset(), so a legacy config is enabled by its presence, whatever it holds.
+// From 25.1.2, the release the model arrived in, it tests !empty(), so a 0
+// or an empty element is off. A legacy 0 most likely meant off and draws a
+// warning. The DHCP scopes follow the same reading.
+func TestConverter_Dnsmasq_EnableFollowsTheRelease(t *testing.T) {
+	t.Parallel()
+
+	const (
+		warningField = "DNS.DNSMasq.Enabled"
+		lanRange     = `<dhcp_ranges><interface>lan</interface><start_addr>192.168.1.100</start_addr>` +
+			`<end_addr>192.168.1.199</end_addr></dhcp_ranges>`
+	)
+
+	cases := []struct {
+		name        string
+		open        string
+		enable      string
+		wantEnabled bool
+		wantWarned  bool
+	}{
+		{
+			name:        "legacy 0 is on and warns",
+			open:        `<dnsmasq>`,
+			enable:      `<enable>0</enable>`,
+			wantEnabled: true,
+			wantWarned:  true,
+		},
+		{name: "legacy empty element is on", open: `<dnsmasq>`, enable: `<enable/>`, wantEnabled: true},
+		{name: "legacy 1 is on", open: `<dnsmasq>`, enable: `<enable>1</enable>`, wantEnabled: true},
+		{name: "legacy absent is off", open: `<dnsmasq>`},
+		{name: "model 1 is on", open: `<dnsmasq version="1.0.9">`, enable: `<enable>1</enable>`, wantEnabled: true},
+		{name: "model 0 is off", open: `<dnsmasq version="1.0.9">`, enable: `<enable>0</enable>`},
+		{name: "model empty element is off", open: `<dnsmasq version="1.0.9">`, enable: `<enable/>`},
+		{name: "model absent is off", open: `<dnsmasq version="1.0.9">`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			device, warnings := parseDnsmasqConfig(t, tc.open+tc.enable+lanRange+`</dnsmasq>`, "")
+
+			assert.Equal(t, tc.wantEnabled, device.DNS.DNSMasq.Enabled, "DNS")
+			require.Len(t, device.DHCP, 1)
+			assert.Equal(t, tc.wantEnabled, device.DHCP[0].Enabled, "DHCP scope")
+			assert.Equal(t, tc.wantWarned, findWarning(warnings, warningField, "0") != nil, "warning")
 		})
 	}
 }

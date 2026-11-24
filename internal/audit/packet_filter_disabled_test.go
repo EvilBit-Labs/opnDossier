@@ -34,7 +34,10 @@ var packetFilterControlsByPlugin = map[string][]string{
 		"SANS-FW-012", "SANS-FW-014", "SANS-FW-015", "SANS-FW-017", "SANS-FW-018",
 		"SANS-FW-019", "SANS-FW-020", "SANS-FW-021", "SANS-FW-022", "SANS-FW-024",
 	},
-	"stig": {"V-206694", "V-206674", "V-206701", "V-206682"},
+	"stig": {
+		"V-206694", "V-206674", "V-206701", "V-206682",
+		"V-206680", "V-206679", "V-206678", "V-206681",
+	},
 }
 
 // TestPacketFilterDisabled_EndToEnd writes <system><disablefilter> into each
