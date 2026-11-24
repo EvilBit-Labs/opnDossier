@@ -18,11 +18,10 @@ type settingRating struct {
 	label   string
 	set     SecurityImpact
 	cleared SecurityImpact
-	// redact shows only whether the value is set. The entry is still emitted
-	// when one secret replaces another.
+	// redact shows only whether the value is set.
 	redact bool
-	// skip names the comparison that already reports the field.
-	skip string
+	// reportedBy names the comparison that already reports the field.
+	reportedBy string
 }
 
 // settingRatings is keyed by the path the JSON export uses.
@@ -74,7 +73,7 @@ var settingRatings = map[string]settingRating{
 	"syslog.logFileSize": {label: "Log file size", set: SecurityImpactLow, cleared: SecurityImpactLow},
 	"syslog.rotateCount": {label: "Log rotation count", set: SecurityImpactLow, cleared: SecurityImpactLow},
 
-	"dns.servers":         {skip: "CompareSystem reports it as system.dnsServers"},
+	"dns.servers":         {reportedBy: "CompareSystem reports it as system.dnsServers"},
 	"dns.unbound.enabled": {label: "Unbound resolver", set: SecurityImpactLow, cleared: SecurityImpactLow},
 	"dns.unbound.dnssec": {
 		label:   "Unbound DNSSEC validation",
@@ -120,9 +119,9 @@ var settingRatings = map[string]settingRating{
 		cleared: SecurityImpactLow,
 	},
 
-	"system.webGui.protocol":         {skip: "CompareSystem reports it as system.webgui.protocol"},
-	"system.webGui.noAntiLockout":    {skip: "compareImplicitFilterSettings reports it"},
-	"system.webGui.noDnsRebindCheck": {skip: "CompareSystem reports it as system.webgui.nodnsrebindcheck"},
+	"system.webGui.protocol":         {reportedBy: "CompareSystem reports it as system.webgui.protocol"},
+	"system.webGui.noAntiLockout":    {reportedBy: "compareImplicitFilterSettings reports it"},
+	"system.webGui.noDnsRebindCheck": {reportedBy: "CompareSystem reports it as system.webgui.nodnsrebindcheck"},
 	"system.webGui.sslCertRef": {
 		label: "Web GUI certificate", set: SecurityImpactMedium, cleared: SecurityImpactMedium,
 	},
@@ -131,8 +130,6 @@ var settingRatings = map[string]settingRating{
 }
 
 // compareServiceSettings reports SNMP and syslog changes in the system section.
-// It has no section-level added or removed entry: which setting changed is the
-// finding, as with firewall rules and users.
 func compareServiceSettings(old, newCfg *common.CommonDevice) []Change {
 	return append(
 		compareSettings(SectionSystem, "snmp", old.SNMP, newCfg.SNMP),
@@ -141,7 +138,19 @@ func compareServiceSettings(old, newCfg *common.CommonDevice) []Change {
 
 // CompareDNS compares the Unbound and dnsmasq settings.
 func (a *Analyzer) CompareDNS(old, newCfg common.DNSConfig) []Change {
-	return compareSettings(SectionDNS, "dns", old, newCfg)
+	changes := compareSettings(SectionDNS, "dns", old, newCfg)
+
+	// With the <privateaddress> element gone the firewall's own defaults
+	// decide, which the config does not show, so losing the list is not rated.
+	if !newCfg.Unbound.PrivateAddressConfigured {
+		for i := range changes {
+			if changes[i].Path == "dns.unbound.privateAddress" {
+				changes[i].SecurityImpact = ""
+			}
+		}
+	}
+
+	return changes
 }
 
 // compareSettings walks two values of one settings struct and reports every
@@ -152,7 +161,7 @@ func compareSettings(section Section, path string, old, newCfg any) []Change {
 
 func compareSettingValues(section Section, path string, old, newCfg reflect.Value) []Change {
 	rating := settingRatings[path]
-	if rating.skip != "" {
+	if rating.reportedBy != "" {
 		return nil
 	}
 
@@ -160,16 +169,19 @@ func compareSettingValues(section Section, path string, old, newCfg reflect.Valu
 		var changes []Change
 
 		for i := range old.NumField() {
-			name, _, _ := strings.Cut(old.Type().Field(i).Tag.Get("json"), ",")
+			field := old.Type().Field(i)
+			if !field.IsExported() {
+				continue
+			}
+
 			changes = append(changes,
-				compareSettingValues(section, path+"."+name, old.Field(i), newCfg.Field(i))...)
+				compareSettingValues(section, path+"."+settingName(field), old.Field(i), newCfg.Field(i))...)
 		}
 
 		return changes
 	}
 
-	// A nil list and an empty one are the same setting.
-	if old.Kind() == reflect.Slice && old.Len() == 0 && newCfg.Len() == 0 {
+	if settingUnset(old) && settingUnset(newCfg) {
 		return nil
 	}
 	if reflect.DeepEqual(old.Interface(), newCfg.Interface()) {
@@ -181,6 +193,10 @@ func compareSettingValues(section Section, path string, old, newCfg reflect.Valu
 		label = path
 	}
 
+	// A list is shown as text that whitespace normalization could flatten, and
+	// a redacted value does not show what was compared.
+	hidesComparedValue := rating.redact || old.Kind() == reflect.Slice
+
 	change := Change{
 		Type:        ChangeModified,
 		Section:     section,
@@ -188,23 +204,20 @@ func compareSettingValues(section Section, path string, old, newCfg reflect.Valu
 		Description: label + " changed",
 		OldValue:    settingText(old, rating.redact),
 		NewValue:    settingText(newCfg, rating.redact),
-		// A list is shown as text that whitespace normalization could flatten,
-		// and a redacted value does not show what was compared.
-		summarized: rating.redact || old.Kind() == reflect.Slice,
+		summarized:  hidesComparedValue,
 	}
 
 	impact := rating.set
 	switch {
 	case old.Kind() == reflect.Bool:
-		change.Description = label + " turned off"
 		if newCfg.Bool() {
 			change.Description = label + " turned on"
 		} else {
-			impact = rating.cleared
+			change.Description, impact = label+" turned off", rating.cleared
 		}
-	case newCfg.Len() == 0:
+	case settingUnset(newCfg):
 		change.Type, change.Description, impact = ChangeRemoved, label+" removed", rating.cleared
-	case old.Len() == 0:
+	case settingUnset(old):
 		change.Type, change.Description = ChangeAdded, label+" added"
 	}
 	change.SecurityImpact = string(impact)
@@ -212,12 +225,35 @@ func compareSettingValues(section Section, path string, old, newCfg reflect.Valu
 	return []Change{change}
 }
 
-// settingText renders a string, bool or list field for display.
+// settingName is the field's JSON name, or its Go name when it has none.
+func settingName(field reflect.StructField) string {
+	name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+	if name == "" || name == "-" {
+		return field.Name
+	}
+
+	return name
+}
+
+// settingUnset reports an empty string or list, or the zero value of a kind
+// the settings models do not use yet, so a field of a new kind is compared
+// instead of panicking.
+func settingUnset(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Bool:
+		return false
+	case reflect.String, reflect.Slice, reflect.Map:
+		return v.Len() == 0
+	default:
+		return v.IsZero()
+	}
+}
+
 func settingText(v reflect.Value, redact bool) string {
 	switch {
 	case v.Kind() == reflect.Bool:
 		return strconv.FormatBool(v.Bool())
-	case v.Len() == 0:
+	case settingUnset(v):
 		return ""
 	case redact:
 		return "[set]"
@@ -226,7 +262,7 @@ func settingText(v reflect.Value, redact bool) string {
 	}
 
 	if list, ok := reflect.TypeAssert[[]string](v); ok {
-		return strings.Join(list, ", ")
+		return formatMembers(list)
 	}
 
 	text, err := json.Marshal(v.Interface())

@@ -66,7 +66,7 @@ opndossier diff --security old-config.xml new-config.xml
 
 Two system settings are rated by direction: packet filtering disabled is HIGH and re-enabled is MEDIUM; the anti-lockout rule re-enabled is MEDIUM and disabled is LOW.
 
-Service settings are rated by direction too. MEDIUM: the SNMP agent enabled, an SNMP community or SNMPv3 user added, the SNMP listen addresses changed, remote logging or the forwarding of system, authentication or firewall logs turned off, a remote log target added, changed or removed, DNSSEC validation or DNSSEC data hardening turned off on a resolver, Unbound's rebind protection ranges removed, and the web GUI certificate changed. The reverse of each, the other log categories turned off, log retention, the dnsmasq port, overrides and forwarders, and the web GUI port are LOW. Any other changed field of these settings is reported without a rating.
+Service settings are rated by direction too. MEDIUM: the SNMP agent enabled, an SNMP community or SNMPv3 user added, the SNMP listen addresses changed, remote logging or the forwarding of system, authentication or firewall logs turned off, a remote log target added, changed or removed, DNSSEC validation or DNSSEC data hardening turned off on a resolver, Unbound's rebind protection ranges emptied while the list is still in the config (unrated when the list itself is gone, since the firewall's defaults then apply), and the web GUI certificate changed. The reverse of each, the other log categories turned off, log retention, the dnsmasq port, overrides and forwarders, and the web GUI port are LOW. Any other changed field of these settings is reported without a rating.
 
 ## Normalization
 

@@ -1,7 +1,9 @@
 package diff
 
 import (
+	"context"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -33,6 +35,7 @@ func TestCompareSettings_EveryFieldIsReported(t *testing.T) {
 		"dns.unbound":   func(d *common.CommonDevice) any { return &d.DNS.Unbound },
 		"dns.dnsMasq":   func(d *common.CommonDevice) any { return &d.DNS.DNSMasq },
 		"system.webGui": func(d *common.CommonDevice) any { return &d.System.WebGUI },
+		"dns":           func(d *common.CommonDevice) any { return &d.DNS },
 	}
 
 	for prefix, target := range targets {
@@ -40,6 +43,13 @@ func TestCompareSettings_EveryFieldIsReported(t *testing.T) {
 
 		for i := range fields.NumField() {
 			name := prefix + "." + fields.Field(i).Name
+
+			// A nested struct has a target of its own, and dns.servers is
+			// reported by CompareSystem.
+			if fields.Field(i).Type.Kind() == reflect.Struct ||
+				settingRatings[prefix+"."+settingName(fields.Field(i))].reportedBy != "" {
+				continue
+			}
 
 			var old, changed common.CommonDevice
 			require.Truef(t, varyField(reflect.ValueOf(target(&changed)).Elem().Field(i)), "%s: no probe", name)
@@ -164,4 +174,187 @@ func TestCompareSettings_NilAndEmptyListAreEqual(t *testing.T) {
 	changed.DNS.DNSMasq.Hosts = []common.DNSMasqHost{}
 
 	assert.Empty(t, settingsCompare(&old, &changed))
+}
+
+// TestSettingRatings_EveryKeyNamesAField fails on a rating whose path no
+// settings field has, such as one left behind by a renamed JSON tag. Such a
+// rating never applies, and a reportedBy entry stops suppressing its field.
+func TestSettingRatings_EveryKeyNamesAField(t *testing.T) {
+	t.Parallel()
+
+	paths := map[string]bool{}
+
+	var walk func(path string, typ reflect.Type)
+	walk = func(path string, typ reflect.Type) {
+		paths[path] = true
+		if typ.Kind() != reflect.Struct {
+			return
+		}
+		for field := range typ.Fields() {
+			walk(path+"."+settingName(field), field.Type)
+		}
+	}
+	walk("snmp", reflect.TypeFor[common.SNMPConfig]())
+	walk("syslog", reflect.TypeFor[common.SyslogConfig]())
+	walk("dns", reflect.TypeFor[common.DNSConfig]())
+	walk("system.webGui", reflect.TypeFor[common.WebGUI]())
+
+	for path := range settingRatings {
+		assert.Truef(t, paths[path], "settingRatings has %q, which no settings field has", path)
+	}
+}
+
+// TestCompareDNS_PrivateAddressElementGone pins that losing the rebind ranges
+// is rated only while the element is still in the config: with it gone the
+// audit reads rebind protection as unknown, not as off.
+func TestCompareDNS_PrivateAddressElementGone(t *testing.T) {
+	t.Parallel()
+
+	old := common.DNSConfig{Unbound: common.UnboundConfig{
+		PrivateAddress: []string{"10.0.0.0/8"}, PrivateAddressConfigured: true,
+	}}
+	emptied := common.DNSConfig{Unbound: common.UnboundConfig{PrivateAddressConfigured: true}}
+
+	impact := func(newCfg common.DNSConfig) string {
+		for _, change := range NewAnalyzer().CompareDNS(old, newCfg) {
+			if change.Path == "dns.unbound.privateAddress" {
+				return change.SecurityImpact
+			}
+		}
+
+		return "no entry"
+	}
+
+	assert.Equal(t, string(SecurityImpactMedium), impact(emptied))
+	assert.Empty(t, impact(common.DNSConfig{}))
+}
+
+// secretName matches a field name that suggests a credential.
+var secretName = regexp.MustCompile(`(?i)pass|secret|token|community|psk|key`)
+
+// TestSettingRatings_SecretFieldsAreRedacted fails when a settings model gains
+// a field whose name suggests a credential and that the diff would print. A
+// field of the struct itself needs redact in settingRatings. A field inside a
+// list element cannot be redacted by path, so it fails until settingText
+// learns to leave it out.
+func TestSettingRatings_SecretFieldsAreRedacted(t *testing.T) {
+	t.Parallel()
+
+	var walk func(path string, typ reflect.Type, inList bool)
+	walk = func(path string, typ reflect.Type, inList bool) {
+		if typ.Kind() == reflect.Slice {
+			typ, inList = typ.Elem(), true
+		}
+		if typ.Kind() != reflect.Struct {
+			return
+		}
+
+		for field := range typ.Fields() {
+			fieldPath := path + "." + settingName(field)
+
+			if secretName.MatchString(field.Name) {
+				assert.Falsef(
+					t,
+					inList,
+					"%s looks like a credential inside a list, which the diff prints whole",
+					fieldPath,
+				)
+				assert.Truef(
+					t,
+					settingRatings[fieldPath].redact,
+					"%s looks like a credential; set redact in settingRatings or rename the pattern's exception",
+					fieldPath,
+				)
+			}
+
+			walk(fieldPath, field.Type, inList)
+		}
+	}
+	walk("snmp", reflect.TypeFor[common.SNMPConfig](), false)
+	walk("syslog", reflect.TypeFor[common.SyslogConfig](), false)
+	walk("dns", reflect.TypeFor[common.DNSConfig](), false)
+	walk("system.webGui", reflect.TypeFor[common.WebGUI](), false)
+}
+
+// TestCompareSettings_FieldKindsTheModelsDoNotUseYet pins that a field of a
+// kind no settings model has today is compared rather than panicking, and that
+// a field without a JSON name is reported under its Go name.
+func TestCompareSettings_FieldKindsTheModelsDoNotUseYet(t *testing.T) {
+	t.Parallel()
+
+	type future struct {
+		Count   int `json:"count"`
+		Pointer *string
+		Hidden  string `json:"-"`
+		private string
+	}
+
+	text := "x"
+	changes := compareSettings(SectionSystem, "future",
+		future{private: "a"}, future{Count: 2, Pointer: &text, Hidden: "h", private: "b"})
+
+	paths := make([]string, 0, len(changes))
+	for _, change := range changes {
+		paths = append(paths, change.Path)
+		assert.Equal(t, ChangeAdded, change.Type, change.Path)
+	}
+
+	assert.Equal(t, []string{"future.count", "future.Pointer", "future.Hidden"}, paths)
+}
+
+func enginePaths(t *testing.T, old, changed *common.CommonDevice, opts Options) map[string]Section {
+	t.Helper()
+
+	result, err := NewEngine(old, changed, opts, nil).Compare(context.Background())
+	require.NoError(t, err)
+
+	paths := map[string]Section{}
+	for _, change := range result.Changes {
+		paths[change.Path] = change.Section
+	}
+
+	return paths
+}
+
+// TestEngine_Compare_SettingsReachTheirSections drives the settings comparers
+// through the engine, which is where a section filter and --security apply.
+func TestEngine_Compare_SettingsReachTheirSections(t *testing.T) {
+	t.Parallel()
+
+	// One rated system setting, one unrated system setting, one rated dns setting.
+	old, changed := &common.CommonDevice{}, &common.CommonDevice{}
+	old.DNS.Unbound.DNSSEC = true
+	changed.SNMP.Enabled = true
+	changed.SNMP.SysContact = "noc"
+
+	assert.Equal(t, map[string]Section{
+		"snmp.enabled":       SectionSystem,
+		"snmp.sysContact":    SectionSystem,
+		"dns.unbound.dnssec": SectionDNS,
+	}, enginePaths(t, old, changed, Options{}))
+
+	assert.Equal(t, map[string]Section{"dns.unbound.dnssec": SectionDNS},
+		enginePaths(t, old, changed, Options{Sections: []string{"dns"}}))
+
+	assert.Equal(t, map[string]Section{
+		"snmp.enabled":       SectionSystem,
+		"dns.unbound.dnssec": SectionDNS,
+	}, enginePaths(t, old, changed, Options{SecurityOnly: true}), "an unrated entry is not security-relevant")
+}
+
+// TestEngine_Compare_Normalize_KeepsSettingsTheTextDoesNotShow pins that
+// --normalize drops neither a community replaced by another, which displays as
+// [set] on both sides, nor a list whose change is whitespace inside a member.
+func TestEngine_Compare_Normalize_KeepsSettingsTheTextDoesNotShow(t *testing.T) {
+	t.Parallel()
+
+	old, changed := &common.CommonDevice{}, &common.CommonDevice{}
+	old.SNMP.ROCommunity, changed.SNMP.ROCommunity = "public", "s3cret"
+	old.Syslog.Destinations = []common.SyslogDestination{{Description: "a b"}}
+	changed.Syslog.Destinations = []common.SyslogDestination{{Description: "a  b"}}
+
+	assert.Equal(t, map[string]Section{
+		"snmp.roCommunity":    SectionSystem,
+		"syslog.destinations": SectionSystem,
+	}, enginePaths(t, old, changed, Options{Normalize: true}))
 }
