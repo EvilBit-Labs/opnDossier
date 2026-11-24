@@ -607,7 +607,8 @@ func TestConverter_DNS(t *testing.T) {
 	doc.Unbound.Enable = "1"
 	doc.Unbound.Dnssec = "1"
 	doc.Unbound.Dnssecstripped = "1"
-	doc.DNSMasquerade.Enable = true
+	dnsmasqEnable := "1"
+	doc.DNSMasquerade.Enable = &dnsmasqEnable
 	doc.DNSMasquerade.Hosts = []schema.DNSMasqHost{
 		{Host: "server", Domain: "local", IP: "10.0.0.1"},
 	}

@@ -77,8 +77,13 @@ type Ntpd struct {
 // generations repeat <hosts> and <domainoverrides> once per entry directly
 // under <dnsmasq>; there is no <host> or <domainoverride> child.
 type DNSMasq struct {
-	XMLName            xml.Name         `xml:"dnsmasq"`
-	Enable             BoolFlag         `xml:"enable,omitempty"`
+	XMLName xml.Name `xml:"dnsmasq"`
+
+	// Enable is a pointer because the two generations read it differently:
+	// up to 25.1.1 dnsmasq.inc tests the element with isset(), and from
+	// 25.1.2, where the model arrived, with !empty() (GOTCHAS 3.2).
+	Enable *string `xml:"enable,omitempty"`
+
 	Regdhcp            BoolFlag         `xml:"regdhcp,omitempty"`
 	Regdhcpstatic      BoolFlag         `xml:"regdhcpstatic,omitempty"`
 	Dhcpfirst          BoolFlag         `xml:"dhcpfirst,omitempty"`

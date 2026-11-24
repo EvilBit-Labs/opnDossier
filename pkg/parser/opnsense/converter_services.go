@@ -226,6 +226,7 @@ func (c *converter) convertDNS(doc *schema.OpnSenseDocument) common.DNSConfig {
 		privateAddress = c.splitPrivateAddress(*advanced.Privateaddress)
 	}
 	service := readUnboundServiceFlags(doc)
+	c.warnOnLegacyUnboundZeroFlags(doc)
 	return common.DNSConfig{
 		Servers: fieldsOfEach(doc.System.DNSServers),
 		Unbound: common.UnboundConfig{

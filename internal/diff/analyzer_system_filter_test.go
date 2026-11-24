@@ -6,10 +6,11 @@ import (
 	common "github.com/EvilBit-Labs/opnDossier/pkg/model"
 )
 
-// TestCompareSystem_ImplicitFilterSettings checks that turning packet filtering
-// or the anti-lockout rule on or off is reported, with turning packet filtering
-// off rated high. Both settings change what the firewall enforces without any
-// rule changing, so a diff that misses them reads "No changes detected".
+// TestCompareSystem_ImplicitFilterSettings checks that turning packet
+// filtering, the anti-lockout rule or the DNS rebinding checks on or off is
+// reported, with turning packet filtering off rated high. Each setting changes
+// what the firewall enforces without any rule changing, so a diff that misses
+// one reads "No changes detected".
 func TestCompareSystem_ImplicitFilterSettings(t *testing.T) {
 	t.Parallel()
 
@@ -43,6 +44,18 @@ func TestCompareSystem_ImplicitFilterSettings(t *testing.T) {
 			old:  common.System{WebGUI: common.WebGUI{NoAntiLockout: true}},
 			path: "system.webgui.noantilockout", impact: "medium",
 			description: "Anti-lockout rule enabled", oldV: "true", newV: "false",
+		},
+		{
+			name:   "DNS rebinding checks disabled",
+			newCfg: common.System{WebGUI: common.WebGUI{NoDNSRebindCheck: true}},
+			path:   "system.webgui.nodnsrebindcheck", impact: "medium",
+			description: "DNS rebinding checks disabled", oldV: "false", newV: "true",
+		},
+		{
+			name: "DNS rebinding checks enabled",
+			old:  common.System{WebGUI: common.WebGUI{NoDNSRebindCheck: true}},
+			path: "system.webgui.nodnsrebindcheck", impact: "low",
+			description: "DNS rebinding checks enabled", oldV: "true", newV: "false",
 		},
 	}
 
