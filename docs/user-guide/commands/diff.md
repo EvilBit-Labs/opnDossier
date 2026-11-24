@@ -66,6 +66,8 @@ opndossier diff --security old-config.xml new-config.xml
 
 Two system settings are rated by direction: packet filtering disabled is HIGH and re-enabled is MEDIUM; the anti-lockout rule re-enabled is MEDIUM and disabled is LOW.
 
+Service settings are rated by direction too. MEDIUM: the SNMP agent enabled, an SNMP community or SNMPv3 user added, the SNMP listen addresses changed, remote logging or the forwarding of system, authentication or firewall logs turned off, a remote log target added, changed or removed, DNSSEC validation or DNSSEC data hardening turned off on a resolver, Unbound's rebind protection ranges removed, and the web GUI certificate changed. The reverse of each, the other log categories turned off, log retention, the dnsmasq port, overrides and forwarders, and the web GUI port are LOW. Any other changed field of these settings is reported without a rating.
+
 ## Normalization
 
 OPNsense configurations can contain cosmetic differences that are not meaningful -- extra whitespace or an IPv6 address written in its long form. The `--normalize` flag normalizes the values the diff displays and leaves out a change whose two values differ only in that formatting.
@@ -100,7 +102,9 @@ opndossier diff --detect-order old-config.xml new-config.xml
 
 ## Available Sections
 
-`system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `users`, `routing`, `aliases`
+`system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `dns`, `users`, `routing`, `aliases`
+
+The `system` section also reports SNMP (`snmp.*`), syslog (`syslog.*`) and web GUI (`system.webGui.*`) settings, and the `dns` section the Unbound and dnsmasq settings (`dns.unbound.*`, `dns.dnsMasq.*`). Each changed field is one entry under the name the JSON export uses. An SNMP community is shown only as `[set]`, and a change from one community to another is still reported.
 
 A rule that uses an alias stores only the alias name, so a change to what the alias contains is not a change to the rule. The `aliases` section reports it instead: aliases are paired by name, and each changed field gets its own entry. The fields are the alias's type, members and description, and on OPNsense whether it is enabled, its address families, the interface it tracks, its JSON path expression and its expire time. A legacy OPNsense `url` alias lists its URLs and the addresses it last fetched, since the release decides which of them the firewall loads.
 

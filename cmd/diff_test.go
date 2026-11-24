@@ -271,14 +271,6 @@ func TestValidateDiffFlags(t *testing.T) {
 			errSubstr: "invalid section",
 		},
 		{
-			name:      "unimplemented section dns rejected",
-			format:    DiffFormatTerminal,
-			mode:      DiffModeUnified,
-			sections:  []string{"dns"},
-			wantErr:   true,
-			errSubstr: "not yet implemented",
-		},
-		{
 			name:      "unimplemented section vpn rejected",
 			format:    DiffFormatTerminal,
 			mode:      DiffModeUnified,
