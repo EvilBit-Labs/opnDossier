@@ -66,7 +66,47 @@ opndossier diff --security old-config.xml new-config.xml
 
 Two system settings are rated by direction: packet filtering disabled is HIGH and re-enabled is MEDIUM; the anti-lockout rule re-enabled is MEDIUM and disabled is LOW.
 
-Service settings are rated too. Some changes are MEDIUM in either direction: the SNMP listen addresses, a remote log target added, changed or removed, and the web GUI certificate. Others depend on direction. MEDIUM: the SNMP agent turned on, an SNMP community or the SNMPv3 user list added or changed, remote logging or the forwarding of system, authentication or firewall logs turned off, DNSSEC validation or DNSSEC data hardening turned off on a resolver, and Unbound's rebind protection ranges emptied while the list is still in the config (unrated when the list itself is gone, since the firewall's defaults then apply). The opposite direction of each of those is LOW: the agent turned off, the community or the last SNMPv3 user removed, one of those log categories or DNSSEC turned back on, rebind ranges added or changed. One of the other log categories turned off is LOW, and turned on is unrated. LOW in either direction: log retention, the dnsmasq port, overrides and forwarders, and the web GUI port. Any other changed field of these settings is reported without a rating.
+Service settings are rated by the direction of the change. "Set" also covers a value replaced by another, so a changed certificate or log target takes the first column. A `-` means that direction is reported without a rating, as is any changed field of these settings that the table does not list. Unbound's rebind ranges are the one exception: emptying them is rated only while the list is still in the config, and is unrated when the list itself is gone, since the firewall's defaults then apply.
+
+| Setting                           | Set, added or turned on | Removed or turned off |
+| --------------------------------- | ----------------------- | --------------------- |
+| `snmp.enabled`                    | MEDIUM                  | LOW                   |
+| `snmp.roCommunity`                | MEDIUM                  | LOW                   |
+| `snmp.listenAddresses`            | MEDIUM                  | MEDIUM                |
+| `snmp.users`                      | MEDIUM                  | LOW                   |
+| `syslog.enabled`                  | LOW                     | MEDIUM                |
+| `syslog.systemLogging`            | LOW                     | MEDIUM                |
+| `syslog.authLogging`              | LOW                     | MEDIUM                |
+| `syslog.filterLogging`            | LOW                     | MEDIUM                |
+| `syslog.dhcpLogging`              | -                       | LOW                   |
+| `syslog.vpnLogging`               | -                       | LOW                   |
+| `syslog.portalAuthLogging`        | -                       | LOW                   |
+| `syslog.dpingerLogging`           | -                       | LOW                   |
+| `syslog.hostapdLogging`           | -                       | LOW                   |
+| `syslog.resolverLogging`          | -                       | LOW                   |
+| `syslog.pppLogging`               | -                       | LOW                   |
+| `syslog.igmpProxyLogging`         | -                       | LOW                   |
+| `syslog.remoteServer`             | MEDIUM                  | MEDIUM                |
+| `syslog.remoteServer2`            | MEDIUM                  | MEDIUM                |
+| `syslog.remoteServer3`            | MEDIUM                  | MEDIUM                |
+| `syslog.destinations`             | MEDIUM                  | MEDIUM                |
+| `syslog.logFileSize`              | LOW                     | LOW                   |
+| `syslog.rotateCount`              | LOW                     | LOW                   |
+| `dns.unbound.enabled`             | LOW                     | LOW                   |
+| `dns.unbound.dnssec`              | LOW                     | MEDIUM                |
+| `dns.unbound.dnssecStripped`      | LOW                     | MEDIUM                |
+| `dns.unbound.privateAddress`      | LOW                     | MEDIUM                |
+| `dns.unbound.hideIdentity`        | -                       | LOW                   |
+| `dns.unbound.hideVersion`         | -                       | LOW                   |
+| `dns.dnsMasq.enabled`             | LOW                     | LOW                   |
+| `dns.dnsMasq.dnssec`              | LOW                     | MEDIUM                |
+| `dns.dnsMasq.port`                | LOW                     | LOW                   |
+| `dns.dnsMasq.hosts`               | LOW                     | LOW                   |
+| `dns.dnsMasq.domainOverrides`     | LOW                     | LOW                   |
+| `dns.dnsMasq.forwarders`          | LOW                     | LOW                   |
+| `system.webGui.sslCertRef`        | MEDIUM                  | MEDIUM                |
+| `system.webGui.port`              | LOW                     | LOW                   |
+| `system.webGui.loginAutocomplete` | LOW                     | -                     |
 
 ## Normalization
 

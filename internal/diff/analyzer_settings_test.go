@@ -2,6 +2,7 @@ package diff
 
 import (
 	"context"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -357,4 +358,39 @@ func TestEngine_Compare_Normalize_KeepsSettingsTheTextDoesNotShow(t *testing.T) 
 		"snmp.roCommunity":    SectionSystem,
 		"syslog.destinations": SectionSystem,
 	}, enginePaths(t, old, changed, Options{Normalize: true}))
+}
+
+// TestSettingRatings_MatchTheUserGuide keeps the ratings table in the diff
+// guide in step with settingRatings, in both directions.
+func TestSettingRatings_MatchTheUserGuide(t *testing.T) {
+	t.Parallel()
+
+	guide, err := os.ReadFile("../../docs/user-guide/commands/diff.md")
+	require.NoError(t, err)
+
+	cell := func(impact SecurityImpact) string {
+		if impact == "" {
+			return "-"
+		}
+
+		return strings.ToUpper(string(impact))
+	}
+
+	documented := map[string][2]string{}
+	for line := range strings.SplitSeq(string(guide), "\n") {
+		cells := strings.Split(line, "|")
+		if len(cells) == 5 && strings.HasPrefix(strings.TrimSpace(cells[1]), "`") {
+			path := strings.Trim(strings.TrimSpace(cells[1]), "`")
+			documented[path] = [2]string{strings.TrimSpace(cells[2]), strings.TrimSpace(cells[3])}
+		}
+	}
+
+	rated := map[string][2]string{}
+	for path, rating := range settingRatings {
+		if rating.set != "" || rating.cleared != "" {
+			rated[path] = [2]string{cell(rating.set), cell(rating.cleared)}
+		}
+	}
+
+	assert.Equal(t, rated, documented)
 }
