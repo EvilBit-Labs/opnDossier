@@ -181,7 +181,7 @@ jq '.nat.inboundRules[] | {
 
 ```bash
 # List DHCP scopes, with the server that serves each (isc, kea or dnsmasq)
-jq '.dhcp[] | {
+jq '.dhcp[]? | {
   interface,
   source,
   enabled,
@@ -190,7 +190,7 @@ jq '.dhcp[] | {
 }' config.json
 
 # Get static DHCP leases (a dnsmasq lease can carry a client id instead of a MAC)
-jq '.dhcp[] | .staticLeases[]? | {
+jq '.dhcp[]? | .staticLeases[]? | {
   mac,
   cid,
   ipAddress,

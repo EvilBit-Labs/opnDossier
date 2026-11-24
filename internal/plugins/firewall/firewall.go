@@ -428,7 +428,9 @@ func (fp *Plugin) hasIPv6Enabled(device *common.CommonDevice) checkResult {
 // hasDNSRebindProtection checks whether Unbound DNS rebind protection is
 // configured. "Disable DNS Rebinding Checks" turns rebind filtering off in
 // both Unbound and dnsmasq, whatever the private-address list holds, so with
-// it set the check fails whenever either resolver is enabled. Otherwise it
+// it set the check fails whenever either resolver is enabled. A dnsmasq on
+// port 0 answers no DNS and serves DHCP only, so it is no resolver here; on
+// any other port it still answers the clients pointed at it. Otherwise it
 // returns Known=true only when Unbound is active AND the MVC <privateaddress>
 // element was present in config.xml, and Unknown so the control is not
 // evaluated against:
@@ -446,7 +448,8 @@ func (fp *Plugin) hasDNSRebindProtection(device *common.CommonDevice) checkResul
 	}
 
 	if device.System.WebGUI.NoDNSRebindCheck {
-		if device.DNS.Unbound.Enabled || device.DNS.DNSMasq.Enabled {
+		dnsmasq := device.DNS.DNSMasq
+		if device.DNS.Unbound.Enabled || (dnsmasq.Enabled && dnsmasq.Port != "0") {
 			return checkResult{Result: false, Known: true}
 		}
 

@@ -220,3 +220,36 @@ func TestConverter_Unbound_SampleConfig5(t *testing.T) {
 	assert.False(t, device.DNS.Unbound.DNSSEC)
 	assert.Nil(t, findWarning(warnings, unboundVersionWarningField, "1.0.9"))
 }
+
+// TestConverter_Unbound_LegacyZeroFlagsWarn covers hand-written 0 bodies in
+// the legacy <unbound> flags. unbound.inc tested both with isset() before
+// model 1.0.5, so they read as on, and each draws a warning, since the edit
+// most likely meant off. Once the model holds the settings the legacy
+// elements are not read and draw none.
+func TestConverter_Unbound_LegacyZeroFlagsWarn(t *testing.T) {
+	t.Parallel()
+
+	fields := func(warnings []common.ConversionWarning) []string {
+		var result []string
+		for _, w := range warnings {
+			if strings.HasPrefix(w.Field, "DNS.Unbound.") {
+				result = append(result, w.Field)
+			}
+		}
+
+		return result
+	}
+
+	legacy := `<unbound><enable>0</enable><dnssec>0</dnssec></unbound>`
+
+	device, warnings := parseUnboundXML(t, legacy)
+	assert.True(t, device.DNS.Unbound.Enabled)
+	assert.True(t, device.DNS.Unbound.DNSSEC)
+	assert.Equal(t, []string{"DNS.Unbound.Enabled", "DNS.Unbound.DNSSEC"}, fields(warnings))
+
+	_, warnings = parseUnboundXML(t, `<unbound><enable>1</enable><dnssec>1</dnssec></unbound>`)
+	assert.Empty(t, fields(warnings))
+
+	_, warnings = parseUnboundXML(t, legacy+unboundPlus("1.0.15", `<enabled>1</enabled>`, ``))
+	assert.Empty(t, fields(warnings))
+}

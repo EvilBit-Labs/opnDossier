@@ -8,13 +8,18 @@ import (
 
 // packetFilterControls are the controls whose pass verdict means pf filters or
 // logs traffic: default deny, filtering on packet attributes, rate limits on
-// pass rules and traffic logging. With packet filtering disabled none of that
-// happens, whatever the rules say.
+// pass rules, traffic logging and what a traffic log entry records (V-206678
+// to V-206681). With packet filtering disabled none of that happens, whatever
+// the rules say: pf writes no traffic log for a remote server to receive.
 var packetFilterControls = []string{
 	"V-206694",
 	"V-206674",
 	"V-206701",
 	"V-206682",
+	"V-206680",
+	"V-206679",
+	"V-206678",
+	"V-206681",
 }
 
 // failPacketFilterControls fails packetFilterControls when packet filtering is

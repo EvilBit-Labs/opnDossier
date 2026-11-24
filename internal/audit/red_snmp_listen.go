@@ -21,6 +21,8 @@ var loopbackAddresses = []netip.Addr{netip.MustParseAddr("127.0.0.1"), netip.IPv
 // model has no constant for either, and the converter keeps the vendor type.
 const (
 	aliasTypeURLTable common.NamedObjectType = "urltable"
+	// aliasTypeInternal is a table OPNsense itself fills, such as bogons.
+	aliasTypeInternal common.NamedObjectType = "internal"
 	aliasTypeURLJSON  common.NamedObjectType = "urljson"
 )
 
@@ -111,7 +113,7 @@ func forwardCanReachSNMPPort(nat common.InboundNATRule) bool {
 // redirects to the addresses it holds, so a target such an alias defines
 // counts when a member of the alias, or of an alias it names, holds one
 // (aliasHoldsFirewallAddress, which also counts a member naming a table the
-// config does not store), or when the alias, or an alias it names, gets its
+// config does not store; a disabled alias loads empty and holds none), or when the alias, or an alias it names, gets its
 // addresses at runtime, as a URL table does, and as a host alias does for a
 // hostname it holds (aliasNamesRuntimeTable).
 // aliasHoldsFirewallAddress alone reads such an alias as holding no address,
@@ -145,7 +147,7 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 
 	object, defined := device.NamedObjects[target]
 	if defined && object.Type != common.NamedObjectTypePort {
-		return aliasHoldsFirewallAddress(device.NamedObjects, target, loopbackAddresses) ||
+		return aliasHoldsFirewallAddress(loadedAliases(device.NamedObjects), target, loopbackAddresses) ||
 			aliasNamesRuntimeTable(device.NamedObjects, target)
 	}
 
@@ -160,6 +162,30 @@ func targetHoldsLoopback(target string, device *common.CommonDevice) bool {
 	}
 
 	return holdsFirewallAddress(target, loopbackAddresses) || aliasNamePattern.MatchString(target)
+}
+
+// loadsEmpty reports whether OPNsense loads the alias with no members, so
+// that it holds no address and names no alias: it is disabled. The alias
+// loader skips an external and an internal alias, whose tables stay as they
+// are when disabled.
+func loadsEmpty(object common.NamedObject) bool {
+	return object.Disabled &&
+		object.Type != common.NamedObjectTypeExternal && object.Type != aliasTypeInternal
+}
+
+// loadedAliases returns the aliases with the members of every alias that
+// loads empty left out, for a walk that reads members, such as
+// aliasHoldsFirewallAddress. The aliases given are not changed.
+func loadedAliases(objects common.NamedObjects) common.NamedObjects {
+	loaded := make(common.NamedObjects, len(objects))
+	for name, object := range objects {
+		if loadsEmpty(object) {
+			object.Members = nil
+		}
+		loaded[name] = object
+	}
+
+	return loaded
 }
 
 // aliasNamesRuntimeTable reports whether the alias name, or an alias it names
@@ -179,6 +205,10 @@ func aliasNamesRuntimeTable(objects common.NamedObjects, name string) bool {
 		last := len(pending) - 1
 		object := objects[pending[last]]
 		pending = pending[:last]
+
+		if loadsEmpty(object) {
+			continue
+		}
 
 		if slices.Contains(runtimeAliasTypes, object.Type) {
 			return true
