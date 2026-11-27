@@ -183,15 +183,27 @@ func (b *MarkdownBuilder) WriteSysctlTable(md *markdown.Markdown, sysctl []commo
 	return md.Table(*BuildSysctlTableSet(sysctl))
 }
 
+// sysctlDefaultValue is shown for a tunable whose value is empty.
+const sysctlDefaultValue = "default"
+
 // BuildSysctlTableSet builds the table data for system tunables.
+//
+// An empty value is shown as "default". OPNsense 25.1.3 and later store a
+// tunable left at its default with an empty value, where earlier releases
+// wrote the keyword "default", so both read alike in the report.
 func BuildSysctlTableSet(sysctl []common.SysctlItem) *markdown.TableSet {
 	headers := []string{"Tunable", colValue, colDescription}
 
 	rows := make([][]string, 0, len(sysctl))
 	for _, item := range sysctl {
+		value := item.Value
+		if value == "" {
+			value = sysctlDefaultValue
+		}
+
 		rows = append(rows, []string{
 			formatters.EscapeTableContent(item.Tunable),
-			formatters.EscapeTableContent(item.Value),
+			formatters.EscapeTableContent(value),
 			formatters.EscapeTableContent(item.Description),
 		})
 	}

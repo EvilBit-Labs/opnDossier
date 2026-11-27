@@ -157,7 +157,7 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 			description:    "Sysctl tunable name is required",
 		},
 		{
-			name: "missing sysctl value",
+			name: "empty sysctl value selects the default",
 			config: &schema.OpnSenseDocument{
 				System: schema.System{
 					Hostname: "testhost",
@@ -170,9 +170,8 @@ func TestXMLParser_ValidateRequiredElements(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
-			expectedFields: []string{"opnsense.sysctl[0].value"},
-			description:    "Sysctl value is required",
+			expectedErrors: 0,
+			description:    "An empty sysctl value is valid; from OPNsense 25.1.3 on it selects the tunable default",
 		},
 	}
 

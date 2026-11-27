@@ -72,7 +72,7 @@ By default, only security-related tunables (IP forwarding, TCP/UDP blackhole) ar
 opndossier convert config.xml --include-tunables -o full-report.md
 ```
 
-When included, tunables appear as a table with three columns: the sysctl parameter name, its value, and its description.
+When included, tunables appear as a table with three columns: the sysctl parameter name, its value, and its description. A tunable with an empty value, which OPNsense 25.1.3 and later store for one left at its default, shows `default`.
 
 ## Comprehensive Mode
 

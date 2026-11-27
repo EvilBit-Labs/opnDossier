@@ -437,6 +437,8 @@ The following controls extend the core set above, organized by security domain. 
 | FIREWALL-034 | SYN Flood Protection    | Medium   | SYN cookies enabled via `net.inet.tcp.syncookies=1` in tunables        |
 | FIREWALL-035 | Connection State Limits | Medium   | Maximum state table entries configured appropriately                   |
 
+On OPNsense, FIREWALL-033 and FIREWALL-034 read a tunable set to `default`, left empty or not listed as the value in effect on the firewall: 0 for `net.inet.ip.sourceroute` and 1 for `net.inet.tcp.syncookies`. A row that names the tunable with trailing whitespace or one trailing dot, which OPNsense 16.7 to 20.1 apply as well and later releases skip, stops that reading: the tunable is then read as written from the first row naming it exactly, or is unknown when no row names it exactly.
+
 ### Encryption and TLS
 
 | Control ID   | Title                     | Severity | Description                                                                 |
