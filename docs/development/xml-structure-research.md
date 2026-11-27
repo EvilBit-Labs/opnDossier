@@ -57,6 +57,8 @@ Element existing = true, absent = false. Content is irrelevant.
 | `<ipv6allow/>`              | `<system>`                                   | `isset($config['system']['ipv6allow'])`, before 26.1                                                                                                     |
 | `<disablefilter/>`          | `<system>` (both vendors)                    | `isset($config['system']['disablefilter'])` in filter.inc turns pf off; the OPNsense page writes `enabled`                                               |
 | `<noantilockout/>`          | `<system><webgui>` (both vendors)            | `isset($config['system']['webgui']['noantilockout'])` in filter.lib.inc (OPNsense), `config_path_enabled` in filter.inc (pfSense)                        |
+| `<enable/>`                 | `<system><ssh>` (pfSense)                    | `config_path_enabled('system/ssh')` (`isset()`) in sshd and filter.inc; the page writes `enabled`; `SSHConfig.Enable` is `*string`                       |
+| `<enablesshd/>`             | `<system>` (pfSense, config before 18.9)     | `isset($config['system']['enablesshd'])` in sshd (2.3, 2.4.3); `upgrade_188_to_189` moves it to `<ssh><enable>`                                          |
 | `<enable/>`                 | `<interfaces><wan>`                          | Interface enabled (pfSense uses BoolFlag)                                                                                                                |
 | `<enable/>`                 | `<dhcpd><lan>`                               | DHCP scope enabled (pfSense uses BoolFlag)                                                                                                               |
 

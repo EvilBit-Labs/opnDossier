@@ -26,6 +26,14 @@ var (
 const virtualInterfaces = "<lo0><enable>1</enable><if>lo0</if><virtual>1</virtual></lo0>" +
 	"<openvpn><enable>1</enable><if>openvpn</if><type>group</type><virtual>1</virtual></openvpn>"
 
+// pfSenseSSHAnchor is the <system> child of the pfSense fixture that
+// pfSenseSSHEnabled is written after: the fixture has no <ssh> of its own.
+// pfSenseSSHEnabled is SSH turned on as the pfSense page writes it.
+const (
+	pfSenseSSHAnchor  = "<nextgid>2000</nextgid>"
+	pfSenseSSHEnabled = "<ssh><enable>enabled</enable></ssh>"
+)
+
 // rewriteInterfaces applies edit to every assigned interface entry in the
 // first <interfaces> block after </system>, which is the assignment table in
 // both vendor fixtures. edit receives the key, the entry and the fixture's wan
@@ -191,11 +199,10 @@ func antiLockoutShapes() []antiLockoutShape {
 // TestRedMode_AntiLockoutOnWAN_EndToEnd rewrites each vendor's fixture into the
 // interface shapes that decide where the anti-lockout rule goes and drives the
 // result through parse, convert and red mode. Both vendors put the rule on the
-// WAN of a firewall with no LAN or OPT interface, and red mode must then report the web GUI, and
-// on OPNsense SSH, as WAN-exposed although no rule in the config passes them.
+// WAN of a firewall with no LAN or OPT interface, and red mode must then report
+// the web GUI and SSH as WAN-exposed although no rule in the config passes them.
 // The fixtures hold no WAN pass rule to the firewall, so every other shape stays
-// LAN-only. SSH is enabled only on OPNsense, in the form its page writes: the
-// pfSense schema reads an element pfSense does not write for it.
+// LAN-only. SSH is enabled on each vendor in the form its page writes.
 func TestRedMode_AntiLockoutOnWAN_EndToEnd(t *testing.T) {
 	t.Parallel()
 
@@ -209,19 +216,17 @@ func TestRedMode_AntiLockoutOnWAN_EndToEnd(t *testing.T) {
 			name: "opnsense", fixture: "config.xml.sample", ssh: "<ssh>\n      <group>admins</group>",
 			withSSH: "<ssh><enabled>enabled</enabled><group>admins</group>",
 		},
-		{name: "pfsense", fixture: "pfsense/config-pfSense.xml", pfSense: true},
+		{
+			name: "pfsense", fixture: "pfsense/config-pfSense.xml", pfSense: true,
+			ssh: pfSenseSSHAnchor, withSSH: pfSenseSSHAnchor + pfSenseSSHEnabled,
+		},
 	}
 
 	for _, vendor := range vendors {
 		raw := readFixture(t, vendor.fixture)
-		requireFixtureHolds(t, raw, map[string]int{gui: 1, "<noantilockout": 0})
-
-		portals := []string{"webgui"}
-		if vendor.ssh != "" {
-			requireFixtureHolds(t, raw, map[string]int{vendor.ssh: 1})
-			raw = strings.Replace(raw, vendor.ssh, vendor.withSSH, 1)
-			portals = append(portals, "ssh")
-		}
+		requireFixtureHolds(t, raw, map[string]int{gui: 1, "<noantilockout": 0, vendor.ssh: 1})
+		raw = strings.Replace(raw, vendor.ssh, vendor.withSSH, 1)
+		portals := []string{"webgui", "ssh"}
 
 		for _, shape := range antiLockoutShapes() {
 			t.Run(vendor.name+"/"+shape.name, func(t *testing.T) {

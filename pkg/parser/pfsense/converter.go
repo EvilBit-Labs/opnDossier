@@ -210,7 +210,10 @@ func (c *converter) convertSystem(doc *pfsense.Document) common.System {
 			NoDNSRebindCheck: sys.WebGUI.NoDNSRebindCheck != nil,
 		},
 		SSH: common.SSH{
-			Enabled: bool(sys.SSH.Enabled),
+			// sshd runs when <ssh><enable> is present, whatever it holds. A
+			// config older than version 18.9 keeps the switch in <enablesshd>,
+			// which pfSense moves there on upgrade.
+			Enabled: sys.SSH.Enable != nil || sys.EnableSSHD != nil,
 			Port:    sys.SSH.Port,
 			Group:   sys.SSH.Group,
 		},

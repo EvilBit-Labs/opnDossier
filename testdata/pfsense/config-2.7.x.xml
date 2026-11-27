@@ -16,7 +16,7 @@
       <protocol>https</protocol>
     </webgui>
     <ssh>
-      <enabled/>
+      <enable>enabled</enable>
       <group>admins</group>
     </ssh>
     <group>

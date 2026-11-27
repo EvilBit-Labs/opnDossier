@@ -84,7 +84,7 @@ Inner</content><description>outer</description>
 const sansPortAliasPfSense = `<?xml version="1.0"?>
 <pfsense>
   <version>23.3</version>
-  <system><hostname>fw</hostname><domain>internal</domain><ssh><enabled/></ssh></system>
+  <system><hostname>fw</hostname><domain>internal</domain><ssh><enable>enabled</enable></ssh></system>
   <interfaces>
     <wan><enable/><if>vtnet0</if><ipaddr>203.0.113.2</ipaddr><subnet>24</subnet></wan>
     <lan><enable/><if>vtnet1</if><ipaddr>192.168.1.1</ipaddr><subnet>24</subnet></lan>

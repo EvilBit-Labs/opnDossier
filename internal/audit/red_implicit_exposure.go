@@ -63,8 +63,7 @@ func markImplicitWANExposure(device *common.CommonDevice, services []exposedServ
 // Both OPNsense rules read interfaces through legacy_config_get_interfaces with
 // virtual entries left out, so loopback and the VPN groups count for neither.
 // A WAN that is disabled or has no device carries no traffic, so a rule on it
-// exposes nothing. On pfSense the SSH half rests on the SSH service being read
-// as enabled, and the schema reads an element pfSense does not write for it.
+// exposes nothing.
 func antiLockoutOnWAN(device *common.CommonDevice) bool {
 	if device.System.WebGUI.NoAntiLockout {
 		return false

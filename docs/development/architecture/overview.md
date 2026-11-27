@@ -427,8 +427,8 @@ graph TD
 
 pfSense schema follows a **copy-on-write** approach to minimize duplication:
 
-- **Reuse OPNsense types** when XML structure is identical (e.g., `opnsense.Interface`, `opnsense.Source`, `opnsense.Destination`, `opnsense.Outbound`, `opnsense.SSHConfig`)
-- **Fork locally** when pfSense diverges (e.g., `Group` for `[]string Priv` vs single privilege, `System` for `[]string DNSServers` vs single server, `FilterRule` for pfSense-specific fields, `IPsec` subsystem with Phase 1/Phase 2 arrays using `BoolFlag` for presence-based XML elements)
+- **Reuse OPNsense types** when XML structure is identical (e.g., `opnsense.Interface`, `opnsense.Source`, `opnsense.Destination`, `opnsense.Outbound`)
+- **Fork locally** when pfSense diverges (e.g., `Group` for `[]string Priv` vs single privilege, `System` for `[]string DNSServers` vs single server, `SSHConfig` for the `<enable>` switch pfSense writes where OPNsense writes `<enabled>`, `FilterRule` for pfSense-specific fields, `IPsec` subsystem with Phase 1/Phase 2 arrays using `BoolFlag` for presence-based XML elements)
 - **Document differences** in `pkg/schema/pfsense/README.md` with complete structural reference covering 50+ top-level sections
 
 ### pfSense-Specific Types
