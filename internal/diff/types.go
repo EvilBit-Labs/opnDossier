@@ -100,6 +100,7 @@ func ImplementedSections() []Section {
 		SectionInterfaces,
 		SectionVLANs,
 		SectionDHCP,
+		SectionDNS,
 		SectionUsers,
 		SectionRouting,
 		SectionAliases,
@@ -122,7 +123,7 @@ func (s Section) IsValid() bool {
 func (s Section) IsImplemented() bool {
 	switch s {
 	case SectionSystem, SectionFirewall, SectionNAT, SectionInterfaces,
-		SectionVLANs, SectionDHCP, SectionUsers, SectionRouting, SectionAliases:
+		SectionVLANs, SectionDHCP, SectionDNS, SectionUsers, SectionRouting, SectionAliases:
 		return true
 	default:
 		return false

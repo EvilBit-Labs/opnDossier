@@ -90,39 +90,39 @@ opndossier audit [file ...] [flags]
 ### Options
 
 ```
-      --mode string         Audit mode (blue|red) (default "blue")
-      --plugins strings     Compliance plugins to run (stig,sans,firewall)
-      --plugin-dir string   Directory containing third-party .so compliance plugins (does not affect built-in stig/sans/firewall). Plugins run with full process privileges; signatures are not verified. Do not point at untrusted-writable directories. Linux/macOS/FreeBSD only; no-op on Windows. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Third-Party Plugin Security.
-      --failures-only       Show only failing controls in blue mode plugin results tables
-      --audit-blackhat      Sharpen the tone of red mode ExploitNotes (red mode only; impact/context only, no attack instructions)
-  -f, --format string       Output format for audit report (markdown, json, yaml, text, html) (default "markdown")
-  -o, --output string       Output file path for saving audit report (default: print to console)
-      --force               Force overwrite existing files without prompting for confirmation
-      --include-tunables    Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)
-      --section strings     Specific sections to include in output (comma-separated, e.g., system,network,firewall)
-      --wrap int            Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120) (default -1)
-      --no-wrap             Disable text wrapping (alias for --wrap 0)
-      --comprehensive       Generate comprehensive detailed reports with full configuration analysis
-      --redact              Redact sensitive fields (passwords, keys, community strings) in output
-  -h, --help                help for audit
+      --mode string                     Audit mode (blue|red) (default "blue")
+      --plugins strings                 Compliance plugins to run (stig,sans,firewall)
+      --plugin-dir string               Directory containing third-party .so compliance plugins (does not affect built-in stig/sans/firewall). Plugins run with full process privileges; signatures are not verified. Do not point at untrusted-writable directories. Linux/macOS/FreeBSD only; no-op on Windows. See GOTCHAS §2.5 and docs/user-guide/commands/audit.md § Third-Party Plugin Security.
+      --failures-only[=true|false]      Show only failing controls in blue mode plugin results tables
+      --audit-blackhat[=true|false]     Sharpen the tone of red mode ExploitNotes (red mode only; impact/context only, no attack instructions)
+  -f, --format string                   Output format for audit report (markdown, json, yaml, text, html) (default "markdown")
+  -o, --output string                   Output file path for saving audit report (default: print to console)
+      --force[=true|false]              Force overwrite existing files without prompting for confirmation
+      --include-tunables[=true|false]   Include all system tunables in report output (markdown, text, HTML only; JSON/YAML always include all tunables)
+      --section strings                 Specific sections to include in output (comma-separated, e.g., system,network,firewall)
+      --wrap int                        Text wrap width in characters (-1 = auto-detect terminal width, 0 = no wrapping, recommended: 80-120) (default -1)
+      --no-wrap[=true|false]            Disable text wrapping (alias for --wrap 0)
+      --comprehensive[=true|false]      Generate comprehensive detailed reports with full configuration analysis
+      --redact[=true|false]             Redact sensitive fields (passwords, keys, community strings) in output
+  -h, --help[=true|false]               help for audit
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --color string         Color output mode (auto, always, never) (default "auto")
-      --config string        Configuration file path (default: $HOME/.opnDossier.yaml)
-      --debug                Enable debug-level logging (all messages, for troubleshooting)
-      --device-type string   Force device type (supported: opnsense, pfsense). Bypasses auto-detection.
-      --minimal              Minimal output mode (suppresses progress and verbose messages)
-      --no-progress          Disable progress indicators
-  -q, --quiet                Suppress all output except errors and critical messages
-      --timestamps           Include timestamps in log output
-  -v, --verbose              Enable info-level logging (warnings, errors, and informational messages)
+      --color string               Color output mode (auto, always, never) (default "auto")
+      --config string              Configuration file path (default: $HOME/.opnDossier.yaml)
+      --debug[=true|false]         Enable debug-level logging (all messages, for troubleshooting)
+      --device-type string         Force device type (supported: opnsense, pfsense). Bypasses auto-detection.
+      --minimal[=true|false]       Minimal output mode (suppresses progress and verbose messages)
+      --no-progress[=true|false]   Disable progress indicators
+  -q, --quiet[=true|false]         Suppress all output except errors and critical messages
+      --timestamps[=true|false]    Include timestamps in log output
+  -v, --verbose[=true|false]       Enable info-level logging (warnings, errors, and informational messages)
 ```
 
 ### SEE ALSO
 
 * [opndossier](opndossier.md)	 - opnDossier: A CLI tool for processing OPNsense and pfSense configuration files.
 
-###### Auto generated by spf13/cobra on 17-Sep-2026
+###### Auto generated by spf13/cobra on 23-Nov-2026

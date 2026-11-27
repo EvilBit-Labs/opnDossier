@@ -112,6 +112,7 @@ func (a *Analyzer) CompareSystem(old, newCfg *common.System) []Change {
 	}
 
 	changes = append(changes, compareImplicitFilterSettings(old, newCfg)...)
+	changes = append(changes, compareSettings(SectionSystem, "system.webGui", old.WebGUI, newCfg.WebGUI)...)
 
 	return changes
 }

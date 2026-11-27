@@ -119,7 +119,7 @@ func ValidDiffModes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.She
 // ValidDiffSections provides completion for diff section flag.
 func ValidDiffSections(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return []string{
-		"system\tSystem settings (hostname, domain, timezone)",
+		"system\tSystem settings (hostname, domain, timezone, SNMP, syslog)",
 		"firewall\tFirewall rules",
 		"nat\tNAT configuration and port forwards",
 		"interfaces\tNetwork interfaces",
@@ -128,7 +128,7 @@ func ValidDiffSections(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 		"users\tUser accounts",
 		"routing\tStatic routes",
 		"aliases\tFirewall aliases (named objects)",
-		"dns\tDNS configuration",
+		"dns\tDNS resolver settings (Unbound, dnsmasq)",
 		"vpn\tVPN configuration",
 		"certificates\tCertificate management",
 	}, cobra.ShellCompDirectiveNoFileComp
@@ -163,9 +163,9 @@ DISPLAY MODES (--mode/-m):
   side-by-side  - Two-column comparison (terminal format only)
 
 SECTION FILTERING (--section/-s):
-  Implemented: system, firewall, nat, interfaces, vlans, dhcp, users, routing,
-               aliases
-  Placeholders (reject with a helpful error): dns, vpn, certificates
+  Implemented: system, firewall, nat, interfaces, vlans, dhcp, dns, users,
+               routing, aliases
+  Placeholders (reject with a helpful error): vpn, certificates
 
 ANALYSIS OPTIONS:
   --security       Show only security-relevant changes
@@ -392,6 +392,7 @@ func validateDiffFlags() error {
 		"interfaces",
 		"vlans",
 		"dhcp",
+		"dns",
 		"users",
 		"routing",
 		"aliases",
@@ -399,7 +400,6 @@ func validateDiffFlags() error {
 
 	// Sections that are defined but not yet implemented
 	unimplementedSections := []string{
-		"dns",
 		"vpn",
 		"certificates",
 	}

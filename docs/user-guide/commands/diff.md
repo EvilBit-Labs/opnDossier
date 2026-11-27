@@ -66,6 +66,48 @@ opndossier diff --security old-config.xml new-config.xml
 
 Two system settings are rated by direction: packet filtering disabled is HIGH and re-enabled is MEDIUM; the anti-lockout rule re-enabled is MEDIUM and disabled is LOW.
 
+Service settings are rated by the direction of the change. "Set" also covers a value replaced by another, so a changed certificate or log target takes the first column. A `-` means that direction is reported without a rating, as is any changed field of these settings that the table does not list. Unbound's rebind ranges are the one exception: emptying them is rated only while the list is still in the config, and is unrated when the list itself is gone, since the firewall's defaults then apply.
+
+| Setting                           | Set, added or turned on | Removed or turned off |
+| --------------------------------- | ----------------------- | --------------------- |
+| `snmp.enabled`                    | MEDIUM                  | LOW                   |
+| `snmp.roCommunity`                | MEDIUM                  | LOW                   |
+| `snmp.listenAddresses`            | MEDIUM                  | MEDIUM                |
+| `snmp.users`                      | MEDIUM                  | LOW                   |
+| `syslog.enabled`                  | LOW                     | MEDIUM                |
+| `syslog.systemLogging`            | LOW                     | MEDIUM                |
+| `syslog.authLogging`              | LOW                     | MEDIUM                |
+| `syslog.filterLogging`            | LOW                     | MEDIUM                |
+| `syslog.dhcpLogging`              | -                       | LOW                   |
+| `syslog.vpnLogging`               | -                       | LOW                   |
+| `syslog.portalAuthLogging`        | -                       | LOW                   |
+| `syslog.dpingerLogging`           | -                       | LOW                   |
+| `syslog.hostapdLogging`           | -                       | LOW                   |
+| `syslog.resolverLogging`          | -                       | LOW                   |
+| `syslog.pppLogging`               | -                       | LOW                   |
+| `syslog.igmpProxyLogging`         | -                       | LOW                   |
+| `syslog.remoteServer`             | MEDIUM                  | MEDIUM                |
+| `syslog.remoteServer2`            | MEDIUM                  | MEDIUM                |
+| `syslog.remoteServer3`            | MEDIUM                  | MEDIUM                |
+| `syslog.destinations`             | MEDIUM                  | MEDIUM                |
+| `syslog.logFileSize`              | LOW                     | LOW                   |
+| `syslog.rotateCount`              | LOW                     | LOW                   |
+| `dns.unbound.enabled`             | LOW                     | LOW                   |
+| `dns.unbound.dnssec`              | LOW                     | MEDIUM                |
+| `dns.unbound.dnssecStripped`      | LOW                     | MEDIUM                |
+| `dns.unbound.privateAddress`      | LOW                     | MEDIUM                |
+| `dns.unbound.hideIdentity`        | -                       | LOW                   |
+| `dns.unbound.hideVersion`         | -                       | LOW                   |
+| `dns.dnsMasq.enabled`             | LOW                     | LOW                   |
+| `dns.dnsMasq.dnssec`              | LOW                     | MEDIUM                |
+| `dns.dnsMasq.port`                | LOW                     | LOW                   |
+| `dns.dnsMasq.hosts`               | LOW                     | LOW                   |
+| `dns.dnsMasq.domainOverrides`     | LOW                     | LOW                   |
+| `dns.dnsMasq.forwarders`          | LOW                     | LOW                   |
+| `system.webGui.sslCertRef`        | MEDIUM                  | MEDIUM                |
+| `system.webGui.port`              | LOW                     | LOW                   |
+| `system.webGui.loginAutocomplete` | LOW                     | -                     |
+
 ## Normalization
 
 OPNsense configurations can contain cosmetic differences that are not meaningful -- extra whitespace or an IPv6 address written in its long form. The `--normalize` flag normalizes the values the diff displays and leaves out a change whose two values differ only in that formatting.
@@ -100,7 +142,9 @@ opndossier diff --detect-order old-config.xml new-config.xml
 
 ## Available Sections
 
-`system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `users`, `routing`, `aliases`
+`system`, `firewall`, `nat`, `interfaces`, `vlans`, `dhcp`, `dns`, `users`, `routing`, `aliases`
+
+The `system` section also reports SNMP (`snmp.*`), syslog (`syslog.*`) and web GUI (`system.webGui.*`) settings, and the `dns` section the Unbound and dnsmasq settings (`dns.unbound.*`, `dns.dnsMasq.*`). Each changed field is one entry under the name the JSON export uses. An SNMP community is shown only as `[set]`, and a change from one community to another is still reported.
 
 A rule that uses an alias stores only the alias name, so a change to what the alias contains is not a change to the rule. The `aliases` section reports it instead: aliases are paired by name, and each changed field gets its own entry. The fields are the alias's type, members and description, and on OPNsense whether it is enabled, its address families, the interface it tracks, its JSON path expression and its expire time. A legacy OPNsense `url` alias lists its URLs and the addresses it last fetched, since the release decides which of them the firewall loads.
 

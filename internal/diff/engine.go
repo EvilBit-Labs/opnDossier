@@ -132,7 +132,8 @@ func (e *Engine) computeRiskSummary(result *Result) RiskSummary {
 func (e *Engine) compareSection(section Section) []Change {
 	switch section {
 	case SectionSystem:
-		return e.analyzer.CompareSystem(&e.oldConfig.System, &e.newConfig.System)
+		return append(e.analyzer.CompareSystem(&e.oldConfig.System, &e.newConfig.System),
+			compareServiceSettings(e.oldConfig, e.newConfig)...)
 	case SectionFirewall:
 		return e.analyzer.CompareFirewallRules(e.oldConfig.FirewallRules, e.newConfig.FirewallRules)
 	case SectionNAT:
@@ -150,7 +151,9 @@ func (e *Engine) compareSection(section Section) []Change {
 		return e.analyzer.CompareRoutes(e.oldConfig.Routing, e.newConfig.Routing)
 	case SectionAliases:
 		return e.analyzer.CompareAliases(e.oldConfig, e.newConfig)
-	case SectionDNS, SectionVPN, SectionCertificates:
+	case SectionDNS:
+		return e.analyzer.CompareDNS(e.oldConfig.DNS, e.newConfig.DNS)
+	case SectionVPN, SectionCertificates:
 		// These sections are defined but not yet implemented
 		if e.logger != nil {
 			e.logger.Warn("section comparison not yet implemented", "section", section)
